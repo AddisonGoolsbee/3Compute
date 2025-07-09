@@ -29,7 +29,7 @@ export default function App() {
   if (!authed)
     return (
       <div className="h-screen w-screen flex items-center justify-center flex-col gap-4">
-        <div className="text-3xl font-bold tracking-wide">
+        <div className="text-3xl font-bold tracking-wider">
           Birdflop Server Access
         </div>
         <Login />
