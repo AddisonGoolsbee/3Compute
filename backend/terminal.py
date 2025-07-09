@@ -16,6 +16,8 @@ from flask_login import current_user
 
 from .docker import attach_to_container, spawn_container
 
+logger = logging.getLogger("terminal")
+
 socketio: SocketIO = None  # will be assigned in init
 # each user gets a single container. But if they have multiple tabs open, each session will get its own sid (resize properties etc)
 # user_id → container info
@@ -60,7 +62,7 @@ def read_and_forward_pty_output(sid, is_authed):
                 except (OSError, ValueError):
                     break
     finally:
-        logging.info(f"Stopping read thread for {sid}")
+        logger.info(f"Stopping read thread for {sid}")
 
 
 def handle_pty_input(data):
@@ -85,24 +87,24 @@ def handle_resize(data):
 
 def handle_connect():
     if not current_user.is_authenticated:
-        logging.warning("unauthenticated user tried to connect")
+        logger.warning("unauthenticated user tried to connect")
         return "Unauthorized", 401
 
     user_id = current_user.id
     sid = request.sid
-    logging.info(f"client {sid} connected")
+    logger.info(f"client {sid} connected")
 
     if user_id in user_containers:
         container_info = user_containers[user_id]
         proc, fd = attach_to_container(container_info["container_name"])
-        logging.info(f"Reusing container for user {user_id}")
+        logger.info(f"Reusing container for user {user_id}")
     else:
         master_fd, slave_fd = pty.openpty()
         container_name = f"user-container-{user_id}"
         proc = spawn_container(user_id, slave_fd, container_name)
         fd = master_fd
         user_containers[user_id] = {"child_pid": proc.pid, "container_name": container_name}
-        logging.info(f"Spawned new container for user {user_id}, pid {proc.pid}")
+        logger.info(f"Spawned new container for user {user_id}, pid {proc.pid}")
 
     session_map[sid] = {"fd": fd, "user_id": user_id}
     socketio.start_background_task(read_and_forward_pty_output, sid, True)
@@ -118,9 +120,9 @@ def handle_disconnect():
         try:
             os.close(session["fd"])
         except Exception as e:
-            logging.warning(f"Error closing PTY for {sid}: {e}")
+            logger.warning(f"Error closing PTY for {sid}: {e}")
         del session_map[sid]
-        logging.info(f"Cleaned up session for {sid}")
+        logger.info(f"Cleaned up session for {sid}")
 
         if user_id not in [s["user_id"] for s in session_map.values()]:
             info = user_containers.get(user_id)
@@ -133,13 +135,13 @@ def handle_disconnect():
                         stderr=subprocess.PIPE,
                         text=True,
                     )
-                    logging.info(f"Result: {result.returncode}")
+                    logger.info(f"Result: {result.returncode}")
                     if result.returncode != 0:
                         subprocess.run(["docker", "rm", "-f", container_name], check=True)
                         del user_containers[user_id]
-                        logging.info(f"Removed idle container {container_name}")
+                        logger.info(f"Removed idle container {container_name}")
                 except Exception as e:
-                    logging.warning(f"Error checking/removing container {container_name}: {e}")
+                    logger.warning(f"Error checking/removing container {container_name}: {e}")
 
 
 __all__ = ["init_terminal", "user_containers"]
