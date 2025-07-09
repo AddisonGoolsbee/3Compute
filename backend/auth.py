@@ -3,6 +3,9 @@ import os
 from flask import Blueprint, redirect, request
 from flask_login import LoginManager, login_user, logout_user, current_user, UserMixin
 from requests_oauthlib import OAuth2Session
+import logging
+
+logger = logging.getLogger("auth")
 
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
@@ -42,10 +45,18 @@ def callback():
         authorization_response=request.url,
     )
     user_info = google.get("https://www.googleapis.com/oauth2/v2/userinfo").json()
+
+    # Check if email is verified
+    if not user_info.get("verified_email", False):
+        logger.info(f"Rejected login attempt for unverified email: {user_info.get('email')} from IP {request.remote_addr}")
+        return redirect(f"{FRONTEND_ORIGIN}/login?error=email_not_verified") # need to define this error handling in frontend
+
     user = User(user_info["id"], user_info["email"])
     users[user.id] = user
     login_user(user)
+    logger.info(f"User {user.id} logged in from IP {request.remote_addr}")
     return redirect(f"{FRONTEND_ORIGIN}/terminal")
+
 
 
 @auth_bp.route("/logout")

@@ -5,12 +5,17 @@ import logging
 import os
 import signal
 import sys
+from .config.logging_config import configure_logging
+configure_logging() 
 
 from dotenv import load_dotenv
 
 os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"  # Only for localhost/dev
 load_dotenv()
+
 logging.getLogger("werkzeug").setLevel(logging.ERROR)
+logger = logging.getLogger("app")
+
 
 from flask import Flask
 from flask_cors import CORS
@@ -46,12 +51,10 @@ def main():
     parser.add_argument("--debug", action="store_true")
     args = parser.parse_args()
 
-    logging.basicConfig(
-        format="%(levelname)s (%(funcName)s:%(lineno)s) %(message)s",
-        stream=sys.stdout,
-        level=logging.DEBUG if args.debug else logging.INFO,
-    )
-    logging.info(f"serving on http://{args.host}:{args.port}")
+    if args.debug:
+        logging.getLogger().setLevel(logging.DEBUG)
+
+    logger.info(f"Serving on http://{args.host}:{args.port}")
 
     atexit.register(cleanup_containers, user_containers)
     signal.signal(signal.SIGTERM, lambda *_: sys.exit(0))

@@ -15,6 +15,8 @@ from flask_login import current_user
 
 from .docker import attach_to_container, spawn_container
 
+logger = logging.getLogger("terminal")
+
 socketio: SocketIO = None  # will be assigned in init
 # each user gets a single container. But if they have multiple tabs open, each session will get its own sid (resize properties etc)
 # user_id → container info
@@ -62,7 +64,7 @@ def read_and_forward_pty_output(sid, is_authed):
                 except (OSError, ValueError):
                     break
     finally:
-        logging.info(f"Stopping read thread for {sid}")
+        logger.info(f"Stopping read thread for {sid}")
 
 
 def handle_pty_input(data):
@@ -160,12 +162,12 @@ def _cancel_idle_poller(user_id: int):
 
 def handle_connect():
     if not current_user.is_authenticated:
-        logging.warning("unauthenticated user tried to connect")
+        logger.warning("unauthenticated user tried to connect")
         return "Unauthorized", 401
 
     user_id = current_user.id
     sid = request.sid
-    logging.info(f"client {sid} connected!")
+    logger.info(f"client {sid} connected")
 
     _cancel_idle_poller(user_id)
 
@@ -173,11 +175,11 @@ def handle_connect():
     if user_id not in user_containers:
         spawn_container(user_id, None, container_name)
         user_containers[user_id] = {"container_name": container_name}
-        logging.info(f"Spawned new container for user {user_id}")
+        logger.info(f"Spawned new container for user {user_id}")
 
     # Attach to tmux session in container
     proc, fd = attach_to_container(container_name)
-    logging.info(f"Attached to tmux in container for user {user_id}")
+    logger.info(f"Attached to tmux in container for user {user_id}")
 
     session_map[sid] = {"fd": fd, "user_id": user_id}
     socketio.start_background_task(read_and_forward_pty_output, sid, True)
