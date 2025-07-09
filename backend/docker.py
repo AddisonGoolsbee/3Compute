@@ -107,7 +107,7 @@ def attach_to_container(container_name):
         "exec",
         "-it",
         container_name,
-        "bash",
+        "sh",
         "-lc",
         "tmux new-session -d -A -s paas; tmux attach -t paas",
     ]
