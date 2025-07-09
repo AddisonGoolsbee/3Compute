@@ -19,26 +19,19 @@ export default function App() {
     checkAuth();
   }, []);
 
-  if (authed === null)
-    return (
-      <div className="h-screen w-screen flex items-center justify-center">
+  return (
+    <div className="min-h-screen min-w-screen flex flex-col items-center justify-center">
+      {authed === null && <div className="flex gap-4 items-center text-3xl font-bold">
+        <div className="lum-loading animate-spin w-8 h-8 border-6"></div>
         Loading...
-      </div>
-    );
-
-  if (!authed)
-    return (
-      <div className="h-screen w-screen flex items-center justify-center flex-col gap-4">
-        <div className="text-3xl font-bold tracking-wide">
+      </div>}
+      {authed === false && <>
+        <div className="text-3xl font-bold tracking-wider mb-4">
           Birdflop Server Access
         </div>
         <Login />
-      </div>
-    );
-
-  return (
-    <div className="h-screen w-screen flex flex-col items-center justify-center">
-      <Terminal />
+      </>}
+      {authed === true && <Terminal />}
     </div>
   );
 }

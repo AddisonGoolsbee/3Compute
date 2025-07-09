@@ -9,8 +9,8 @@ Birdflop service for free educational server usage. Called PaaS for no particula
 ### Frontend
 
 - `cd frontend`
-- `npm i` to install dependencies
-- `npm run dev`
+- `pnpm i` to install dependencies
+- `pnpm dev`
 
 ### Backend
 

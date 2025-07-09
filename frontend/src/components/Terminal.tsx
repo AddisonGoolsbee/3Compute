@@ -1,9 +1,9 @@
 import { useEffect, useRef } from "react";
-import { Terminal } from "xterm";
-import { WebLinksAddon } from "xterm-addon-web-links";
-import { SearchAddon } from "xterm-addon-search";
-import "xterm/css/xterm.css";
-import { FitAddon } from "xterm-addon-fit";
+import { Terminal } from "@xterm/xterm";
+import { WebLinksAddon } from "@xterm/addon-web-links";
+import { SearchAddon } from "@xterm/addon-search";
+import "@xterm/xterm/css/xterm.css";
+import { FitAddon } from "@xterm/addon-fit";
 import { io, Socket } from "socket.io-client";
 
 import UploadButton from "./UploadButton";
@@ -70,14 +70,14 @@ export default function TerminalComponent() {
         <UploadButton />
         <button
           onClick={handleLogout}
-          className="mb-2 px-4 py-1 rounded bg-red-500 text-white"
+          className="lum-btn lum-bg-red-800"
         >
           Logout
         </button>
       </div>
       <div
         ref={terminalRef}
-        className="border border-gray-300 rounded-sm py-1 px-2 bg-black w-full h-2/3 mx-2 sm:mx-4"
+        className="lum-bg-black rounded-lum p-0.5 w-full mx-2 sm:mx-4"
       />
     </div>
   );
