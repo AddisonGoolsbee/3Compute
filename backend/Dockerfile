@@ -1,13 +1,23 @@
 FROM python:3.11-slim
 
-RUN useradd -m myuser && mkdir /app && chown myuser:myuser /app
+# Install tini and other dependencies
+USER root
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+       python3 python3-pip \
+       tini \
+       tmux \
+    && ln -s /usr/bin/python3 /usr/bin/python \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    python3 python3-pip && \
-    ln -s /usr/bin/python3 /usr/bin/python && \
-    apt-get clean && rm -rf /var/lib/apt/lists/*
+# Create non-root user and app dir
+RUN useradd -m myuser \
+    && mkdir /app \
+    && chown myuser:myuser /app
 
 USER myuser
 WORKDIR /app
 
-CMD ["bash"]
+ENTRYPOINT ["/usr/bin/tini", "--"]
+CMD ["sleep", "infinity"]
