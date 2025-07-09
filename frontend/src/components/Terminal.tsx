@@ -77,7 +77,7 @@ export default function TerminalComponent() {
       </div>
       <div
         ref={terminalRef}
-        className="lum-bg-black rounded-lum p-0.5 w-full mx-2 sm:mx-4"
+        className="lum-bg-black rounded-lum p-1 w-full mx-2 sm:mx-4 border border-gray-400"
       />
     </div>
   );
