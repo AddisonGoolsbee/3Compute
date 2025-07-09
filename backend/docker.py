@@ -67,13 +67,12 @@ def spawn_container(user_id, slave_fd, container_name):
     cmd = [
         "docker",
         "run",
+        "-d",
+        "--rm",
         "--name",
         container_name,
         "--hostname",
         "paas",
-        "-i",
-        "-t",
-        # TODO: delete the container once you exit and nothing is running (maybe just --rm)
         "--network=isolated_net",  # prevent containers from accessing other containers or host, but allows internet
         "--cap-drop=ALL",  # prevent a bunch of admin linux stuff
         "--user=1000:1000",  # login as a non-root user
@@ -92,22 +91,26 @@ def spawn_container(user_id, slave_fd, container_name):
         "-v",
         f"/tmp/paas_uploads/{user_id}:/app",
         "paas",
-        "bash",
     ]
 
-    proc = subprocess.Popen(cmd, stdin=slave_fd, stdout=slave_fd, stderr=slave_fd, close_fds=True)
-    return proc
+    # proc = subprocess.Popen(cmd, stdin=slave_fd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    # return proc
+    subprocess.run(cmd, check=True)
+    return None
 
 
 def attach_to_container(container_name):
     master_fd, slave_fd = pty.openpty()
-    proc = subprocess.Popen(
-        ["docker", "exec", "-it", container_name, "bash"],
-        stdin=slave_fd,
-        stdout=slave_fd,
-        stderr=slave_fd,
-        close_fds=True,
-    )
+    cmd = [
+        "docker",
+        "exec",
+        "-it",
+        container_name,
+        "bash",
+        "-lc",
+        "tmux new-session -d -A -s paas; tmux attach -t paas",
+    ]
+    proc = subprocess.Popen(cmd, stdin=slave_fd, stdout=slave_fd, stderr=slave_fd, close_fds=True)
     return proc, master_fd
 
 
