@@ -84,6 +84,7 @@ def handle_resize(data):
         fd = session_map[sid]["fd"]
         set_winsize(fd, data["rows"], data["cols"])
 
+
 # Polls containers with no active users to see if they're idle e.g. no processes other than infra processes are running
 def _start_idle_poller(user_id: int):
     # If there’s already a timer, cancel it
@@ -171,8 +172,9 @@ def handle_connect():
 
     container_name = f"user-container-{user_id}"
     if user_id not in user_containers:
-        spawn_container(user_id, None, container_name)
-        user_containers[user_id] = {"container_name": container_name}
+        port_range = current_user.port_range
+        spawn_container(user_id, None, container_name, port_range)
+        user_containers[user_id] = {"container_name": container_name, "port_range": port_range}
         logging.info(f"Spawned new container for user {user_id}")
 
     # Attach to tmux session in container

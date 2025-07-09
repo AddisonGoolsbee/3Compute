@@ -63,7 +63,7 @@ def setup_isolated_network(network_name="isolated_net"):
         print(f"Failed to block host communication: {str(e)}")
 
 
-def spawn_container(user_id, slave_fd, container_name):
+def spawn_container(user_id, slave_fd, container_name, port_range=None):
     cmd = [
         "docker",
         "run",
@@ -90,8 +90,12 @@ def spawn_container(user_id, slave_fd, container_name):
         # TODO: disk limit, perhaps by making everything read-only and adding a volume?
         "-v",
         f"/tmp/paas_uploads/{user_id}:/app",
-        "paas",
     ]
+
+    if port_range:
+        cmd.extend(["-p", f"{port_range[0]}-{port_range[1]}:{port_range[0]}-{port_range[1]}"])
+
+    cmd.append("paas")
 
     # proc = subprocess.Popen(cmd, stdin=slave_fd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     # return proc
