@@ -4,6 +4,8 @@ Birdflop service for free educational server usage. Called PaaS for no particula
 
 ## Development
 
+- Make sure you have a `.env` file in the `backend` folder
+
 ### Frontend
 
 - `cd frontend`
@@ -14,5 +16,5 @@ Birdflop service for free educational server usage. Called PaaS for no particula
 
 - Make sure you have `Docker` installed and running.
 - `python -m venv .venv && source .venv/bin/activate && pip install -r backend/requirements.txt` to setup and install dependencies
+- `docker build -t paas:latest backend` to build the docker image
 - `python -m backend` to run the backend
-- `docker build -t paas:latest backend` to rebuild the docker image
