@@ -3,5 +3,5 @@
 @import "@luminescent/ui";
 
 @theme {
-  --color-bg: var(--color-gray-950);
+  --color-bg: var(--color-gray-800);
 }
