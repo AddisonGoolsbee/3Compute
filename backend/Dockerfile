@@ -1,17 +1,17 @@
-FROM python:3.11-slim
+FROM python:3.12-alpine
 
-# Install tini and other dependencies
+# Install tini, tmux, and other dependencies using Alpine's package manager
 USER root
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends \
-       python3 python3-pip \
-       tini \
-       tmux \
-    && ln -s /usr/bin/python3 /usr/bin/python \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+RUN apk update && apk add --no-cache \
+    tini \
+    tmux \
+    python3 \
+    py3-pip \
+    shadow \
+    nano \
+ && ln -sf python3 /usr/bin/python
 
-# Create non-root user and app dir
+# Create a non-root user and app dir
 RUN useradd -m myuser \
     && mkdir /app \
     && chown myuser:myuser /app
@@ -19,5 +19,5 @@ RUN useradd -m myuser \
 USER myuser
 WORKDIR /app
 
-ENTRYPOINT ["/usr/bin/tini", "--"]
+ENTRYPOINT ["/sbin/tini", "--"]
 CMD ["sleep", "infinity"]

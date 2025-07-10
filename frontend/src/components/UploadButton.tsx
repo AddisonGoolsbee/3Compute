@@ -40,10 +40,16 @@ export default function UploadButton() {
   return (
     <>
       <div className="flex gap-4 mb-2 items-center">
-        <button onClick={handleFileClick} className="lum-btn">
+        <button
+          onClick={handleFileClick}
+          className="lum-btn lum-bg-gray-700 hover:lum-bg-gray-600"
+        >
           Upload Files
         </button>
-        <button onClick={handleFolderClick} className="lum-btn">
+        <button
+          onClick={handleFolderClick}
+          className="lum-btn lum-bg-gray-700 hover:lum-bg-gray-600"
+        >
           Upload Folder
         </button>
         <div
