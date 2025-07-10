@@ -21,8 +21,8 @@ export default function UploadButton() {
     });
 
     const endpoint = isFolder
-      ? `${backendUrl}/upload-folder`
-      : `${backendUrl}/upload`;
+      ? `${backendUrl}/api/upload-folder`
+      : `${backendUrl}/api/upload`;
 
     const res = await fetch(endpoint, {
       method: "POST",
