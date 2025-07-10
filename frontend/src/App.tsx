@@ -34,7 +34,7 @@ export default function App() {
   return (
     <>
       <Nav authed={authed} />
-      <div className="min-h-screen flex flex-col items-center justify-center">
+      <div className="min-h-screen flex flex-col items-center justify-center ">
         {authed === null && (
           <div className="lum-loading animate-spin w-8 h-8 border-6"></div>
         )}
