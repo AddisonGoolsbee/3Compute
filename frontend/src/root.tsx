@@ -40,7 +40,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <Links />
         <title>3Compute</title>
       </head>
-      <body className="bg-bg text-lum-text mt-10">
+      <body className="bg-bg text-lum-text mt-20">
         <NavComponent userInfo={userInfo} />
         {children}
         <Scripts />
