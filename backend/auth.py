@@ -62,7 +62,7 @@ def callback():
     users[user.id] = user
     login_user(user)
     logger.info(f"User {user.id} logged in from IP {request.remote_addr}")
-    return redirect(f"{FRONTEND_ORIGIN}/terminal")
+    return redirect(f"{FRONTEND_ORIGIN}/")
 
 
 
