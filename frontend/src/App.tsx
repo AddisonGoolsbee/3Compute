@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import Nav from "./components/Nav";
 import Terminal from "./components/Terminal";
 import Login from "./components/Login";
 
@@ -19,19 +20,12 @@ export default function App() {
     checkAuth();
   }, []);
 
-  return (
-    <div className="min-h-screen min-w-screen flex flex-col items-center justify-center">
-      {authed === null && <div className="flex gap-4 items-center text-3xl font-bold">
-        <div className="lum-loading animate-spin w-8 h-8 border-6"></div>
-        Loading...
-      </div>}
-      {authed === false && <>
-        <div className="text-3xl font-bold tracking-wider mb-4">
-          Birdflop Server Access
-        </div>
-        <Login />
-      </>}
+  return <>
+    <Nav authed={authed} />
+    <div className="min-h-screen flex flex-col items-center justify-center">
+      {authed === null && <div className="lum-loading animate-spin w-8 h-8 border-6"></div>}
+      {authed === false && <Login />}
       {authed === true && <Terminal />}
     </div>
-  );
+  </>;
 }
