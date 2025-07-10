@@ -23,7 +23,7 @@ socketio: SocketIO = None  # will be assigned in init
 user_containers = {}
 # sid → container info + fd
 session_map = {}
-POLL_INTERVAL = 10
+POLL_INTERVAL = 4
 # Active cleanup timers per user
 _cleanup_timers: dict[int, threading.Event] = {}
 
@@ -135,13 +135,14 @@ def _start_idle_poller(user_id: int):
             for proc_line in lines[1:]:
                 cols = proc_line.split(None, len(header_cols) - 1)
                 cmd_str = cols[cmd_idx]
-                logger.debug(f"cmd: {cmd_str}")
+                # logger.debug(f"cmd: {cmd_str}")
 
                 # POLLER IGNORE LIST — these are the processes we know are NOT the user's
                 if (
                     cmd_str.startswith("/sbin/tini")
                     or cmd_str.startswith("tmux ")
                     or cmd_str.startswith("-sh")
+                    or cmd_str.startswith("sh")
                     or cmd_str.startswith("-ash")
                     or cmd_str == "sleep infinity"
                     or cmd_str == "bash"
