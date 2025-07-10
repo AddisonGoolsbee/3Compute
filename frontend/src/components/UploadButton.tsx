@@ -1,5 +1,7 @@
-import { Files, Folder } from "lucide-react";
+import { Files, Folder, Upload } from "lucide-react";
 import { useRef, useState } from "react";
+// @ts-expect-error types not working yet
+import { SelectMenuRaw } from "@luminescent/ui-react";
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
@@ -40,30 +42,41 @@ export default function UploadButton() {
 
   return (
     <>
-      <div className="flex gap-4 mb-2 items-center">
-        <button
-          onClick={handleFileClick}
-          className="lum-btn lum-bg-gray-700 hover:lum-bg-gray-600"
-        >
-          <Files size={20} />
-          Upload Files
-        </button>
-        <button
-          onClick={handleFolderClick}
-          className="lum-btn lum-bg-gray-700 hover:lum-bg-gray-600"
-        >
-          <Folder size={20} />
-          Upload Folder
-        </button>
-        <div
-          className={`${
-            status?.toLowerCase().includes("fail")
-              ? "text-red-600"
-              : "text-green-600"
-          }`}
-        >
-          {status}
-        </div>
+      <SelectMenuRaw
+        id="upload"
+        className="lum-btn-p-1 rounded-lum-1 gap-1 text-xs"
+        customDropdown
+        dropdown={
+          <div className="flex items-center gap-1">
+            <Upload size={16} />
+            Upload..
+          </div>
+        }
+        extra-buttons={<>
+          <button
+            onClick={handleFileClick}
+            className="lum-btn lum-btn-p-1 rounded-lum-1 gap-1 text-xs lum-bg-transparent"
+          >
+            <Files size={16} />
+            Files
+          </button>
+          <button
+            onClick={handleFolderClick}
+            className="lum-btn lum-btn-p-1 rounded-lum-1 gap-1 text-xs lum-bg-transparent"
+          >
+            <Folder size={16} />
+            Folder
+          </button>
+        </>}
+      />
+      <div
+        className={`${
+          status?.toLowerCase().includes("fail")
+            ? "text-red-600"
+            : "text-green-600"
+        }`}
+      >
+        {status}
       </div>
 
       <input

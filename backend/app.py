@@ -69,7 +69,7 @@ def main():
     signal.signal(signal.SIGINT, lambda *_: sys.exit(0))
 
     setup_isolated_network()
-    os.makedirs("/tmp/paas_uploads", exist_ok=True)
+    os.makedirs("/tmp/uploads", exist_ok=True)
     socketio.run(app, debug=args.debug, port=args.port, host=args.host)
 
 

@@ -73,7 +73,7 @@ def spawn_container(user_id, slave_fd, container_name, port_range=None):
         "--name",
         container_name,
         "--hostname",
-        "paas",
+        "3compute",
         "--network=isolated_net",  # prevent containers from accessing other containers or host, but allows internet
         "--cap-drop=ALL",  # prevent a bunch of admin linux stuff
         "--user=1000:1000",  # login as a non-root user
@@ -90,13 +90,13 @@ def spawn_container(user_id, slave_fd, container_name, port_range=None):
         # TODO: bandwidth limit
         # TODO: disk limit, perhaps by making everything read-only and adding a volume?
         "-v",
-        f"/tmp/paas_uploads/{user_id}:/app",
+        f"/tmp/uploads/{user_id}:/app",
     ]
 
     if port_range:
         cmd.extend(["-p", f"{port_range[0]}-{port_range[1]}:{port_range[0]}-{port_range[1]}"])
 
-    cmd.append("paas")
+    cmd.append("3compute")
 
     logger.info(f"[{user_id}] Attempting to spawn container '{container_name}' with cmd: {' '.join(cmd)}")
 
@@ -112,7 +112,7 @@ def attach_to_container(container_name):
     master_fd, slave_fd = pty.openpty()
     cmd = [
         "docker", "exec", "-it", container_name,
-        "sh", "-lc", "tmux new-session -d -A -s paas; tmux attach -t paas",
+        "sh", "-lc", "tmux new-session -d -A -s 3compute; tmux attach -t 3compute",
     ]
     logger.info(f"Attaching to container '{container_name}' with tmux session")
     try:

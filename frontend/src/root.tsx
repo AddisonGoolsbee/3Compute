@@ -33,13 +33,15 @@ export function Layout({ children }: { children: React.ReactNode }) {
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+        <link rel="icon" type="image/png" href="/icon.png" />
+        <link rel="apple-touch-icon" href="/icon.png" />
         <Meta />
         <Links />
-        <title>PaaS</title>
+        <title>3Compute</title>
       </head>
-      <body className="bg-bg text-lum-text mt-10">
+      <body className="bg-bg text-lum-text mt-20">
         <NavComponent userInfo={userInfo} />
-        {/* children will be the root Component, ErrorBoundary, or HydrateFallback */}
         {children}
         <Scripts />
         <ScrollRestoration />
