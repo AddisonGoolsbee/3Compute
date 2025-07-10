@@ -1,6 +1,7 @@
 from flask import Blueprint, request
 from flask_login import current_user
 import os
+import subprocess
 
 upload_bp = Blueprint("upload", __name__)
 
@@ -42,6 +43,31 @@ def upload_folder():
             continue  # prevent directory traversal
         os.makedirs(os.path.dirname(safe_path), exist_ok=True)
         f.save(safe_path)
+
+    # Check if move-into parameter is provided
+    move_into = request.form.get("move-into")
+    if move_into:
+        # Execute cd command in the user's container using tmux send-keys
+        container_name = f"user-container-{user_id}"
+        try:
+            # Use tmux send-keys to send the cd command to the active tmux session
+            subprocess.run(
+                [
+                    "docker",
+                    "exec",
+                    container_name,
+                    "tmux",
+                    "send-keys",
+                    "-t",
+                    "3compute",
+                    f"cd /app/{move_into}",
+                    "Enter",
+                ],
+                check=True,
+            )
+        except subprocess.CalledProcessError as e:
+            # If the directory doesn't exist or cd fails, continue without error
+            pass
 
     return "Folder uploaded successfully", 200
 

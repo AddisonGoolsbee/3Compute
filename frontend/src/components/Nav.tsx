@@ -3,7 +3,9 @@ import { Nav, LogoBirdflop } from "@luminescent/ui-react";
 import { LogOut } from "lucide-react";
 import { Link } from "react-router";
 import { UserInfo } from "../root";
-const backendUrl = import.meta.env.VITE_BACKEND_URL;
+const backendUrl = import.meta.env.VITE_ENVIRONMENT === "production"
+  ? import.meta.env.VITE_PROD_BACKEND_URL
+  : import.meta.env.VITE_BACKEND_URL;
 
 export default function NavComponent({ userInfo }: { userInfo?: UserInfo }) {
   const handleLogout = async () => {
