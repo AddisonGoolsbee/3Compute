@@ -12,11 +12,11 @@ importers:
         specifier: ^13.4.0
         version: 13.4.0(react@19.1.0)
       '@luminescent/ui':
-        specifier: 5.0.1-0
-        version: 5.0.1-0
+        specifier: 5.0.1-2
+        version: 5.0.1-2
       '@luminescent/ui-react':
-        specifier: 5.0.1-0
-        version: 5.0.1-0(@luminescent/ui@5.0.1-0)
+        specifier: 5.0.1-2
+        version: 5.0.1-2(@luminescent/ui@5.0.1-2)
       '@tailwindcss/vite':
         specifier: ^4.1.11
         version: 4.1.11(vite@7.0.3(jiti@2.4.2)(lightningcss@1.30.1))
@@ -414,14 +414,14 @@ packages:
   '@jridgewell/trace-mapping@0.3.29':
     resolution: {integrity: sha512-uw6guiW/gcAGPDhLmd77/6lW8QLeiV5RUTsAX46Db6oLhGaVj4lhnPwb184s1bkc8kdVg/+h988dro8GRDpmYQ==}
 
-  '@luminescent/ui-react@5.0.1-0':
-    resolution: {integrity: sha512-1hB4p5Bw0g7SMQ5geA5Lfl8d29Kw1lVsQ10icINUT2kSJXkTrCR9VQkr6Q9ZVohzQiqTi3Ywz1/o2Ci63cXOcQ==}
+  '@luminescent/ui-react@5.0.1-2':
+    resolution: {integrity: sha512-wx9TWBj89rTYkiwj2Tw7qbCStw/NqhUMVipyLpkw/e1tYN72QUsLXlG8YlkVjnP15wIqRbn4jIRUjxumWNMbrg==}
     engines: {node: '>=23.11.0', npm: please-use-pnpm, pnpm: '>=10.10.0', yarn: please-use-pnpm}
     peerDependencies:
-      '@luminescent/ui': 5.0.1-0
+      '@luminescent/ui': 5.0.1-2
 
-  '@luminescent/ui@5.0.1-0':
-    resolution: {integrity: sha512-ouHhDVte32A3bP7BcSsO1q/wTv3KGjq2/FzSRO8D5Xb01JfDaS4L+qTyWwKcRQ+TrJHIirBazMvJauyal8fvGw==}
+  '@luminescent/ui@5.0.1-2':
+    resolution: {integrity: sha512-lN0iRPDg6un3Y6Z7iGCqz4IJS9HA8oaLuWxijvBaUgV67cAbrK8qMdjLnz4ooOzrJB6yyc+ZHRJ4q5DyijTVSQ==}
     engines: {node: '>=23.11.0', npm: please-use-pnpm, pnpm: '>=10.10.0', yarn: please-use-pnpm}
 
   '@nodelib/fs.scandir@2.1.5':
@@ -1731,14 +1731,14 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.4
 
-  '@luminescent/ui-react@5.0.1-0(@luminescent/ui@5.0.1-0)':
+  '@luminescent/ui-react@5.0.1-2(@luminescent/ui@5.0.1-2)':
     dependencies:
-      '@luminescent/ui': 5.0.1-0
+      '@luminescent/ui': 5.0.1-2
       lucide-react: 0.525.0(react@19.1.0)
       react: 19.1.0
       react-dom: 19.1.0(react@19.1.0)
 
-  '@luminescent/ui@5.0.1-0': {}
+  '@luminescent/ui@5.0.1-2': {}
 
   '@nodelib/fs.scandir@2.1.5':
     dependencies:
