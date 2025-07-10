@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 // @ts-expect-error types not working yet
 import { SelectMenuRaw } from "@luminescent/ui-react";
-import { UserInfo } from "../App";
+import { UserInfo } from "../root";
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
