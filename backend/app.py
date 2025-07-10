@@ -23,7 +23,7 @@ from flask_socketio import SocketIO
 from flask_login import LoginManager
 
 from .auth import auth_bp, load_user
-from .upload import upload_bp
+from .files import upload_bp
 from .terminal import init_terminal, user_containers
 from .docker import cleanup_containers, setup_isolated_network
 

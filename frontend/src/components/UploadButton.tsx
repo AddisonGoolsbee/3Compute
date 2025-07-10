@@ -1,3 +1,4 @@
+import { Files, Folder } from "lucide-react";
 import { useRef, useState } from "react";
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
@@ -44,12 +45,14 @@ export default function UploadButton() {
           onClick={handleFileClick}
           className="lum-btn lum-bg-gray-700 hover:lum-bg-gray-600"
         >
+          <Files size={20} />
           Upload Files
         </button>
         <button
           onClick={handleFolderClick}
           className="lum-btn lum-bg-gray-700 hover:lum-bg-gray-600"
         >
+          <Folder size={20} />
           Upload Folder
         </button>
         <div

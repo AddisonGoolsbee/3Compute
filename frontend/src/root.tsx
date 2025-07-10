@@ -37,7 +37,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <Links />
         <title>PaaS</title>
       </head>
-      <body className="bg-bg text-lum-text mt-15">
+      <body className="bg-bg text-lum-text mt-10">
         <NavComponent userInfo={userInfo} />
         {/* children will be the root Component, ErrorBoundary, or HydrateFallback */}
         {children}

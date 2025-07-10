@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 // @ts-expect-error types not working yet
 import { SelectMenuRaw } from "@luminescent/ui-react";
 import { UserInfo } from "../root";
+import { LayoutTemplate } from "lucide-react";
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
@@ -102,6 +103,7 @@ export default function TemplatePicker({ userInfo }: { userInfo: UserInfo }) {
       )}
       <SelectMenuRaw
         id="template-select"
+        className="lum-bg-blue-700 hover:lum-bg-blue-600"
         value={selected}
         onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
           const templateName = e.target.value;
@@ -115,8 +117,13 @@ export default function TemplatePicker({ userInfo }: { userInfo: UserInfo }) {
           value: name,
         }))}
         customDropdown
-        dropdown={"Use a template"}
-      ></SelectMenuRaw>
+        dropdown={
+          <div className="flex items-center gap-2">
+            <LayoutTemplate size={20} />
+            Use a template
+          </div>
+        }
+      />
     </div>
   );
 }
