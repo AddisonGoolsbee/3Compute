@@ -44,3 +44,25 @@ def upload_folder():
         f.save(safe_path)
 
     return "Folder uploaded successfully", 200
+
+
+@upload_bp.route("/list-files", methods=["GET"])
+def list_files():
+    if not current_user.is_authenticated:
+        return "Unauthorized", 401
+
+    user_id = current_user.id
+    upload_dir = f"/tmp/paas_uploads/{user_id}"
+
+    if not os.path.exists(upload_dir):
+        return {"files": []}, 200
+
+    file_tree = []
+
+    for root, dirs, files in os.walk(upload_dir):
+        for name in files:
+            full_path = os.path.join(root, name)
+            relative_path = os.path.relpath(full_path, upload_dir)
+            file_tree.append(relative_path)
+
+    return {"files": file_tree}, 200
