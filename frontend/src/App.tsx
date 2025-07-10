@@ -4,14 +4,25 @@ import Login from "./components/Login";
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
+export interface UserInfo {
+  email: string;
+  port_start: number;
+  port_end: number;
+}
+
 export default function App() {
   const [authed, setAuthed] = useState<boolean | null>(null);
+  const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
 
   useEffect(() => {
     const checkAuth = async () => {
       try {
         const res = await fetch(`${backendUrl}/me`, { credentials: "include" });
         setAuthed(res.ok);
+        if (res.ok) {
+          const userInfo: UserInfo = await res.json();
+          setUserInfo(userInfo);
+        }
       } catch {
         setAuthed(false);
       }
@@ -31,7 +42,7 @@ export default function App() {
         </div>
         <Login />
       </>}
-      {authed === true && <Terminal />}
+      {authed === true && userInfo && <Terminal userInfo={userInfo} />}
     </div>
   );
 }

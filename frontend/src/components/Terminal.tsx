@@ -7,10 +7,11 @@ import { FitAddon } from "@xterm/addon-fit";
 import { io, Socket } from "socket.io-client";
 
 import UploadButton from "./UploadButton";
+import { UserInfo } from "../App";
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
-export default function TerminalComponent() {
+export default function TerminalComponent({ userInfo }: { userInfo: UserInfo }) {
   const terminalRef = useRef<HTMLDivElement>(null);
   const socketRef = useRef<Socket>(null);
 
@@ -79,6 +80,9 @@ export default function TerminalComponent() {
         ref={terminalRef}
         className="lum-bg-black rounded-lum p-1 w-full mx-2 sm:mx-4 border border-gray-400"
       />
+      <div className="text-sm text-gray-500">
+        Your available port range: {userInfo.port_start}-{userInfo.port_end}
+      </div>
     </div>
   );
 }

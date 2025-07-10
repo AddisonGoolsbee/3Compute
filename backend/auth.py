@@ -74,5 +74,5 @@ def logout():
 @auth_bp.route("/me")
 def me():
     if current_user.is_authenticated:
-        return {"email": current_user.email}
+        return {"email": current_user.email, "port_start": current_user.port_start, "port_end": current_user.port_end}
     return {"error": "unauthenticated"}, 401
