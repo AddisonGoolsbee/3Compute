@@ -14,13 +14,6 @@ export default function TerminalComponent() {
   const terminalRef = useRef<HTMLDivElement>(null);
   const socketRef = useRef<Socket>(null);
 
-  const handleLogout = async () => {
-    await fetch(`${backendUrl}/logout`, {
-      credentials: "include",
-    });
-    window.location.href = "/";
-  };
-
   useEffect(() => {
     if (!terminalRef.current) return;
 
@@ -68,12 +61,6 @@ export default function TerminalComponent() {
     <div className="w-[calc(100%-2rem)] md:w-full max-w-screen-md h-full flex flex-col items-center justify-center">
       <div className="w-full flex justify-between items-center mb-4">
         <UploadButton />
-        <button
-          onClick={handleLogout}
-          className="lum-btn lum-bg-red-800"
-        >
-          Logout
-        </button>
       </div>
       <div
         ref={terminalRef}
