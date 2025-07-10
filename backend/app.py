@@ -31,7 +31,15 @@ from .docker import cleanup_containers, setup_isolated_network
 app = Flask(__name__, template_folder=".", static_folder=".", static_url_path="")
 app.config["SECRET_KEY"] = os.getenv("FLASK_SECRET")
 
-FRONTEND_ORIGIN = os.getenv("FRONTEND_ORIGIN_DEV")
+if os.getenv("FLASK_ENV") == "production":
+    logger.debug("Running in production mode")
+    FRONTEND_ORIGIN = os.getenv("FRONTEND_ORIGIN_PROD")
+else:
+    # Default to development settings
+    if not os.getenv("FRONTEND_ORIGIN_DEV"):
+        raise ValueError("FRONTEND_ORIGIN_DEV environment variable is not set.")
+    FRONTEND_ORIGIN = os.getenv("FRONTEND_ORIGIN_DEV")
+
 CORS(app, origins=[FRONTEND_ORIGIN], supports_credentials=True)
 socketio = SocketIO(app, cors_allowed_origins=[FRONTEND_ORIGIN], manage_session=False)
 

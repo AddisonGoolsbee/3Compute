@@ -9,8 +9,15 @@ logger = logging.getLogger("auth")
 
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
-REDIRECT_URI = os.getenv("REDIRECT_URI_DEV")
-FRONTEND_ORIGIN = os.getenv("FRONTEND_ORIGIN_DEV")
+if os.getenv("FLASK_ENV") == "production":
+    logger.debug("Running in production mode")
+    REDIRECT_URI = os.getenv("REDIRECT_URI_PROD")
+    FRONTEND_ORIGIN = os.getenv("FRONTEND_ORIGIN_PROD")
+else:
+    if not os.getenv("FRONTEND_ORIGIN_DEV") or not os.getenv("REDIRECT_URI_DEV"):
+        raise ValueError("FRONTEND_ORIGIN_DEV or REDIRECT_URI_DEV environment variable is not set.")
+    FRONTEND_ORIGIN = os.getenv("FRONTEND_ORIGIN_DEV")
+    REDIRECT_URI = os.getenv("REDIRECT_URI_DEV")
 
 auth_bp = Blueprint("auth", __name__)
 
