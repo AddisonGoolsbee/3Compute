@@ -9,4 +9,10 @@ def root():
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8000)
+    from waitress import serve
+
+    host = "0.0.0.0"
+    port = 8000
+
+    print(f"🚀 Website is up! Listening on http://{host}:{port}")
+    serve(app, host=host, port=port)

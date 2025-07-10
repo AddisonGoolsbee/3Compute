@@ -1,4 +1,14 @@
 {
-  "Website": ["index.html", "main.py", "README.md", "requirements.txt"],
-  "Discord-Bot": ["main.py", "README.md", "requirements.txt"]
+  "Website": [
+    "main.py",
+    "index.html",
+    "style.css",
+    "README.md",
+    "requirements.txt"
+  ],
+  "Discord-Bot": [
+    "main.py",
+    "README.md",
+    "requirements.txt"
+  ]
 }
