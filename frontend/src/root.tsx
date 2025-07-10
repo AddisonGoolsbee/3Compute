@@ -38,11 +38,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <link rel="apple-touch-icon" href="/icon.png" />
         <Meta />
         <Links />
-        <title>PaaS</title>
+        <title>3Compute</title>
       </head>
       <body className="bg-bg text-lum-text mt-10">
         <NavComponent userInfo={userInfo} />
-        {/* children will be the root Component, ErrorBoundary, or HydrateFallback */}
         {children}
         <Scripts />
         <ScrollRestoration />
