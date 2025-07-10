@@ -214,13 +214,13 @@ def handle_disconnect():
 def new_window(data):
     container = user_containers[current_user.id]["container_name"]
     win = data["windowIndex"]
-    subprocess.run(["docker", "exec", container, "tmux", "new-window", "-t", f"paas:{win}", "-n", win], check=False)
+    subprocess.run(["docker", "exec", container, "tmux", "new-window", "-t", f"3compute:{win}", "-n", win], check=False)
 
 
 def select_window(data):
     container = user_containers[current_user.id]["container_name"]
     win = data["windowIndex"]
-    subprocess.run(["docker", "exec", container, "tmux", "select-window", "-t", f"paas:{win}"], check=False)
+    subprocess.run(["docker", "exec", container, "tmux", "select-window", "-t", f"3compute:{win}"], check=False)
 
 
 __all__ = ["init_terminal", "user_containers"]
