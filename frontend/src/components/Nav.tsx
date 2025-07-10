@@ -21,7 +21,7 @@ export default function NavComponent({ userInfo }: { userInfo?: UserInfo }) {
           className="lum-btn lum-bg-transparent hover:lum-bg-nav-bg"
         >
           <LogoBirdflop size={24} fillGradient={["#54daf4", "#545eb6"]} />
-          <span className="font-semibold -ml-1">paas</span>
+          <span className="font-semibold -ml-1">3Compute</span>
         </Link>
       }
       center={
