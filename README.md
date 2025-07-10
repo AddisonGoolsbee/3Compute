@@ -21,9 +21,9 @@ Birdflop service for free educational server usage, with templates such as disco
 
 
 #### Productionization (Debian 12)
-- github/paas deploy key in /root/.ssh/id_rsa
+- github/3compute deploy key in /root/.ssh/id_rsa
 - mkdir /var/www && cd /var/www
-- git clone git@github.com:birdflop/paas.git
+- git clone git@github.com:birdflop/3compute.git
 
 # Add Docker's official GPG key:
 ```
@@ -48,7 +48,7 @@ sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin 
 sudo docker run hello-world
 ```
 
-`docker build -t paas:latest backend`
+`docker build -t 3compute:latest backend`
 
 ```
 sudo apt install tmux
