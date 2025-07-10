@@ -3,12 +3,22 @@ import os
 from flask import Blueprint, redirect, request
 from flask_login import login_user, logout_user, current_user, UserMixin
 from requests_oauthlib import OAuth2Session
+import logging
+
+logger = logging.getLogger("auth")
 
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
-REDIRECT_URI = os.getenv("REDIRECT_URI_DEV")
-FRONTEND_ORIGIN = os.getenv("FRONTEND_ORIGIN_DEV")
 PORT_BASE = int(os.getenv("PORT_BASE"))
+if os.getenv("FLASK_ENV") == "production":
+    logger.debug("Running in production mode")
+    REDIRECT_URI = os.getenv("REDIRECT_URI_PROD")
+    FRONTEND_ORIGIN = os.getenv("FRONTEND_ORIGIN_PROD")
+else:
+    if not os.getenv("FRONTEND_ORIGIN_DEV") or not os.getenv("REDIRECT_URI_DEV"):
+        raise ValueError("FRONTEND_ORIGIN_DEV or REDIRECT_URI_DEV environment variable is not set.")
+    FRONTEND_ORIGIN = os.getenv("FRONTEND_ORIGIN_DEV")
+    REDIRECT_URI = os.getenv("REDIRECT_URI_DEV")
 
 auth_bp = Blueprint("auth", __name__)
 
@@ -59,10 +69,18 @@ def callback():
     else:
         port_start = users[user_info["id"]].port_start
 
+
+    # Check if email is verified
+    if not user_info.get("verified_email", False):
+        logger.info(f"Rejected login attempt for unverified email: {user_info.get('email')} from IP {request.remote_addr}")
+        return redirect(f"{FRONTEND_ORIGIN}/login?error=email_not_verified") # need to define this error handling in frontend
+
     user = User(user_info["id"], user_info["email"], port_start)
     users[user.id] = user
     login_user(user)
+    logger.info(f"User {user.id} logged in from IP {request.remote_addr}")
     return redirect(f"{FRONTEND_ORIGIN}/terminal")
+
 
 
 @auth_bp.route("/logout")

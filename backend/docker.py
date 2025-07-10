@@ -6,6 +6,7 @@ import logging
 
 import psutil
 
+logger = logging.getLogger("docker")
 MAX_USERS = 20
 num_cpus = os.cpu_count() or 1
 memory_mb = psutil.virtual_memory().total // (1024 * 1024)
@@ -39,7 +40,7 @@ def setup_isolated_network(network_name="isolated_net"):
             ],
             check=True,
         )
-        print(f"Network {network_name} created successfully.")
+        logger.info(f"Network {network_name} created successfully.")
 
     if platform.system() != "Linux":
         return
@@ -58,9 +59,9 @@ def setup_isolated_network(network_name="isolated_net"):
             ["iptables", "-I", "DOCKER-USER", "-i", f"br-{network_id}", "-o", "docker0", "-j", "DROP"],
             check=True,
         )
-        print(f"Blocked host communication for network {network_name}.")
+        logger.info(f"Blocked host communication for network {network_name}.")
     except subprocess.CalledProcessError as e:
-        print(f"Failed to block host communication: {str(e)}")
+        logger.warning(f"Failed to block host communication: {str(e)}")
 
 
 def spawn_container(user_id, slave_fd, container_name, port_range=None):
@@ -110,7 +111,7 @@ def attach_to_container(container_name):
         "exec",
         "-it",
         container_name,
-        "bash",
+        "sh",
         "-lc",
         "tmux new-session -d -A -s paas; tmux attach -t paas",
     ]
@@ -121,8 +122,8 @@ def attach_to_container(container_name):
 def cleanup_containers(user_containers):
     for info in user_containers.values():
         name = info["container_name"]
-        logging.info(f"Stopping and removing container {name}")
+        logger.info(f"Stopping and removing container {name}")
         try:
             subprocess.run(["docker", "rm", "-f", name], check=True)
         except subprocess.CalledProcessError as e:
-            logging.warning(f"Failed to remove container {name}: {e}")
+            logger.warning(f"Failed to remove container {name}: {e}")
