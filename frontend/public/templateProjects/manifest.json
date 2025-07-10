@@ -1,4 +1,4 @@
 {
-  "website": ["index.html", "main.py", "README.md", "requirements.txt"],
-  "discordBot": ["main.py", "README.md", "requirements.txt"]
+  "Website": ["index.html", "main.py", "README.md", "requirements.txt"],
+  "Discord-Bot": ["main.py", "README.md", "requirements.txt"]
 }
