@@ -8,7 +8,7 @@ import { io, Socket } from "socket.io-client";
 
 import UploadButton from "./UploadButton";
 import TemplateButton from "./TemplateButton";
-import { UserInfo } from "../App";
+import { UserInfo } from "../root";
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
