@@ -32,6 +32,7 @@ def init_terminal(socketio_instance):
     global socketio
     socketio = socketio_instance
     _register_handlers()
+    logger.debug("Terminal module initialized")
 
 
 def _register_handlers():
@@ -162,6 +163,7 @@ def _cancel_idle_poller(user_id: int):
 
 
 def handle_connect():
+    logger.debug("Handling new terminal connection")
     if not current_user.is_authenticated:
         logger.warning("unauthenticated user tried to connect")
         return "Unauthorized", 401
