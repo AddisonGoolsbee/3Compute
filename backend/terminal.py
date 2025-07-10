@@ -40,6 +40,8 @@ def _register_handlers():
     socketio.on_event("disconnect", handle_disconnect)
     socketio.on_event("pty-input", handle_pty_input)
     socketio.on_event("resize", handle_resize)
+    socketio.on_event("tmux-new-window", new_window)
+    socketio.on_event("tmux-select-window", select_window)
 
 
 def set_winsize(fd, row, col, xpix=0, ypix=0):
@@ -208,6 +210,18 @@ def handle_disconnect():
     # If that was the last live session for this user, start the poller
     if not any(s["user_id"] == user_id for s in session_map.values()):
         _start_idle_poller(user_id)
+
+
+def new_window(data):
+    container = user_containers[current_user.id]["container_name"]
+    win = data["windowIndex"]
+    subprocess.run(["docker", "exec", container, "tmux", "new-window", "-t", f"paas:{win}", "-n", win], check=False)
+
+
+def select_window(data):
+    container = user_containers[current_user.id]["container_name"]
+    win = data["windowIndex"]
+    subprocess.run(["docker", "exec", container, "tmux", "select-window", "-t", f"paas:{win}"], check=False)
 
 
 __all__ = ["init_terminal", "user_containers"]
