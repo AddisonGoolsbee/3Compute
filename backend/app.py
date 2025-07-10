@@ -32,6 +32,7 @@ app = Flask(__name__, template_folder=".", static_folder=".", static_url_path=""
 app.config["SECRET_KEY"] = os.getenv("FLASK_SECRET")
 
 if os.getenv("FLASK_ENV") == "production":
+    logger.debug("Running in production mode")
     FRONTEND_ORIGIN = os.getenv("FRONTEND_ORIGIN_PROD")
 else:
     # Default to development settings
