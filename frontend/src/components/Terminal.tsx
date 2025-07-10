@@ -68,9 +68,9 @@ export default function TerminalComponent({ userInfo }: { userInfo: UserInfo }) 
       </div>
       <div
         ref={terminalRef}
-        className="lum-bg-black rounded-lum p-1 w-full mx-2 sm:mx-4 border border-gray-400"
+        className="lum-bg-black rounded-lum p-2 w-full mx-2 sm:mx-4 border border-lum-border/40"
       />
-      <div className="text-sm text-gray-500 mt-2">
+      <div className="text-sm text-lum-text-secondary mt-2">
         Your available port range: {userInfo.port_start}-{userInfo.port_end}
       </div>
     </div>
