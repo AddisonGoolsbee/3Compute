@@ -59,6 +59,9 @@ export default function TemplateButton({ userInfo }: { userInfo: UserInfo }) {
         })
       );
 
+      // Add move-into parameter to change into the template directory
+      formData.append("move-into", templateName);
+
       // 3) POST to your existing endpoint
       const res = await fetch(`${backendUrl}/upload-folder`, {
         method: "POST",
