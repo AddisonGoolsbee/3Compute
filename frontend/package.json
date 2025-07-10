@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "react-router dev --host",
-    "build": "tsc -b && vite build",
+    "serve": "react-router-serve",
+    "build": "tsc -b && react-router build",
     "lint": "eslint .",
     "preview": "vite preview"
   },
