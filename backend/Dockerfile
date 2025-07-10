@@ -8,6 +8,7 @@ RUN apk update && apk add --no-cache \
     python3 \
     py3-pip \
     shadow \
+    nano \
  && ln -sf python3 /usr/bin/python
 
 # Create a non-root user and app dir
