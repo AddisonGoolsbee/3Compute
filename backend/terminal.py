@@ -23,7 +23,7 @@ socketio: SocketIO = None  # will be assigned in init
 user_containers = {}
 # sid → container info + fd
 session_map = {}
-POLL_INTERVAL = 5
+POLL_INTERVAL = 10
 # Active cleanup timers per user
 _cleanup_timers: dict[int, threading.Event] = {}
 
@@ -101,6 +101,7 @@ def _start_idle_poller(user_id: int):
     _cleanup_timers[user_id] = stop_event
 
     def poller():
+        time.sleep(POLL_INTERVAL)
         container = user_containers[user_id]["container_name"]
         while not stop_event.is_set():
             # 1) Run `docker top` with no extra flags
@@ -154,8 +155,6 @@ def _start_idle_poller(user_id: int):
                 subprocess.run(["docker", "rm", "-f", container], check=False)
                 user_containers.pop(user_id, None)
                 break
-
-            time.sleep(POLL_INTERVAL)
 
     t = threading.Thread(target=poller, daemon=True)
     t.start()
