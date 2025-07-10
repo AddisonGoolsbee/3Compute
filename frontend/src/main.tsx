@@ -6,6 +6,7 @@ import { FolderIcon } from "lucide-react";
 import MenuItems from "./components/MenuItems";
 import UploadButton from "./components/UploadButton";
 import TemplateButton from "./components/TemplateButton";
+import Editor from "./components/Editor";
 
 const backendUrl = import.meta.env.VITE_ENVIRONMENT === "production"
   ? import.meta.env.VITE_PROD_BACKEND_URL
@@ -111,12 +112,13 @@ export default function App() {
             )}
           </div>
         </div>
-        <div className="lum-card border-lum-border/30 flex-1 p-4">
-          Editor here
-        </div>
+        <Editor />
       </div>
       <div className="w-full">
-        <Terminal userInfo={userInfo} />
+        <Terminal />
+      </div>
+      <div className="text-sm text-lum-text-secondary mt-2">
+        Your available port range: {userInfo.port_start}-{userInfo.port_end}
       </div>
     </div>
   );
