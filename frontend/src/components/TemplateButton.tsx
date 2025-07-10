@@ -29,44 +29,64 @@ export default function TemplatePicker({ userInfo }: { userInfo: UserInfo }) {
     const files = manifest[templateName] || [];
     const formData = new FormData();
 
-    // 2) fetch each file from public/templates/<selected>/
-    files.map(async (filename) => {
-      // Use a different path that won't be intercepted by Vite routing
-      const baseUrl = window.location.origin;
-      const url = `${baseUrl}/templateProjects/${templateName}/${filename}`;
-      const res = await fetch(url);
-      if (!res.ok) throw new Error(`Failed to fetch ${url}`);
-      const blob = await res.blob();
-      const text = await blob.text();
+    try {
+      // 2) fetch each file from public/templates/<selected>/
+      await Promise.all(
+        files.map(async (filename) => {
+          // Use a different path that won't be intercepted by Vite routing
+          const baseUrl = window.location.origin;
+          const url = `${baseUrl}/templateProjects/${templateName}/${filename}`;
+          const res = await fetch(url);
+          if (!res.ok) throw new Error(`Failed to fetch ${url}`);
+          const blob = await res.blob();
+          const text = await blob.text();
 
-      // Simple find and replace for website template
-      let modifiedText = text;
-      if (templateName === "website" && filename === "main.py") {
-        modifiedText = text.replace(/8000/g, userInfo.port_start.toString());
+          // Simple find and replace for website template
+          let modifiedText = text;
+          if (templateName === "website" && filename === "main.py") {
+            modifiedText = text.replace(
+              /8000/g,
+              userInfo.port_start.toString()
+            );
+          }
+
+          // Convert back to blob for FormData
+          const fileBlob = new Blob([modifiedText], { type: blob.type });
+          // Preserve folder structure by prefixing with template name
+          const filePath = `${templateName}/${filename}`;
+          formData.append("files", fileBlob, filePath);
+        })
+      );
+
+      // 3) POST to your existing endpoint
+      const res = await fetch(`${backendUrl}/upload-folder`, {
+        method: "POST",
+        body: formData,
+        credentials: "include",
+      });
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(`Upload failed: ${res.status} ${errorText}`);
       }
 
-      // Convert back to blob for FormData
-      const fileBlob = new Blob([modifiedText], { type: blob.type });
-      // Preserve folder structure by prefixing with template name
-      const filePath = `${templateName}/${filename}`;
-      formData.append("files", fileBlob, filePath);
-    })
+      setStatus("Template uploaded!");
+    } catch (error) {
+      console.error("Template upload error:", error);
+      setStatus(
+        `Upload failed: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
+    }
 
-    // 3) POST to your existing endpoint
-    const res = await fetch(`${backendUrl}/upload-folder`, {
-      method: "POST",
-      body: formData,
-      credentials: "include",
-    });
-
-    setStatus(res.ok ? "Template uploaded!" : "Upload failed");
     setTimeout(() => setStatus(null), 3000);
   };
 
   const templateNames = Object.keys(manifest);
 
   if (!templateNames.length) {
-    return <div className="lum-loading animate-spin w-4 h-4"/>;
+    return <div className="lum-loading animate-spin w-4 h-4" />;
   }
 
   return (
@@ -80,20 +100,23 @@ export default function TemplatePicker({ userInfo }: { userInfo: UserInfo }) {
           {status}
         </div>
       )}
-      <SelectMenuRaw id="template-select" value={selected} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
-        const templateName = e.target.value;
-        setSelected(templateName);
-        if (templateName) {
-          handleUseTemplate(templateName);
-        }
-      }}
+      <SelectMenuRaw
+        id="template-select"
+        value={selected}
+        onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+          const templateName = e.target.value;
+          setSelected(templateName);
+          if (templateName) {
+            handleUseTemplate(templateName);
+          }
+        }}
         values={templateNames.map((name) => ({
           name: name.replace(/[-_]/g, " "),
-          value: name
-        }))} customDropdown dropdown={
-          'Use a template'
-        }>
-      </SelectMenuRaw>
+          value: name,
+        }))}
+        customDropdown
+        dropdown={"Use a template"}
+      ></SelectMenuRaw>
     </div>
   );
 }
