@@ -1,0 +1,4 @@
+{
+  "Website": ["index.html", "main.py", "README.md", "requirements.txt"],
+  "Discord-Bot": ["main.py", "README.md", "requirements.txt"]
+}

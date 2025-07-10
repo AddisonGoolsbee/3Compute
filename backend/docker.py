@@ -6,6 +6,7 @@ import logging
 
 import psutil
 
+logger = logging.getLogger("docker")
 MAX_USERS = 20
 num_cpus = os.cpu_count() or 1
 memory_mb = psutil.virtual_memory().total // (1024 * 1024)
@@ -39,7 +40,7 @@ def setup_isolated_network(network_name="isolated_net"):
             ],
             check=True,
         )
-        print(f"Network {network_name} created successfully.")
+        logger.info(f"Network {network_name} created successfully.")
 
     if platform.system() != "Linux":
         return
@@ -58,22 +59,21 @@ def setup_isolated_network(network_name="isolated_net"):
             ["iptables", "-I", "DOCKER-USER", "-i", f"br-{network_id}", "-o", "docker0", "-j", "DROP"],
             check=True,
         )
-        print(f"Blocked host communication for network {network_name}.")
+        logger.info(f"Blocked host communication for network {network_name}.")
     except subprocess.CalledProcessError as e:
-        print(f"Failed to block host communication: {str(e)}")
+        logger.warning(f"Failed to block host communication: {str(e)}")
 
 
-def spawn_container(user_id, slave_fd, container_name):
+def spawn_container(user_id, slave_fd, container_name, port_range=None):
     cmd = [
         "docker",
         "run",
+        "-d",
+        "--rm",
         "--name",
         container_name,
         "--hostname",
         "paas",
-        "-i",
-        "-t",
-        # TODO: delete the container once you exit and nothing is running (maybe just --rm)
         "--network=isolated_net",  # prevent containers from accessing other containers or host, but allows internet
         "--cap-drop=ALL",  # prevent a bunch of admin linux stuff
         "--user=1000:1000",  # login as a non-root user
@@ -91,31 +91,44 @@ def spawn_container(user_id, slave_fd, container_name):
         # TODO: disk limit, perhaps by making everything read-only and adding a volume?
         "-v",
         f"/tmp/paas_uploads/{user_id}:/app",
-        "paas",
-        "bash",
     ]
 
-    proc = subprocess.Popen(cmd, stdin=slave_fd, stdout=slave_fd, stderr=slave_fd, close_fds=True)
-    return proc
+    if port_range:
+        cmd.extend(["-p", f"{port_range[0]}-{port_range[1]}:{port_range[0]}-{port_range[1]}"])
+
+    cmd.append("paas")
+
+    logger.info(f"[{user_id}] Attempting to spawn container '{container_name}' with cmd: {' '.join(cmd)}")
+
+    try:
+        subprocess.run(cmd, check=True)
+        logger.info(f"[{user_id}] Successfully started container '{container_name}'")
+    except subprocess.CalledProcessError as e:
+        logger.error(f"[{user_id}] Failed to start container '{container_name}': {e}")
+        raise
 
 
 def attach_to_container(container_name):
     master_fd, slave_fd = pty.openpty()
-    proc = subprocess.Popen(
-        ["docker", "exec", "-it", container_name, "bash"],
-        stdin=slave_fd,
-        stdout=slave_fd,
-        stderr=slave_fd,
-        close_fds=True,
-    )
-    return proc, master_fd
+    cmd = [
+        "docker", "exec", "-it", container_name,
+        "sh", "-lc", "tmux new-session -d -A -s paas; tmux attach -t paas",
+    ]
+    logger.info(f"Attaching to container '{container_name}' with tmux session")
+    try:
+        proc = subprocess.Popen(cmd, stdin=slave_fd, stdout=slave_fd, stderr=slave_fd, close_fds=True)
+        return proc, master_fd
+    except Exception as e:
+        logger.error(f"Failed to attach to container '{container_name}': {e}")
+        raise
+
 
 
 def cleanup_containers(user_containers):
     for info in user_containers.values():
         name = info["container_name"]
-        logging.info(f"Stopping and removing container {name}")
+        logger.info(f"Stopping and removing container {name}")
         try:
             subprocess.run(["docker", "rm", "-f", name], check=True)
         except subprocess.CalledProcessError as e:
-            logging.warning(f"Failed to remove container {name}: {e}")
+            logger.warning(f"Failed to remove container {name}: {e}")

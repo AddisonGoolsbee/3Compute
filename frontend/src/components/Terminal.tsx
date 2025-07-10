@@ -1,25 +1,20 @@
 import { useEffect, useRef } from "react";
-import { Terminal } from "xterm";
-import { WebLinksAddon } from "xterm-addon-web-links";
-import { SearchAddon } from "xterm-addon-search";
-import "xterm/css/xterm.css";
-import { FitAddon } from "xterm-addon-fit";
+import { Terminal } from "@xterm/xterm";
+import { WebLinksAddon } from "@xterm/addon-web-links";
+import { SearchAddon } from "@xterm/addon-search";
+import "@xterm/xterm/css/xterm.css";
+import { FitAddon } from "@xterm/addon-fit";
 import { io, Socket } from "socket.io-client";
 
 import UploadButton from "./UploadButton";
+import TemplateButton from "./TemplateButton";
+import { UserInfo } from "../App";
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
-export default function TerminalComponent() {
+export default function TerminalComponent({ userInfo }: { userInfo: UserInfo }) {
   const terminalRef = useRef<HTMLDivElement>(null);
   const socketRef = useRef<Socket>(null);
-
-  const handleLogout = async () => {
-    await fetch(`${backendUrl}/logout`, {
-      credentials: "include",
-    });
-    window.location.href = "/";
-  };
 
   useEffect(() => {
     if (!terminalRef.current) return;
@@ -68,17 +63,15 @@ export default function TerminalComponent() {
     <div className="w-[calc(100%-2rem)] md:w-full max-w-screen-md h-full flex flex-col items-center justify-center">
       <div className="w-full flex justify-between items-center mb-4">
         <UploadButton />
-        <button
-          onClick={handleLogout}
-          className="mb-2 px-4 py-1 rounded bg-red-500 text-white"
-        >
-          Logout
-        </button>
+        <TemplateButton userInfo={userInfo} />
       </div>
       <div
         ref={terminalRef}
-        className="border border-gray-300 rounded-sm py-1 px-2 bg-black w-full h-2/3 mx-2 sm:mx-4"
+        className="lum-bg-black rounded-lum p-1 w-full mx-2 sm:mx-4 border border-gray-400"
       />
+      <div className="text-sm text-gray-500 mt-2">
+        Your available port range: {userInfo.port_start}-{userInfo.port_end}
+      </div>
     </div>
   );
 }
