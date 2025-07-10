@@ -49,6 +49,7 @@ export default function TemplateButton({ userInfo }: { userInfo: UserInfo }) {
               /8000/g,
               userInfo.port_start.toString()
             );
+            modifiedText = modifiedText.replace(/0.0.0.0/g, backendUrl);
           }
 
           // Convert back to blob for FormData
