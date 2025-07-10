@@ -44,7 +44,7 @@ export default function TemplateButton({ userInfo }: { userInfo: UserInfo }) {
 
           // Simple find and replace for website template
           let modifiedText = text;
-          if (templateName === "website" && filename === "main.py") {
+          if (templateName === "Website" && filename === "main.py") {
             modifiedText = text.replace(
               /8000/g,
               userInfo.port_start.toString()

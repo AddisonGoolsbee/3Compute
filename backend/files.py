@@ -11,7 +11,7 @@ def upload():
         return "Unauthorized", 401
 
     user_id = current_user.id
-    upload_dir = f"/tmp/paas_uploads/{user_id}"
+    upload_dir = f"/tmp/uploads/{user_id}"
     os.makedirs(upload_dir, exist_ok=True)
 
     files = request.files.getlist("files")
@@ -29,7 +29,7 @@ def upload_folder():
         return "Unauthorized", 401
 
     user_id = current_user.id
-    upload_dir = f"/tmp/paas_uploads/{user_id}"
+    upload_dir = f"/tmp/uploads/{user_id}"
     os.makedirs(upload_dir, exist_ok=True)
 
     files = request.files.getlist("files")
@@ -52,7 +52,7 @@ def list_files():
         return "Unauthorized", 401
 
     user_id = current_user.id
-    upload_dir = f"/tmp/paas_uploads/{user_id}"
+    upload_dir = f"/tmp/uploads/{user_id}"
 
     if not os.path.exists(upload_dir):
         return {"files": []}, 200
