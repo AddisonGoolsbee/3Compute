@@ -70,11 +70,8 @@ export default function TerminalComponent({ userInfo }: { userInfo: UserInfo }) 
     <div className="w-[calc(100%-2rem)] md:w-full max-w-screen-md h-full flex flex-col items-center justify-center">
       <div className="w-full flex justify-between items-center mb-4">
         <UploadButton />
-        <TemplateButton />
-        <button
-          onClick={handleLogout}
-          className="lum-btn lum-bg-red-800"
-        >
+        <TemplateButton userInfo={userInfo} />
+        <button onClick={handleLogout} className="lum-btn lum-bg-red-800">
           Logout
         </button>
       </div>
