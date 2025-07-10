@@ -8,7 +8,9 @@ import { io, Socket } from "socket.io-client";
 
 import { UserInfo } from "../root";
 
-const backendUrl = import.meta.env.VITE_BACKEND_URL;
+const backendUrl = import.meta.env.VITE_ENVIRONMENT === "production"
+  ? import.meta.env.VITE_PROD_BACKEND_URL
+  : import.meta.env.VITE_BACKEND_URL;
 
 export default function TerminalComponent({ userInfo }: { userInfo: UserInfo }) {
   const terminalRef = useRef<HTMLDivElement>(null);

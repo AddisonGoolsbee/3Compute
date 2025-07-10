@@ -7,7 +7,10 @@ import MenuItems from "./components/MenuItems";
 import UploadButton from "./components/UploadButton";
 import TemplateButton from "./components/TemplateButton";
 
-const backendUrl = import.meta.env.VITE_BACKEND_URL;
+const backendUrl = import.meta.env.VITE_ENVIRONMENT === "production"
+  ? import.meta.env.VITE_PROD_BACKEND_URL
+  : import.meta.env.VITE_BACKEND_URL;
+
 
 export declare interface File {
     readonly name: string;

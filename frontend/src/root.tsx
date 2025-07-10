@@ -8,7 +8,9 @@ export interface UserInfo {
   port_end: number;
 }
 
-const backendUrl = import.meta.env.VITE_BACKEND_URL;
+const backendUrl = import.meta.env.VITE_ENVIRONMENT === "production"
+  ? import.meta.env.VITE_PROD_BACKEND_URL
+  : import.meta.env.VITE_BACKEND_URL;
 
 // eslint-disable-next-line react-refresh/only-export-components
 export async function clientLoader() {
