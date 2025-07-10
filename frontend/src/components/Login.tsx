@@ -1,6 +1,8 @@
 import { SiGoogle } from "@icons-pack/react-simple-icons";
 
-const backendUrl = import.meta.env.VITE_BACKEND_URL;
+const backendUrl = import.meta.env.VITE_ENVIRONMENT === "production"
+  ? import.meta.env.VITE_PROD_BACKEND_URL
+  : import.meta.env.VITE_BACKEND_URL;
 console.log(backendUrl);
 
 export default function Login() {
