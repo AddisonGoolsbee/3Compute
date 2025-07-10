@@ -47,10 +47,24 @@ def upload_folder():
     # Check if move-into parameter is provided
     move_into = request.form.get("move-into")
     if move_into:
-        # Execute cd command in the user's container using tmux send-keys
+        # Execute an Enter before the cd command in the user's container using tmux send-keys
         container_name = f"user-container-{user_id}"
         try:
-            # Use tmux send-keys to send the cd command to the active tmux session
+            # First, send an Enter key
+            subprocess.run(
+                [
+                    "docker",
+                    "exec",
+                    container_name,
+                    "tmux",
+                    "send-keys",
+                    "-t",
+                    "3compute",
+                    "Enter",
+                ],
+                check=True,
+            )
+            # Then, send the cd command
             subprocess.run(
                 [
                     "docker",
