@@ -103,7 +103,7 @@ export default function TemplateButton({ userInfo }: { userInfo: UserInfo }) {
       )}
       <SelectMenuRaw
         id="template-select"
-        className="lum-btn-p-1 rounded-lum-1 gap-1 text-xs lum-bg-blue-700 hover:lum-bg-blue-600"
+        className="lum-btn-p-1 rounded-lum-1 gap-1 text-xs lum-bg-blue-900 hover:lum-bg-blue-800"
         value={selected}
         onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
           const templateName = e.target.value;
