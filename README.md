@@ -1,6 +1,6 @@
-# PAAS
+# 3Compute
 
-Birdflop service for free educational server usage. Called PaaS for no particular reason, started as Python-as-a-Service but now it's just kind of everything. Like Google Colab but way more basic.
+Birdflop service for free educational server usage, with templates such as discord bot and personal website.
 
 ## Development
 
@@ -16,24 +16,26 @@ Birdflop service for free educational server usage. Called PaaS for no particula
 
 - Make sure you have `Docker` installed and running.
 - `python -m venv .venv && source .venv/bin/activate && pip install -r backend/requirements.txt` to setup and install dependencies
-- `docker build -t paas:latest backend` to build the docker image
+- `docker build -t 3compute:latest backend` to build the docker image
 - `python -m backend` to run the backend
 
 
 #### Productionization (Debian 12)
-- github/paas deploy key in /root/.ssh/id_rsa
+- github/3compute deploy key in /root/.ssh/id_rsa
 - mkdir /var/www && cd /var/www
-- git clone git@github.com:birdflop/paas.git
-- Install docker
-```
+- git clone git@github.com:birdflop/3compute.git
+
 # Add Docker's official GPG key:
+```
 sudo apt-get update
 sudo apt-get install ca-certificates curl
 sudo install -m 0755 -d /etc/apt/keyrings
 sudo curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc
 sudo chmod a+r /etc/apt/keyrings/docker.asc
+```
 
 # Add the repository to Apt sources:
+```
 echo \
   "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian \
   $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
@@ -46,23 +48,32 @@ sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin 
 sudo docker run hello-world
 ```
 
-- docker build -t paas:latest backend
+`docker build -t 3compute:latest backend`
 
-sudo apt update && sudo apt upgrade -y
-sudo apt install -y make build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev wget curl llvm libncursesw5-dev xz-utils tk-dev libxml2-dev libxmlsec1-dev libffi-dev liblzma-dev
-
-cd /var/www/paas
+```
 sudo apt install tmux
 tmux new -s backend
 python3 -m venv .venv && source .venv/bin/activate && pip3 install -r backend/requirements.txt
 python3 -m backend
+```
+
 ctrl+b, d
 
-curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
-apt install -y nodejs
+```curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
+apt install -y nodejs```
 
-tmux new -s frontend
+```cd frontend
 pnpm i
-pnpm dev
+pnpm build```
+
+```sudo certbot certonly --nginx -d www.3compute.org
+sudo certbot certonly --nginx -d api.3compute.org```
+
+
+`rm /etc/nginx/sites-enabled/default`
+
+- copy production/etc/nginx/conf.d/3compute.org --> /etc/nginx/conf.d/3compute.org
+
+service nginx restart
 
 

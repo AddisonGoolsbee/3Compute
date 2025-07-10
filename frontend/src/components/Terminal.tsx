@@ -34,9 +34,6 @@ export default function TerminalComponent() {
       term.focus();
     });
 
-    // Wait a little to prevent rare docker daemon bug
-    (new Promise((resolve) => setTimeout(resolve, 100))).then(() => {});
-
     const socket = io(backendUrl, {
       withCredentials: true,
     });
