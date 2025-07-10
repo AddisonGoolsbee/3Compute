@@ -1,7 +1,10 @@
 @import "tailwindcss";
 
 @import "@luminescent/ui";
+@import "@luminescent/ui/formatting";
+@source "../node_modules/@luminescent/ui-react";
 
 @theme {
   --color-bg: var(--color-gray-800);
+  --lum-border-radius: var(--radius-lg)
 }
