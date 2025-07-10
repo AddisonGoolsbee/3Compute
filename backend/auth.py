@@ -10,6 +10,7 @@ logger = logging.getLogger("auth")
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
 if os.getenv("FLASK_ENV") == "production":
+    logger.debug("Running in production mode")
     REDIRECT_URI = os.getenv("REDIRECT_URI_PROD")
     FRONTEND_ORIGIN = os.getenv("FRONTEND_ORIGIN_PROD")
 else:
