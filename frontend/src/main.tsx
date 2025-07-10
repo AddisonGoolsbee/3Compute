@@ -1,23 +1,19 @@
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
+import Terminal from "./components/Terminal";
+import Login from "./components/Login";
+import { clientLoader, UserInfo } from "./root";
+import { useLoaderData } from "react-router";
 
-import {
-  createBrowserRouter,
-  RouterProvider,
-} from "react-router";
+// eslint-disable-next-line react-refresh/only-export-components
+export { clientLoader };
 
-import './index.css'
-import App from './App';
-
-const router = createBrowserRouter([
-  {
-    path: "/",
-    Component: App,
-  },
-]);
-
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <RouterProvider router={router} />
-  </StrictMode>
-);
+export default function App() {
+  const userInfo = useLoaderData() as UserInfo | undefined;
+  return (
+    <>
+      <div className="min-h-screen flex flex-col items-center justify-center">
+        {!userInfo && <Login />}
+        {userInfo && <Terminal userInfo={userInfo} />}
+      </div>
+    </>
+  );
+}

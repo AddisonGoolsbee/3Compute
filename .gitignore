@@ -2,6 +2,7 @@
 __pycache__
 backend/.env
 scratch/
+.react-router/
 
 # Logs
 logs

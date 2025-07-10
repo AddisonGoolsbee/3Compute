@@ -16,6 +16,10 @@ RUN useradd -m myuser \
     && mkdir /app \
     && chown myuser:myuser /app
 
+# Copy our tmux config for the myuser home
+COPY tmux.conf /home/myuser/.tmux.conf
+RUN chown myuser:myuser /home/myuser/.tmux.conf
+
 USER myuser
 WORKDIR /app
 
