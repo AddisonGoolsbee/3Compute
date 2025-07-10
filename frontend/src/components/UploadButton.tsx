@@ -52,7 +52,13 @@ export default function UploadButton() {
         >
           Upload Folder
         </button>
-        <div className={`${status?.toLowerCase().includes("fail") ? "text-red-600" : "text-green-600"}`}>
+        <div
+          className={`${
+            status?.toLowerCase().includes("fail")
+              ? "text-red-600"
+              : "text-green-600"
+          }`}
+        >
           {status}
         </div>
       </div>
