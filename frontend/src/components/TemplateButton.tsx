@@ -53,7 +53,7 @@ export default function TemplatePicker({ userInfo }: { userInfo: UserInfo }) {
     );
 
     // 3) POST to your existing endpoint
-    const res = await fetch(`${backendUrl}/api/upload-folder`, {
+    const res = await fetch(`${backendUrl}/upload-folder`, {
       method: "POST",
       body: formData,
       credentials: "include",

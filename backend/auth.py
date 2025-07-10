@@ -44,7 +44,7 @@ def load_user(user_id):
     return users.get(user_id)
 
 
-@auth_bp.route("/api/login")
+@auth_bp.route("/login")
 def login():
     google = OAuth2Session(GOOGLE_CLIENT_ID, redirect_uri=REDIRECT_URI, scope=["openid", "email", "profile"])
     auth_url, _ = google.authorization_url(
@@ -53,7 +53,7 @@ def login():
     return redirect(auth_url)
 
 
-@auth_bp.route("/api/callback")
+@auth_bp.route("/callback")
 def callback():
     google = OAuth2Session(GOOGLE_CLIENT_ID, redirect_uri=REDIRECT_URI)
     google.fetch_token(
@@ -83,13 +83,13 @@ def callback():
 
 
 
-@auth_bp.route("/api/logout")
+@auth_bp.route("/logout")
 def logout():
     logout_user()
     return "", 200
 
 
-@auth_bp.route("/api/me")
+@auth_bp.route("/me")
 def me():
     if current_user.is_authenticated:
         return {"email": current_user.email, "port_start": current_user.port_start, "port_end": current_user.port_end}

@@ -6,7 +6,7 @@ const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
 export default function NavComponent({ authed }: { authed: boolean | null }) {
   const handleLogout = async () => {
-    await fetch(`${backendUrl}/api/logout`, {
+    await fetch(`${backendUrl}/logout`, {
       credentials: "include",
     });
     window.location.href = "/";

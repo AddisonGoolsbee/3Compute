@@ -40,7 +40,7 @@ export default function TerminalComponent({ userInfo }: { userInfo: UserInfo }) 
 
     term.writeln("Welcome to paas!");
 
-    const socket = io(backendUrl + "/api", {
+    const socket = io(backendUrl, {
       withCredentials: true,
     });
     socketRef.current = socket;

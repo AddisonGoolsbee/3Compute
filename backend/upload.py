@@ -5,7 +5,7 @@ import os
 upload_bp = Blueprint("upload", __name__)
 
 
-@upload_bp.route("/api/upload", methods=["POST"])
+@upload_bp.route("/upload", methods=["POST"])
 def upload():
     if not current_user.is_authenticated:
         return "Unauthorized", 401
@@ -23,7 +23,7 @@ def upload():
     return "File uploaded successfully", 200
 
 
-@upload_bp.route("/api/upload-folder", methods=["POST"])
+@upload_bp.route("/upload-folder", methods=["POST"])
 def upload_folder():
     if not current_user.is_authenticated:
         return "Unauthorized", 401

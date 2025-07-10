@@ -9,7 +9,7 @@ export default function Login() {
       <h1 className="mb-10!">Birdflop Server Access</h1>
       <a
         className="lum-btn lum-btn-p-3 lum-bg-gray-700 hover:lum-bg-gray-600"
-        href={`${backendUrl}/api/login`}
+        href={`${backendUrl}/login`}
       >
         <SiGoogle size={20} />
         Sign in with Google
