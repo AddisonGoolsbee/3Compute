@@ -2,15 +2,17 @@
 import { Nav, LogoBirdflop } from "@luminescent/ui-react";
 import { Folder, LogOut, Terminal } from "lucide-react";
 import { Link } from "react-router";
+import { UserInfo } from "../root";
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
-export default function NavComponent({ authed }: { authed: boolean | null }) {
+export default function NavComponent({ userInfo }: { userInfo?: UserInfo }) {
   const handleLogout = async () => {
     await fetch(`${backendUrl}/logout`, {
       credentials: "include",
     });
     window.location.href = "/";
   };
+
   return (
     <Nav
       start={
@@ -42,7 +44,7 @@ export default function NavComponent({ authed }: { authed: boolean | null }) {
       }
       end={
         <>
-          {authed === true && (
+          {userInfo && (
             <button
               onClick={handleLogout}
               className="lum-btn lum-bg-transparent hover:lum-bg-red-700 p-2"
