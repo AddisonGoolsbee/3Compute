@@ -7,6 +7,7 @@ import { FitAddon } from "@xterm/addon-fit";
 import { io, Socket } from "socket.io-client";
 
 import UploadButton from "./UploadButton";
+import TemplateButton from "./TemplateButton";
 import { UserInfo } from "../App";
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
@@ -69,6 +70,7 @@ export default function TerminalComponent({ userInfo }: { userInfo: UserInfo }) 
     <div className="w-[calc(100%-2rem)] md:w-full max-w-screen-md h-full flex flex-col items-center justify-center">
       <div className="w-full flex justify-between items-center mb-4">
         <UploadButton />
+        <TemplateButton />
         <button
           onClick={handleLogout}
           className="lum-btn lum-bg-red-800"
@@ -80,7 +82,7 @@ export default function TerminalComponent({ userInfo }: { userInfo: UserInfo }) 
         ref={terminalRef}
         className="lum-bg-black rounded-lum p-1 w-full mx-2 sm:mx-4 border border-gray-400"
       />
-      <div className="text-sm text-gray-500">
+      <div className="text-sm text-gray-500 mt-2">
         Your available port range: {userInfo.port_start}-{userInfo.port_end}
       </div>
     </div>
