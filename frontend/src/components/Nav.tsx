@@ -16,7 +16,7 @@ export default function NavComponent({ authed }: { authed: boolean | null }) {
       start={
         <Link
           to="/"
-          className="lum-btn lum-bg-transparent hover:lum-bg-nav-bg p-2"
+          className="lum-btn lum-bg-transparent hover:lum-bg-nav-bg"
         >
           <LogoBirdflop size={24} fillGradient={["#54daf4", "#545eb6"]} />
           <span className="font-semibold -ml-1">paas</span>
@@ -26,14 +26,14 @@ export default function NavComponent({ authed }: { authed: boolean | null }) {
         <>
           <Link
             to="/"
-            className="lum-btn lum-bg-transparent hover:lum-bg-nav-bg p-2"
+            className="lum-btn lum-bg-transparent hover:lum-bg-nav-bg"
           >
             <Terminal size={20} />
             Terminal
           </Link>
           <Link
             to="/files"
-            className="lum-btn lum-bg-transparent hover:lum-bg-nav-bg p-2"
+            className="lum-btn lum-bg-transparent hover:lum-bg-nav-bg"
           >
             <Folder size={20} />
             Files
