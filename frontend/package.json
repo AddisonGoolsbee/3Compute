@@ -11,8 +11,8 @@
   },
   "dependencies": {
     "@icons-pack/react-simple-icons": "^13.4.0",
-    "@luminescent/ui": "5.0.1-0",
-    "@luminescent/ui-react": "5.0.1-0",
+    "@luminescent/ui": "5.0.1-2",
+    "@luminescent/ui-react": "5.0.1-2",
     "@tailwindcss/vite": "^4.1.11",
     "@xterm/addon-fit": "^0.10.0",
     "@xterm/addon-search": "^0.15.0",
