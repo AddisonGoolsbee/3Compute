@@ -4,7 +4,9 @@ import { SelectMenuRaw } from "@luminescent/ui-react";
 import { UserInfo } from "../root";
 import { LayoutTemplate } from "lucide-react";
 
-const backendUrl = import.meta.env.VITE_BACKEND_URL;
+const backendUrl = import.meta.env.VITE_ENVIRONMENT === "production"
+  ? import.meta.env.VITE_PROD_BACKEND_URL
+  : import.meta.env.VITE_BACKEND_URL;
 
 type Manifest = Record<string, string[]>;
 
@@ -58,6 +60,9 @@ export default function TemplateButton({ userInfo }: { userInfo: UserInfo }) {
           formData.append("files", fileBlob, filePath);
         })
       );
+
+      // Add move-into parameter to change into the template directory
+      formData.append("move-into", templateName);
 
       // 3) POST to your existing endpoint
       const res = await fetch(`${backendUrl}/upload-folder`, {
