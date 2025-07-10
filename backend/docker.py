@@ -98,25 +98,30 @@ def spawn_container(user_id, slave_fd, container_name, port_range=None):
 
     cmd.append("paas")
 
-    # proc = subprocess.Popen(cmd, stdin=slave_fd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    # return proc
-    subprocess.run(cmd, check=True)
-    return None
+    logger.info(f"[{user_id}] Attempting to spawn container '{container_name}' with cmd: {' '.join(cmd)}")
+
+    try:
+        subprocess.run(cmd, check=True)
+        logger.info(f"[{user_id}] Successfully started container '{container_name}'")
+    except subprocess.CalledProcessError as e:
+        logger.error(f"[{user_id}] Failed to start container '{container_name}': {e}")
+        raise
 
 
 def attach_to_container(container_name):
     master_fd, slave_fd = pty.openpty()
     cmd = [
-        "docker",
-        "exec",
-        "-it",
-        container_name,
-        "sh",
-        "-lc",
-        "tmux new-session -d -A -s paas; tmux attach -t paas",
+        "docker", "exec", "-it", container_name,
+        "sh", "-lc", "tmux new-session -d -A -s paas; tmux attach -t paas",
     ]
-    proc = subprocess.Popen(cmd, stdin=slave_fd, stdout=slave_fd, stderr=slave_fd, close_fds=True)
-    return proc, master_fd
+    logger.info(f"Attaching to container '{container_name}' with tmux session")
+    try:
+        proc = subprocess.Popen(cmd, stdin=slave_fd, stdout=slave_fd, stderr=slave_fd, close_fds=True)
+        return proc, master_fd
+    except Exception as e:
+        logger.error(f"Failed to attach to container '{container_name}': {e}")
+        raise
+
 
 
 def cleanup_containers(user_containers):
