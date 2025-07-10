@@ -9,4 +9,7 @@ export default defineConfig({
       allow: [".."],
     },
   },
+  build: {
+    outDir: "dist",
+  },
 });
