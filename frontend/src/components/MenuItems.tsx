@@ -1,5 +1,7 @@
 import { ChevronRight, File, Folder } from "lucide-react";
 import { File as FileType, Folder as FolderType } from "../files";
+// @ts-expect-error types not working yet
+import { getClasses } from "@luminescent/ui-react"
 
 export default function MenuItems({ files }: { files: (FolderType | FileType)[] }) {
   return (
@@ -8,7 +10,10 @@ export default function MenuItems({ files }: { files: (FolderType | FileType)[] 
         files.map((file, index) => <>
           <div
             key={index}
-            className="flex items-center gap-2 p-2 hover:bg-gray-800 rounded-lum cursor-pointer"
+            className={getClasses({
+              "lum-btn gap-2 p-2 lum-bg-transparent": true,
+              'cursor-pointer': !('files' in file),
+            })}
           >
             {'files' in file && <ChevronRight size={16} className="text-gray-400" />}
             {'files' in file ? (
