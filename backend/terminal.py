@@ -132,11 +132,14 @@ def _start_idle_poller(user_id: int):
             for proc_line in lines[1:]:
                 cols = proc_line.split(None, len(header_cols) - 1)
                 cmd_str = cols[cmd_idx]
-                # logging.info(f"cmd: {cmd_str}")
+                logger.debug(f"cmd: {cmd_str}")
+
+                # POLLER IGNORE LIST — these are the processes we know are NOT the user's
                 if (
-                    cmd_str.startswith("/usr/bin/tini")
+                    cmd_str.startswith("/sbin/tini")
                     or cmd_str.startswith("tmux ")
                     or cmd_str.startswith("-sh")
+                    or cmd_str.startswith("-ash")
                     or cmd_str == "sleep infinity"
                     or cmd_str == "bash"
                 ):
