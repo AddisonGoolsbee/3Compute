@@ -65,7 +65,6 @@ export async function clientLoader() {
       current = folder.files;
     }
   }
-  console.log(files);
 
   return files;
 }
