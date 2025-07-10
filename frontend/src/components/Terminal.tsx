@@ -6,11 +6,9 @@ import "@xterm/xterm/css/xterm.css";
 import { FitAddon } from "@xterm/addon-fit";
 import { io, Socket } from "socket.io-client";
 
-import { UserInfo } from "../root";
-
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
-export default function TerminalComponent({ userInfo }: { userInfo: UserInfo }) {
+export default function TerminalComponent() {
   const terminalRef = useRef<HTMLDivElement>(null);
   const socketRef = useRef<Socket>(null);
 
@@ -56,14 +54,9 @@ export default function TerminalComponent({ userInfo }: { userInfo: UserInfo }) 
   }, []);
 
   return (
-    <div className="w-full h-full flex flex-col items-center justify-center">
-      <div
-        ref={terminalRef}
-        className="lum-bg-gray-950 rounded-lum p-2 w-full mx-2 sm:mx-4 border border-lum-border/40"
-      />
-      <div className="text-sm text-lum-text-secondary mt-2">
-        Your available port range: {userInfo.port_start}-{userInfo.port_end}
-      </div>
-    </div>
+    <div
+      ref={terminalRef}
+      className="lum-bg-gray-950 rounded-lum p-2 w-full border border-lum-border/40"
+    />
   );
 }
