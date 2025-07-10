@@ -1,6 +1,7 @@
 // @ts-expect-error types not working yet
 import { Nav, LogoBirdflop } from "@luminescent/ui-react";
-import { LogOut } from "lucide-react";
+import { Folder, LogOut, Terminal } from "lucide-react";
+import { Link } from "react-router";
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
 export default function NavComponent({ authed }: {
@@ -14,12 +15,24 @@ export default function NavComponent({ authed }: {
   }
   return (
     <Nav start={
-      <a href="/" className="lum-btn lum-bg-transparent hover:lum-bg-nav-bg p-2">
+      <Link to="/" className="lum-btn lum-bg-transparent hover:lum-bg-nav-bg p-2">
         <LogoBirdflop size={24} fillGradient={['#54daf4', '#545eb6']} />
         <span className="font-semibold -ml-1">
           paas
         </span>
-      </a>
+      </Link>
+    }
+    center={
+      <>
+        <Link to="/" className="lum-btn lum-bg-transparent hover:lum-bg-nav-bg p-2">
+          <Terminal size={20} />
+          Terminal
+        </Link>
+        <Link to="/files" className="lum-btn lum-bg-transparent hover:lum-bg-nav-bg p-2">
+          <Folder size={20} />
+          Files
+        </Link>
+      </>
     }
     end={
       <>
