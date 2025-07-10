@@ -8,7 +8,7 @@ const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
 type Manifest = Record<string, string[]>;
 
-export default function TemplatePicker({ userInfo }: { userInfo: UserInfo }) {
+export default function TemplateButton({ userInfo }: { userInfo: UserInfo }) {
   const [manifest, setManifest] = useState<Manifest>({});
   const [selected, setSelected] = useState<string>("");
   const [status, setStatus] = useState<string | null>(null);
@@ -44,7 +44,7 @@ export default function TemplatePicker({ userInfo }: { userInfo: UserInfo }) {
 
           // Simple find and replace for website template
           let modifiedText = text;
-          if (templateName === "website" && filename === "main.py") {
+          if (templateName === "Website" && filename === "main.py") {
             modifiedText = text.replace(
               /8000/g,
               userInfo.port_start.toString()
@@ -103,7 +103,7 @@ export default function TemplatePicker({ userInfo }: { userInfo: UserInfo }) {
       )}
       <SelectMenuRaw
         id="template-select"
-        className="lum-bg-blue-700 hover:lum-bg-blue-600"
+        className="lum-btn-p-1 rounded-lum-1 gap-1 text-xs lum-bg-blue-900 hover:lum-bg-blue-800"
         value={selected}
         onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
           const templateName = e.target.value;
@@ -118,8 +118,8 @@ export default function TemplatePicker({ userInfo }: { userInfo: UserInfo }) {
         }))}
         customDropdown
         dropdown={
-          <div className="flex items-center gap-2">
-            <LayoutTemplate size={20} />
+          <div className="flex items-center gap-1">
+            <LayoutTemplate size={16} />
             Use a template
           </div>
         }

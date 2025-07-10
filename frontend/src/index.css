@@ -9,6 +9,6 @@
   --lum-border-radius: var(--radius-lg)
 }
 
-body {
-  overflow: hidden;
+html, body {
+  overflow-y: hidden;
 }

@@ -6,8 +6,6 @@ import "@xterm/xterm/css/xterm.css";
 import { FitAddon } from "@xterm/addon-fit";
 import { io, Socket } from "socket.io-client";
 
-import UploadButton from "./UploadButton";
-import TemplateButton from "./TemplateButton";
 import { UserInfo } from "../root";
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
@@ -38,9 +36,6 @@ export default function TerminalComponent({ userInfo }: { userInfo: UserInfo }) 
       term.focus();
     });
 
-    // Wait a little to prevent rare docker daemon bug
-    (new Promise((resolve) => setTimeout(resolve, 100))).then(() => {});
-
     const socket = io(backendUrl, {
       withCredentials: true,
     });
@@ -61,14 +56,10 @@ export default function TerminalComponent({ userInfo }: { userInfo: UserInfo }) 
   }, []);
 
   return (
-    <div className="w-[calc(100%-2rem)] md:w-full max-w-screen-md h-full flex flex-col items-center justify-center">
-      <div className="w-full flex justify-between items-center mb-4">
-        <UploadButton />
-        <TemplateButton userInfo={userInfo} />
-      </div>
+    <div className="w-full h-full flex flex-col items-center justify-center">
       <div
         ref={terminalRef}
-        className="lum-bg-black rounded-lum p-2 w-full mx-2 sm:mx-4 border border-lum-border/40"
+        className="lum-bg-gray-950 rounded-lum p-2 w-full mx-2 sm:mx-4 border border-lum-border/40"
       />
       <div className="text-sm text-lum-text-secondary mt-2">
         Your available port range: {userInfo.port_start}-{userInfo.port_end}

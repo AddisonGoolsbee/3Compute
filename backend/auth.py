@@ -1,5 +1,7 @@
 # auth.py
 import os
+import json
+from datetime import datetime
 from flask import Blueprint, redirect, request
 from flask_login import login_user, logout_user, current_user, UserMixin
 from requests_oauthlib import OAuth2Session
@@ -23,6 +25,54 @@ else:
 auth_bp = Blueprint("auth", __name__)
 
 users = {}
+USERS_JSON_FILE = "backend/users.json"
+
+
+def load_users_from_json():
+    """Load users data from JSON file"""
+    try:
+        if os.path.exists(USERS_JSON_FILE):
+            with open(USERS_JSON_FILE, "r") as f:
+                return json.load(f)
+        return {}
+    except Exception as e:
+        logger.error(f"Error loading users from JSON: {e}")
+        return {}
+
+
+def save_users_to_json(users_data):
+    """Save users data to JSON file"""
+    try:
+        with open(USERS_JSON_FILE, "w") as f:
+            json.dump(users_data, f, indent=2)
+    except Exception as e:
+        logger.error(f"Error saving users to JSON: {e}")
+
+
+def update_user_data(user_id, user_info, ip_address):
+    """Update user data in JSON file with new IP address"""
+    users_data = load_users_from_json()
+
+    if user_id not in users_data:
+        # New user
+        users_data[user_id] = {
+            "email": user_info["email"],
+            "first_login": datetime.now().isoformat(),
+            "last_login": datetime.now().isoformat(),
+            "ip_addresses": [ip_address],
+            "login_count": 1,
+        }
+    else:
+        # Existing user
+        users_data[user_id]["last_login"] = datetime.now().isoformat()
+        users_data[user_id]["login_count"] += 1
+
+        # Add new IP address if not already present
+        if ip_address not in users_data[user_id]["ip_addresses"]:
+            users_data[user_id]["ip_addresses"].append(ip_address)
+
+    save_users_to_json(users_data)
+    return users_data[user_id]
 
 
 class User(UserMixin):
@@ -69,18 +119,23 @@ def callback():
     else:
         port_start = users[user_info["id"]].port_start
 
-
     # Check if email is verified
     if not user_info.get("verified_email", False):
-        logger.info(f"Rejected login attempt for unverified email: {user_info.get('email')} from IP {request.remote_addr}")
-        return redirect(f"{FRONTEND_ORIGIN}/login?error=email_not_verified") # need to define this error handling in frontend
+        logger.info(
+            f"Rejected login attempt for unverified email: {user_info.get('email')} from IP {request.remote_addr}"
+        )
+        return redirect(
+            f"{FRONTEND_ORIGIN}/login?error=email_not_verified"
+        )  # need to define this error handling in frontend
+
+    # Update user data in JSON file
+    user_data = update_user_data(user_info["id"], user_info, request.remote_addr)
 
     user = User(user_info["id"], user_info["email"], port_start)
     users[user.id] = user
     login_user(user)
     logger.info(f"User {user.id} logged in from IP {request.remote_addr}")
     return redirect(f"{FRONTEND_ORIGIN}/")
-
 
 
 @auth_bp.route("/logout")
@@ -94,3 +149,14 @@ def me():
     if current_user.is_authenticated:
         return {"email": current_user.email, "port_start": current_user.port_start, "port_end": current_user.port_end}
     return {"error": "unauthenticated"}, 401
+
+
+@auth_bp.route("/users")
+def get_users():
+    """Get all users data from JSON file (for debugging/admin purposes)"""
+    try:
+        users_data = load_users_from_json()
+        return users_data
+    except Exception as e:
+        logger.error(f"Error retrieving users data: {e}")
+        return {"error": "Failed to retrieve users data"}, 500

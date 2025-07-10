@@ -1,6 +1,6 @@
-# PAAS
+# 3Compute
 
-Birdflop service for free educational server usage. Called PaaS for no particular reason, started as Python-as-a-Service but now it's just kind of everything. Like Google Colab but way more basic.
+Birdflop service for free educational server usage, with templates such as discord bot and personal website.
 
 ## Development
 
@@ -16,7 +16,7 @@ Birdflop service for free educational server usage. Called PaaS for no particula
 
 - Make sure you have `Docker` installed and running.
 - `python -m venv .venv && source .venv/bin/activate && pip install -r backend/requirements.txt` to setup and install dependencies
-- `docker build -t paas:latest backend` to build the docker image
+- `docker build -t 3compute:latest backend` to build the docker image
 - `python -m backend` to run the backend
 
 
