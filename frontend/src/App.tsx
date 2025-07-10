@@ -18,7 +18,7 @@ export default function App() {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const res = await fetch(`${backendUrl}/me`, { credentials: "include" });
+        const res = await fetch(`${backendUrl}/api/me`, { credentials: "include" });
         setAuthed(res.ok);
         if (res.ok) {
           const userInfo: UserInfo = await res.json();
