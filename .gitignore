@@ -1,7 +1,7 @@
 .venv
-temp*
 __pycache__
 backend/.env
+scratch/
 
 # Logs
 logs

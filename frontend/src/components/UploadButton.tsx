@@ -40,22 +40,28 @@ export default function UploadButton() {
   return (
     <>
       <div className="flex gap-4 mb-2 items-center">
-          <button
-            onClick={handleFileClick}
-            className="px-4 py-2 bg-blue-600 text-white rounded"
-          >
-            Upload Files
-          </button>
-          <button
-            onClick={handleFolderClick}
-            className="px-4 py-2 bg-green-600 text-white rounded"
-          >
-            Upload Folder
-          </button>
-          <div className={`${status?.toLowerCase().includes("fail") ? "text-red-600" : "text-green-600"}`}>
-            {status}
-          </div>
+        <button
+          onClick={handleFileClick}
+          className="lum-btn lum-bg-gray-700 hover:lum-bg-gray-600"
+        >
+          Upload Files
+        </button>
+        <button
+          onClick={handleFolderClick}
+          className="lum-btn lum-bg-gray-700 hover:lum-bg-gray-600"
+        >
+          Upload Folder
+        </button>
+        <div
+          className={`${
+            status?.toLowerCase().includes("fail")
+              ? "text-red-600"
+              : "text-green-600"
+          }`}
+        >
+          {status}
         </div>
+      </div>
 
       <input
         type="file"

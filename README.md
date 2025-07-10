@@ -6,14 +6,65 @@ Birdflop service for free educational server usage. Called PaaS for no particula
 
 ## Development
 
+- Make sure you have a `.env` file in the `backend` folder
+
 ### Frontend
 
 - `cd frontend`
-- `npm i` to install dependencies
-- `npm run dev`
+- `pnpm i` to install dependencies
+- `pnpm dev`
 
 ### Backend
 
 - Make sure you have `Docker` installed and running.
 - `python -m venv .venv && source .venv/bin/activate && pip install -r backend/requirements.txt` to setup and install dependencies
-- `python -m backend` to run the backend 
+- `docker build -t paas:latest backend` to build the docker image
+- `python -m backend` to run the backend
+
+
+#### Productionization (Debian 12)
+- github/paas deploy key in /root/.ssh/id_rsa
+- mkdir /var/www && cd /var/www
+- git clone git@github.com:birdflop/paas.git
+- Install docker
+```
+# Add Docker's official GPG key:
+sudo apt-get update
+sudo apt-get install ca-certificates curl
+sudo install -m 0755 -d /etc/apt/keyrings
+sudo curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc
+sudo chmod a+r /etc/apt/keyrings/docker.asc
+
+# Add the repository to Apt sources:
+echo \
+  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian \
+  $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+sudo apt-get update
+```
+
+```
+sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+sudo docker run hello-world
+```
+
+- docker build -t paas:latest backend
+
+sudo apt update && sudo apt upgrade -y
+sudo apt install -y make build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev wget curl llvm libncursesw5-dev xz-utils tk-dev libxml2-dev libxmlsec1-dev libffi-dev liblzma-dev
+
+cd /var/www/paas
+sudo apt install tmux
+tmux new -s backend
+python3 -m venv .venv && source .venv/bin/activate && pip3 install -r backend/requirements.txt
+python3 -m backend
+ctrl+b, d
+
+curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
+apt install -y nodejs
+
+tmux new -s frontend
+pnpm i
+pnpm dev
+
+
