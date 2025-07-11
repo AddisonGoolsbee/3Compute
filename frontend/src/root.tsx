@@ -1,7 +1,7 @@
 import React from "react";
 import { Links, Meta, Outlet, Scripts, ScrollRestoration, useLoaderData } from "react-router";
 import NavComponent from "./components/Nav";
-
+import { default as HomeLayout } from "./Layout";
 export interface UserInfo {
   email: string;
   port_start: number;
@@ -22,9 +22,7 @@ export async function clientLoader() {
 
 // HydrateFallback is rendered while the client loader is running
 export function HydrateFallback() {
-  return <div className="h-screen flex items-center justify-center">
-    <div className="lum-loading animate-spin w-8 h-8 border-3" />
-  </div>;
+  return <HomeLayout />;
 }
 
 export function Layout({ children }: { children: React.ReactNode }) {
