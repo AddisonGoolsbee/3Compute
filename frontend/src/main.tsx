@@ -46,7 +46,6 @@ export async function clientLoader() {
     let current = files;
     for (let i = 0; i < parts.length; i++) {
       const part = parts[i];
-      console.log('Processing part:', part);
       const existing = current.find(f => f.name === part);
       if (existing) {
         // if the part already exists, we just continue
