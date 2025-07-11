@@ -2,9 +2,9 @@
 
 This is a Discord bot template.
 
-## Usage
+## Setup
 
-1. Run `python main.py` to start the bot.
-2. Invite the bot to your server.
-3. Use the `/ping` command to test the bot.
-4. Use the `/echo` command to echo back your message.
+1. Go to https://discord.com/developers and make an application
+
+discord developer portal, new application, bot on left side, reset token + copy (should be something.something.something form), replace DISCORD_TOKEN in .env file, go to oauth2 in left side, scopes select bot and applications.commands, bot perms select send messages, copy url on bottom + paste in browser + pick your server
+For fast testing, discord -> USER settings -> Advanced, developer mode on, right click server icon + copy id, GUILD_ID
