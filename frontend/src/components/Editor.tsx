@@ -1,5 +1,6 @@
 import { useCallback, useState } from "react";
 import CodeMirror from '@uiw/react-codemirror';
+import { javascript } from "@codemirror/lang-javascript"
 import { File } from "lucide-react";
 
 export default function Editor() {
@@ -15,8 +16,8 @@ export default function Editor() {
         <File size={16} />
         / app / index.py
       </div>
-      <div className="overflow-auto rounded-lum-1 p-1">
-        <CodeMirror value={value} theme="dark" onChange={onChange} className="lum-bg-gray-900 w-full h-full" />
+      <div className="overflow-auto">
+        <CodeMirror value={value} theme="dark" onChange={onChange} className="lum-bg-gray-900 w-full h-full" extensions={[javascript()]} />
       </div>
     </div>
   );

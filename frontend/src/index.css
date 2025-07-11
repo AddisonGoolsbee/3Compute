@@ -6,7 +6,7 @@
 
 @theme {
   --color-bg: var(--color-gray-800);
-  --lum-border-radius: var(--radius-lg)
+  --lum-border-radius: var(--radius-xl);
 }
 
 html, body {
