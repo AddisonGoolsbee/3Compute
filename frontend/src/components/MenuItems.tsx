@@ -1,4 +1,4 @@
-import { ChevronRight, FileIcon, FolderIcon } from "lucide-react";
+import { ChevronRight, FileIcon, FolderIcon, MoreHorizontal } from "lucide-react";
 import { File, Folder } from "../main";
 // @ts-expect-error types not working yet
 import { getClasses } from "@luminescent/ui-react";
@@ -45,11 +45,14 @@ export default function MenuItems({ files }: { files: (Folder | File)[] }) {
                 <FileIcon size={20} className="ml-6 text-blue-300" />
               )}
               <span>{file.name}</span>
-              {"files" in file && (
-                <span className="text-gray-500 text-sm ml-auto">
-                  {file.files.length} items
-                </span>
-              )}
+              <span className="flex items-center gap-1 text-gray-500 text-sm ml-auto">
+                {"files" in file && (
+                  <>{file.files.length} items</>
+                )}
+                <button className="lum-btn p-0 lum-bg-transparent hover:text-lum-text">
+                  <MoreHorizontal size={16} />
+                </button>
+              </span>
             </button>
             {"files" in file && (
               <div
