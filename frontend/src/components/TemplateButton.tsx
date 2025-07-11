@@ -51,6 +51,14 @@ export default function TemplateButton({ userInfo }: { userInfo: UserInfo }) {
               /8000/g,
               userInfo.port_start.toString()
             );
+            // Replace 0.0.0.0 with backendUrl without the port and without the protocol
+            let backendUrlNoProto = backendUrl.replace(/^https?:\/\//, "");
+            backendUrlNoProto = backendUrlNoProto.replace(/:[0-9]+$/, "");
+            backendUrlNoProto = backendUrlNoProto.replace(
+              /localhost/,
+              "0.0.0.0"
+            );
+            modifiedText = modifiedText.replace(/0.0.0.0/g, backendUrlNoProto);
           }
 
           // Convert back to blob for FormData
