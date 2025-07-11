@@ -42,7 +42,6 @@ Want to add more about yourself? Create new sections like:
 - **Blog**: Share your thoughts and experiences
 - **Contact**: Let people get in touch with you
 
-
 ## Advanced Customization
 
 ### Adding JavaScript
@@ -71,7 +70,7 @@ def blog():
     return send_from_directory(".", "blog.html")
 ```
 
-## 🐛 Troubleshooting
+## Troubleshooting
 
 ### Port Already in Use / Permission Denied
 
