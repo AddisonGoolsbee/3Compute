@@ -104,7 +104,7 @@ export default function TemplateButton({ userInfo }: { userInfo: UserInfo }) {
   }
 
   return (
-    <div className="flex flex-row gap-2">
+    <>
       {status && (
         <div
           className={
@@ -116,7 +116,7 @@ export default function TemplateButton({ userInfo }: { userInfo: UserInfo }) {
       )}
       <SelectMenuRaw
         id="template-select"
-        className="lum-btn-p-1 rounded-lum-1 gap-1 text-xs lum-bg-blue-900 hover:lum-bg-blue-800"
+        className="lum-btn-p-1 rounded-lum-1 gap-1 text-xs lum-bg-blue-900 hover:lum-bg-blue-800 w-full"
         value={selected}
         onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
           const templateName = e.target.value;
@@ -137,6 +137,6 @@ export default function TemplateButton({ userInfo }: { userInfo: UserInfo }) {
           </div>
         }
       />
-    </div>
+    </>
   );
 }
