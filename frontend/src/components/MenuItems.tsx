@@ -9,7 +9,7 @@ export default function MenuItems({ files }: { files: (Folder | File)[] }) {
       {Array.isArray(files) ? (
         files.map((file, index) => <>
           <div
-            key={index}
+            key={`${file.name}-${index}`}
             className={getClasses({
               "lum-btn gap-2 p-1 lum-bg-transparent rounded-lum-1": true,
               'cursor-pointer': !('files' in file),
