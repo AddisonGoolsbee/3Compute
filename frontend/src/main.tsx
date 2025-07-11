@@ -2,11 +2,7 @@ import Terminal from "./components/Terminal";
 import Login from "./components/Login";
 import { clientLoader as clientLoaderFromRoot, UserInfo } from "./root";
 import { useLoaderData } from "react-router";
-import { FolderIcon } from "lucide-react";
-import MenuItems from "./components/MenuItems";
-import UploadButton from "./components/UploadButton";
-import TemplateButton from "./components/TemplateButton";
-import Editor from "./components/Editor";
+import Layout from "./Layout";
 
 const backendUrl = import.meta.env.VITE_ENVIRONMENT === "production"
   ? import.meta.env.VITE_PROD_BACKEND_URL
@@ -87,44 +83,9 @@ export default function App() {
   };
 
   return <>
-    <div className="max-h-[calc(100svh-6rem)] flex flex-col gap-1 items-center justify-center max-w-6xl mx-auto">
-      <div className="flex h-100 flex-1 w-full gap-1">
-        <div className="flex flex-col w-1/4 lum-card gap-1 p-1 lum-bg-gray-950 border-lum-border/30">
-          <div className="flex flex-col items-center gap-3 py-2 bg-gray-900 rounded-lum-1 border-b border-b-lum-border/10"  >
-            <div className="flex w-full items-center px-4 gap-3 text-lg font-semibold">
-              <FolderIcon size={26} />
-              Files
-            </div>
-            { userInfo && (
-              <div className="flex gap-1">
-                <UploadButton />
-                <TemplateButton userInfo={userInfo} />
-              </div>
-            )}
-          </div>
-          <div className="flex-1 overflow-auto">
-            {Array.isArray(files) ? (
-              <MenuItems files={files} />
-            ) : (
-              userInfo ? <div className="text-red-500">Error loading files</div> : null
-            )}
-          </div>
-        </div>
-        <Editor />
-      </div>
-      <div className="w-full">
-        {userInfo ? (
-          <Terminal />
-        ) : (
-          <div className="lum-card h-100 p-2"/>
-        )}
-      </div>
-      {userInfo && (
-        <div className="text-sm text-lum-text-secondary mt-2">
-          Your available port range: {userInfo.port_start}-{userInfo.port_end}
-        </div>
-      )}
-    </div>
+    <Layout userInfo={userInfo} files={files}>
+      <Terminal />
+    </Layout>
     {!userInfo && <Login />}
   </>;
 }
