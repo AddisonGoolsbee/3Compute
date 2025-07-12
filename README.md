@@ -52,20 +52,20 @@ sudo docker run hello-world
 `docker build -t 3compute:latest backend`
 
 ```
-sudo apt install tmux
-tmux new -s backend
-```
-```
 apt install python3.11-venv
 python3 -m venv .venv && source .venv/bin/activate && pip3 install -r backend/requirements.txt
 nano backend/.env
 ```
 paste .env in
-```
-python3 -m backend
-```
 
-ctrl+b, d
+Move the production/ files in
+- chmod +x /opt/deploy.sh
+```
+sudo systemctl daemon-reexec
+sudo systemctl daemon-reload
+sudo systemctl enable 3compute
+sudo systemctl start 3compute
+```
 
 ```curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
 apt install -y nodejs
@@ -84,8 +84,11 @@ sudo certbot certonly --nginx -d api.3compute.org```
 
 `rm /etc/nginx/sites-enabled/default`
 
-- copy production/etc/nginx/conf.d/3compute.org --> /etc/nginx/conf.d/3compute.org
+- symlink /etc/nginx/sites-available/3compute.org
+
+- sudo chown -R www-data:www-data /var/www/3compute
 
 service nginx restart
+
 
 
