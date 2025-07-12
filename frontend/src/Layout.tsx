@@ -1,10 +1,10 @@
-import { UserDataContext } from "./root";
 import { FolderIcon } from "lucide-react";
 import MenuItems from "./components/MenuItems";
 import UploadButton from "./components/UploadButton";
 import TemplateButton from "./components/TemplateButton";
 import Editor from "./components/Editor";
 import { useContext } from "react";
+import { UserDataContext } from "./util/UserData";
 
 export default function Layout({ children }: { children?: React.ReactNode }) {
   const userData = useContext(UserDataContext);
