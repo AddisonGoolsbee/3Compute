@@ -6,13 +6,16 @@ import "@xterm/xterm/css/xterm.css";
 import { FitAddon } from "@xterm/addon-fit";
 import { io, Socket } from "socket.io-client";
 
-const backendUrl = import.meta.env.VITE_ENVIRONMENT === "production"
-  ? import.meta.env.VITE_PROD_BACKEND_URL
-  : import.meta.env.VITE_BACKEND_URL;
+const backendUrl =
+  import.meta.env.VITE_ENVIRONMENT === "production"
+    ? import.meta.env.VITE_PROD_BACKEND_URL
+    : import.meta.env.VITE_BACKEND_URL;
 
 export default function TerminalComponent() {
   const terminalRef = useRef<HTMLDivElement>(null);
   const socketRef = useRef<Socket>(null);
+  const terminalInstanceRef = useRef<Terminal>(null);
+  const fitAddonRef = useRef<FitAddon>(null);
 
   useEffect(() => {
     if (!terminalRef.current) return;
@@ -25,8 +28,11 @@ export default function TerminalComponent() {
     const webLinks = new WebLinksAddon();
     const search = new SearchAddon();
     const fitAddon = new FitAddon();
-    term.loadAddon(fitAddon);
 
+    terminalInstanceRef.current = term;
+    fitAddonRef.current = fitAddon;
+
+    term.loadAddon(fitAddon);
     term.loadAddon(webLinks);
     term.loadAddon(search);
 
@@ -45,11 +51,33 @@ export default function TerminalComponent() {
       socket.emit("pty-input", { input: data });
     });
 
+    // Handle terminal resize events
+    term.onResize(({ cols, rows }) => {
+      socket.emit("resize", { cols, rows });
+    });
+
     socket.on("pty-output", (data: { output: string }) => {
       term.write(data.output);
     });
 
+    // Set up resize observer to handle container size changes
+    const resizeObserver = new ResizeObserver(() => {
+      if (fitAddonRef.current) {
+        fitAddonRef.current.fit();
+        const dims = fitAddonRef.current.proposeDimensions();
+        if (dims && socketRef.current) {
+          socketRef.current.emit("resize", {
+            cols: dims.cols,
+            rows: dims.rows,
+          });
+        }
+      }
+    });
+
+    resizeObserver.observe(terminalRef.current);
+
     return () => {
+      resizeObserver.disconnect();
       socket.disconnect();
       term.dispose();
     };
@@ -58,7 +86,7 @@ export default function TerminalComponent() {
   return (
     <div
       ref={terminalRef}
-      className="lum-bg-gray-950 rounded-lum p-2 w-full border border-lum-border/40 h-[30dvh]"
+      className="lum-bg-gray-950 rounded-lum p-2 w-full border border-lum-border/40 h-[calc(30dvh-1.5rem)] overflow-hidden"
       // className="lum-bg-gray-950 rounded-lum p-2 w-full mx-2 sm:mx-4 border border-lum-border/40"
     />
   );
