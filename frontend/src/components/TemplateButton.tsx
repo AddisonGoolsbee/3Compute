@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 // @ts-expect-error types not working yet
 import { SelectMenuRaw } from "@luminescent/ui-react";
-import { UserInfo } from "../root";
 import { LayoutTemplate } from "lucide-react";
+import { UserInfo } from "../util/UserData";
 
 const backendUrl = import.meta.env.VITE_ENVIRONMENT === "production"
   ? import.meta.env.VITE_PROD_BACKEND_URL
