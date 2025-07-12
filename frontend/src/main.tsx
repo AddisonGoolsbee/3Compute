@@ -11,6 +11,7 @@ const backendUrl = import.meta.env.VITE_ENVIRONMENT === "production"
 
 export declare interface File {
     readonly name: string;
+    readonly location: string;
 }
 export declare interface Folder extends File {
     readonly files: (Folder | File)[];
@@ -46,7 +47,6 @@ export async function clientLoader() {
     let current = files;
     for (let i = 0; i < parts.length; i++) {
       const part = parts[i];
-      console.log('Processing part:', part);
       const existing = current.find(f => f.name === part);
       if (existing) {
         // if the part already exists, we just continue
@@ -57,7 +57,10 @@ export async function clientLoader() {
       if (part === '') continue; // skip empty parts (e.g. leading slash)
       if (i === parts.length - 1) {
         // if it's the last part, we create a file
-        current.push({ name: part } as File);
+        current.push({
+          name: part,
+          location: `/${parts.slice(0, i + 1).join('/')}`
+        });
         continue;
       }
       // otherwise we create a folder
@@ -67,7 +70,11 @@ export async function clientLoader() {
         continue;
       }
       // create a new folder
-      const folder: Folder = { name: part, files: [] };
+      const folder: Folder = {
+        name: part,
+        location: `/${parts.slice(0, i + 1).join('/')}`,
+        files: [],
+      };
       current.push(folder);
       current = folder.files;
     }
