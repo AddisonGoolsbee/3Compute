@@ -6,7 +6,9 @@ import { backendUrl, FileType, FolderType, UserDataContext } from "../util/UserD
 import { getClasses, SelectMenuRaw } from "@luminescent/ui-react"
 import { languageMap } from "../util/CodeMirror";
 import { SiMarkdown } from "@icons-pack/react-simple-icons";
-
+import { tokyoNight } from "@uiw/codemirror-theme-tokyo-night";
+import { color } from '@uiw/codemirror-extensions-color';
+import { hyperLink } from '@uiw/codemirror-extensions-hyper-link';
 
 function findDefaultFile(files: (FolderType | FileType)[]): FileType | undefined {
   console.log("Finding default file in:", files);
@@ -60,7 +62,7 @@ export default function Editor() {
 
   return (
     <div className={getClasses({
-      "transition-all flex flex-col rounded-lum max-w-3/4 lum-bg-gray-900/50": true,
+      "transition-all flex flex-col rounded-lum max-w-3/4 bg-[#1A1B26] border-lum-border/30": true,
       "w-full opacity-100": userData?.currentFile !== undefined,
       "w-0 -ml-2 opacity-0": userData?.currentFile === undefined
     })}>
@@ -112,9 +114,20 @@ export default function Editor() {
           />
         </div>
       </div>
-      <div className="overflow-auto">
-        <CodeMirror value={value} theme="dark" onChange={onChange} className="w-full h-full" extensions={[languageMap[currentLanguage as keyof typeof languageMap].parser()]} />
-      </div>
+      { mdPreview && currentLanguage === "markdown" ? (
+        <div className="flex-1 overflow-auto p-4">
+          <div className="markdown-preview">
+            {value}
+          </div>
+        </div>
+      ) : (
+        <div className="overflow-auto">
+          <CodeMirror value={value} theme={tokyoNight} onChange={onChange} className="w-full h-full" extensions={[
+            languageMap[currentLanguage as keyof typeof languageMap].parser(),
+            color, hyperLink,
+          ]} />
+        </div>
+      )}
     </div>
   );
 }
