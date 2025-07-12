@@ -6,7 +6,6 @@ import { File } from "lucide-react";
 export default function Editor() {
   const [value, setValue] = useState("console.log('hello world!');");
   const onChange = useCallback((val: string) => {
-    console.log('val:', val);
     setValue(val);
   }, []);
 
