@@ -22,7 +22,7 @@ export type UserData = {
   setOpenFolders: React.Dispatch<React.SetStateAction<string[]>>;
 }
 
-const backendUrl =
+export const backendUrl =
   import.meta.env.VITE_ENVIRONMENT === "production"
     ? import.meta.env.VITE_PROD_BACKEND_URL
     : import.meta.env.VITE_BACKEND_URL;
