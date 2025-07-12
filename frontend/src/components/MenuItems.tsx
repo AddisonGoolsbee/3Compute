@@ -58,11 +58,6 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
                 return <FileIcon size={16} className="text-blue-300 ml-6" />;
               })()}
               <span>{file.name}</span>
-              <span className="flex items-center gap-1 text-gray-500 text-sm ml-auto">
-                <div className="lum-btn p-0 lum-bg-transparent hover:text-lum-text">
-                  <MoreHorizontal size={16} />
-                </div>
-              </span>
             </button>
             {"files" in file && (
               <div
