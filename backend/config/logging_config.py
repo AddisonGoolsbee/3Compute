@@ -20,6 +20,12 @@ def configure_logging():
     else:
         root_logger.setLevel(logging.DEBUG)
 
+    # Silence noisy OAuth and requests debug messages
+    logging.getLogger("requests_oauthlib").setLevel(logging.WARNING)
+    logging.getLogger("requests").setLevel(logging.WARNING)
+    logging.getLogger("urllib3").setLevel(logging.WARNING)
+    logging.getLogger("oauthlib").setLevel(logging.WARNING)
+
     # Avoid duplicate handlers if already configured
     if not root_logger.handlers:
         file_handler = logging.FileHandler(logname, mode="a")
