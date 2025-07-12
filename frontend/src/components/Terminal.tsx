@@ -84,10 +84,8 @@ export default function TerminalComponent() {
   }, []);
 
   return (
-    <div
-      ref={terminalRef}
-      className="lum-bg-gray-950 rounded-lum p-2 w-full border border-lum-border/40 h-[calc(30dvh-1.5rem)] overflow-hidden"
-      // className="lum-bg-gray-950 rounded-lum p-2 w-full mx-2 sm:mx-4 border border-lum-border/40"
-    />
+    <div className="w-full h-[30dvh] p-2 lum-bg-gray-950  border border-lum-border/40 rounded-lum ">
+      <div ref={terminalRef} className="w-full h-full overflow-hidden" />
+    </div>
   );
 }
