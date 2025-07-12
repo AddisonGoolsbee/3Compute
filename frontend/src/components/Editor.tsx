@@ -2,7 +2,7 @@ import { useCallback, useContext, useEffect, useState } from "react";
 import CodeMirror from '@uiw/react-codemirror';
 import { javascript } from "@codemirror/lang-javascript"
 import { File } from "lucide-react";
-import { FileType, FolderType, UserDataContext } from "../util/UserData";
+import { backendUrl, FileType, FolderType, UserDataContext } from "../util/UserData";
 // @ts-expect-error types not working yet
 import { getClasses } from "@luminescent/ui-react"
 
@@ -34,6 +34,16 @@ export default function Editor() {
       userData.setCurrentFile(currentFile);
     }
   });
+
+  useEffect(() => {
+    if (userData.currentFile) {
+      // Load the content of the current file
+      fetch(`${backendUrl}/file${userData.currentFile.location}`)
+        .then(response => response.text())
+        .then(text => setValue(text))
+        .catch(err => console.error("Error loading file:", err));
+    }
+  }, [userData.currentFile]);
 
   return (
     <div className={getClasses({
