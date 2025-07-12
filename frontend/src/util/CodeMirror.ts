@@ -17,9 +17,12 @@ import { vue } from "@codemirror/lang-vue";
 import { wast } from "@codemirror/lang-wast";
 import { xml } from "@codemirror/lang-xml";
 import { yaml } from "@codemirror/lang-yaml";
+import { SiCplusplus, SiCss, SiGo, SiHtml5, SiJavascript, SiJson, SiLess, SiLinux, SiMarkdown, SiPhp, SiPython, SiRust, SiSass, SiShopify, SiSqlite, SiTypescript, SiVuedotjs, SiWebassembly, SiXml, SiYaml } from "@icons-pack/react-simple-icons";
+import { Text } from "lucide-react";
 
 export const languageMap = {
   "javascript": {
+    icon: SiJavascript,
     name: "JavaScript",
     parser: javascript,
     extensions: [
@@ -27,6 +30,7 @@ export const languageMap = {
     ]
   },
   "typescript": {
+    icon: SiTypescript,
     name: "TypeScript",
     parser: javascript,
     extensions: [
@@ -34,6 +38,7 @@ export const languageMap = {
     ]
   },
   "python": {
+    icon: SiPython,
     name: "Python",
     parser: python,
     extensions: [
@@ -41,6 +46,7 @@ export const languageMap = {
     ]
   },
   "html": {
+    icon: SiHtml5,
     name: "HTML",
     parser: html,
     extensions: [
@@ -48,6 +54,7 @@ export const languageMap = {
     ]
   },
   "css": {
+    icon: SiCss,
     name: "CSS",
     parser: css,
     extensions: [
@@ -55,6 +62,7 @@ export const languageMap = {
     ]
   },
   "xml": {
+    icon: SiXml,
     name: "XML",
     parser: xml,
     extensions: [
@@ -62,6 +70,7 @@ export const languageMap = {
     ]
   },
   "json": {
+    icon: SiJson,
     name: "JSON",
     parser: json,
     extensions: [
@@ -69,6 +78,7 @@ export const languageMap = {
     ]
   },
   "yaml": {
+    icon: SiYaml,
     name: "YAML",
     parser: yaml,
     extensions: [
@@ -76,6 +86,7 @@ export const languageMap = {
     ]
   },
   "markdown": {
+    icon: SiMarkdown,
     name: "Markdown",
     parser: markdown,
     extensions: [
@@ -83,6 +94,7 @@ export const languageMap = {
     ]
   },
   "php": {
+    icon: SiPhp,
     name: "PHP",
     parser: php,
     extensions: [
@@ -90,6 +102,7 @@ export const languageMap = {
     ]
   },
   "java": {
+    icon: SiLinux,
     name: "Java",
     parser: java,
     extensions: [
@@ -97,6 +110,7 @@ export const languageMap = {
     ]
   },
   "c++": {
+    icon: SiCplusplus,
     name: "C++",
     parser: cpp,
     extensions: [
@@ -104,6 +118,7 @@ export const languageMap = {
     ]
   },
   "rust": {
+    icon: SiRust,
     name: "Rust",
     parser: rust,
     extensions: [
@@ -111,6 +126,7 @@ export const languageMap = {
     ]
   },
   "go": {
+    icon: SiGo,
     name: "Go",
     parser: go,
     extensions: [
@@ -118,6 +134,7 @@ export const languageMap = {
     ]
   },
   "vue": {
+    icon: SiVuedotjs,
     name: "Vue",
     parser: vue,
     extensions: [
@@ -125,6 +142,7 @@ export const languageMap = {
     ]
   },
   "liquid": {
+    icon: SiShopify,
     name: "Liquid",
     parser: liquid,
     extensions: [
@@ -132,6 +150,7 @@ export const languageMap = {
     ]
   },
   "less": {
+    icon: SiLess,
     name: "Less",
     parser: less,
     extensions: [
@@ -139,6 +158,7 @@ export const languageMap = {
     ]
   },
   "sass": {
+    icon: SiSass,
     name: "Sass",
     parser: sass,
     extensions: [
@@ -146,6 +166,7 @@ export const languageMap = {
     ]
   },
   "sql": {
+    icon: SiSqlite,
     name: "SQL",
     parser: sql,
     extensions: [
@@ -153,10 +174,17 @@ export const languageMap = {
     ]
   },
   "wast": {
-    name: "WAST",
+    icon: SiWebassembly,
+    name: "wast",
     parser: wast,
     extensions: [
       'wast', 'wat', 'wastc', 'watt', 'wastm', 'wattm', 'wastx', 'wattx', 'wasty', 'watty', 'wastz', 'wattz'
     ]
   },
+  "text": {
+    icon: Text,
+    name: "Text",
+    parser: () => [], // No specific parser, just a placeholder
+    extensions: [] as string[]
+  }
 };
