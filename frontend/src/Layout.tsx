@@ -13,7 +13,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
     <div className="h-[calc(100svh-6rem)] flex flex-col gap-1 items-center justify-center max-w-6xl mx-auto">
       <div className="flex flex-1 h-10 w-full gap-1">
         <div className="flex flex-col w-1/4 lum-card gap-1 p-1 lum-bg-gray-950 border-lum-border/30">
-          <div className="flex items-center gap-2 p-1 pl-2 bg-gray-900 rounded-lum-1 border-b border-b-lum-border/10"  >
+          <div className="flex items-center gap-2 p-1 pl-2 lum-bg-gray-900 rounded-lum-1"  >
             <FolderIcon size={20} />
             <span className="flex-1">
               Files
