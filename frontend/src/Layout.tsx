@@ -11,8 +11,6 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
   const [showOverlay, setShowOverlay] = useState(true);
   const [isVisible, setIsVisible] = useState(true);
 
-  console.log(userData);
-
   useEffect(() => {
     if (
       userData &&
