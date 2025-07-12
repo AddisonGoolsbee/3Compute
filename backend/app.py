@@ -6,7 +6,8 @@ import os
 import signal
 import sys
 from .config.logging_config import configure_logging
-configure_logging() 
+
+configure_logging()
 
 from dotenv import load_dotenv
 
@@ -59,7 +60,11 @@ def main():
     parser.add_argument("--debug", action="store_true")
     args = parser.parse_args()
 
-    if args.debug:
+    # Determine debug mode based on environment and command line args
+    flask_env = os.getenv("FLASK_ENV", "development")
+    debug_mode = args.debug and flask_env != "production"
+
+    if debug_mode:
         logging.getLogger().setLevel(logging.DEBUG)
 
     logger.info(f"Serving on http://{args.host}:{args.port}")
@@ -70,7 +75,7 @@ def main():
 
     setup_isolated_network()
     os.makedirs("/tmp/uploads", exist_ok=True)
-    socketio.run(app, debug=args.debug, port=args.port, host=args.host)
+    socketio.run(app, debug=debug_mode, port=args.port, host=args.host)
 
 
 if __name__ == "__main__":
