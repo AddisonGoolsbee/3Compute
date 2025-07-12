@@ -1,11 +1,11 @@
 import { ChevronRight, FileIcon, FolderIcon, MoreHorizontal } from "lucide-react";
-import { File, Folder } from "../main";
 // @ts-expect-error types not working yet
 import { getClasses } from "@luminescent/ui-react";
 import { useState } from "react";
 import React from "react";
+import { UserData } from "../root";
 
-export default function MenuItems({ files }: { files: (Folder | File)[] }) {
+export default function MenuItems({ files }: UserData) {
   const [openFolders, setOpenFolders] = useState<string[]>([]);
   return (
     <div className="flex flex-col gap-1">

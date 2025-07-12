@@ -1,12 +1,14 @@
-import { UserInfo } from "./root";
+import { UserDataContext } from "./root";
 import { FolderIcon } from "lucide-react";
 import MenuItems from "./components/MenuItems";
 import UploadButton from "./components/UploadButton";
 import TemplateButton from "./components/TemplateButton";
 import Editor from "./components/Editor";
-import { File, Folder } from "./main";
+import { useContext } from "react";
 
-export default function Layout({ children, userInfo, files }: { children?: React.ReactNode, userInfo?: UserInfo, files?: (Folder | File)[] }) {
+export default function Layout({ children }: { children?: React.ReactNode }) {
+  const { userInfo, files } = useContext(UserDataContext);
+
   return <>
     <div className="h-[calc(100svh-6rem)] flex flex-col gap-1 items-center justify-center max-w-6xl mx-auto">
       <div className="flex flex-1 h-10 w-full gap-1">
