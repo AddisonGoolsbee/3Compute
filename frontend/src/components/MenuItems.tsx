@@ -49,9 +49,9 @@ export default function MenuItems({ files }: UserData) {
                 {"files" in file && (
                   <>{file.files.length} items</>
                 )}
-                <button className="lum-btn p-0 lum-bg-transparent hover:text-lum-text">
+                <div className="lum-btn p-0 lum-bg-transparent hover:text-lum-text">
                   <MoreHorizontal size={16} />
-                </button>
+                </div>
               </span>
             </button>
             {"files" in file && (
