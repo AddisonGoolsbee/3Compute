@@ -171,7 +171,13 @@ def handle_connect():
     logger.debug("Handling new terminal connection")
     if not current_user.is_authenticated:
         logger.warning("unauthenticated user tried to connect")
-        return "Unauthorized", 401
+        # Properly disconnect the unauthorized user
+        socketio.emit("error", {"message": "Unauthorized"}, to=request.sid)
+        # Use disconnect() from the request context
+        from flask_socketio import disconnect
+
+        disconnect()
+        return
 
     user_id = current_user.id
     sid = request.sid

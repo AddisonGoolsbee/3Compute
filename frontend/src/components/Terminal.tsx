@@ -60,6 +60,35 @@ export default function TerminalComponent() {
       term.write(data.output);
     });
 
+    // Handle authentication errors
+    socket.on("connect_error", (error) => {
+      console.error("Terminal connection error:", error);
+      if (
+        error.message.includes("Unauthorized") ||
+        error.message.includes("401")
+      ) {
+        // Redirect to login or show logout message
+        window.location.href = "/login";
+      }
+    });
+
+    // Handle error events from server
+    socket.on("error", (data) => {
+      console.error("Server error:", data);
+      if (data.message === "Unauthorized") {
+        window.location.href = "/login";
+      }
+    });
+
+    // Handle disconnect events
+    socket.on("disconnect", (reason) => {
+      console.log("Terminal disconnected:", reason);
+      if (reason === "io server disconnect") {
+        // Server disconnected us, likely due to auth issues
+        window.location.href = "/login";
+      }
+    });
+
     // Set up resize observer to handle container size changes
     const resizeObserver = new ResizeObserver(() => {
       if (fitAddonRef.current) {
