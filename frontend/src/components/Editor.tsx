@@ -9,6 +9,7 @@ import { SiMarkdown } from "@icons-pack/react-simple-icons";
 import { tokyoNight } from "@uiw/codemirror-theme-tokyo-night";
 import { color } from '@uiw/codemirror-extensions-color';
 import { hyperLink } from '@uiw/codemirror-extensions-hyper-link';
+import { indentationMarkers } from '@replit/codemirror-indentation-markers'
 
 function findDefaultFile(files: (FolderType | FileType)[]): FileType | undefined {
   console.log("Finding default file in:", files);
@@ -124,7 +125,7 @@ export default function Editor() {
         <div className="overflow-auto">
           <CodeMirror value={value} theme={tokyoNight} onChange={onChange} className="w-full h-full" extensions={[
             languageMap[currentLanguage as keyof typeof languageMap].parser(),
-            color, hyperLink,
+            color, hyperLink, indentationMarkers({  }),
           ]} />
         </div>
       )}
