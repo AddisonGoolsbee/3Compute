@@ -85,7 +85,10 @@ export async function clientLoader() {
     }
   }
 
-  return { userInfo, files };
+  return {
+    userInfo,
+    files,
+  };
 }
 
 const defaultFiles = [
