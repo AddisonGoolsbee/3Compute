@@ -3,8 +3,9 @@ import { ChevronRight, FileIcon, FolderIcon, MoreHorizontal } from "lucide-react
 import { getClasses } from "@luminescent/ui-react";
 import React from "react";
 import { UserData, UserDataContext } from "../util/UserData";
+import { languageMap } from "../util/CodeMirror";
 
-export default function MenuItems({ files }: { files: UserData['files'] }) {
+export default function MenuItems({ files, count = 0 }: { files: UserData['files'], count?: number }) {
   const {
     setCurrentFile,
     openFolders,
@@ -35,6 +36,7 @@ export default function MenuItems({ files }: { files: UserData['files'] }) {
                 "lum-btn gap-2 p-1 lum-bg-transparent rounded-lum-1": true,
                 "cursor-pointer": !("files" in file),
               })}
+              style={{ paddingLeft: "calc(0.25rem + 0.5rem * " + count + ")"}}
             >
               {"files" in file && (
                 <ChevronRight
@@ -45,16 +47,18 @@ export default function MenuItems({ files }: { files: UserData['files'] }) {
                   })}
                 />
               )}
-              {"files" in file ? (
-                <FolderIcon size={20} className="text-orange-300" />
-              ) : (
-                <FileIcon size={20} className="ml-6 text-blue-300" />
-              )}
+              {"files" in file ? <div className="relative">
+                <FolderIcon size={24} className="text-orange-300" />
+                <span className="text-orange-100 text-[10px] absolute bottom-1 left-2.25">{file.files.length}</span>
+              </div> : (() => {
+                const Lang = Object.values(languageMap).find(languageMap =>
+                  languageMap.extensions.includes(file.name.split('.').pop() || "")
+                );
+                if (Lang) return <Lang.icon size={16} className="text-blue-300 ml-6" />
+                return <FileIcon size={16} className="text-blue-300 ml-6" />;
+              })()}
               <span>{file.name}</span>
               <span className="flex items-center gap-1 text-gray-500 text-sm ml-auto">
-                {"files" in file && (
-                  <>{file.files.length} items</>
-                )}
                 <div className="lum-btn p-0 lum-bg-transparent hover:text-lum-text">
                   <MoreHorizontal size={16} />
                 </div>
@@ -72,7 +76,7 @@ export default function MenuItems({ files }: { files: UserData['files'] }) {
                   ),
                 })}
               >
-                <MenuItems files={file.files} />
+                <MenuItems files={file.files} count={count + 1} />
               </div>
             )}
           </React.Fragment>
