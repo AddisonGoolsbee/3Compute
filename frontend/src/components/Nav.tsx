@@ -3,7 +3,8 @@ import { Nav, LogoBirdflop } from "@luminescent/ui-react";
 import { LogOut } from "lucide-react";
 import { useContext } from "react";
 import { Link } from "react-router";
-import { UserDataContext } from "../root";
+import { UserDataContext } from "../util/UserData";
+
 const backendUrl = import.meta.env.VITE_ENVIRONMENT === "production"
   ? import.meta.env.VITE_PROD_BACKEND_URL
   : import.meta.env.VITE_BACKEND_URL;
