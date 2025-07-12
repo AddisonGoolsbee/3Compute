@@ -1,7 +1,7 @@
 import { ChevronRight, FileIcon, FolderIcon, MoreHorizontal } from "lucide-react";
 // @ts-expect-error types not working yet
 import { getClasses } from "@luminescent/ui-react";
-import React from "react";
+import { useContext, Fragment } from "react";
 import { UserData, UserDataContext } from "../util/UserData";
 import { languageMap } from "../util/CodeMirror";
 
@@ -10,55 +10,91 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
     setCurrentFile,
     openFolders,
     setOpenFolders,
-  } = React.useContext(UserDataContext);
+  } = useContext(UserDataContext);
 
   return (
     <div className="flex flex-col gap-1">
       {Array.isArray(files) ? (
         files.map((file) => (
-          <React.Fragment key={file.location}>
-            <button
-              onClick={() => {
-                if ("files" in file) {
-                  setOpenFolders((prev) => {
-                    if (prev.includes(file.location)) {
-                      return prev.filter((f) => f !== file.location);
-                    } else {
-                      return [...prev, file.location];
-                    }
-                  });
-                }
-                else {
-                  setCurrentFile(file);
-                }
-              }}
-              className={getClasses({
-                "lum-btn gap-2 p-1 lum-bg-transparent rounded-lum-1": true,
-                "cursor-pointer": !("files" in file),
-              })}
-              style={{ paddingLeft: "calc(0.25rem + 0.5rem * " + count + ")"}}
-            >
-              {"files" in file && (
-                <ChevronRight
-                  size={16}
-                  className={getClasses({
-                    "transition-all text-gray-400": true,
-                    "rotate-90": openFolders.includes(file.location),
-                  })}
-                />
-              )}
-              {"files" in file ? <div className="relative">
-                <FolderIcon size={24} className="text-orange-300" />
-                <span className="text-orange-100 text-[10px] absolute bottom-1 left-2.25">{file.files.length}</span>
-              </div> : (() => {
-                const Lang = Object.values(languageMap).find(languageMap =>
-                  languageMap.extensions.includes(file.name.split('.').pop() || "")
-                );
-                if (Lang) return <Lang.icon size={16} className="text-blue-300 ml-6" />
-                return <FileIcon size={16} className="text-blue-300 ml-6" />;
-              })()}
-              <span>{file.name}</span>
-            </button>
+          <Fragment key={file.location}>
+            <div className="lum-btn p-0 gap-0 lum-bg-transparent rounded-lum-1" onContextMenu={(e) => {
+              e.preventDefault();
+              const contextMenu = document.getElementById("context-menu");
+              if (!contextMenu) return;
+              contextMenu.style.left = `${e.clientX}px`;
+              contextMenu.style.top = `${e.clientY}px`;
+              contextMenu.classList.remove("opacity-0", "pointer-events-none");
+
+              const closeContextMenu = () => {
+                contextMenu.classList.add("opacity-0", "pointer-events-none");
+                contextMenu.classList.remove("opacity-100", "pointer-events-auto");
+                document.removeEventListener("click", closeContextMenu);
+              }
+              document.addEventListener("click", closeContextMenu, { once: true });
+            }}>
+              <button
+                onClick={() => {
+                  if ("files" in file) {
+                    setOpenFolders((prev) => {
+                      if (prev.includes(file.location)) {
+                        return prev.filter((f) => f !== file.location);
+                      } else {
+                        return [...prev, file.location];
+                      }
+                    });
+                  }
+                  else {
+                    setCurrentFile(file);
+                  }
+                }}
+                className={getClasses({
+                  "flex rounded-lum-1 rounded-r-none p-1 flex-1 items-center gap-2 w-full text-left lum-bg-transparent": true,
+                  "cursor-pointer": !("files" in file),
+                })}
+                style={{ paddingLeft: "calc(0.25rem + 0.5rem * " + count + ")"}}
+              >
+                {"files" in file && (
+                  <ChevronRight
+                    size={16}
+                    className={getClasses({
+                      "transition-all text-gray-400": true,
+                      "rotate-90": openFolders.includes(file.location),
+                    })}
+                  />
+                )}
+                {"files" in file ? <div className="relative">
+                  <FolderIcon size={24} className="text-orange-300" />
+                  <span className="text-orange-100 text-[10px] absolute bottom-1 left-2.25">{file.files.length}</span>
+                </div> : (() => {
+                  const Lang = Object.values(languageMap).find(languageMap =>
+                    languageMap.extensions.includes(file.name.split('.').pop() || "")
+                  );
+                  if (Lang) return <Lang.icon size={16} className="text-blue-300 ml-6" />
+                  return <FileIcon size={16} className="text-blue-300 ml-6" />;
+                })()}
+                <span>{file.name}</span>
+              </button>
+              <button className="lum-btn cursor-pointer rounded-lum-1 rounded-l-none p-1 items-center gap-1 text-gray-500 text-sm hover:text-gray-300 lum-bg-transparent hover:lum-bg-transparent"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const contextMenu = document.getElementById("context-menu");
+                  if (!contextMenu) return;
+                  contextMenu.style.left = `${e.clientX}px`;
+                  contextMenu.style.top = `${e.clientY}px`;
+                  contextMenu.classList.remove("opacity-0", "pointer-events-none");
+                  contextMenu.classList.add("opacity-100", "pointer-events-auto");
+
+                  const closeContextMenu = () => {
+                    contextMenu.classList.add("opacity-0", "pointer-events-none");
+                    contextMenu.classList.remove("opacity-100", "pointer-events-auto");
+                    document.removeEventListener("click", closeContextMenu);
+                  }
+                  document.addEventListener("click", closeContextMenu, { once: true });
+                }}
+              >
+                <MoreHorizontal size={22} />
+              </button>
+            </div>
             {"files" in file && (
               <div
                 className={getClasses({
@@ -74,7 +110,7 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
                 <MenuItems files={file.files} count={count + 1} />
               </div>
             )}
-          </React.Fragment>
+          </Fragment>
         ))
       ) : (
         <div className="text-gray-500">No files found</div>

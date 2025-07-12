@@ -1,5 +1,5 @@
 import { useContext } from "react";
-import { FolderIcon } from "lucide-react";
+import { FolderIcon, Pencil, Trash } from "lucide-react";
 import { defaultUserData, UserDataContext } from "../util/UserData";
 import UploadButton from "./UploadButton";
 import MenuItems from "./MenuItems";
@@ -31,6 +31,16 @@ export default function Explorer() {
           <TemplateButton userInfo={userData?.userInfo} />
         </div>
       )}
+      <div id="context-menu" className="flex flex-col transition-all opacity-0 pointer-events-none absolute z-50 lum-bg-gray-900 text-white rounded-lum shadow-lg gap-1 p-1">
+        <button className="lum-btn cursor-pointer lum-btn-p-1 rounded-lum-1 lum-bg-transparent">
+          <Pencil size={16} />
+          Rename
+        </button>
+        <button className="lum-btn cursor-pointer lum-btn-p-1 rounded-lum-1 lum-bg-transparent">
+          <Trash size={16} />
+          Delete
+        </button>
+      </div>
     </div>
   );
 }
