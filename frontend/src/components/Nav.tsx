@@ -26,10 +26,6 @@ export default function NavComponent() {
           <span className="font-semibold -ml-1">3Compute</span>
         </Link>
       }
-      center={
-        <>
-        </>
-      }
       end={
         <>
           {userData?.userInfo && (

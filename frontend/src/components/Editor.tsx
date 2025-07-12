@@ -1,6 +1,6 @@
 import { useCallback, useContext, useEffect, useState } from "react";
 import CodeMirror from '@uiw/react-codemirror';
-import { File } from "lucide-react";
+import { File, Save } from "lucide-react";
 import { backendUrl, FileType, FolderType, UserDataContext } from "../util/UserData";
 // @ts-expect-error types not working yet
 import { getClasses, SelectMenuRaw } from "@luminescent/ui-react"
@@ -64,16 +64,14 @@ export default function Editor() {
 
   return (
     <div className={getClasses({
-      "transition-all flex flex-col rounded-lum max-w-3/4 bg-[#1A1B26] border-lum-border/30": true,
+      "relative transition-all flex flex-col rounded-lum max-w-3/4 bg-[#1A1B26] border-lum-border/30": true,
       "w-full opacity-100": userData?.currentFile !== undefined,
       "w-0 -ml-2 opacity-0": userData?.currentFile === undefined
     })}>
       <div className="flex items-center gap-2 pl-3 p-1 m-1 lum-bg-gray-900 rounded-lum-1">
-        <File size={16} />
-        <span className="text-sm flex-1">
+        <span className="text-sm flex gap-2 items-center flex-1">
+          <File size={16} />
           {userData?.currentFile?.location}
-        </span>
-        <div className="flex items-center gap-1">
           {currentLanguage === "markdown" && (
             <button className={getClasses({
               "lum-btn p-1 rounded-lum-2 gap-1 lum-bg-transparent hover:lum-bg-gray-800": true,
@@ -84,9 +82,11 @@ export default function Editor() {
               <SiMarkdown size={16} />
             </button>
           )}
+        </span>
+        <div className="flex items-center gap-1">
           <SelectMenuRaw
             id="language-select"
-            className="rounded-lum-2 text-xs gap-1 lum-bg-orange-700 hover:lum-bg-orange-800 w-full lum-btn-p-1"
+            className="rounded-lum-2 text-xs gap-1 lum-bg-orange-700 hover:lum-bg-orange-600 w-full lum-btn-p-1"
             value={currentLanguage}
             values={Object.values(languageMap).map((Lang) => ({
               name: <div className="flex items-center gap-2">
@@ -114,6 +114,29 @@ export default function Editor() {
               </div>
             }
           />
+          <button
+            className="lum-btn rounded-lum-2 text-xs gap-1 lum-bg-green-700 hover:lum-bg-green-600 w-full lum-btn-p-1"
+            onClick={async () => {
+              if (!userData.currentFile) return;
+              const response = await fetch(`${backendUrl}/file${userData.currentFile.location}`, {
+                method: "PUT",
+                body: value,
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                credentials: "include",
+              });
+              if (!response.ok) {
+                console.error("Failed to save file");
+              } else {
+                console.log("File saved successfully");
+              }
+              // Optionally, you can show a notification or update the UI
+            }}
+          >
+            <Save size={16} />
+            Save
+          </button>
         </div>
       </div>
       { mdPreview && currentLanguage === "markdown" ? (
