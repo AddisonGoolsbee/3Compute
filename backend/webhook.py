@@ -26,7 +26,7 @@ def github_webhook():
     mac = hmac.new(WEBHOOK_SECRET, msg=request.data, digestmod=hashlib.sha256)
 
     if not hmac.compare_digest(mac.hexdigest(), sig_hash):
-        logger.debug("Invalid signature")
+        logger.debug(f"Invalid signature. X-Hub-Signature-256: {signature} Computed HMAC: {mac.hexdigest()}")
         abort(403, "Invalid signature")
 
     payload = request.json
