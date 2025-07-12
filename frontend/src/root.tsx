@@ -13,7 +13,14 @@ export function HydrateFallback() {
 }
 
 export function Layout({ children }: { children: React.ReactNode }) {
-  const userData = useLoaderData<UserData>();
+  const loaderData = useLoaderData<UserData>();
+  const [openFolders, setOpenFolders] = React.useState<string[]>([]);
+
+  const userData = {
+    ...loaderData,
+    openFolders,
+    setOpenFolders,
+  }
 
   return (
     <html lang="en">
