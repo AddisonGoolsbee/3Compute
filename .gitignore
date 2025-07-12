@@ -1,6 +1,6 @@
 .venv
 __pycache__
-backend/.env
+.env
 scratch/
 .react-router/
 backend/users.json
