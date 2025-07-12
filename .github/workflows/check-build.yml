@@ -22,8 +22,8 @@ jobs:
           node-version: '22'
           cache: 'pnpm'
 
-      - name: Install pnpm
-        run: npm install -g pnpm
+      - name: Enable pnpm (Corepack)
+        run: corepack enable
 
       - name: Build frontend
         working-directory: frontend
