@@ -167,7 +167,16 @@ def _cancel_idle_poller(user_id: int):
         ev.set()
 
 
-def handle_connect():
+def _cleanup_user_container(user_id, container_name):
+    """Clean up a user's container and remove from tracking"""
+    try:
+        subprocess.run(["docker", "rm", "-f", container_name], check=False)
+    except:
+        pass
+    user_containers.pop(user_id, None)
+
+
+def handle_connect(auth=None):
     logger.debug("Handling new terminal connection")
     if not current_user.is_authenticated:
         logger.warning("unauthenticated user tried to connect")
@@ -187,14 +196,79 @@ def handle_connect():
 
     container_name = f"user-container-{user_id}"
     if user_id not in user_containers:
-        port_range = current_user.port_range
-        spawn_container(user_id, None, container_name, port_range)
-        user_containers[user_id] = {"container_name": container_name, "port_range": port_range}
-        logging.info(f"Spawned new container for user {user_id}")
+        # Check if container already exists and use it
+        from .docker import container_exists, container_is_running
+
+        if container_exists(container_name):
+            if container_is_running(container_name):
+                logger.info(f"Found existing running container {container_name}, reusing it")
+                # Add it to our tracking
+                user_containers[user_id] = {"container_name": container_name, "port_range": current_user.port_range}
+            else:
+                logger.info(f"Found existing stopped container {container_name}, restarting it")
+                try:
+                    subprocess.run(["docker", "start", container_name], check=True)
+                    user_containers[user_id] = {"container_name": container_name, "port_range": current_user.port_range}
+                    logger.info(f"Restarted container {container_name}")
+                except subprocess.CalledProcessError:
+                    logger.warning(f"Failed to restart container {container_name}, creating new one")
+                    # Only remove if restart failed
+                    subprocess.run(["docker", "rm", "-f", container_name], check=False)
+                    try:
+                        spawn_container(user_id, None, container_name, current_user.port_range)
+                        user_containers[user_id] = {
+                            "container_name": container_name,
+                            "port_range": current_user.port_range,
+                        }
+                        logging.info(f"Spawned new container for user {user_id}")
+                    except Exception as e:
+                        logger.error(f"Failed to spawn new container for user {user_id}: {e}")
+                        socketio.emit(
+                            "error", {"message": "Failed to create terminal session. Please try again."}, to=sid
+                        )
+                        return
+        else:
+            # No existing container, create a new one
+            port_range = current_user.port_range
+            try:
+                spawn_container(user_id, None, container_name, port_range)
+                user_containers[user_id] = {"container_name": container_name, "port_range": port_range}
+                logging.info(f"Spawned new container for user {user_id}")
+            except Exception as e:
+                logger.error(f"Failed to spawn container for user {user_id}: {e}")
+                socketio.emit("error", {"message": "Failed to create terminal session. Please try again."}, to=sid)
+                return
+    else:
+        # User has a container tracked, but check if it's actually running
+        from .docker import container_is_running
+
+        if not container_is_running(container_name):
+            logger.info(f"Container {container_name} exists but is not running, restarting it")
+            try:
+                subprocess.run(["docker", "start", container_name], check=True)
+                logger.info(f"Restarted container {container_name}")
+            except subprocess.CalledProcessError:
+                logger.warning(f"Failed to restart container {container_name}, creating new one")
+                _cleanup_user_container(user_id, container_name)
+                try:
+                    spawn_container(user_id, None, container_name, current_user.port_range)
+                    user_containers[user_id] = {"container_name": container_name, "port_range": current_user.port_range}
+                except Exception as e:
+                    logger.error(f"Failed to spawn new container for user {user_id}: {e}")
+                    socketio.emit("error", {"message": "Failed to create terminal session. Please try again."}, to=sid)
+                    return
 
     # Attach to tmux session in container
-    proc, fd = attach_to_container(container_name)
-    logger.info(f"Attached to tmux in container for user {user_id}")
+    try:
+        proc, fd = attach_to_container(container_name)
+        logger.info(f"Attached to tmux in container for user {user_id}")
+    except Exception as e:
+        logger.error(f"Failed to attach to container {container_name}: {e}")
+        # Clean up the container if we can't attach to it
+        _cleanup_user_container(user_id, container_name)
+        # Notify the user of the error
+        socketio.emit("error", {"message": "Failed to connect to terminal. Please try again."}, to=sid)
+        return
 
     session_map[sid] = {"fd": fd, "user_id": user_id}
     socketio.start_background_task(read_and_forward_pty_output, sid, True)

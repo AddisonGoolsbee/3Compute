@@ -27,7 +27,7 @@ from .auth import auth_bp, load_user
 from .files import upload_bp
 from .webhook import webhook_bp
 from .terminal import init_terminal, user_containers
-from .docker import cleanup_containers, setup_isolated_network
+from .docker import setup_isolated_network
 
 
 app = Flask(__name__, template_folder=".", static_folder=".", static_url_path="")
@@ -71,7 +71,6 @@ def main():
 
     logger.info(f"Serving on http://{args.host}:{args.port}")
 
-    atexit.register(cleanup_containers, user_containers)
     signal.signal(signal.SIGTERM, lambda *_: sys.exit(0))
     signal.signal(signal.SIGINT, lambda *_: sys.exit(0))
 
