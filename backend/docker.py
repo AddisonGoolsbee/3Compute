@@ -110,11 +110,6 @@ def spawn_container(user_id, slave_fd, container_name, port_range=None):
         logger.error(f"[{user_id}] Failed to start container '{container_name}': {e}")
         raise
 
-    # After container is created, fix file ownership
-    subprocess.run([
-        "docker", "exec", container_name,
-        "chown", "-R", "myuser:myuser", "/app"
-    ], check=True)
 
 def attach_to_container(container_name):
     master_fd, slave_fd = pty.openpty()
