@@ -4,7 +4,7 @@ import UploadButton from "./components/UploadButton";
 import TemplateButton from "./components/TemplateButton";
 import Editor from "./components/Editor";
 import { useContext } from "react";
-import { UserDataContext } from "./util/UserData";
+import { defaultUserData, UserDataContext } from "./util/UserData";
 
 export default function Layout({ children }: { children?: React.ReactNode }) {
   const userData = useContext(UserDataContext);
@@ -26,12 +26,8 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
             {Array.isArray(userData?.files) ? (
               <MenuItems files={userData?.files} />
             ) : (
-              userData?.userInfo ?
-              <div className="text-red-500">Error loading files</div>
-              : <MenuItems files={[{
-                name: "index.py",
-                location: "/index.py"
-              }]} />
+              userData?.userInfo ? <div className="text-red-500">Error loading files</div>
+              : <MenuItems files={defaultUserData.files} />
             )}
           </div>
           {userData?.userInfo &&
