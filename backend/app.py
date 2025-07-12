@@ -58,7 +58,7 @@ init_terminal(socketio)
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-p", "--port", default=5555, type=int)
-    parser.add_argument("--host", default="127.0.0.1")
+    parser.add_argument("--host", default=os.getenv("HOST_IP"))
     parser.add_argument("--debug", action="store_true")
     args = parser.parse_args()
 
