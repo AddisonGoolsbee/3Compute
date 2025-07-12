@@ -1,19 +1,23 @@
 // @ts-expect-error types not working yet
 import { Nav, LogoBirdflop } from "@luminescent/ui-react";
 import { LogOut } from "lucide-react";
+import { useContext } from "react";
 import { Link } from "react-router";
-import { UserInfo } from "../root";
+import { UserDataContext } from "../util/UserData";
+
 const backendUrl = import.meta.env.VITE_ENVIRONMENT === "production"
   ? import.meta.env.VITE_PROD_BACKEND_URL
   : import.meta.env.VITE_BACKEND_URL;
 
-export default function NavComponent({ userInfo }: { userInfo?: UserInfo }) {
+export default function NavComponent() {
   const handleLogout = async () => {
     await fetch(`${backendUrl}/logout`, {
       credentials: "include",
     });
     window.location.href = "/";
   };
+
+  const userData = useContext(UserDataContext);
 
   return (
     <Nav
@@ -32,7 +36,7 @@ export default function NavComponent({ userInfo }: { userInfo?: UserInfo }) {
       }
       end={
         <>
-          {userInfo && (
+          {userData?.userInfo && (
             <button
               onClick={handleLogout}
               className="lum-btn lum-bg-transparent text-red-300 hover:lum-bg-red-700 p-2"
