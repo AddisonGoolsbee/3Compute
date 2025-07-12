@@ -2,7 +2,7 @@ import { ChevronRight, FileIcon, FolderIcon, Trash } from "lucide-react";
 // @ts-expect-error types not working yet
 import { getClasses } from "@luminescent/ui-react";
 import { useContext, Fragment } from "react";
-import { UserData, UserDataContext } from "../util/UserData";
+import { backendUrl, UserData, UserDataContext } from "../util/UserData";
 import { languageMap } from "../util/CodeMirror";
 
 export default function MenuItems({ files, count = 0 }: { files: UserData['files'], count?: number }) {
@@ -61,15 +61,18 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
                 <span>{file.name}</span>
               </button>
               <button className="lum-btn cursor-pointer rounded-lum-1 rounded-l-none p-1 items-center gap-1 text-gray-500 text-sm hover:text-gray-300 lum-bg-transparent hover:lum-bg-transparent"
-                onClick={() => {
-                  fetch(`/api/files/${file.location}`, {
+                onClick={async () => {
+                  const response = await fetch(`${backendUrl}/files${file.location}`, {
                     method: "DELETE",
                     credentials: "include",
-                  }).then(() => {
+                  });
+                  if (response.ok) {
                     setCurrentFile(undefined);
                     setOpenFolders((prev) => prev.filter((f) => f !== file.location));
-                    window.location.reload();
-                  });
+                    // Optionally, you can trigger a re-fetch of files here
+                  } else {
+                    console.error("Failed to delete file:", response.statusText);
+                  }
                 }}
               >
                 <Trash size={22} />

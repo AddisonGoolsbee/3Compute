@@ -64,9 +64,7 @@ export default function Editor() {
 
   return (
     <div className={getClasses({
-      "relative transition-all flex flex-col rounded-lum max-w-3/4 bg-[#1A1B26] border-lum-border/30": true,
-      "w-full opacity-100": userData?.currentFile !== undefined,
-      "w-0 -ml-2 opacity-0": userData?.currentFile === undefined
+      "relative transition-all flex flex-col rounded-lum max-w-3/4 bg-[#1A1B26] border-lum-border/30 w-full": true,
     })}>
       <div className="flex items-center gap-2 pl-3 p-1 m-1 lum-bg-gray-900 rounded-lum-1">
         <span className="text-sm flex gap-2 items-center flex-1">
