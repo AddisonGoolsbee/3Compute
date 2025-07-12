@@ -18,7 +18,7 @@ export default function Editor() {
     <div className={getClasses({
       "transition-all flex flex-col rounded-lum border border-lum-border/30 lum-bg-gray-900": true,
       "w-full opacity-100": userData?.currentFile !== undefined,
-      "w-0": userData?.currentFile === undefined
+      "w-0 -ml-2 opacity-0": userData?.currentFile === undefined
     })}>
       <div className="flex items-center gap-2 lum-btn-p-2">
         <File size={16} />

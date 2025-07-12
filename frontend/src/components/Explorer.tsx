@@ -9,7 +9,7 @@ export default function Explorer() {
   const userData = useContext(UserDataContext);
 
   return (
-    <div className="flex flex-col w-1/4 lum-card gap-1 p-1 lum-bg-gray-950 border-lum-border/30">
+    <div className="flex flex-1 flex-col lum-card gap-1 p-1 lum-bg-gray-950 border-lum-border/30">
       <div className="flex items-center gap-2 p-1 pl-2 lum-bg-gray-900 rounded-lum-1">
         <FolderIcon size={20} />
         <span className="flex-1">Files</span>
