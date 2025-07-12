@@ -22,7 +22,7 @@ server {
     ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
 
     # Serve static frontend files
-    root /var/www/paas/frontend/build/client;
+    root /var/www/3compute/frontend/build/client;
     index index.html;
 
     location / {
