@@ -2,7 +2,7 @@ import React from "react";
 import { Links, Meta, Outlet, Scripts, ScrollRestoration, useLoaderData } from "react-router";
 import NavComponent from "./components/Nav";
 import { default as HomeLayout } from "./Layout";
-import { UserData, UserDataContext, clientLoader } from "./util/UserData";
+import { FileType, UserData, UserDataContext, clientLoader } from "./util/UserData";
 
 // eslint-disable-next-line react-refresh/only-export-components
 export { clientLoader };
@@ -15,11 +15,14 @@ export function HydrateFallback() {
 export function Layout({ children }: { children: React.ReactNode }) {
   const loaderData = useLoaderData<UserData>();
   const [openFolders, setOpenFolders] = React.useState<string[]>([]);
+  const [currentFile, setCurrentFile] = React.useState<FileType | undefined>();
 
   const userData = {
     ...loaderData,
     openFolders,
     setOpenFolders,
+    currentFile,
+    setCurrentFile,
   }
 
   return (
