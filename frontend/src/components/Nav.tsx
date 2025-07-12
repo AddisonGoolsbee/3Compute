@@ -16,7 +16,7 @@ export default function NavComponent() {
     window.location.href = "/";
   };
 
-  const { userInfo } = useContext(UserDataContext);
+  const userData = useContext(UserDataContext);
 
   return (
     <Nav
@@ -35,7 +35,7 @@ export default function NavComponent() {
       }
       end={
         <>
-          {userInfo && (
+          {userData?.userInfo && (
             <button
               onClick={handleLogout}
               className="lum-btn lum-bg-transparent text-red-300 hover:lum-bg-red-700 p-2"

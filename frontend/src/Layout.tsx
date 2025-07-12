@@ -7,7 +7,7 @@ import Editor from "./components/Editor";
 import { useContext } from "react";
 
 export default function Layout({ children }: { children?: React.ReactNode }) {
-  const { userInfo, files } = useContext(UserDataContext);
+  const userData = useContext(UserDataContext);
 
   return <>
     <div className="h-[calc(100svh-6rem)] flex flex-col gap-1 items-center justify-center max-w-6xl mx-auto">
@@ -23,10 +23,10 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
             </div>
           </div>
           <div className="flex-1 overflow-auto">
-            {Array.isArray(files) ? (
-              <MenuItems files={files} />
+            {Array.isArray(userData?.files) ? (
+              <MenuItems files={userData?.files} />
             ) : (
-              userInfo ?
+              userData?.userInfo ?
               <div className="text-red-500">Error loading files</div>
               : <MenuItems files={[{
                 name: "index.py",
@@ -34,22 +34,22 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
               }]} />
             )}
           </div>
-          {userInfo &&
+          {userData?.userInfo &&
             <div className="flex flex-col">
-              <TemplateButton userInfo={userInfo} />
+              <TemplateButton userInfo={userData?.userInfo} />
             </div>
           }
         </div>
         <Editor />
       </div>
       <div className="w-full">
-        {userInfo && children ? children : (
+        {userData?.userInfo && children ? children : (
           <div className="lum-card lum-bg-black border-lum-border/40 h-[30dvh] p-4"/>
         )}
       </div>
         <div className="text-sm text-lum-text-secondary mt-2">
-          {userInfo ? (
-            <span>Your available port range: {userInfo.port_start}-{userInfo.port_end}</span>
+          {userData?.userInfo ? (
+            <span>Your available port range: {userData?.userInfo.port_start}-{userData?.userInfo.port_end}</span>
           ) : (
             <span>This goes so hard</span>
           )}
