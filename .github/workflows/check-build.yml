@@ -10,29 +10,21 @@ jobs:
   build:
     runs-on: ubuntu-22.04
 
-    strategy:
-      matrix:
-        node-version: [22]
-
     steps:
       - name: Checkout full repo
         uses: actions/checkout@v4
         with:
           fetch-depth: 0  # full history
 
-      - uses: actions/checkout@v4
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 10
-
-      - name: Use Node.js ${{ matrix.node-version }}
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ matrix.node-version }}
-          cache: 'pnpm'
+          node-version: '22'
 
-      - name: Install dependencies
+      - name: Install pnpm
+        run: npm install -g pnpm
+
+      - name: Install frontend dependencies
         working-directory: frontend
         run: |
           pnpm i
