@@ -3,7 +3,7 @@ import { ChevronRight, FileIcon, FolderIcon, MoreHorizontal } from "lucide-react
 import { getClasses } from "@luminescent/ui-react";
 import { useState } from "react";
 import React from "react";
-import { UserData } from "../root";
+import { UserData } from "../util/UserData";
 
 export default function MenuItems({ files }: UserData) {
   const [openFolders, setOpenFolders] = useState<string[]>([]);
