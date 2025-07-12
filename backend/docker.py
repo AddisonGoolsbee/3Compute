@@ -67,7 +67,40 @@ def setup_isolated_network(network_name="isolated_net"):
         logger.warning(f"Failed to block host communication: {str(e)}")
 
 
+def container_exists(container_name):
+    """Check if a container exists (running or stopped)"""
+    try:
+        result = subprocess.run(
+            ["docker", "ps", "-a", "--filter", f"name={container_name}", "--format", "{{.Names}}"],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        return container_name in result.stdout.strip()
+    except subprocess.CalledProcessError:
+        return False
+
+
+def container_is_running(container_name):
+    """Check if a container is currently running"""
+    try:
+        result = subprocess.run(
+            ["docker", "ps", "--filter", f"name={container_name}", "--format", "{{.Names}}"],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        return container_name in result.stdout.strip()
+    except subprocess.CalledProcessError:
+        return False
+
+
 def spawn_container(user_id, slave_fd, container_name, port_range=None):
+    # Only create a new container if one doesn't already exist
+    if container_exists(container_name):
+        logger.warning(f"Container {container_name} already exists, not creating a new one")
+        raise RuntimeError(f"Container {container_name} already exists")
+
     cmd = [
         "docker",
         "run",
@@ -112,10 +145,20 @@ def spawn_container(user_id, slave_fd, container_name, port_range=None):
 
 
 def attach_to_container(container_name):
+    # Check if container is running
+    if not container_is_running(container_name):
+        logger.error(f"Cannot attach to container '{container_name}' - it is not running")
+        raise RuntimeError(f"Container {container_name} is not running")
+
     master_fd, slave_fd = pty.openpty()
     cmd = [
-        "docker", "exec", "-it", container_name,
-        "sh", "-lc", "tmux new-session -d -A -s 3compute; tmux attach -t 3compute",
+        "docker",
+        "exec",
+        "-it",
+        container_name,
+        "sh",
+        "-lc",
+        "tmux new-session -d -A -s 3compute; tmux attach -t 3compute",
     ]
     logger.info(f"Attaching to container '{container_name}' with tmux session")
     try:
@@ -126,12 +169,10 @@ def attach_to_container(container_name):
         raise
 
 
-
-def cleanup_containers(user_containers):
-    for info in user_containers.values():
-        name = info["container_name"]
-        logger.info(f"Stopping and removing container {name}")
-        try:
-            subprocess.run(["docker", "rm", "-f", name], check=True)
-        except subprocess.CalledProcessError as e:
-            logger.warning(f"Failed to remove container {name}: {e}")
+__all__ = [
+    "setup_isolated_network",
+    "spawn_container",
+    "attach_to_container",
+    "container_exists",
+    "container_is_running",
+]
