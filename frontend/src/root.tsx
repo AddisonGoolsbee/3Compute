@@ -2,23 +2,10 @@ import React from "react";
 import { Links, Meta, Outlet, Scripts, ScrollRestoration, useLoaderData } from "react-router";
 import NavComponent from "./components/Nav";
 import { default as HomeLayout } from "./Layout";
-export interface UserInfo {
-  email: string;
-  port_start: number;
-  port_end: number;
-}
-
-const backendUrl = import.meta.env.VITE_ENVIRONMENT === "production"
-  ? import.meta.env.VITE_PROD_BACKEND_URL
-  : import.meta.env.VITE_BACKEND_URL;
+import { UserData, UserDataContext, clientLoader } from "./util/UserData";
 
 // eslint-disable-next-line react-refresh/only-export-components
-export async function clientLoader() {
-  const res = await fetch(`${backendUrl}/me`, { credentials: "include" });
-  const userInfo = await res.json();
-  if (!res.ok) return;
-  return userInfo;
-}
+export { clientLoader };
 
 // HydrateFallback is rendered while the client loader is running
 export function HydrateFallback() {
@@ -26,7 +13,14 @@ export function HydrateFallback() {
 }
 
 export function Layout({ children }: { children: React.ReactNode }) {
-  const userInfo = useLoaderData() as UserInfo | undefined;
+  const loaderData = useLoaderData<UserData>();
+  const [openFolders, setOpenFolders] = React.useState<string[]>([]);
+
+  const userData = {
+    ...loaderData,
+    openFolders,
+    setOpenFolders,
+  }
 
   return (
     <html lang="en">
@@ -41,8 +35,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <title>3Compute</title>
       </head>
       <body className="bg-bg text-lum-text mt-20">
-        <NavComponent userInfo={userInfo} />
-        {children}
+        <UserDataContext value={userData}>
+          <NavComponent />
+          {children}
+        </UserDataContext>
         <Scripts />
         <ScrollRestoration />
       </body>

@@ -1,12 +1,15 @@
 import { ChevronRight, FileIcon, FolderIcon, MoreHorizontal } from "lucide-react";
-import { File, Folder } from "../main";
 // @ts-expect-error types not working yet
 import { getClasses } from "@luminescent/ui-react";
-import { useState } from "react";
 import React from "react";
+import { UserData, UserDataContext } from "../util/UserData";
 
-export default function MenuItems({ files }: { files: (Folder | File)[] }) {
-  const [openFolders, setOpenFolders] = useState<string[]>([]);
+export default function MenuItems({ files }: { files: UserData['files'] }) {
+  const {
+    openFolders,
+    setOpenFolders,
+  } = React.useContext(UserDataContext);
+
   return (
     <div className="flex flex-col gap-1">
       {Array.isArray(files) ? (
@@ -49,9 +52,9 @@ export default function MenuItems({ files }: { files: (Folder | File)[] }) {
                 {"files" in file && (
                   <>{file.files.length} items</>
                 )}
-                <button className="lum-btn p-0 lum-bg-transparent hover:text-lum-text">
+                <div className="lum-btn p-0 lum-bg-transparent hover:text-lum-text">
                   <MoreHorizontal size={16} />
-                </button>
+                </div>
               </span>
             </button>
             {"files" in file && (
