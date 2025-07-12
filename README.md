@@ -23,7 +23,8 @@ Birdflop service for free educational server usage, with templates such as disco
 #### Productionization (Debian 12)
 - github/3compute deploy key in /root/.ssh/id_rsa
 - mkdir /var/www && cd /var/www
-- git clone git@github.com:birdflop/3compute.git
+- apt install git
+- git clone git@github.com:birdflop/3compute.git && cd 3compute
 
 # Add Docker's official GPG key:
 ```
@@ -53,20 +54,31 @@ sudo docker run hello-world
 ```
 sudo apt install tmux
 tmux new -s backend
+```
+```
+apt install python3.11-venv
 python3 -m venv .venv && source .venv/bin/activate && pip3 install -r backend/requirements.txt
+nano backend/.env
+```
+paste .env in
+```
 python3 -m backend
 ```
 
 ctrl+b, d
 
-```curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
-apt install -y nodejs```
+```curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
+apt install -y nodejs
+npm install -g pnpm
+```
 
 ```cd frontend
 pnpm i
 pnpm build```
 
-```sudo certbot certonly --nginx -d www.3compute.org
+```
+apt install -y nginx certbot python3-certbot-nginx
+sudo certbot certonly --nginx -d www.3compute.org
 sudo certbot certonly --nginx -d api.3compute.org```
 
 

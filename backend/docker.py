@@ -55,11 +55,14 @@ def setup_isolated_network(network_name="isolated_net"):
         ).stdout.strip()[:12]
 
         # Add iptables rule to block communication with the host
-        subprocess.run(
-            ["iptables", "-I", "DOCKER-USER", "-i", f"br-{network_id}", "-o", "docker0", "-j", "DROP"],
-            check=True,
-        )
-        logger.info(f"Blocked host communication for network {network_name}.")
+        if os.getenv("CI") != "true":
+            subprocess.run(
+                ["iptables", "-I", "DOCKER-USER", "-i", f"br-{network_id}", "-o", "docker0", "-j", "DROP"],
+                check=True,
+            )
+            logger.info(f"Blocked host communication for network {network_name}.")
+        else:
+            logger.warning("Skipping iptables config in CI")
     except subprocess.CalledProcessError as e:
         logger.warning(f"Failed to block host communication: {str(e)}")
 
