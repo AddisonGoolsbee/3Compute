@@ -1,9 +1,17 @@
 import discord
 from discord import app_commands
+from dotenv import load_dotenv
+import os
 
-TOKEN = "MTM5MjYzNTE3NDE2ODAzNTM5MQ.GjWnpg.CeieaFd4bhL-VTfO8GuY3Hp9xT1MrcoDznRRdE"
-GUILD_ID = 1392628083659640904
+load_dotenv()
 
+TOKEN = os.getenv("TOKEN")
+GUILD_ID = os.getenv("GUILD_ID")
+
+if not TOKEN:
+    raise ValueError("TOKEN env variable is not set")
+if not GUILD_ID:
+    raise ValueError("GUILD_ID env variable is not set")
 
 class MyClient(discord.Client):
     def __init__(self):
@@ -11,11 +19,12 @@ class MyClient(discord.Client):
         super().__init__(intents=intents)
         self.tree = app_commands.CommandTree(self)
 
-    async def setup_hook(self):
-        guild = discord.Object(id=GUILD_ID)
-        self.tree.copy_global_to(guild=guild)
-        await self.tree.sync(guild=guild)
-        print(f"Synced slash commands to guild {GUILD_ID}")
+    if GUILD_ID:
+        async def setup_hook(self):
+            guild = discord.Object(id=GUILD_ID)
+            self.tree.copy_global_to(guild=guild)
+            await self.tree.sync(guild=guild)
+            print(f"Synced slash commands to guild {GUILD_ID}")
 
 
 client = MyClient()

@@ -58,7 +58,7 @@ export default function TerminalComponent() {
   return (
     <div
       ref={terminalRef}
-      className="lum-bg-gray-950 rounded-lum p-2 w-full border border-lum-border/40"
+      className="lum-bg-gray-950 rounded-lum p-2 w-full border border-lum-border/40 h-[30dvh]"
     />
   );
 }
