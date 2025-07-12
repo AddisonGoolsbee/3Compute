@@ -28,10 +28,58 @@ POLL_INTERVAL = 4
 _cleanup_timers: dict[int, threading.Event] = {}
 
 
+def _discover_existing_containers():
+    """Discover existing user containers and restore them to tracking"""
+    from .docker import container_exists, container_is_running
+
+    try:
+        # Find all containers with the user-container- prefix
+        result = subprocess.run(
+            ["docker", "ps", "-a", "--filter", "name=user-container-", "--format", "{{.Names}}"],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+
+        for container_name in result.stdout.strip().split("\n"):
+            if not container_name:
+                continue
+
+            # Extract user ID from container name
+            try:
+                user_id = int(container_name.replace("user-container-", ""))
+            except ValueError:
+                continue  # Skip containers that don't match our naming pattern
+
+            # Check if container is running
+            if container_is_running(container_name):
+                logger.info(f"Found running container {container_name} for user {user_id}")
+                # We'll need to get the port range from the user object when they connect
+                user_containers[user_id] = {"container_name": container_name, "port_range": None}
+            else:
+                logger.info(f"Found stopped container {container_name} for user {user_id}")
+                # For stopped containers, we'll let the connection logic handle restarting them
+                user_containers[user_id] = {"container_name": container_name, "port_range": None}
+
+    except subprocess.CalledProcessError as e:
+        logger.warning(f"Failed to discover existing containers: {e}")
+
+
+def _start_pollers_for_orphaned_containers():
+    """Start idle pollers for containers that were discovered but have no active sessions"""
+    for user_id in list(user_containers.keys()):
+        # Check if this user has any active sessions
+        if not any(s["user_id"] == user_id for s in session_map.values()):
+            logger.info(f"Starting idle poller for orphaned container user {user_id}")
+            _start_idle_poller(user_id)
+
+
 def init_terminal(socketio_instance):
     global socketio
     socketio = socketio_instance
     _register_handlers()
+    _discover_existing_containers()
+    _start_pollers_for_orphaned_containers()  # Start pollers for discovered containers
     logger.debug("Terminal module initialized")
 
 
@@ -241,6 +289,10 @@ def handle_connect(auth=None):
     else:
         # User has a container tracked, but check if it's actually running
         from .docker import container_is_running
+
+        # Update port_range if it was None (from discovery)
+        if user_containers[user_id]["port_range"] is None:
+            user_containers[user_id]["port_range"] = current_user.port_range
 
         if not container_is_running(container_name):
             logger.info(f"Container {container_name} exists but is not running, restarting it")
