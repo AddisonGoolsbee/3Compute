@@ -10,6 +10,7 @@ import { tokyoNight } from "@uiw/codemirror-theme-tokyo-night";
 import { color } from '@uiw/codemirror-extensions-color';
 import { hyperLink } from '@uiw/codemirror-extensions-hyper-link';
 import { indentationMarkers } from '@replit/codemirror-indentation-markers'
+import Markdown from 'react-markdown'
 
 function findDefaultFile(files: (FolderType | FileType)[]): FileType | undefined {
   console.log("Finding default file in:", files);
@@ -118,7 +119,7 @@ export default function Editor() {
       { mdPreview && currentLanguage === "markdown" ? (
         <div className="flex-1 overflow-auto p-4">
           <div className="markdown-preview">
-            {value}
+            <Markdown>{value}</Markdown>
           </div>
         </div>
       ) : (
