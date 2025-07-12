@@ -48,7 +48,7 @@ export default function UploadButton() {
         dropdown={
           <div className="flex items-center gap-1">
             <Upload size={16} />
-            Upload...
+            Upload
           </div>
         }
         extra-buttons={<>
