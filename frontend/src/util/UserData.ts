@@ -5,18 +5,19 @@ export interface UserInfo {
   port_start: number;
   port_end: number;
 }
-export declare interface File {
+export declare interface FileType {
   readonly name: string;
   readonly location: string;
 }
-export declare interface Folder extends File {
-  readonly files: (Folder | File)[];
+export declare interface FolderType extends FileType {
+  readonly files: (FolderType | FileType)[];
 }
 
 export type UserData = {
   userInfo?: UserInfo;
-  files?: (Folder | File)[];
-  currentFile?: File;
+  files?: (FolderType | FileType)[];
+  currentFile?: FileType;
+  setCurrentFile: React.Dispatch<React.SetStateAction<FileType | undefined>>;
   openFolders: string[];
   setOpenFolders: React.Dispatch<React.SetStateAction<string[]>>;
 }
@@ -74,7 +75,7 @@ export async function clientLoader() {
         continue;
       }
       // create a new folder
-      const folder: Folder = {
+      const folder: FolderType = {
         name: part,
         location: `/${parts.slice(0, i + 1).join("/")}`,
         files: [],
@@ -108,6 +109,7 @@ export const defaultUserData: UserData = {
   userInfo: undefined,
   files: [defaultFolder],
   currentFile: defaultFiles[0],
+  setCurrentFile: () => {},
   openFolders: [defaultFolder.location],
   setOpenFolders: () => {}
 };

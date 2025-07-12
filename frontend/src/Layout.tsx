@@ -1,10 +1,7 @@
-import { FolderIcon } from "lucide-react";
-import MenuItems from "./components/MenuItems";
-import UploadButton from "./components/UploadButton";
-import TemplateButton from "./components/TemplateButton";
 import Editor from "./components/Editor";
 import { useContext, useState, useEffect } from "react";
-import { defaultUserData, UserDataContext } from "./util/UserData";
+import { UserDataContext } from "./util/UserData";
+import Explorer from "./components/Explorer";
 
 export default function Layout({ children }: { children?: React.ReactNode }) {
   const userData = useContext(UserDataContext);
@@ -43,29 +40,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
       )}
       <div className="h-[calc(100svh-6rem)] flex flex-col gap-1 items-center justify-center max-w-6xl mx-auto">
         <div className="flex flex-1 h-10 w-full gap-1">
-          <div className="flex flex-col w-1/4 lum-card gap-1 p-1 lum-bg-gray-950 border-lum-border/30">
-            <div className="flex items-center gap-2 p-1 pl-2 lum-bg-gray-900 rounded-lum-1">
-              <FolderIcon size={20} />
-              <span className="flex-1">Files</span>
-              <div>
-                <UploadButton />
-              </div>
-            </div>
-            <div className="flex-1 overflow-auto">
-              {Array.isArray(userData?.files) ? (
-                <MenuItems files={userData?.files} />
-              ) : userData?.userInfo ? (
-                <div className="text-red-500">Error loading files</div>
-              ) : (
-                <MenuItems files={defaultUserData.files} />
-              )}
-            </div>
-            {userData?.userInfo && (
-              <div className="flex flex-col">
-                <TemplateButton userInfo={userData?.userInfo} />
-              </div>
-            )}
-          </div>
+          <Explorer />
           <Editor />
         </div>
         <div className="w-full">
