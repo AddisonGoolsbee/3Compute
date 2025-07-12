@@ -1,4 +1,4 @@
-import { ChevronRight, FileIcon, FolderIcon, MoreHorizontal } from "lucide-react";
+import { ChevronRight, FileIcon, FolderIcon } from "lucide-react";
 // @ts-expect-error types not working yet
 import { getClasses } from "@luminescent/ui-react";
 import React from "react";
