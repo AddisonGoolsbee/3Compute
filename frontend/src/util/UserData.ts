@@ -16,7 +16,10 @@ export declare interface Folder extends File {
 export type UserData = {
   userInfo?: UserInfo;
   files?: (Folder | File)[];
-};
+  currentFile?: File;
+  openFolders: string[];
+  setOpenFolders: React.Dispatch<React.SetStateAction<string[]>>;
+}
 
 const backendUrl =
   import.meta.env.VITE_ENVIRONMENT === "production"
@@ -84,12 +87,29 @@ export async function clientLoader() {
   return { userInfo, files };
 }
 
-export const UserDataContext = createContext<UserData>({
+const defaultFiles = [
+  {
+    name: 'index.py',
+    location: '/Python app/index.py'
+  },
+  {
+    name: 'requirements.txt',
+    location: '/Python app/requirements.txt'
+  }
+];
+
+const defaultFolder = {
+  name: 'Python app',
+  location: '/Python app',
+  files: defaultFiles
+}
+
+export const defaultUserData: UserData = {
   userInfo: undefined,
-  files: [
-    {
-      name: "index.py",
-      location: "/index.py",
-    },
-  ],
-});
+  files: [defaultFolder],
+  currentFile: defaultFiles[0],
+  openFolders: [defaultFolder.location],
+  setOpenFolders: () => {}
+};
+
+export const UserDataContext = createContext<UserData>(defaultUserData);

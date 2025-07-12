@@ -5,6 +5,7 @@ scratch/
 .react-router/
 backend/users.json
 frontend/build/
+frontend/.env
 
 # Logs
 logs

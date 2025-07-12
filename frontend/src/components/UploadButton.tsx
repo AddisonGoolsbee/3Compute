@@ -46,7 +46,7 @@ export default function UploadButton() {
     <>
       <SelectMenuRaw
         id="upload"
-        className="lum-btn-p-1 rounded-lum-1 gap-1 text-xs"
+        className="lum-btn-p-1 rounded-lum-2 gap-1 text-xs"
         customDropdown
         dropdown={
           <div className="flex items-center gap-1">
