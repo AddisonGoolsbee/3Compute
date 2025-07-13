@@ -62,7 +62,7 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
               </button>
               <button className="lum-btn cursor-pointer rounded-lum-1 rounded-l-none p-1 items-center gap-1 text-gray-500 text-sm hover:text-gray-300 lum-bg-transparent hover:lum-bg-transparent"
                 onClick={async () => {
-                  const response = await fetch(`${backendUrl}/files${file.location}`, {
+                  const response = await fetch(`${backendUrl}/file${file.location}`, {
                     method: "DELETE",
                     credentials: "include",
                   });
