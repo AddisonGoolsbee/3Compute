@@ -81,13 +81,33 @@ def handle_pty_input(data):
 
 
 def handle_resize(data):
+    logger.debug(f"handle_resize called with data: {data}")
+
     if not current_user.is_authenticated:
+        logger.warning("Unauthenticated user attempted to resize terminal")
         return
 
     sid = request.sid
-    if sid in session_map:
-        fd = session_map[sid]["fd"]
+    logger.debug(f"Resize request from session {sid}")
+
+    if sid not in session_map:
+        logger.warning(f"Session {sid} not found in session_map. Available sessions: {list(session_map.keys())}")
+        return
+
+    session_info = session_map[sid]
+    fd = session_info["fd"]
+    user_id = session_info["user_id"]
+
+    logger.debug(f"Resizing terminal for user {user_id}, session {sid}, fd {fd}")
+    logger.debug(f"New dimensions: rows={data.get('rows', 'MISSING')}, cols={data.get('cols', 'MISSING')}")
+
+    try:
         set_winsize(fd, data["rows"], data["cols"])
+        logger.debug(f"Successfully resized terminal to {data['rows']}x{data['cols']}")
+    except KeyError as e:
+        logger.error(f"Missing required resize data: {e}. Available keys: {list(data.keys())}")
+    except Exception as e:
+        logger.error(f"Failed to resize terminal: {e}", exc_info=True)
 
 
 # Polls containers with no active users to see if they're idle e.g. no processes other than infra processes are running
@@ -218,6 +238,7 @@ def handle_disconnect():
         _start_idle_poller(user_id)
 
 
+# TODO: Multiple tabs; this is not working
 def new_window(data):
     container = user_containers[current_user.id]["container_name"]
     win = data["windowIndex"]
