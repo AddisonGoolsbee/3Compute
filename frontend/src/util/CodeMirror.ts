@@ -17,7 +17,7 @@ import { vue } from "@codemirror/lang-vue";
 import { wast } from "@codemirror/lang-wast";
 import { xml } from "@codemirror/lang-xml";
 import { yaml } from "@codemirror/lang-yaml";
-import { SiCplusplus, SiCss, SiGo, SiHtml5, SiJavascript, SiJson, SiLess, SiLinux, SiMarkdown, SiPhp, SiPython, SiRust, SiSass, SiShopify, SiSqlite, SiTypescript, SiVuedotjs, SiWebassembly, SiXml, SiYaml } from "@icons-pack/react-simple-icons";
+import { SiCplusplus, SiCss, SiGo, SiHtml5, SiJavascript, SiJson, SiLess, SiLinux, SiMarkdown, SiPhp, SiPython, SiRust, SiSass, SiShopify, SiSqlite, SiTypescript, SiVuedotjs, SiWebassembly, SiXml, SiYaml, SiJpeg } from "@icons-pack/react-simple-icons";
 import { Text } from "lucide-react";
 
 export const languageMap = {
@@ -179,6 +179,14 @@ export const languageMap = {
     parser: wast,
     extensions: [
       'wast', 'wat', 'wastc', 'watt', 'wastm', 'wattm', 'wastx', 'wattx', 'wasty', 'watty', 'wastz', 'wattz'
+    ]
+  },
+  "image": {
+    icon: SiJpeg,
+    name: "Image",
+    parser: () => [], // No specific parser, just a placeholder
+    extensions: [
+      'jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg', 'ico', 'tiff', 'tif', 'heic', 'heif'
     ]
   },
   "text": {

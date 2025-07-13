@@ -120,9 +120,20 @@ def handle_file(filename):
         return "File not found", 404
 
     if request.method == "GET":
-        with open(file_path, "r") as f:
-            content = f.read()
-        return content, 200
+        image_extensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg', 'ico']
+        file_ext = filename.split('.')[-1].lower() if '.' in filename else ''
+        
+        if file_ext in image_extensions:
+            from flask import send_file
+            return send_file(file_path)
+        else:
+            try:
+                with open(file_path, "r", encoding="utf-8") as f:
+                    content = f.read()
+                return content, 200
+            except UnicodeDecodeError:
+                from flask import send_file
+                return send_file(file_path)
 
     elif request.method == "PUT":
         content = request.data.decode("utf-8")

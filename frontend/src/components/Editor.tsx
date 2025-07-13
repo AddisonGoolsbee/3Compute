@@ -14,17 +14,40 @@ import Markdown from 'react-markdown'
 
 function findDefaultFile(files: (FolderType | FileType)[]): FileType | undefined {
   console.log("Finding default file in:", files);
-  const foundFile = files.find((file) => file.name === "README.md")
-    || files.find((file) => file.name.startsWith("index."));
-  if (foundFile) console.log("Found default file:", foundFile);
-  if (!foundFile) return findDefaultFile(files.flatMap(f => "files" in f ? f.files : []));
-  return foundFile;
+
+  for (const item of files) {
+    if (!("files" in item)) {
+      if (item.name === "README.md" || item.name.startsWith("index.")) {
+        console.log("Found default file:", item);
+        return item;
+      }
+    }
+  }
+
+  for (const item of files) {
+    if ("files" in item && item.files) {
+      const foundFile = findDefaultFile(item.files);
+      if (foundFile) {
+        console.log("Found default file in subfolder:", foundFile);
+        return foundFile;
+      }
+    }
+  }
+
+  return undefined;
+}
+
+function isImageFile(filename: string): boolean {
+  const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg', 'ico'];
+  const ext = filename.split('.').pop()?.toLowerCase();
+  return ext ? imageExtensions.includes(ext) : false;
 }
 
 export default function Editor() {
   const [value, setValue] = useState("console.log('hello world!');");
   const [mdPreview, setMdPreview] = useState<boolean>(true);
   const [currentLanguage, setCurrentLanguage] = useState<keyof typeof languageMap>('javascript');
+  const [isImage, setIsImage] = useState<boolean>(false);
   const onChange = useCallback((val: string) => {
     setValue(val);
   }, []);
@@ -45,7 +68,13 @@ export default function Editor() {
 
   useEffect(() => {
     if (!userData.currentFile) return;
-    // Load the content of the current file
+    
+    const isImageFileType = isImageFile(userData.currentFile.name);
+    setIsImage(isImageFileType);
+    
+    if (isImageFileType) {
+      return;
+    }
     fetch(`${backendUrl}/file${userData.currentFile.location}`, {
       credentials: "include",
     })
@@ -55,6 +84,7 @@ export default function Editor() {
     })
       .then(text => setValue(text))
       .catch(err => console.error("Error loading file:", err));
+    
     // Set the language based on the file extension
     const ext = userData.currentFile.name.split('.').pop()?.toLowerCase();
     if (!ext) return;
@@ -70,7 +100,7 @@ export default function Editor() {
         <span className="text-sm flex gap-2 items-center flex-1">
           <File size={16} />
           {userData?.currentFile?.location}
-          {currentLanguage === "markdown" && (
+          {currentLanguage === "markdown" && !isImage && (
             <button className={getClasses({
               "lum-btn p-1 rounded-lum-2 gap-1 lum-bg-transparent hover:lum-bg-gray-800": true,
               "text-blue-500": mdPreview,
@@ -82,62 +112,75 @@ export default function Editor() {
           )}
         </span>
         <div className="flex items-center gap-1">
-          <SelectMenuRaw
-            id="language-select"
-            className="rounded-lum-2 text-xs gap-1 lum-bg-orange-700 hover:lum-bg-orange-600 w-full lum-btn-p-1"
-            value={currentLanguage}
-            values={Object.values(languageMap).map((Lang) => ({
-              name: <div className="flex items-center gap-2">
-                <Lang.icon size={16} />
-                <span className="font-mono">
-                  {Lang.name}
-                </span>
-              </div>,
-              value: Lang.name.toLowerCase(),
-            }))}
-            onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
-              const languageName = e.target.value as keyof typeof languageMap;
-              setCurrentLanguage(languageName);
-            }}
-            customDropdown
-            dropdown={
-              <div className="flex items-center gap-2">
-                {(() => {
-                  const LanguageIcon = languageMap[currentLanguage as keyof typeof languageMap]?.icon;
-                  return <LanguageIcon size={16} />;
-                })()}
-                <span className="font-mono">
-                  {languageMap[currentLanguage as keyof typeof languageMap]?.name}
-                </span>
-              </div>
-            }
-          />
-          <button
-            className="lum-btn rounded-lum-2 text-xs gap-1 lum-bg-green-700 hover:lum-bg-green-600 w-full lum-btn-p-1"
-            onClick={async () => {
-              if (!userData.currentFile) return;
-              const response = await fetch(`${backendUrl}/file${userData.currentFile.location}`, {
-                method: "PUT",
-                body: value,
-                headers: {
-                  "Content-Type": "application/json",
-                },
-                credentials: "include",
-              });
-              if (!response.ok) {
-                console.error("Failed to save file");
-              } else {
-                console.log("File saved successfully");
-              }
-              // Optionally, you can show a notification or update the UI
-            }}
-          >
-            <Save size={16} />
-            Save
-          </button>
+          {!isImage && (
+            <>
+              <SelectMenuRaw
+                id="language-select"
+                className="rounded-lum-2 text-xs gap-1 lum-bg-orange-700 hover:lum-bg-orange-600 w-full lum-btn-p-1"
+                value={currentLanguage}
+                values={Object.values(languageMap).map((Lang) => ({
+                  name: <div className="flex items-center gap-2">
+                    <Lang.icon size={16} />
+                    <span className="font-mono">
+                      {Lang.name}
+                    </span>
+                  </div>,
+                  value: Lang.name.toLowerCase(),
+                }))}
+                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+                  const languageName = e.target.value as keyof typeof languageMap;
+                  setCurrentLanguage(languageName);
+                }}
+                customDropdown
+                dropdown={
+                  <div className="flex items-center gap-2">
+                    {(() => {
+                      const LanguageIcon = languageMap[currentLanguage as keyof typeof languageMap]?.icon;
+                      return <LanguageIcon size={16} />;
+                    })()}
+                    <span className="font-mono">
+                      {languageMap[currentLanguage as keyof typeof languageMap]?.name}
+                    </span>
+                  </div>
+                }
+              />
+              <button
+                className="lum-btn rounded-lum-2 text-xs gap-1 lum-bg-green-700 hover:lum-bg-green-600 w-full lum-btn-p-1"
+                onClick={async () => {
+                  if (!userData.currentFile) return;
+                  const response = await fetch(`${backendUrl}/file${userData.currentFile.location}`, {
+                    method: "PUT",
+                    body: value,
+                    headers: {
+                      "Content-Type": "application/json",
+                    },
+                    credentials: "include",
+                  });
+                  if (!response.ok) {
+                    console.error("Failed to save file");
+                  } else {
+                    console.log("File saved successfully");
+                  }
+                  // Optionally, you can show a notification or update the UI
+                }}
+              >
+                <Save size={16} />
+                Save
+              </button>
+            </>
+          )}
         </div>
       </div>
-      { mdPreview && currentLanguage === "markdown" ? (
+      {isImage ? (
+        <div className="flex-1 overflow-auto p-4 flex items-center justify-center">
+          <img 
+            src={`${backendUrl}/file${userData.currentFile?.location}`}
+            alt={userData.currentFile?.name}
+            className="max-w-full max-h-full object-contain"
+            style={{ imageRendering: 'auto' }}
+          />
+        </div>
+      ) : mdPreview && currentLanguage === "markdown" ? (
         <div className="flex-1 overflow-auto p-4">
           <div className="markdown-preview">
             <Markdown>{value}</Markdown>
