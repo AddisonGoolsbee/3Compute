@@ -9,15 +9,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
   const [isVisible, setIsVisible] = useState(true);
 
   useEffect(() => {
-    if (
-      userData &&
-      Object.keys(userData).some(
-        (key) =>
-          key !== "openFolders" &&
-          key !== "setOpenFolders" &&
-          userData[key as keyof typeof userData] !== undefined
-      )
-    ) {
+    if (userData.userInfo) {
       setIsVisible(false);
       const timer = setTimeout(() => {
         setShowOverlay(false);
@@ -64,4 +56,3 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
     </>
   );
 }
-

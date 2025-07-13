@@ -7,9 +7,7 @@ def configure_logging():
     logname = f"logs/{datetime.now(timezone.utc).strftime('%Y-%m-%d')}.log"
     os.makedirs("logs", exist_ok=True)
 
-    formatter = logging.Formatter(
-        fmt="%(asctime)s [%(levelname)s] (%(process)d %(name)s:%(lineno)d) %(message)s", datefmt="%Y-%m-%dT%H:%M:%S"
-    )
+    formatter = logging.Formatter(fmt="[%(levelname)s] (%(process)d %(name)s:%(lineno)d) %(message)s")
 
     root_logger = logging.getLogger()
 
