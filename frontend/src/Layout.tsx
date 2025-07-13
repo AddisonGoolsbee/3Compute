@@ -15,6 +15,8 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
         (key) =>
           key !== "openFolders" &&
           key !== "setOpenFolders" &&
+          key !== "currentFile" &&
+          key !== "setCurrentFile" &&
           userData[key as keyof typeof userData] !== undefined
       )
     ) {
