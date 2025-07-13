@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useContext } from "react";
 // @ts-expect-error types not working yet
 import { SelectMenuRaw } from "@luminescent/ui-react";
 import { LayoutTemplate } from "lucide-react";
-import { backendUrl, UserInfo } from "../util/UserData";
+import { backendUrl, UserInfo, UserDataContext } from "../util/UserData";
 
 type Manifest = Record<string, string[]>;
 
@@ -10,6 +10,7 @@ export default function TemplateButton({ userInfo }: { userInfo: UserInfo }) {
   const [manifest, setManifest] = useState<Manifest>({});
   const [selected, setSelected] = useState<string>("");
   const [status, setStatus] = useState<string | null>(null);
+  const userData = useContext(UserDataContext);
 
   // 1) load the manifest once on mount
   useEffect(() => {
@@ -81,6 +82,7 @@ export default function TemplateButton({ userInfo }: { userInfo: UserInfo }) {
       }
 
       setStatus("Template uploaded!");
+      await userData.refreshFiles();
     } catch (error) {
       console.error("Template upload error:", error);
       setStatus(

@@ -10,6 +10,7 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
     setCurrentFile,
     openFolders,
     setOpenFolders,
+    refreshFiles,
   } = useContext(UserDataContext);
 
   return (
@@ -69,7 +70,7 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
                   if (response.ok) {
                     setCurrentFile(undefined);
                     setOpenFolders((prev) => prev.filter((f) => f !== file.location));
-                    // Optionally, you can trigger a re-fetch of files here
+                    await refreshFiles();
                   } else {
                     console.error("Failed to delete file:", response.statusText);
                   }

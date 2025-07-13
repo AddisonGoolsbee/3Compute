@@ -2,7 +2,7 @@ import React from "react";
 import { Links, Meta, Outlet, Scripts, ScrollRestoration, useLoaderData } from "react-router";
 import NavComponent from "./components/Nav";
 import { default as HomeLayout } from "./Layout";
-import { FileType, UserData, UserDataContext, clientLoader } from "./util/UserData";
+import { FileType, FolderType, UserData, UserDataContext, clientLoader, fetchFilesList } from "./util/UserData";
 
 // eslint-disable-next-line react-refresh/only-export-components
 export { clientLoader };
@@ -16,14 +16,33 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const loaderData = useLoaderData<UserData>();
   const [openFolders, setOpenFolders] = React.useState<string[]>([]);
   const [currentFile, setCurrentFile] = React.useState<FileType | undefined>();
+  const [files, setFiles] = React.useState<(FolderType | FileType)[] | undefined>(loaderData?.files);
+
+  const refreshFiles = React.useCallback(async () => {
+    try {
+      const newFiles = await fetchFilesList();
+      setFiles(newFiles);
+    } catch (error) {
+      console.error("Failed to refresh files:", error);
+    }
+  }, []);
 
   const userData = {
     ...loaderData,
+    files,
     openFolders,
     setOpenFolders,
     currentFile,
     setCurrentFile,
+    refreshFiles,
   }
+
+  // Update files state when loaderData changes
+  React.useEffect(() => {
+    if (loaderData?.files && !files) {
+      setFiles(loaderData.files);
+    }
+  }, [loaderData?.files, files]);
 
   return (
     <html lang="en">

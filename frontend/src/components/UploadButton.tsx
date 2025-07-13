@@ -1,13 +1,14 @@
 import { Files, Folder, Upload } from "lucide-react";
-import { useRef, useState } from "react";
+import { useRef, useState, useContext } from "react";
 // @ts-expect-error types not working yet
 import { SelectMenuRaw } from "@luminescent/ui-react";
-import { backendUrl } from "../util/UserData";
+import { backendUrl, UserDataContext } from "../util/UserData";
 
 export default function UploadButton() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const folderInputRef = useRef<HTMLInputElement>(null);
   const [status, setStatus] = useState<string | null>(null);
+  const userData = useContext(UserDataContext);
 
   const handleFileClick = () => fileInputRef.current?.click();
   const handleFolderClick = () => folderInputRef.current?.click();
@@ -36,6 +37,10 @@ export default function UploadButton() {
     if (res.status === 413) {
       setStatus("Failed: File too large");
     }
+    if (res.ok) {
+      await userData.refreshFiles();
+    }
+    
     setTimeout(() => setStatus(null), 3000);
   };
 
