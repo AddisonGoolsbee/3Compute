@@ -106,3 +106,38 @@ def list_files():
             file_tree.append(relative_path)
 
     return {"files": file_tree}, 200
+
+@upload_bp.route("/file/<path:filename>", methods=["GET"])
+def get_file(filename):
+    if not current_user.is_authenticated:
+        return "Unauthorized", 401
+
+    user_id = current_user.id
+    upload_dir = f"/tmp/uploads/{user_id}"
+    file_path = os.path.join(upload_dir, filename)
+
+    if not os.path.exists(file_path):
+        return "File not found", 404
+
+    with open(file_path, "r") as f:
+        content = f.read()
+
+    return content, 200
+
+@upload_bp.route("/file/<path:filename>", methods=["PUT"])
+def update_file(filename):
+    if not current_user.is_authenticated:
+        return "Unauthorized", 401
+
+    user_id = current_user.id
+    upload_dir = f"/tmp/uploads/{user_id}"
+    file_path = os.path.join(upload_dir, filename)
+
+    if not os.path.exists(file_path):
+        return "File not found", 404
+
+    content = request.data.decode("utf-8")
+    with open(file_path, "w") as f:
+        f.write(content)
+
+    return "File updated successfully", 200

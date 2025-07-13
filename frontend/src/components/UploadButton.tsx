@@ -2,10 +2,7 @@ import { Files, Folder, Upload } from "lucide-react";
 import { useRef, useState } from "react";
 // @ts-expect-error types not working yet
 import { SelectMenuRaw } from "@luminescent/ui-react";
-
-const backendUrl = import.meta.env.VITE_ENVIRONMENT === "production"
-  ? import.meta.env.VITE_PROD_BACKEND_URL
-  : import.meta.env.VITE_BACKEND_URL;
+import { backendUrl } from "../util/UserData";
 
 export default function UploadButton() {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -51,7 +48,7 @@ export default function UploadButton() {
         dropdown={
           <div className="flex items-center gap-1">
             <Upload size={16} />
-            Upload...
+            Upload
           </div>
         }
         extra-buttons={<>
