@@ -20,6 +20,7 @@ export type UserData = {
   setCurrentFile: React.Dispatch<React.SetStateAction<FileType | undefined>>;
   openFolders: string[];
   setOpenFolders: React.Dispatch<React.SetStateAction<string[]>>;
+  refreshFiles: () => Promise<void>;
 }
 
 export const backendUrl =
@@ -27,21 +28,16 @@ export const backendUrl =
     ? import.meta.env.VITE_PROD_BACKEND_URL
     : import.meta.env.VITE_BACKEND_URL;
 
-export async function clientLoader() {
-  // Fetch user info to ensure the user is authenticated
-  const userRes = await fetch(`${backendUrl}/me`, { credentials: "include" });
-  if (!userRes.ok) return {};
-  const userInfo: UserInfo = await userRes.json();
-
+export async function fetchFilesList(): Promise<(FolderType | FileType)[]> {
   // Fetch the list of files
   const fileRes = await fetch(`${backendUrl}/list-files`, {
     credentials: "include",
   });
-  if (!fileRes.ok) return {};
+  if (!fileRes.ok) return [];
   const filesData: { files: string[] } = await fileRes.json();
 
   // Construct the files structure
-  const files: UserData["files"] = [];
+  const files: (FolderType | FileType)[] = [];
   for (let i = 0; i < filesData.files.length; i++) {
     // split by the slashes and then put them into an object
     const parts = filesData.files[i].split("/");
@@ -85,6 +81,17 @@ export async function clientLoader() {
     }
   }
 
+  return files;
+}
+
+export async function clientLoader() {
+  // Fetch user info to ensure the user is authenticated
+  const userRes = await fetch(`${backendUrl}/me`, { credentials: "include" });
+  if (!userRes.ok) return {};
+  const userInfo: UserInfo = await userRes.json();
+
+  const files = await fetchFilesList();
+
   return {
     userInfo,
     files,
@@ -114,7 +121,8 @@ export const defaultUserData: UserData = {
   currentFile: defaultFiles[0],
   setCurrentFile: () => {},
   openFolders: [defaultFolder.location],
-  setOpenFolders: () => {}
+  setOpenFolders: () => {},
+  refreshFiles: async () => {}
 };
 
 export const UserDataContext = createContext<UserData>(defaultUserData);
