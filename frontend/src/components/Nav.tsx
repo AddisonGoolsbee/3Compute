@@ -3,11 +3,7 @@ import { Nav, LogoBirdflop } from "@luminescent/ui-react";
 import { LogOut } from "lucide-react";
 import { useContext } from "react";
 import { Link } from "react-router";
-import { UserDataContext } from "../util/UserData";
-
-const backendUrl = import.meta.env.VITE_ENVIRONMENT === "production"
-  ? import.meta.env.VITE_PROD_BACKEND_URL
-  : import.meta.env.VITE_BACKEND_URL;
+import { backendUrl, UserDataContext } from "../util/UserData";
 
 export default function NavComponent() {
   const handleLogout = async () => {
@@ -29,10 +25,6 @@ export default function NavComponent() {
           <LogoBirdflop size={24} fillGradient={["#54daf4", "#545eb6"]} />
           <span className="font-semibold -ml-1">3Compute</span>
         </Link>
-      }
-      center={
-        <>
-        </>
       }
       end={
         <>

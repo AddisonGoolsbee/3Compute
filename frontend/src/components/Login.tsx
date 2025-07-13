@@ -1,11 +1,7 @@
 import { SiGoogle } from "@icons-pack/react-simple-icons";
 // @ts-expect-error types not working yet
 import { LogoBirdflop } from "@luminescent/ui-react";
-
-const backendUrl =
-  import.meta.env.VITE_ENVIRONMENT === "production"
-    ? import.meta.env.VITE_PROD_BACKEND_URL
-    : import.meta.env.VITE_BACKEND_URL;
+import { backendUrl } from "../util/UserData";
 
 export default function Login() {
   return (

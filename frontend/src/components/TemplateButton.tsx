@@ -2,11 +2,7 @@ import { useEffect, useState } from "react";
 // @ts-expect-error types not working yet
 import { SelectMenuRaw } from "@luminescent/ui-react";
 import { LayoutTemplate } from "lucide-react";
-import { UserInfo } from "../util/UserData";
-
-const backendUrl = import.meta.env.VITE_ENVIRONMENT === "production"
-  ? import.meta.env.VITE_PROD_BACKEND_URL
-  : import.meta.env.VITE_BACKEND_URL;
+import { backendUrl, UserInfo } from "../util/UserData";
 
 type Manifest = Record<string, string[]>;
 
