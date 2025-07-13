@@ -6,7 +6,7 @@ import subprocess
 upload_bp = Blueprint("upload", __name__)
 
 
-@upload_bp.route("/upload", methods=["POST"])
+@upload_bp.post("/upload")
 def upload():
     if not current_user.is_authenticated:
         return "Unauthorized", 401
@@ -24,7 +24,7 @@ def upload():
     return "File uploaded successfully", 200
 
 
-@upload_bp.route("/upload-folder", methods=["POST"])
+@upload_bp.post("/upload-folder")
 def upload_folder():
     if not current_user.is_authenticated:
         return "Unauthorized", 401
@@ -86,7 +86,7 @@ def upload_folder():
     return "Folder uploaded successfully", 200
 
 
-@upload_bp.route("/list-files", methods=["GET"])
+@upload_bp.get("/list-files")
 def list_files():
     if not current_user.is_authenticated:
         return "Unauthorized", 401
@@ -107,8 +107,8 @@ def list_files():
 
     return {"files": file_tree}, 200
 
-@upload_bp.route("/file/<path:filename>", methods=["GET"])
-def get_file(filename):
+@upload_bp.route("/file/<path:filename>", methods=["GET", "PUT", "DELETE"])
+def handle_file(filename):
     if not current_user.is_authenticated:
         return "Unauthorized", 401
 
@@ -119,40 +119,21 @@ def get_file(filename):
     if not os.path.exists(file_path):
         return "File not found", 404
 
-    with open(file_path, "r") as f:
-        content = f.read()
+    if request.method == "GET":
+        with open(file_path, "r") as f:
+            content = f.read()
+        return content, 200
 
-    return content, 200
+    elif request.method == "PUT":
+        content = request.data.decode("utf-8")
+        with open(file_path, "w") as f:
+            f.write(content)
+        return "File updated successfully", 200
 
-@upload_bp.route("/file/<path:filename>", methods=["PUT"])
-def update_file(filename):
-    if not current_user.is_authenticated:
-        return "Unauthorized", 401
-
-    user_id = current_user.id
-    upload_dir = f"/tmp/uploads/{user_id}"
-    file_path = os.path.join(upload_dir, filename)
-
-    if not os.path.exists(file_path):
-        return "File not found", 404
-
-    content = request.data.decode("utf-8")
-    with open(file_path, "w") as f:
-        f.write(content)
-
-    return "File updated successfully", 200
-
-@upload_bp.route("/file/<path:filename>", methods=["DELETE"])
-def delete_file(filename):
-    if not current_user.is_authenticated:
-        return "Unauthorized", 401
-
-    user_id = current_user.id
-    upload_dir = f"/tmp/uploads/{user_id}"
-    file_path = os.path.join(upload_dir, filename)
-
-    if not os.path.exists(file_path):
-        return "File not found", 404
-
-    os.remove(file_path)
-    return "File deleted successfully", 200
+    elif request.method == "DELETE":
+        if os.path.isdir(file_path):
+            import shutil
+            shutil.rmtree(file_path)
+        else:
+            os.remove(file_path)
+        return "File deleted successfully", 200
