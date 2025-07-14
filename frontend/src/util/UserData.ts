@@ -10,6 +10,7 @@ export interface UserInfo {
 export type UserData = {
   userInfo?: UserInfo;
   files?: Files;
+  setFilesClientSide: Dispatch<SetStateAction<Files | undefined>>;
   currentFile?: FileType;
   setCurrentFile: Dispatch<SetStateAction<FileType | undefined>>;
   openFolders: string[];
@@ -56,6 +57,7 @@ const defaultFolder = {
 export const defaultUserData: UserData = {
   userInfo: undefined,
   files: [defaultFolder],
+  setFilesClientSide: () => {},
   currentFile: defaultFiles[0],
   setCurrentFile: () => {},
   openFolders: [defaultFolder.location],

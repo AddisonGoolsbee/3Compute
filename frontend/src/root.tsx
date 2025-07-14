@@ -17,12 +17,12 @@ export function Layout({ children }: { children: ReactNode }) {
   const loaderData = useLoaderData<UserData>();
   const [openFolders, setOpenFolders] = useState<string[]>([]);
   const [currentFile, setCurrentFile] = useState<FileType | undefined>();
-  const [files, setFiles] = useState<Files | undefined>(loaderData?.files);
+  const [files, setFilesClientSide] = useState<Files | undefined>(loaderData?.files);
 
   const refreshFiles = useCallback(async () => {
     try {
       const newFiles = await fetchFilesList();
-      setFiles(newFiles);
+      setFilesClientSide(newFiles);
     } catch (error) {
       console.error("Failed to refresh files:", error);
     }
@@ -31,6 +31,7 @@ export function Layout({ children }: { children: ReactNode }) {
   const userData = {
     ...loaderData,
     files,
+    setFilesClientSide,
     openFolders,
     setOpenFolders,
     currentFile,
@@ -41,7 +42,7 @@ export function Layout({ children }: { children: ReactNode }) {
   // Update files state when loaderData changes
   useEffect(() => {
     if (loaderData?.files && !files) {
-      setFiles(loaderData.files);
+      setFilesClientSide(loaderData.files);
     }
   }, [loaderData?.files, files]);
 

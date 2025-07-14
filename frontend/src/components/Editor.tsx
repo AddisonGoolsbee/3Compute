@@ -104,9 +104,7 @@ export default function Editor() {
   })(), [userData, userData.currentFile]);
 
   return (
-    <div className={getClasses({
-      "relative transition-all flex flex-col rounded-lum max-w-3/4 bg-[#1A1B26] w-full": true,
-    })}>
+    <div className="relative transition-all flex flex-col rounded-lum max-w-3/4 bg-[#1A1B26] w-full border border-lum-border/20">
       {userData.currentFile && (
         <div className="flex items-center gap-2 pl-3 p-1 m-1 lum-bg-gray-900 rounded-lum-1">
           <span className="text-sm flex gap-2 items-center flex-1">

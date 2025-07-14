@@ -1,9 +1,10 @@
 import { useContext, useState } from "react";
 import { FolderIcon } from "lucide-react";
 import { defaultUserData, UserDataContext } from "../util/UserData";
-import UploadButton from "./UploadButton";
+import UploadButton from "./ExplorerButtons/UploadButton";
+import NewButton from "./ExplorerButtons/NewButton";
 import MenuItems from "./MenuItems";
-import TemplateButton from "./TemplateButton";
+import TemplateButton from "./ExplorerButtons/TemplateButton";
 // @ts-expect-error types not working yet
 import { getClasses } from "@luminescent/ui-react";
 import { StatusContext } from "../util/Files";
@@ -15,15 +16,20 @@ export default function Explorer() {
   return <StatusContext value={{ status, setStatus }}>
     <div className="flex max-w-1/4 flex-1 flex-col lum-card gap-1 p-1 lum-bg-gray-950 border-lum-border/30">
       <div className={getClasses({
-        "transition-all duration-500 flex items-center gap-2 p-1 pl-2 lum-bg-gray-900 rounded-lum-1": true,
+        "transition-all duration-500 flex flex-col gap-1 p-1 lum-bg-gray-900 rounded-lum-1": true,
         "rounded-b-sm": status,
       })}>
-        <FolderIcon size={20} />
-        <span className="flex-1">
-          Files
-        </span>
-        <div>
+        <div className="flex items-center gap-1 lum-btn-p-1">
+          <FolderIcon size={16} />
+          <span className="ml-1">
+            File Explorer
+          </span>
+        </div>
+        <div className="grid grid-cols-2 gap-1">
           <UploadButton />
+          <NewButton />
+          <TemplateButton />
+          {/*<GitButton />*/}
         </div>
       </div>
       <div className={getClasses({
@@ -44,11 +50,6 @@ export default function Explorer() {
           <MenuItems files={defaultUserData.files} />
         )}
       </div>
-      {userData?.userInfo && (
-        <div className="flex flex-col">
-          <TemplateButton userInfo={userData?.userInfo} />
-        </div>
-      )}
     </div>
   </StatusContext>;
 }

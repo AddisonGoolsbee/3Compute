@@ -2,8 +2,8 @@ import { Files, Folder, Upload } from "lucide-react";
 import { useRef, useContext } from "react";
 // @ts-expect-error types not working yet
 import { SelectMenuRaw } from "@luminescent/ui-react";
-import { backendUrl, UserDataContext } from "../util/UserData";
-import { StatusContext } from "../util/Files";
+import { backendUrl, UserDataContext } from "../../util/UserData";
+import { StatusContext } from "../../util/Files";
 
 export default function UploadButton() {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -47,7 +47,7 @@ export default function UploadButton() {
 
   return <SelectMenuRaw
     id="upload"
-    className="lum-btn-p-1 rounded-lum-2 gap-1 text-xs"
+    className="lum-btn-p-1 rounded-lum-2 gap-1 text-xs lum-bg-purple-950 hover:lum-bg-purple-900"
     customDropdown
     dropdown={
       <div className="flex items-center gap-1">

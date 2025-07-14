@@ -5,6 +5,7 @@ import { backendUrl } from "./UserData";
 export interface FileType {
   readonly name: string;
   readonly location: string;
+  renaming?: boolean; // Used to indicate if the file is being renamed
 }
 
 export interface FolderType extends FileType {
