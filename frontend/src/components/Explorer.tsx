@@ -28,7 +28,7 @@ export default function Explorer() {
       </div>
       <div className={getClasses({
         "transition-all duration-500 flex items-center gap-2 p-1 pl-2 lum-bg-gray-900 rounded-lum-1 rounded-t-sm": true,
-        "-mt-9 opacity-0 pointer-events-none": !status,
+        "-mt-8 opacity-0 pointer-events-none": !status,
       })}>
         <div className="lum-loading w-4 h-4 m-0.5 border-2" />
         <span className="flex-1">

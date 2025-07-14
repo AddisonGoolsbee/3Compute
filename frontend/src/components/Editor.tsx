@@ -16,9 +16,10 @@ import { Files, FileType } from "../util/Files";
 function findDefaultFile(files: Files): FileType | undefined {
   console.log("Finding default file in:", files);
 
-  for (const item of files) {
-    if (!("files" in item)) {
-      if (item.name === "README.md" || item.name.startsWith("index.")) {
+  const defaultFileNames = ['readme', 'index.'];
+  for (const fileName of defaultFileNames) {
+    for (const item of files) {
+      if (!("files" in item) && item.name.toLowerCase().startsWith(fileName.toLowerCase())) {
         console.log("Found default file:", item);
         return item;
       }
@@ -28,10 +29,7 @@ function findDefaultFile(files: Files): FileType | undefined {
   for (const item of files) {
     if ("files" in item && item.files) {
       const foundFile = findDefaultFile(item.files);
-      if (foundFile) {
-        console.log("Found default file in subfolder:", foundFile);
-        return foundFile;
-      }
+      if (foundFile) return foundFile;
     }
   }
 
@@ -107,7 +105,7 @@ export default function Editor() {
 
   return (
     <div className={getClasses({
-      "relative transition-all flex flex-col rounded-lum max-w-3/4 bg-[#1A1B26] border-lum-border/30 w-full": true,
+      "relative transition-all flex flex-col rounded-lum max-w-3/4 bg-[#1A1B26] w-full": true,
     })}>
       {userData.currentFile && (
         <div className="flex items-center gap-2 pl-3 p-1 m-1 lum-bg-gray-900 rounded-lum-1">

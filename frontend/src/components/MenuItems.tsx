@@ -1,4 +1,4 @@
-import { ChevronRight, FileIcon, FolderIcon, Trash } from "lucide-react";
+import { FileIcon, FolderClosed, FolderOpen, Trash } from "lucide-react";
 // @ts-expect-error types not working yet
 import { getClasses } from "@luminescent/ui-react";
 import { useContext, Fragment } from "react";
@@ -7,6 +7,7 @@ import { languageMap } from "../util/languageMap";
 
 export default function MenuItems({ files, count = 0 }: { files: UserData['files'], count?: number }) {
   const {
+    currentFile,
     setCurrentFile,
     openFolders,
     setOpenFolders,
@@ -18,7 +19,10 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
       {Array.isArray(files) ? (
         files.map((file) => (
           <Fragment key={file.location}>
-            <div className="lum-btn p-0 gap-0 lum-bg-transparent rounded-lum-1">
+            <div className={getClasses({
+              "lum-btn p-0 gap-0 lum-bg-transparent rounded-lum-1": true,
+              "bg-gray-900/30 border-lum-border/10": currentFile?.location === file.location
+            })}>
               <button
                 onClick={() => {
                   if ("files" in file) {
@@ -35,38 +39,32 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
                   }
                 }}
                 className={getClasses({
-                  "flex flex-1 rounded-lum-1 rounded-r-none p-1 items-center gap-2 w-full text-left lum-bg-transparent": true,
+                  "flex flex-1 lum-btn-p-1 rounded-lum-1 rounded-r-none items-center gap-2 w-full text-left lum-bg-transparent": true,
                   "cursor-pointer": !("files" in file),
                 })}
-                style={{ paddingLeft: "calc(0.25rem + 0.5rem * " + count + ")"}}
+                style={{ paddingLeft: `calc(0.5rem + ${count * 0.5}rem)` }}
               >
-                {"files" in file && (
-                  <ChevronRight
-                    size={16}
-                    className={getClasses({
-                      "transition-all text-gray-400": true,
-                      "rotate-90": openFolders.includes(file.location),
-                    })}
-                  />
-                )}
-
                 {"files" in file
-                ? <div className="relative">
-                  <FolderIcon size={24} className="text-orange-300" />
-                  <span className="text-orange-100 text-[10px] absolute bottom-1 left-2.25">{file.files.length}</span>
-                </div>
-                : (() => {
+                ? (
+                  openFolders.includes(file.location)
+                    ? <FolderOpen size={16} className="text-orange-400 min-w-4" />
+                    : <FolderClosed size={16} className="text-orange-300 min-w-4" />
+                ) : (() => {
                   const Lang = Object.values(languageMap).find(languageMap =>
                     languageMap.extensions.includes(file.name.split('.').pop() || "")
                   );
-                  if (Lang) return <Lang.icon size={16} className="text-blue-300 ml-6" />
-                  return <FileIcon size={16} className="text-blue-300 ml-6 min-w-4" />;
+                  if (Lang) return <Lang.icon size={16} className="text-blue-300 min-w-4" />
+                  return <FileIcon size={16} className="text-blue-300 min-w-4" />;
                 })()}
 
                 <span className="overflow-hidden text-ellipsis whitespace-nowrap">
                   {file.name}
                 </span>
               </button>
+
+              {"files" in file && (
+                <p className="text-gray-500! text-sm">{file.files.length}</p>
+              )}
               <button className="lum-btn cursor-pointer rounded-lum-1 rounded-l-none p-1 items-center gap-1 text-gray-500 text-sm hover:text-gray-300 lum-bg-transparent hover:lum-bg-transparent"
                 onClick={async () => {
                   const response = await fetch(`${backendUrl}/file${file.location}`, {
@@ -82,17 +80,17 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
                   }
                 }}
               >
-                <Trash size={20} />
+                <Trash size={16} />
               </button>
             </div>
             {"files" in file && (
               <div
                 className={getClasses({
                   "transition-all duration-200 overflow-hidden": true,
-                  "max-h-0 opacity-0 scale-98": !openFolders.includes(
+                  "max-h-0 opacity-0 scale-98 -mt-1": !openFolders.includes(
                     file.location
                   ),
-                  "max-h-screen opacity-100 mt-1": openFolders.includes(
+                  "max-h-screen opacity-100": openFolders.includes(
                     file.location
                   ),
                 })}
