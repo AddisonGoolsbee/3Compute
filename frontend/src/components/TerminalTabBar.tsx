@@ -1,5 +1,5 @@
 
-import React from "react";
+import { FC } from "react";
 
 export interface TabBarProps {
   /** List of tab identifiers, e.g. ["0","1","2"] */
@@ -12,7 +12,7 @@ export interface TabBarProps {
   onSelect: (windowIndex: string) => void;
 }
 
-export const TerminalTabBar: React.FC<TabBarProps> = ({
+export const TerminalTabBar: FC<TabBarProps> = ({
   tabs,
   active,
   onNew,
