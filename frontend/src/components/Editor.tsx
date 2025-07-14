@@ -1,18 +1,19 @@
 import { useCallback, useContext, useEffect, useState } from "react";
 import CodeMirror from '@uiw/react-codemirror';
 import { File, Save } from "lucide-react";
-import { backendUrl, FileType, FolderType, UserDataContext } from "../util/UserData";
+import { backendUrl, UserDataContext } from "../util/UserData";
 // @ts-expect-error types not working yet
 import { getClasses, SelectMenuRaw } from "@luminescent/ui-react"
-import { languageMap } from "../util/CodeMirror";
+import { languageMap } from "../util/languageMap";
 import { SiMarkdown } from "@icons-pack/react-simple-icons";
 import { tokyoNight } from "@uiw/codemirror-theme-tokyo-night";
 import { color } from '@uiw/codemirror-extensions-color';
 import { hyperLink } from '@uiw/codemirror-extensions-hyper-link';
 import { indentationMarkers } from '@replit/codemirror-indentation-markers'
 import Markdown from 'react-markdown'
+import { Files, FileType } from "../util/Files";
 
-function findDefaultFile(files: (FolderType | FileType)[]): FileType | undefined {
+function findDefaultFile(files: Files): FileType | undefined {
   console.log("Finding default file in:", files);
 
   for (const item of files) {
@@ -44,7 +45,7 @@ function isImageFile(filename: string): boolean {
 }
 
 export default function Editor() {
-  const [value, setValue] = useState("console.log('hello world!');");
+  const [value, setValue] = useState('');
   const [mdPreview, setMdPreview] = useState<boolean>(true);
   const [currentLanguage, setCurrentLanguage] = useState<keyof typeof languageMap>('javascript');
   const [isImage, setIsImage] = useState<boolean>(false);
@@ -64,113 +65,127 @@ export default function Editor() {
     if (currentFile) {
       userData.setCurrentFile(currentFile);
     }
-  });
+    else {
+      setCurrentLanguage('markdown');
+      fetch('/README.md')
+        .then(response => response.text())
+        .then(text => {
+          setValue(text);
+          setMdPreview(true);
+        })
+        .catch(err => console.error("Error loading README.md:", err));
+    }
+  }, [userData]);
 
-  useEffect(() => {
+  useEffect(() => void (async () => {
     if (!userData.currentFile) return;
-    
+
+    // Check if the current file is an image
     const isImageFileType = isImageFile(userData.currentFile.name);
     setIsImage(isImageFileType);
-    
-    if (isImageFileType) {
-      return;
-    }
-    fetch(`${backendUrl}/file${userData.currentFile.location}`, {
+    if (isImageFileType) return;
+
+    // Load the file content
+    const fileres = await fetch(`${backendUrl}/file${userData.currentFile.location}`, {
       credentials: "include",
     })
-      .then(response => {
-        if (!response.ok) throw new Error("Failed to load file");
-        return response.text();
-    })
-      .then(text => setValue(text))
-      .catch(err => console.error("Error loading file:", err));
+    if (!fileres.ok) {
+      console.error("Failed to load file:", userData.currentFile.location);
+      userData.setCurrentFile(undefined);
+      return;
+    }
+    const file = await fileres.text();
+    setValue(file);
     
     // Set the language based on the file extension
     const ext = userData.currentFile.name.split('.').pop()?.toLowerCase();
     if (!ext) return;
+
     const lang = Object.keys(languageMap).find(l => languageMap[l as keyof typeof languageMap].extensions.includes(ext)) as keyof typeof languageMap | undefined || 'text';
     setCurrentLanguage(lang);
-  }, [userData.currentFile]);
+  })(), [userData.currentFile]);
 
   return (
     <div className={getClasses({
       "relative transition-all flex flex-col rounded-lum max-w-3/4 bg-[#1A1B26] border-lum-border/30 w-full": true,
     })}>
-      <div className="flex items-center gap-2 pl-3 p-1 m-1 lum-bg-gray-900 rounded-lum-1">
-        <span className="text-sm flex gap-2 items-center flex-1">
-          <File size={16} />
-          {userData?.currentFile?.location}
-          {currentLanguage === "markdown" && !isImage && (
-            <button className={getClasses({
-              "lum-btn p-1 rounded-lum-2 gap-1 lum-bg-transparent hover:lum-bg-gray-800": true,
-              "text-blue-500": mdPreview,
-            })}
-              onClick={() => setMdPreview(!mdPreview)}
-            >
-              <SiMarkdown size={16} />
-            </button>
-          )}
-        </span>
-        <div className="flex items-center gap-1">
-          {!isImage && (
-            <>
-              <SelectMenuRaw
-                id="language-select"
-                className="rounded-lum-2 text-xs gap-1 lum-bg-orange-700 hover:lum-bg-orange-600 w-full lum-btn-p-1"
-                value={currentLanguage}
-                values={Object.values(languageMap).map((Lang) => ({
-                  name: <div className="flex items-center gap-2">
-                    <Lang.icon size={16} />
-                    <span className="font-mono">
-                      {Lang.name}
-                    </span>
-                  </div>,
-                  value: Lang.name.toLowerCase(),
-                }))}
-                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
-                  const languageName = e.target.value as keyof typeof languageMap;
-                  setCurrentLanguage(languageName);
-                }}
-                customDropdown
-                dropdown={
-                  <div className="flex items-center gap-2">
-                    {(() => {
-                      const LanguageIcon = languageMap[currentLanguage as keyof typeof languageMap]?.icon;
-                      return <LanguageIcon size={16} />;
-                    })()}
-                    <span className="font-mono">
-                      {languageMap[currentLanguage as keyof typeof languageMap]?.name}
-                    </span>
-                  </div>
-                }
-              />
-              <button
-                className="lum-btn rounded-lum-2 text-xs gap-1 lum-bg-green-700 hover:lum-bg-green-600 w-full lum-btn-p-1"
-                onClick={async () => {
-                  if (!userData.currentFile) return;
-                  const response = await fetch(`${backendUrl}/file${userData.currentFile.location}`, {
-                    method: "PUT",
-                    body: value,
-                    headers: {
-                      "Content-Type": "application/json",
-                    },
-                    credentials: "include",
-                  });
-                  if (!response.ok) {
-                    console.error("Failed to save file");
-                  } else {
-                    console.log("File saved successfully");
-                  }
-                  // Optionally, you can show a notification or update the UI
-                }}
+      {userData.currentFile && (
+        <div className="flex items-center gap-2 pl-3 p-1 m-1 lum-bg-gray-900 rounded-lum-1">
+          <span className="text-sm flex gap-2 items-center flex-1">
+            <File size={16} />
+            {userData?.currentFile?.location}
+            {currentLanguage === "markdown" && !isImage && (
+              <button className={getClasses({
+                "lum-btn p-1 rounded-lum-2 gap-1 lum-bg-transparent hover:lum-bg-gray-800": true,
+                "text-blue-500": mdPreview,
+              })}
+                onClick={() => setMdPreview(!mdPreview)}
               >
-                <Save size={16} />
-                Save
+                <SiMarkdown size={16} />
               </button>
-            </>
-          )}
+            )}
+          </span>
+          <div className="flex items-center gap-1">
+            {!isImage && (
+              <>
+                <SelectMenuRaw
+                  id="language-select"
+                  className="rounded-lum-2 text-xs gap-1 lum-bg-orange-700 hover:lum-bg-orange-600 w-full lum-btn-p-1"
+                  value={currentLanguage}
+                  values={Object.values(languageMap).map((Lang) => ({
+                    name: <div className="flex items-center gap-2">
+                      <Lang.icon size={16} />
+                      <span className="font-mono">
+                        {Lang.name}
+                      </span>
+                    </div>,
+                    value: Lang.name.toLowerCase(),
+                  }))}
+                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+                    const languageName = e.target.value as keyof typeof languageMap;
+                    setCurrentLanguage(languageName);
+                  }}
+                  customDropdown
+                  dropdown={
+                    <div className="flex items-center gap-2">
+                      {(() => {
+                        const LanguageIcon = languageMap[currentLanguage as keyof typeof languageMap]?.icon;
+                        return <LanguageIcon size={16} />;
+                      })()}
+                      <span className="font-mono">
+                        {languageMap[currentLanguage as keyof typeof languageMap]?.name}
+                      </span>
+                    </div>
+                  }
+                />
+                <button
+                  className="lum-btn rounded-lum-2 text-xs gap-1 lum-bg-green-700 hover:lum-bg-green-600 w-full lum-btn-p-1"
+                  onClick={async () => {
+                    if (!userData.currentFile) return;
+                    const response = await fetch(`${backendUrl}/file${userData.currentFile.location}`, {
+                      method: "PUT",
+                      body: value,
+                      headers: {
+                        "Content-Type": "application/json",
+                      },
+                      credentials: "include",
+                    });
+                    if (!response.ok) {
+                      console.error("Failed to save file");
+                    } else {
+                      console.log("File saved successfully");
+                    }
+                    // Optionally, you can show a notification or update the UI
+                  }}
+                >
+                  <Save size={16} />
+                  Save
+                </button>
+              </>
+            )}
+          </div>
         </div>
-      </div>
+      )}
       {isImage ? (
         <div className="flex-1 overflow-auto p-4 flex items-center justify-center">
           <img 
@@ -182,9 +197,9 @@ export default function Editor() {
         </div>
       ) : mdPreview && currentLanguage === "markdown" ? (
         <div className="flex-1 overflow-auto p-4">
-          <div className="markdown-preview">
-            <Markdown>{value}</Markdown>
-          </div>
+          <Markdown>
+            {value}
+          </Markdown>
         </div>
       ) : (
         <div className="overflow-auto">

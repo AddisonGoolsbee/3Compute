@@ -1,13 +1,14 @@
 import { Files, Folder, Upload } from "lucide-react";
-import { useRef, useState, useContext } from "react";
+import { useRef, useContext } from "react";
 // @ts-expect-error types not working yet
 import { SelectMenuRaw } from "@luminescent/ui-react";
 import { backendUrl, UserDataContext } from "../util/UserData";
+import { StatusContext } from "../util/Files";
 
 export default function UploadButton() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const folderInputRef = useRef<HTMLInputElement>(null);
-  const [status, setStatus] = useState<string | null>(null);
+  const { setStatus } = useContext(StatusContext);
   const userData = useContext(UserDataContext);
 
   const handleFileClick = () => fileInputRef.current?.click();
@@ -44,45 +45,24 @@ export default function UploadButton() {
     setTimeout(() => setStatus(null), 3000);
   };
 
-  return (
-    <>
-      <SelectMenuRaw
-        id="upload"
-        className="lum-btn-p-1 rounded-lum-2 gap-1 text-xs"
-        customDropdown
-        dropdown={
-          <div className="flex items-center gap-1">
-            <Upload size={16} />
-            Upload
-          </div>
-        }
-        extra-buttons={<>
-          <button
-            onClick={handleFileClick}
-            className="lum-btn lum-btn-p-1 rounded-lum-1 gap-1 text-xs lum-bg-transparent"
-          >
-            <Files size={16} />
-            Files
-          </button>
-          <button
-            onClick={handleFolderClick}
-            className="lum-btn lum-btn-p-1 rounded-lum-1 gap-1 text-xs lum-bg-transparent"
-          >
-            <Folder size={16} />
-            Folder
-          </button>
-        </>}
-      />
-      <div
-        className={`${
-          status?.toLowerCase().includes("fail")
-            ? "text-red-600"
-            : "text-green-600"
-        }`}
-      >
-        {status}
+  return <SelectMenuRaw
+    id="upload"
+    className="lum-btn-p-1 rounded-lum-2 gap-1 text-xs"
+    customDropdown
+    dropdown={
+      <div className="flex items-center gap-1">
+        <Upload size={16} />
+        Upload
       </div>
-
+    }
+    extra-buttons={<>
+      <button
+        onClick={handleFileClick}
+        className="lum-btn lum-btn-p-1 rounded-lum-1 gap-1 text-xs lum-bg-transparent"
+      >
+        <Files size={16} />
+        Files
+      </button>
       <input
         type="file"
         ref={fileInputRef}
@@ -90,7 +70,13 @@ export default function UploadButton() {
         className="hidden"
         multiple
       />
-
+      <button
+        onClick={handleFolderClick}
+        className="lum-btn lum-btn-p-1 rounded-lum-1 gap-1 text-xs lum-bg-transparent"
+      >
+        <Folder size={16} />
+        Folder
+      </button>
       <input
         type="file"
         ref={folderInputRef}
@@ -100,6 +86,6 @@ export default function UploadButton() {
         webkitdirectory=""
         directory=""
       />
-    </>
-  );
+    </>}
+  />;
 }

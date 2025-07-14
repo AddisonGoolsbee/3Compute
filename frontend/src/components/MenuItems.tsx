@@ -3,7 +3,7 @@ import { ChevronRight, FileIcon, FolderIcon, Trash } from "lucide-react";
 import { getClasses } from "@luminescent/ui-react";
 import { useContext, Fragment } from "react";
 import { backendUrl, UserData, UserDataContext } from "../util/UserData";
-import { languageMap } from "../util/CodeMirror";
+import { languageMap } from "../util/languageMap";
 
 export default function MenuItems({ files, count = 0 }: { files: UserData['files'], count?: number }) {
   const {
@@ -35,7 +35,7 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
                   }
                 }}
                 className={getClasses({
-                  "flex rounded-lum-1 rounded-r-none p-1 flex-1 items-center gap-2 w-full text-left lum-bg-transparent": true,
+                  "flex flex-1 rounded-lum-1 rounded-r-none p-1 items-center gap-2 w-full text-left lum-bg-transparent": true,
                   "cursor-pointer": !("files" in file),
                 })}
                 style={{ paddingLeft: "calc(0.25rem + 0.5rem * " + count + ")"}}
@@ -49,17 +49,23 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
                     })}
                   />
                 )}
-                {"files" in file ? <div className="relative">
+
+                {"files" in file
+                ? <div className="relative">
                   <FolderIcon size={24} className="text-orange-300" />
                   <span className="text-orange-100 text-[10px] absolute bottom-1 left-2.25">{file.files.length}</span>
-                </div> : (() => {
+                </div>
+                : (() => {
                   const Lang = Object.values(languageMap).find(languageMap =>
                     languageMap.extensions.includes(file.name.split('.').pop() || "")
                   );
                   if (Lang) return <Lang.icon size={16} className="text-blue-300 ml-6" />
-                  return <FileIcon size={16} className="text-blue-300 ml-6" />;
+                  return <FileIcon size={16} className="text-blue-300 ml-6 min-w-4" />;
                 })()}
-                <span>{file.name}</span>
+
+                <span className="overflow-hidden text-ellipsis whitespace-nowrap">
+                  {file.name}
+                </span>
               </button>
               <button className="lum-btn cursor-pointer rounded-lum-1 rounded-l-none p-1 items-center gap-1 text-gray-500 text-sm hover:text-gray-300 lum-bg-transparent hover:lum-bg-transparent"
                 onClick={async () => {
@@ -76,7 +82,7 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
                   }
                 }}
               >
-                <Trash size={22} />
+                <Trash size={20} />
               </button>
             </div>
             {"files" in file && (

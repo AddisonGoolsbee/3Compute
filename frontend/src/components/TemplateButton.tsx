@@ -3,13 +3,14 @@ import { useEffect, useState, useContext } from "react";
 import { SelectMenuRaw } from "@luminescent/ui-react";
 import { LayoutTemplate } from "lucide-react";
 import { backendUrl, UserInfo, UserDataContext } from "../util/UserData";
+import { StatusContext } from "../util/Files";
 
 type Manifest = Record<string, string[]>;
 
 export default function TemplateButton({ userInfo }: { userInfo: UserInfo }) {
   const [manifest, setManifest] = useState<Manifest>({});
   const [selected, setSelected] = useState<string>("");
-  const [status, setStatus] = useState<string | null>(null);
+  const { setStatus } = useContext(StatusContext);
   const userData = useContext(UserDataContext);
 
   // 1) load the manifest once on mount
@@ -101,40 +102,27 @@ export default function TemplateButton({ userInfo }: { userInfo: UserInfo }) {
     return <div className="lum-loading animate-spin w-4 h-4" />;
   }
 
-  return (
-    <>
-      {status && (
-        <div
-          className={
-            status.includes("failed") ? "text-red-600" : "text-green-600"
-          }
-        >
-          {status}
-        </div>
-      )}
-      <SelectMenuRaw
-        id="template-select"
-        className="rounded-lum-1 text-sm lum-bg-blue-900 hover:lum-bg-blue-800 w-full"
-        value={selected}
-        onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
-          const templateName = e.target.value;
-          setSelected(templateName);
-          if (templateName) {
-            handleUseTemplate(templateName);
-          }
-        }}
-        values={templateNames.map((name) => ({
-          name: name.replace(/[-_]/g, " "),
-          value: name,
-        }))}
-        customDropdown
-        dropdown={
-          <div className="flex items-center gap-2">
-            <LayoutTemplate size={16} />
-            Use a template
-          </div>
-        }
-      />
-    </>
-  );
+  return <SelectMenuRaw
+    id="template-select"
+    className="rounded-lum-1 text-sm lum-bg-blue-900 hover:lum-bg-blue-800 w-full"
+    value={selected}
+    onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+      const templateName = e.target.value;
+      setSelected(templateName);
+      if (templateName) {
+        handleUseTemplate(templateName);
+      }
+    }}
+    values={templateNames.map((name) => ({
+      name: name.replace(/[-_]/g, " "),
+      value: name,
+    }))}
+    customDropdown
+    dropdown={
+      <div className="flex items-center gap-2">
+        <LayoutTemplate size={16} />
+        Use a template
+      </div>
+    }
+  />;
 }
