@@ -31,7 +31,7 @@ export default function NavComponent() {
           {userData?.userInfo && (
             <button
               onClick={handleLogout}
-              className="lum-btn lum-bg-transparent text-red-300 hover:lum-bg-red-700 p-2"
+              className="lum-btn lum-bg-transparent text-red-300 hover:lum-bg-red-700"
             >
               <LogOut size={20} />
               Log out

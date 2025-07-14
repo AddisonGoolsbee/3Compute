@@ -1,4 +1,4 @@
-import { FileIcon, FolderClosed, FolderOpen, Trash } from "lucide-react";
+import { FileIcon, FolderClosed, FolderOpen, Trash, X } from "lucide-react";
 // @ts-expect-error types not working yet
 import { getClasses } from "@luminescent/ui-react";
 import { useContext, Fragment } from "react";
@@ -20,11 +20,14 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
         files.map((file) => (
           <Fragment key={file.location}>
             <div className={getClasses({
-              "lum-btn p-0 gap-0 lum-bg-transparent rounded-lum-1": true,
+              "lum-btn": !file.renaming,
+              "flex items-center justify-between": file.renaming,
+              "p-0 gap-0 lum-bg-transparent rounded-lum-1": true,
               "bg-gray-900/30 border-lum-border/10": currentFile?.location === file.location
             })}>
               <button
                 onClick={() => {
+                  if (file.renaming) return; // Prevent opening if renaming
                   if ("files" in file) {
                     setOpenFolders((prev) => {
                       if (prev.includes(file.location)) {
@@ -57,8 +60,35 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
                   return <FileIcon size={16} className="text-blue-300 min-w-4" />;
                 })()}
 
-                <span className="overflow-hidden text-ellipsis whitespace-nowrap">
-                  {file.name}
+                <span className="flex-1">
+                  {file.renaming ? (
+                    <input
+                      type="text"
+                      defaultValue={file.name}
+                      onBlur={async (e) => {
+                        refreshFiles();
+                        const newName = e.target.value.trim();
+                        if (newName && newName !== file.name) {
+                          const res = await fetch(`${backendUrl}/files/${file.location}`, {
+                            method: "POST",
+                            headers: {
+                              "Content-Type": "application/json",
+                            },
+                            credentials: "include",
+                            body: JSON.stringify({
+                              newName,
+                            }),
+                          });
+                          if (res.ok) {
+                            await refreshFiles();
+                          }
+                        }
+                      }}
+                      className="lum-input py-0 px-1 rounded-lum-2 w-full -ml-1 lum-bg-gray-900"
+                    />
+                  ) : (
+                    file.name
+                  )}
                 </span>
               </button>
 
@@ -67,6 +97,7 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
               )}
               <button className="lum-btn cursor-pointer rounded-lum-1 rounded-l-none p-1 items-center gap-1 text-gray-500 text-sm hover:text-gray-300 lum-bg-transparent hover:lum-bg-transparent"
                 onClick={async () => {
+                  if (file.renaming) return await refreshFiles();
                   const response = await fetch(`${backendUrl}/file${file.location}`, {
                     method: "DELETE",
                     credentials: "include",
@@ -80,7 +111,11 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
                   }
                 }}
               >
-                <Trash size={16} />
+                {file.renaming ? (
+                  <X size={16} />
+                ) : (
+                  <Trash size={16} />
+                )}
               </button>
             </div>
             {"files" in file && (

@@ -2,12 +2,12 @@ import { useEffect, useState, useContext, ChangeEvent } from "react";
 // @ts-expect-error types not working yet
 import { SelectMenuRaw } from "@luminescent/ui-react";
 import { LayoutTemplate } from "lucide-react";
-import { backendUrl, UserInfo, UserDataContext } from "../util/UserData";
-import { StatusContext } from "../util/Files";
+import { backendUrl, UserDataContext } from "../../util/UserData";
+import { StatusContext } from "../../util/Files";
 
 type Manifest = Record<string, string[]>;
 
-export default function TemplateButton({ userInfo }: { userInfo: UserInfo }) {
+export default function TemplateButton() {
   const [manifest, setManifest] = useState<Manifest>({});
   const [selected, setSelected] = useState<string>("");
   const { setStatus } = useContext(StatusContext);
@@ -44,10 +44,10 @@ export default function TemplateButton({ userInfo }: { userInfo: UserInfo }) {
 
           // Simple find and replace for website template
           let modifiedText = text;
-          if (templateName === "Website" && filename === "main.py") {
+          if (templateName === "Website" && filename === "main.py" && userData?.userInfo) {
             modifiedText = text.replace(
               /8000/g,
-              userInfo.port_start.toString()
+              userData.userInfo.port_start.toString()
             );
             // Replace 0.0.0.0 with backendUrl without the port and without the protocol
             let backendUrlNoProto = backendUrl.replace(/^https?:\/\//, "");
@@ -104,7 +104,7 @@ export default function TemplateButton({ userInfo }: { userInfo: UserInfo }) {
 
   return <SelectMenuRaw
     id="template-select"
-    className="rounded-lum-1 text-sm lum-bg-blue-900 hover:lum-bg-blue-800 w-full"
+    className="lum-btn-p-1 rounded-lum-2 gap-1 text-xs lum-bg-blue-950 hover:lum-bg-blue-900 w-full"
     value={selected}
     onChange={(e: ChangeEvent<HTMLSelectElement>) => {
       const templateName = e.target.value;
@@ -119,9 +119,9 @@ export default function TemplateButton({ userInfo }: { userInfo: UserInfo }) {
     }))}
     customDropdown
     dropdown={
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1">
         <LayoutTemplate size={16} />
-        Use a template
+        Use template
       </div>
     }
   />;
