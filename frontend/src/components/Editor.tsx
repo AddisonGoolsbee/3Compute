@@ -1,4 +1,4 @@
-import { useCallback, useContext, useEffect, useState } from "react";
+import { ChangeEvent, useCallback, useContext, useEffect, useState } from "react";
 import CodeMirror from '@uiw/react-codemirror';
 import { File, Save } from "lucide-react";
 import { backendUrl, UserDataContext } from "../util/UserData";
@@ -103,7 +103,7 @@ export default function Editor() {
 
     const lang = Object.keys(languageMap).find(l => languageMap[l as keyof typeof languageMap].extensions.includes(ext)) as keyof typeof languageMap | undefined || 'text';
     setCurrentLanguage(lang);
-  })(), [userData.currentFile]);
+  })(), [userData, userData.currentFile]);
 
   return (
     <div className={getClasses({
@@ -141,7 +141,7 @@ export default function Editor() {
                     </div>,
                     value: Lang.name.toLowerCase(),
                   }))}
-                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+                  onChange={(e: ChangeEvent<HTMLSelectElement>) => {
                     const languageName = e.target.value as keyof typeof languageMap;
                     setCurrentLanguage(languageName);
                   }}

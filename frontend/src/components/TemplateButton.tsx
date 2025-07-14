@@ -1,4 +1,4 @@
-import { useEffect, useState, useContext } from "react";
+import { useEffect, useState, useContext, ChangeEvent } from "react";
 // @ts-expect-error types not working yet
 import { SelectMenuRaw } from "@luminescent/ui-react";
 import { LayoutTemplate } from "lucide-react";
@@ -106,7 +106,7 @@ export default function TemplateButton({ userInfo }: { userInfo: UserInfo }) {
     id="template-select"
     className="rounded-lum-1 text-sm lum-bg-blue-900 hover:lum-bg-blue-800 w-full"
     value={selected}
-    onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+    onChange={(e: ChangeEvent<HTMLSelectElement>) => {
       const templateName = e.target.value;
       setSelected(templateName);
       if (templateName) {

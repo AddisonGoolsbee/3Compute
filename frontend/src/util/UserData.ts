@@ -1,4 +1,4 @@
-import { createContext } from "react";
+import { createContext, Dispatch, SetStateAction } from "react";
 import { fetchFilesList, Files, FileType } from "./Files";
 
 export interface UserInfo {
@@ -11,9 +11,9 @@ export type UserData = {
   userInfo?: UserInfo;
   files?: Files;
   currentFile?: FileType;
-  setCurrentFile: React.Dispatch<React.SetStateAction<FileType | undefined>>;
+  setCurrentFile: Dispatch<SetStateAction<FileType | undefined>>;
   openFolders: string[];
-  setOpenFolders: React.Dispatch<React.SetStateAction<string[]>>;
+  setOpenFolders: Dispatch<SetStateAction<string[]>>;
   refreshFiles: () => Promise<void>;
 }
 

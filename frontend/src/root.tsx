@@ -1,4 +1,4 @@
-import React from "react";
+import { ReactNode, useCallback, useEffect, useState } from "react";
 import { Links, Meta, Outlet, Scripts, ScrollRestoration, useLoaderData } from "react-router";
 import NavComponent from "./components/Nav";
 import { default as HomeLayout } from "./Layout";
@@ -13,13 +13,13 @@ export function HydrateFallback() {
   return <HomeLayout />;
 }
 
-export function Layout({ children }: { children: React.ReactNode }) {
+export function Layout({ children }: { children: ReactNode }) {
   const loaderData = useLoaderData<UserData>();
-  const [openFolders, setOpenFolders] = React.useState<string[]>([]);
-  const [currentFile, setCurrentFile] = React.useState<FileType | undefined>();
-  const [files, setFiles] = React.useState<Files | undefined>(loaderData?.files);
+  const [openFolders, setOpenFolders] = useState<string[]>([]);
+  const [currentFile, setCurrentFile] = useState<FileType | undefined>();
+  const [files, setFiles] = useState<Files | undefined>(loaderData?.files);
 
-  const refreshFiles = React.useCallback(async () => {
+  const refreshFiles = useCallback(async () => {
     try {
       const newFiles = await fetchFilesList();
       setFiles(newFiles);
@@ -39,7 +39,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
   }
 
   // Update files state when loaderData changes
-  React.useEffect(() => {
+  useEffect(() => {
     if (loaderData?.files && !files) {
       setFiles(loaderData.files);
     }

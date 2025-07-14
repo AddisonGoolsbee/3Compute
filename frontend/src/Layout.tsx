@@ -1,9 +1,9 @@
 import Editor from "./components/Editor";
-import { useContext, useState, useEffect } from "react";
+import { useContext, useState, useEffect, ReactNode } from "react";
 import { UserDataContext } from "./util/UserData";
 import Explorer from "./components/Explorer";
 
-export default function Layout({ children }: { children?: React.ReactNode }) {
+export default function Layout({ children }: { children?: ReactNode }) {
   const userData = useContext(UserDataContext);
   const [showOverlay, setShowOverlay] = useState(true);
   const [isVisible, setIsVisible] = useState(true);

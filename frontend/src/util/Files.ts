@@ -1,16 +1,17 @@
 import { createContext } from "react";
 import { backendUrl } from "./UserData";
 
-export declare interface FileType {
+
+export interface FileType {
   readonly name: string;
   readonly location: string;
 }
 
-export declare interface FolderType extends FileType {
+export interface FolderType extends FileType {
   readonly files: Files;
 }
 
-export declare type Files = (FolderType | FileType)[];
+export type Files = (FolderType | FileType)[];
 
 export async function fetchFilesList() {
   // Fetch the list of files
@@ -68,7 +69,12 @@ export async function fetchFilesList() {
   return files;
 }
 
-export const StatusContext = createContext<{ status: string | null; setStatus: (status: string | null) => void }>({
+export interface StatusContextType {
+  status: string | null;
+  setStatus: (status: string | null) => void;
+}
+
+export const StatusContext = createContext<StatusContextType>({
   status: null,
   setStatus: () => {},
 });
