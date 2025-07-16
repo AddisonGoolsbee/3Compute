@@ -24,7 +24,7 @@ from flask_socketio import SocketIO
 from flask_login import LoginManager
 
 from .auth import auth_bp, load_user
-from .files import upload_bp
+from .files import files_bp
 from .webhook import webhook_bp
 from .terminal import init_terminal, user_containers
 from .docker import setup_isolated_network
@@ -50,7 +50,7 @@ login_manager.init_app(app)
 login_manager.user_loader(load_user)
 
 app.register_blueprint(auth_bp)
-app.register_blueprint(upload_bp)
+app.register_blueprint(files_bp)
 app.register_blueprint(webhook_bp)
 init_terminal(socketio)
 

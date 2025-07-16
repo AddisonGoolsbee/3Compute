@@ -8,12 +8,23 @@ export default function NewButton() {
 
   const handleFileClick = () => {
     if (!userData.files) return;
-    const newFIle = {
+    const newFile = {
       name: 'new_file',
       location: '/new_file',
       renaming: true, // Set renaming to true to allow immediate editing
     };
-    userData.setFilesClientSide([...userData.files, newFIle]);
+    userData.setFilesClientSide([...userData.files, newFile]);
+  };
+
+  const handleFolderClick = () => {
+    if (!userData.files) return;
+    const newFile = {
+      name: 'new_folder',
+      location: '/new_folder/',
+      renaming: true, // Set renaming to true to allow immediate editing
+      files: [], // Initialize with an empty array for folders
+    };
+    userData.setFilesClientSide([...userData.files, newFile]);
   };
 
   return <SelectMenuRaw
@@ -35,6 +46,7 @@ export default function NewButton() {
         File
       </button>
       <button
+        onClick={handleFolderClick}
         className="lum-btn lum-btn-p-1 rounded-lum-1 gap-1 text-xs lum-bg-transparent"
       >
         <Folder size={16} />
