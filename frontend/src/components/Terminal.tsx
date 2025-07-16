@@ -1,11 +1,11 @@
-import { useEffect, useRef } from "react";
-import { Terminal } from "@xterm/xterm";
-import { WebLinksAddon } from "@xterm/addon-web-links";
-import { SearchAddon } from "@xterm/addon-search";
-import "@xterm/xterm/css/xterm.css";
-import { FitAddon } from "@xterm/addon-fit";
-import { io, Socket } from "socket.io-client";
-import { backendUrl } from "../util/UserData";
+import { useEffect, useRef } from 'react';
+import { Terminal } from '@xterm/xterm';
+import { WebLinksAddon } from '@xterm/addon-web-links';
+import { SearchAddon } from '@xterm/addon-search';
+import '@xterm/xterm/css/xterm.css';
+import { FitAddon } from '@xterm/addon-fit';
+import { io, Socket } from 'socket.io-client';
+import { backendUrl } from '../util/UserData';
 
 export default function TerminalComponent() {
   const terminalRef = useRef<HTMLDivElement>(null);
@@ -44,44 +44,44 @@ export default function TerminalComponent() {
     socketRef.current = socket;
 
     term.onData((data) => {
-      socket.emit("pty-input", { input: data });
+      socket.emit('pty-input', { input: data });
     });
 
     // Handle terminal resize events
     term.onResize(({ cols, rows }) => {
-      socket.emit("resize", { cols, rows });
+      socket.emit('resize', { cols, rows });
     });
 
-    socket.on("pty-output", (data: { output: string }) => {
+    socket.on('pty-output', (data: { output: string }) => {
       term.write(data.output);
     });
 
     // Handle authentication errors
-    socket.on("connect_error", (error) => {
-      console.error("Terminal connection error:", error);
+    socket.on('connect_error', (error) => {
+      console.error('Terminal connection error:', error);
       if (
-        error.message.includes("Unauthorized") ||
-        error.message.includes("401")
+        error.message.includes('Unauthorized') ||
+        error.message.includes('401')
       ) {
         // Redirect to login or show logout message
-        window.location.href = "/login";
+        window.location.href = '/login';
       }
     });
 
     // Handle error events from server
-    socket.on("error", (data) => {
-      console.error("Server error:", data);
-      if (data.message === "Unauthorized") {
-        window.location.href = "/login";
+    socket.on('error', (data) => {
+      console.error('Server error:', data);
+      if (data.message === 'Unauthorized') {
+        window.location.href = '/login';
       }
     });
 
     // Handle disconnect events
-    socket.on("disconnect", (reason) => {
-      console.log("Terminal disconnected:", reason);
-      if (reason === "io server disconnect") {
+    socket.on('disconnect', (reason) => {
+      console.log('Terminal disconnected:', reason);
+      if (reason === 'io server disconnect') {
         // Server disconnected us, likely due to auth issues
-        window.location.href = "/login";
+        window.location.href = '/login';
       }
     });
 
@@ -91,7 +91,7 @@ export default function TerminalComponent() {
         fitAddonRef.current.fit();
         const dims = fitAddonRef.current.proposeDimensions();
         if (dims && socketRef.current) {
-          socketRef.current.emit("resize", {
+          socketRef.current.emit('resize', {
             cols: dims.cols,
             rows: dims.rows,
           });

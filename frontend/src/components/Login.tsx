@@ -1,13 +1,12 @@
-import { SiGoogle } from "@icons-pack/react-simple-icons";
-// @ts-expect-error types not working yet
-import { LogoBirdflop } from "@luminescent/ui-react";
-import { backendUrl } from "../util/UserData";
+import { SiGoogle } from '@icons-pack/react-simple-icons';
+import { LogoBirdflop } from '@luminescent/ui-react';
+import { backendUrl } from '../util/UserData';
 
 export default function Login() {
   return (
     <div className="absolute inset-0 flex flex-col items-center justify-center mt-5 z-20 fade-in">
       <div className="lum-card flex-row items-center lum-btn-p-16 pl-20 fade-in-delayed">
-        <LogoBirdflop size={200} fillGradient={["#54daf4", "#545eb6"]} />
+        <LogoBirdflop size={200} fillGradient={['#54daf4', '#545eb6']} />
 
         <div className="flex flex-col">
           <h1 className="mt-0!">3Compute</h1>

@@ -1,33 +1,32 @@
-import { ChangeEvent, useCallback, useContext, useEffect, useState } from "react";
+import { ChangeEvent, useCallback, useContext, useEffect, useState } from 'react';
 import CodeMirror from '@uiw/react-codemirror';
-import { File, Save } from "lucide-react";
-import { backendUrl, UserDataContext } from "../util/UserData";
-// @ts-expect-error types not working yet
-import { getClasses, SelectMenuRaw } from "@luminescent/ui-react"
-import { languageMap } from "../util/languageMap";
-import { SiMarkdown } from "@icons-pack/react-simple-icons";
-import { tokyoNight } from "@uiw/codemirror-theme-tokyo-night";
+import { File, Save } from 'lucide-react';
+import { backendUrl, UserDataContext } from '../util/UserData';
+import { getClasses, SelectMenuRaw } from '@luminescent/ui-react';
+import { languageMap } from '../util/languageMap';
+import { SiMarkdown } from '@icons-pack/react-simple-icons';
+import { tokyoNight } from '@uiw/codemirror-theme-tokyo-night';
 import { color } from '@uiw/codemirror-extensions-color';
 import { hyperLink } from '@uiw/codemirror-extensions-hyper-link';
-import { indentationMarkers } from '@replit/codemirror-indentation-markers'
-import Markdown from 'react-markdown'
-import { Files, FileType } from "../util/Files";
+import { indentationMarkers } from '@replit/codemirror-indentation-markers';
+import Markdown from 'react-markdown';
+import { Files, FileType } from '../util/Files';
 
 function findDefaultFile(files: Files): FileType | undefined {
-  console.log("Finding default file in:", files);
+  console.log('Finding default file in:', files);
 
   const defaultFileNames = ['readme', 'index.'];
   for (const fileName of defaultFileNames) {
     for (const item of files) {
-      if (!("files" in item) && item.name.toLowerCase().startsWith(fileName.toLowerCase())) {
-        console.log("Found default file:", item);
+      if (!('files' in item) && item.name.toLowerCase().startsWith(fileName.toLowerCase())) {
+        console.log('Found default file:', item);
         return item;
       }
     }
   }
 
   for (const item of files) {
-    if ("files" in item && item.files) {
+    if ('files' in item && item.files) {
       const foundFile = findDefaultFile(item.files);
       if (foundFile) return foundFile;
     }
@@ -56,7 +55,7 @@ export default function Editor() {
     if (userData.currentFile) return;
     // Find a default file to open
     let currentFile: FileType | undefined;
-    console.log(userData.files)
+    console.log(userData.files);
     if (userData.files && userData.files.length > 0) {
       currentFile = findDefaultFile(userData.files);
     }
@@ -71,7 +70,7 @@ export default function Editor() {
           setValue(text);
           setMdPreview(true);
         })
-        .catch(err => console.error("Error loading README.md:", err));
+        .catch(err => console.error('Error loading README.md:', err));
     }
   }, [userData]);
 
@@ -85,16 +84,16 @@ export default function Editor() {
 
     // Load the file content
     const fileres = await fetch(`${backendUrl}/file${userData.currentFile.location}`, {
-      credentials: "include",
-    })
+      credentials: 'include',
+    });
     if (!fileres.ok) {
-      console.error("Failed to load file:", userData.currentFile.location);
+      console.error('Failed to load file:', userData.currentFile.location);
       userData.setCurrentFile(undefined);
       return;
     }
     const file = await fileres.text();
     setValue(file);
-    
+
     // Set the language based on the file extension
     const ext = userData.currentFile.name.split('.').pop()?.toLowerCase();
     if (!ext) return;
@@ -110,12 +109,12 @@ export default function Editor() {
           <span className="text-sm flex gap-2 items-center flex-1">
             <File size={16} />
             {userData?.currentFile?.location}
-            {currentLanguage === "markdown" && !isImage && (
+            {currentLanguage === 'markdown' && !isImage && (
               <button className={getClasses({
-                "lum-btn p-1 rounded-lum-2 gap-1 lum-bg-transparent hover:lum-bg-gray-800": true,
-                "text-blue-500": mdPreview,
+                'lum-btn p-1 rounded-lum-2 gap-1 lum-bg-transparent hover:lum-bg-gray-800': true,
+                'text-blue-500': mdPreview,
               })}
-                onClick={() => setMdPreview(!mdPreview)}
+              onClick={() => setMdPreview(!mdPreview)}
               >
                 <SiMarkdown size={16} />
               </button>
@@ -159,17 +158,17 @@ export default function Editor() {
                   onClick={async () => {
                     if (!userData.currentFile) return;
                     const response = await fetch(`${backendUrl}/file${userData.currentFile.location}`, {
-                      method: "PUT",
+                      method: 'PUT',
                       body: value,
                       headers: {
-                        "Content-Type": "application/json",
+                        'Content-Type': 'application/json',
                       },
-                      credentials: "include",
+                      credentials: 'include',
                     });
                     if (!response.ok) {
-                      console.error("Failed to save file");
+                      console.error('Failed to save file');
                     } else {
-                      console.log("File saved successfully");
+                      console.log('File saved successfully');
                     }
                     // Optionally, you can show a notification or update the UI
                   }}
@@ -184,14 +183,14 @@ export default function Editor() {
       )}
       {isImage ? (
         <div className="flex-1 overflow-auto p-4 flex items-center justify-center">
-          <img 
+          <img
             src={`${backendUrl}/file${userData.currentFile?.location}`}
             alt={userData.currentFile?.name}
             className="max-w-full max-h-full object-contain"
             style={{ imageRendering: 'auto' }}
           />
         </div>
-      ) : mdPreview && currentLanguage === "markdown" ? (
+      ) : mdPreview && currentLanguage === 'markdown' ? (
         <div className="flex-1 overflow-auto p-4">
           <Markdown>
             {value}

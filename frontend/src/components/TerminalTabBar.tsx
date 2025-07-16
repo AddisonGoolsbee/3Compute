@@ -1,5 +1,5 @@
 
-import { FC } from "react";
+import { FC } from 'react';
 
 export interface TabBarProps {
   /** List of tab identifiers, e.g. ["0","1","2"] */
@@ -25,7 +25,7 @@ export const TerminalTabBar: FC<TabBarProps> = ({
           key={w}
           onClick={() => onSelect(w)}
           className={`px-2 py-1 rounded ${
-            w === active ? "bg-blue-600 text-white" : "bg-gray-200"
+            w === active ? 'bg-blue-600 text-white' : 'bg-gray-200'
           }`}
         >
           {`Tab ${w}`}

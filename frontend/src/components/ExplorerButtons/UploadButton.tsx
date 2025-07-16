@@ -1,9 +1,8 @@
-import { Files, Folder, Upload } from "lucide-react";
-import { useRef, useContext } from "react";
-// @ts-expect-error types not working yet
-import { SelectMenuRaw } from "@luminescent/ui-react";
-import { backendUrl, UserDataContext } from "../../util/UserData";
-import { StatusContext } from "../../util/Files";
+import { Files, Folder, Upload } from 'lucide-react';
+import { useRef, useContext } from 'react';
+import { SelectMenuRaw } from '@luminescent/ui-react';
+import { backendUrl, UserDataContext } from '../../util/UserData';
+import { StatusContext } from '../../util/Files';
 
 export default function UploadButton() {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -17,11 +16,11 @@ export default function UploadButton() {
   const handleFiles = async (fileList: FileList | null, isFolder: boolean) => {
     if (!fileList || fileList.length === 0) return;
 
-    setStatus("Uploading...");
+    setStatus('Uploading...');
 
     const formData = new FormData();
     Array.from(fileList).forEach((file) => {
-      formData.append("files", file, file.webkitRelativePath || file.name);
+      formData.append('files', file, file.webkitRelativePath || file.name);
     });
 
     const endpoint = isFolder
@@ -29,19 +28,19 @@ export default function UploadButton() {
       : `${backendUrl}/upload`;
 
     const res = await fetch(endpoint, {
-      method: "POST",
+      method: 'POST',
       body: formData,
-      credentials: "include",
+      credentials: 'include',
     });
 
-    setStatus(res.ok ? "Upload successful" : "Upload failed");
+    setStatus(res.ok ? 'Upload successful' : 'Upload failed');
     if (res.status === 413) {
-      setStatus("Failed: File too large");
+      setStatus('Failed: File too large');
     }
     if (res.ok) {
       await userData.refreshFiles();
     }
-    
+
     setTimeout(() => setStatus(null), 3000);
   };
 
