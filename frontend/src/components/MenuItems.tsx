@@ -66,17 +66,15 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
                       defaultValue={file.name}
                       onBlur={async (e) => {
                         refreshFiles();
-                        const newName = e.target.value.trim();
-                        if (newName && newName !== file.name) {
-                          const res = await fetch(`${backendUrl}/files/${file.location}`, {
+                        const name = e.target.value.trim();
+                        if (name && name !== file.name) {
+                          const newLocation = file.location.replace(file.name, name);
+                          const res = await fetch(`${backendUrl}/file${newLocation}`, {
                             method: 'POST',
                             headers: {
                               'Content-Type': 'application/json',
                             },
                             credentials: 'include',
-                            body: JSON.stringify({
-                              newName,
-                            }),
                           });
                           if (res.ok) {
                             await refreshFiles();

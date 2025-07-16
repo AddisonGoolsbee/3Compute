@@ -3,10 +3,10 @@ from flask_login import current_user
 import os
 import subprocess
 
-upload_bp = Blueprint("upload", __name__)
+files_bp = Blueprint("upload", __name__)
 
 
-@upload_bp.post("/upload")
+@files_bp.post("/upload")
 def upload():
     if not current_user.is_authenticated:
         return "Unauthorized", 401
@@ -24,7 +24,7 @@ def upload():
     return "File uploaded successfully", 200
 
 
-@upload_bp.post("/upload-folder")
+@files_bp.post("/upload-folder")
 def upload_folder():
     if not current_user.is_authenticated:
         return "Unauthorized", 401
@@ -86,7 +86,7 @@ def upload_folder():
     return "Folder uploaded successfully", 200
 
 
-@upload_bp.get("/list-files")
+@files_bp.get("/list-files")
 def list_files():
     if not current_user.is_authenticated:
         return "Unauthorized", 401
@@ -107,7 +107,7 @@ def list_files():
 
     return {"files": file_tree}, 200
 
-@upload_bp.route("/file/<path:filename>", methods=["GET", "PUT", "DELETE"])
+@files_bp.route("/file/<path:filename>", methods=["GET", "PUT", "DELETE", "POST"])
 def handle_file(filename):
     if not current_user.is_authenticated:
         return "Unauthorized", 401
@@ -116,10 +116,24 @@ def handle_file(filename):
     upload_dir = f"/tmp/uploads/{user_id}"
     file_path = os.path.join(upload_dir, filename)
 
-    if not os.path.exists(file_path):
+    if request.method == "POST":
+        # Create a new directory or file
+        if os.path.isdir(file_path):
+            os.makedirs(file_path, exist_ok=True)
+            return "Directory created successfully", 200
+        # check if the directory exists, if not, create it
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
+        # create an empty file if it doesn't exist
+        if os.path.exists(file_path):
+            return "File already exists", 400
+        with open(file_path, "w") as f:
+            f.write("")
+        return "File created successfully", 200
+
+    elif not os.path.exists(file_path):
         return "File not found", 404
 
-    if request.method == "GET":
+    elif request.method == "GET":
         image_extensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg', 'ico']
         file_ext = filename.split('.')[-1].lower() if '.' in filename else ''
         
