@@ -1,9 +1,9 @@
-import { ReactNode, useCallback, useEffect, useState } from "react";
-import { Links, Meta, Outlet, Scripts, ScrollRestoration, useLoaderData } from "react-router";
-import NavComponent from "./components/Nav";
-import { default as HomeLayout } from "./Layout";
-import { UserData, UserDataContext, clientLoader } from "./util/UserData";
-import { fetchFilesList, Files, FileType } from "./util/Files";
+import { ReactNode, useCallback, useEffect, useState } from 'react';
+import { Links, Meta, Outlet, Scripts, ScrollRestoration, useLoaderData } from 'react-router';
+import NavComponent from './components/Nav';
+import { default as HomeLayout } from './Layout';
+import { UserData, UserDataContext, clientLoader } from './util/UserData';
+import { fetchFilesList, Files, FileType } from './util/Files';
 
 // eslint-disable-next-line react-refresh/only-export-components
 export { clientLoader };
@@ -24,7 +24,7 @@ export function Layout({ children }: { children: ReactNode }) {
       const newFiles = await fetchFilesList();
       setFilesClientSide(newFiles);
     } catch (error) {
-      console.error("Failed to refresh files:", error);
+      console.error('Failed to refresh files:', error);
     }
   }, []);
 
@@ -37,7 +37,7 @@ export function Layout({ children }: { children: ReactNode }) {
     currentFile,
     setCurrentFile,
     refreshFiles,
-  }
+  };
 
   // Update files state when loaderData changes
   useEffect(() => {

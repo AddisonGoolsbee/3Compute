@@ -1,31 +1,30 @@
-import { useEffect, useState, useContext, ChangeEvent } from "react";
-// @ts-expect-error types not working yet
-import { SelectMenuRaw } from "@luminescent/ui-react";
-import { LayoutTemplate } from "lucide-react";
-import { backendUrl, UserDataContext } from "../../util/UserData";
-import { StatusContext } from "../../util/Files";
+import { useEffect, useState, useContext, ChangeEvent } from 'react';
+import { SelectMenuRaw } from '@luminescent/ui-react';
+import { LayoutTemplate } from 'lucide-react';
+import { backendUrl, UserDataContext } from '../../util/UserData';
+import { StatusContext } from '../../util/Files';
 
 type Manifest = Record<string, string[]>;
 
 export default function TemplateButton() {
   const [manifest, setManifest] = useState<Manifest>({});
-  const [selected, setSelected] = useState<string>("");
+  const [selected, setSelected] = useState<string>('');
   const { setStatus } = useContext(StatusContext);
   const userData = useContext(UserDataContext);
 
   // 1) load the manifest once on mount
   useEffect(() => {
-    fetch("/templateProjects/manifest.json")
+    fetch('/templateProjects/manifest.json')
       .then((res) => res.json())
       .then((data: Manifest) => {
         setManifest(data);
       })
-      .catch((err) => console.error("Failed to load template manifest", err));
+      .catch((err) => console.error('Failed to load template manifest', err));
   }, []);
 
   const handleUseTemplate = async (templateName: string) => {
     if (!templateName) return;
-    setStatus("Uploading template…");
+    setStatus('Uploading template…');
 
     const files = manifest[templateName] || [];
     const formData = new FormData();
@@ -44,17 +43,17 @@ export default function TemplateButton() {
 
           // Simple find and replace for website template
           let modifiedText = text;
-          if (templateName === "Website" && filename === "main.py" && userData?.userInfo) {
+          if (templateName === 'Website' && filename === 'main.py' && userData?.userInfo) {
             modifiedText = text.replace(
               /8000/g,
-              userData.userInfo.port_start.toString()
+              userData.userInfo.port_start.toString(),
             );
             // Replace 0.0.0.0 with backendUrl without the port and without the protocol
-            let backendUrlNoProto = backendUrl.replace(/^https?:\/\//, "");
-            backendUrlNoProto = backendUrlNoProto.replace(/:[0-9]+$/, "");
+            let backendUrlNoProto = backendUrl.replace(/^https?:\/\//, '');
+            backendUrlNoProto = backendUrlNoProto.replace(/:[0-9]+$/, '');
             backendUrlNoProto = backendUrlNoProto.replace(
               /localhost/,
-              "0.0.0.0"
+              '0.0.0.0',
             );
             modifiedText = modifiedText.replace(/0.0.0.0/g, backendUrlNoProto);
           }
@@ -63,18 +62,18 @@ export default function TemplateButton() {
           const fileBlob = new Blob([modifiedText], { type: blob.type });
           // Preserve folder structure by prefixing with template name
           const filePath = `${templateName}/${filename}`;
-          formData.append("files", fileBlob, filePath);
-        })
+          formData.append('files', fileBlob, filePath);
+        }),
       );
 
       // Add move-into parameter to change into the template directory
-      formData.append("move-into", templateName);
+      formData.append('move-into', templateName);
 
       // 3) POST to your existing endpoint
       const res = await fetch(`${backendUrl}/upload-folder`, {
-        method: "POST",
+        method: 'POST',
         body: formData,
-        credentials: "include",
+        credentials: 'include',
       });
 
       if (!res.ok) {
@@ -82,14 +81,14 @@ export default function TemplateButton() {
         throw new Error(`Upload failed: ${res.status} ${errorText}`);
       }
 
-      setStatus("Template uploaded!");
+      setStatus('Template uploaded!');
       await userData.refreshFiles();
     } catch (error) {
-      console.error("Template upload error:", error);
+      console.error('Template upload error:', error);
       setStatus(
         `Upload failed: ${
-          error instanceof Error ? error.message : "Unknown error"
-        }`
+          error instanceof Error ? error.message : 'Unknown error'
+        }`,
       );
     }
 
@@ -114,7 +113,7 @@ export default function TemplateButton() {
       }
     }}
     values={templateNames.map((name) => ({
-      name: name.replace(/[-_]/g, " "),
+      name: name.replace(/[-_]/g, ' '),
       value: name,
     }))}
     customDropdown

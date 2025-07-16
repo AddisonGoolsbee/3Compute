@@ -1,7 +1,7 @@
-import Editor from "./components/Editor";
-import { useContext, useState, useEffect, ReactNode } from "react";
-import { UserDataContext } from "./util/UserData";
-import Explorer from "./components/Explorer";
+import Editor from './components/Editor';
+import { useContext, useState, useEffect, ReactNode } from 'react';
+import { UserDataContext } from './util/UserData';
+import Explorer from './components/Explorer';
 
 export default function Layout({ children }: { children?: ReactNode }) {
   const userData = useContext(UserDataContext);
@@ -26,7 +26,7 @@ export default function Layout({ children }: { children?: ReactNode }) {
       {showOverlay && (
         <div
           className={`h-screen w-screen fixed top-0 left-0 backdrop-blur-lg bg-gray-900/50 z-10 transition-opacity duration-200 ${
-            isVisible ? "opacity-100" : "opacity-0"
+            isVisible ? 'opacity-100' : 'opacity-0'
           }`}
         />
       )}

@@ -1,5 +1,5 @@
-import { createContext, Dispatch, SetStateAction } from "react";
-import { fetchFilesList, Files, FileType } from "./Files";
+import { createContext, Dispatch, SetStateAction } from 'react';
+import { fetchFilesList, Files, FileType } from './Files';
 
 export interface UserInfo {
   email: string;
@@ -19,13 +19,13 @@ export type UserData = {
 }
 
 export const backendUrl =
-  import.meta.env.VITE_ENVIRONMENT === "production"
+  import.meta.env.VITE_ENVIRONMENT === 'production'
     ? import.meta.env.VITE_PROD_BACKEND_URL
     : import.meta.env.VITE_BACKEND_URL;
 
 export async function clientLoader() {
   // Fetch user info to ensure the user is authenticated
-  const userRes = await fetch(`${backendUrl}/me`, { credentials: "include" });
+  const userRes = await fetch(`${backendUrl}/me`, { credentials: 'include' });
   if (!userRes.ok) return {};
   const userInfo: UserInfo = await userRes.json();
 
@@ -40,19 +40,19 @@ export async function clientLoader() {
 const defaultFiles = [
   {
     name: 'index.py',
-    location: '/Python app/index.py'
+    location: '/Python app/index.py',
   },
   {
     name: 'requirements.txt',
-    location: '/Python app/requirements.txt'
-  }
+    location: '/Python app/requirements.txt',
+  },
 ];
 
 const defaultFolder = {
   name: 'Python app',
   location: '/Python app',
-  files: defaultFiles
-}
+  files: defaultFiles,
+};
 
 export const defaultUserData: UserData = {
   userInfo: undefined,
@@ -62,7 +62,7 @@ export const defaultUserData: UserData = {
   setCurrentFile: () => {},
   openFolders: [defaultFolder.location],
   setOpenFolders: () => {},
-  refreshFiles: async () => {}
+  refreshFiles: async () => {},
 };
 
 export const UserDataContext = createContext<UserData>(defaultUserData);

@@ -1,8 +1,7 @@
-import { File, Folder, Plus } from "lucide-react";
-import { useContext } from "react";
-// @ts-expect-error types not working yet
-import { SelectMenuRaw } from "@luminescent/ui-react";
-import { UserDataContext } from "../../util/UserData";
+import { File, Folder, Plus } from 'lucide-react';
+import { useContext } from 'react';
+import { SelectMenuRaw } from '@luminescent/ui-react';
+import { UserDataContext } from '../../util/UserData';
 
 export default function NewButton() {
   const userData = useContext(UserDataContext);
@@ -10,8 +9,8 @@ export default function NewButton() {
   const handleFileClick = () => {
     if (!userData.files) return;
     const newFIle = {
-      name: "new_file",
-      location: "/new_file",
+      name: 'new_file',
+      location: '/new_file',
       renaming: true, // Set renaming to true to allow immediate editing
     };
     userData.setFilesClientSide([...userData.files, newFIle]);

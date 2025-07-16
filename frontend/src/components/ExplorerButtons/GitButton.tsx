@@ -1,4 +1,4 @@
-import { SiGit } from "@icons-pack/react-simple-icons";
+import { SiGit } from '@icons-pack/react-simple-icons';
 
 export default function GitButton() {
 
