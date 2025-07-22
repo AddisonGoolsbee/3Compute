@@ -3,12 +3,9 @@ from flask_login import current_user
 import os
 import subprocess
 import stat
+from .docker import CONTAINER_USER_UID, CONTAINER_USER_GID
 
 files_bp = Blueprint("upload", __name__)
-
-# The UID/GID that the container user runs as
-CONTAINER_USER_UID = 1000
-CONTAINER_USER_GID = 1000
 
 def set_container_ownership(path):
     """Set ownership of a file/directory to match the container user"""
@@ -155,13 +152,13 @@ def handle_file(filename):
             if dir_path and dir_path != upload_dir:
                 os.makedirs(dir_path, exist_ok=True)
                 set_container_ownership(dir_path)
-            # create an empty file if it doesn't exist
-            if os.path.exists(file_path):
-                return "File already exists", 400
-            with open(file_path, "w") as f:
-                f.write("")
+        # create an empty file if it doesn't exist
+        if os.path.exists(file_path):
+            return "File already exists", 400
+        with open(file_path, "w") as f:
+            f.write("")
             set_container_ownership(file_path)
-            return "File created successfully", 200
+        return "File created successfully", 200
 
     elif not os.path.exists(file_path):
         return "File not found", 404

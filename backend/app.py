@@ -27,7 +27,7 @@ from .auth import auth_bp, load_user
 from .files import files_bp
 from .webhook import webhook_bp
 from .terminal import init_terminal, user_containers
-from .docker import setup_isolated_network
+from .docker import setup_isolated_network, CONTAINER_USER_UID, CONTAINER_USER_GID
 
 
 app = Flask(__name__)
@@ -60,11 +60,11 @@ def setup_uploads_directory():
     uploads_dir = "/tmp/uploads"
     os.makedirs(uploads_dir, exist_ok=True)
     
-    # Set ownership to match container user (UID 1000)
+    # Set ownership to match container user (UID 10000)
     try:
-        os.chown(uploads_dir, 1000, 1000)
+        os.chown(uploads_dir, CONTAINER_USER_UID, CONTAINER_USER_GID)
         os.chmod(uploads_dir, 0o755)
-        logger.debug("Set ownership of /tmp/uploads to UID 1000")
+        logger.debug(f"Set ownership of /tmp/uploads to UID {CONTAINER_USER_UID}")
     except OSError as e:
         # This might fail in development environments, which is OK
         logger.warning(f"Failed to set ownership for /tmp/uploads: {e}")

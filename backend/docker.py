@@ -14,6 +14,26 @@ memory_mb = psutil.virtual_memory().total // (1024 * 1024)
 cpu_per_user = round(num_cpus / MAX_USERS, 2)
 memory_per_user = round(memory_mb / MAX_USERS, 2)
 
+# Container user UID/GID that matches the dedicated system user
+CONTAINER_USER_UID = 999
+CONTAINER_USER_GID = 995
+
+
+def prepare_user_directory(user_id):
+    """Ensure user directory exists with correct ownership before container creation"""
+    user_dir = f"/tmp/uploads/{user_id}"
+    
+    # Create the directory if it doesn't exist
+    os.makedirs(user_dir, exist_ok=True)
+    
+    # Set ownership to match container user
+    try:
+        os.chown(user_dir, CONTAINER_USER_UID, CONTAINER_USER_GID)
+        os.chmod(user_dir, 0o755)  # drwxr-xr-x
+        logger.debug(f"Set ownership of {user_dir} to UID {CONTAINER_USER_UID}")
+    except OSError as e:
+        logger.warning(f"Failed to set ownership for {user_dir}: {e}")
+
 
 def setup_isolated_network(network_name="isolated_net"):
     try:
@@ -101,6 +121,9 @@ def spawn_container(user_id, slave_fd, container_name, port_range=None):
         logger.warning(f"Container {container_name} already exists, not creating a new one")
         raise RuntimeError(f"Container {container_name} already exists")
 
+    # Prepare user directory with correct ownership before mounting
+    prepare_user_directory(user_id)
+
     cmd = [
         "docker",
         "run",
@@ -112,7 +135,7 @@ def spawn_container(user_id, slave_fd, container_name, port_range=None):
         "3compute",
         "--network=isolated_net",  # prevent containers from accessing other containers or host, but allows internet
         "--cap-drop=ALL",  # prevent a bunch of admin linux stuff
-        "--user=1000:1000",  # login as a non-root user
+        "--user=999:995",  # login as dedicated 3compute-container user to avoid any host conflicts
         # Security profiles
         "--security-opt",
         "no-new-privileges",  # prevent container from gaining priviledge
