@@ -30,7 +30,7 @@ from .terminal import init_terminal, user_containers
 from .docker import setup_isolated_network
 
 
-app = Flask(__name__, template_folder=".", static_folder=".", static_url_path="")
+app = Flask(__name__)
 app.config["SECRET_KEY"] = os.getenv("FLASK_SECRET")
 
 if os.getenv("FLASK_ENV") == "production":
@@ -55,6 +55,21 @@ app.register_blueprint(webhook_bp)
 init_terminal(socketio)
 
 
+def setup_uploads_directory():
+    """Create /tmp/uploads directory with proper ownership for container access"""
+    uploads_dir = "/tmp/uploads"
+    os.makedirs(uploads_dir, exist_ok=True)
+    
+    # Set ownership to match container user (UID 1000)
+    try:
+        os.chown(uploads_dir, 1000, 1000)
+        os.chmod(uploads_dir, 0o755)
+        logger.debug("Set ownership of /tmp/uploads to UID 1000")
+    except OSError as e:
+        # This might fail in development environments, which is OK
+        logger.warning(f"Failed to set ownership for /tmp/uploads: {e}")
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-p", "--port", default=5555, type=int)
@@ -75,7 +90,7 @@ def main():
     signal.signal(signal.SIGINT, lambda *_: sys.exit(0))
 
     setup_isolated_network()
-    os.makedirs("/tmp/uploads", exist_ok=True)
+    setup_uploads_directory()
     socketio.run(app, debug=debug_mode, port=args.port, host=args.host)
 
 

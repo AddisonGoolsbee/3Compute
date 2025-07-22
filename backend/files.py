@@ -2,9 +2,28 @@ from flask import Blueprint, request
 from flask_login import current_user
 import os
 import subprocess
+import stat
 
 files_bp = Blueprint("upload", __name__)
 
+# The UID/GID that the container user runs as
+CONTAINER_USER_UID = 1000
+CONTAINER_USER_GID = 1000
+
+def set_container_ownership(path):
+    """Set ownership of a file/directory to match the container user"""
+    try:
+        os.chown(path, CONTAINER_USER_UID, CONTAINER_USER_GID)
+        # Also ensure proper permissions
+        if os.path.isdir(path):
+            os.chmod(path, 0o755)  # drwxr-xr-x for directories
+        else:
+            os.chmod(path, 0o644)  # -rw-r--r-- for files
+    except OSError as e:
+        # Log the error but don't fail - this might happen in dev environments
+        import logging
+        logger = logging.getLogger("files")
+        logger.warning(f"Failed to set ownership for {path}: {e}")
 
 @files_bp.post("/upload")
 def upload():
@@ -14,12 +33,15 @@ def upload():
     user_id = current_user.id
     upload_dir = f"/tmp/uploads/{user_id}"
     os.makedirs(upload_dir, exist_ok=True)
+    set_container_ownership(upload_dir)
 
     files = request.files.getlist("files")
     if not files:
         return "No files provided", 400
     for f in files:
-        f.save(os.path.join(upload_dir, f.filename))
+        file_path = os.path.join(upload_dir, f.filename)
+        f.save(file_path)
+        set_container_ownership(file_path)
 
     return "File uploaded successfully", 200
 
@@ -32,6 +54,7 @@ def upload_folder():
     user_id = current_user.id
     upload_dir = f"/tmp/uploads/{user_id}"
     os.makedirs(upload_dir, exist_ok=True)
+    set_container_ownership(upload_dir)
 
     files = request.files.getlist("files")
     if not files:
@@ -41,8 +64,11 @@ def upload_folder():
         safe_path = os.path.normpath(os.path.join(upload_dir, f.filename))
         if not safe_path.startswith(upload_dir):
             continue  # prevent directory traversal
-        os.makedirs(os.path.dirname(safe_path), exist_ok=True)
+        dir_path = os.path.dirname(safe_path)
+        os.makedirs(dir_path, exist_ok=True)
+        set_container_ownership(dir_path)
         f.save(safe_path)
+        set_container_ownership(safe_path)
 
     # Check if move-into parameter is provided
     move_into = request.form.get("move-into")
@@ -118,17 +144,24 @@ def handle_file(filename):
 
     if request.method == "POST":
         # Create a new directory or file
-        if os.path.isdir(file_path):
+        if filename.endswith('/'):
+            # It's a directory
             os.makedirs(file_path, exist_ok=True)
+            set_container_ownership(file_path)
             return "Directory created successfully", 200
-        # check if the directory exists, if not, create it
-        os.makedirs(os.path.dirname(file_path), exist_ok=True)
-        # create an empty file if it doesn't exist
-        if os.path.exists(file_path):
-            return "File already exists", 400
-        with open(file_path, "w") as f:
-            f.write("")
-        return "File created successfully", 200
+        else:
+            # It's a file - check if the directory exists, if not, create it
+            dir_path = os.path.dirname(file_path)
+            if dir_path and dir_path != upload_dir:
+                os.makedirs(dir_path, exist_ok=True)
+                set_container_ownership(dir_path)
+            # create an empty file if it doesn't exist
+            if os.path.exists(file_path):
+                return "File already exists", 400
+            with open(file_path, "w") as f:
+                f.write("")
+            set_container_ownership(file_path)
+            return "File created successfully", 200
 
     elif not os.path.exists(file_path):
         return "File not found", 404
@@ -153,6 +186,7 @@ def handle_file(filename):
         content = request.data.decode("utf-8")
         with open(file_path, "w") as f:
             f.write(content)
+        set_container_ownership(file_path)
         return "File updated successfully", 200
 
     elif request.method == "DELETE":
