@@ -11,8 +11,9 @@ RUN apk update && apk add --no-cache \
     nano \
  && ln -sf python3 /usr/bin/python
 
-# Create a non-root user and app dir
-RUN useradd -m myuser \
+# Create a non-root user matching the dedicated host system user
+RUN groupadd -g 995 3compute-container \
+    && useradd -m -u 999 -g 995 myuser \
     && mkdir /app \
     && chown myuser:myuser /app
 
