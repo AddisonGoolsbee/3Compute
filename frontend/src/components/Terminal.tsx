@@ -13,18 +13,6 @@ export default function TerminalComponent() {
   const terminalInstanceRef = useRef<Terminal>(null);
   const fitAddonRef = useRef<FitAddon>(null);
 
-  // function waitForNonZeroSize(el: HTMLElement, callback: () => void) {
-  //   const check = () => {
-  //     const { offsetWidth: w, offsetHeight: h } = el;
-  //     if (w > 0 && h > 0) {
-  //       callback();
-  //     } else {
-  //       requestAnimationFrame(check);
-  //     }
-  //   };
-  //   check();
-  // }
-
   useEffect(() => {
     if (!terminalRef.current) return;
 
@@ -45,21 +33,10 @@ export default function TerminalComponent() {
     term.loadAddon(search);
 
     term.open(terminalRef.current);
-    // waitForNonZeroSize(terminalRef.current, () => {
-    //   setTimeout(() => {
-    //     console.log(
-    //       'Container size at fit:',
-    //       terminalRef.current?.offsetWidth,
-    //       terminalRef.current?.offsetHeight,
-    //     );
-    //     fitAddon.fit();
-    //     const dims = fitAddon.proposeDimensions();
-    //     if (dims && socketRef.current) {
-    //       socketRef.current.emit('resize', dims);
-    //     }
-    //     term.focus();
-    //   }, 3000);
-    // });
+    requestAnimationFrame(() => {
+      // fitAddon.fit();
+      term.focus();
+    });
 
     const socket = io(backendUrl, {
       withCredentials: true,
@@ -71,9 +48,9 @@ export default function TerminalComponent() {
     });
 
     // Handle terminal resize events
-    // term.onResize(({ cols, rows }) => {
-    //   socket.emit('resize', { cols, rows });
-    // });
+    term.onResize(({ cols, rows }) => {
+      socket.emit('resize', { cols, rows });
+    });
 
     socket.on('pty-output', (data: { output: string }) => {
       term.write(data.output);
@@ -109,30 +86,30 @@ export default function TerminalComponent() {
     });
 
     // Set up resize observer to handle container size changes
-    // const resizeObserver = new ResizeObserver(() => {
-    //   if (fitAddonRef.current) {
-    //     fitAddonRef.current.fit();
-    //     const dims = fitAddonRef.current.proposeDimensions();
-    //     if (dims && socketRef.current) {
-    //       socketRef.current.emit('resize', {
-    //         cols: dims.cols,
-    //         rows: dims.rows,
-    //       });
-    //     }
-    //   }
-    // });
+    const resizeObserver = new ResizeObserver(() => {
+      if (fitAddonRef.current) {
+        fitAddonRef.current.fit();
+        const dims = fitAddonRef.current.proposeDimensions();
+        if (dims && socketRef.current) {
+          socketRef.current.emit('resize', {
+            cols: dims.cols,
+            rows: dims.rows,
+          });
+        }
+      }
+    });
 
-    // resizeObserver.observe(terminalRef.current);
+    resizeObserver.observe(terminalRef.current);
 
     return () => {
-      // resizeObserver.disconnect();
+      resizeObserver.disconnect();
       socket.disconnect();
       term.dispose();
     };
   }, []);
 
   return (
-    <div className="w-full h-[30dvh] p-2 lum-bg-gray-950 border border-lum-border/40 rounded-lum ">
+    <div className="w-full h-[30dvh] p-2 lum-bg-gray-950  border border-lum-border/40 rounded-lum ">
       <div ref={terminalRef} className="w-full h-full overflow-hidden" />
     </div>
   );
