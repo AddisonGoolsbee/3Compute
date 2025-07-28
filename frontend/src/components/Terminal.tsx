@@ -13,6 +13,18 @@ export default function TerminalComponent() {
   const terminalInstanceRef = useRef<Terminal>(null);
   const fitAddonRef = useRef<FitAddon>(null);
 
+  function waitForNonZeroSize(el: HTMLElement, callback: () => void) {
+    const check = () => {
+      const { offsetWidth: w, offsetHeight: h } = el;
+      if (w > 0 && h > 0) {
+        callback();
+      } else {
+        requestAnimationFrame(check);
+      }
+    };
+    check();
+  }
+
   useEffect(() => {
     if (!terminalRef.current) return;
 
@@ -33,8 +45,17 @@ export default function TerminalComponent() {
     term.loadAddon(search);
 
     term.open(terminalRef.current);
-    requestAnimationFrame(() => {
+    waitForNonZeroSize(terminalRef.current, () => {
+      console.log(
+        'Container size at fit:',
+        terminalRef.current?.offsetWidth,
+        terminalRef.current?.offsetHeight,
+      );
       fitAddon.fit();
+      const dims = fitAddon.proposeDimensions();
+      if (dims && socketRef.current) {
+        socketRef.current.emit('resize', dims);
+      }
       term.focus();
     });
 
