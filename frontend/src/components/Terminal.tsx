@@ -13,29 +13,29 @@ export default function TerminalComponent() {
   const terminalInstanceRef = useRef<Terminal>(null);
   const fitAddonRef = useRef<FitAddon>(null);
 
-  const waitForFitReady = (
-    term: Terminal,
-    fit: FitAddon,
-    callback: () => void,
-  ) => {
-    const check = () => {
-      const width = term.element?.clientWidth ?? 0;
-      const height = term.element?.clientHeight ?? 0;
-      if (width > 0 && height > 0) {
-        fit.fit();
-        console.log('FIT RAN', {
-          width: term.element?.clientWidth,
-          height: term.element?.clientHeight,
-          rows: term.rows,
-          cols: term.cols,
-        });
-        callback();
-      } else {
-        requestAnimationFrame(check);
-      }
-    };
-    check();
-  };
+  // const waitForFitReady = (
+  //   term: Terminal,
+  //   fit: FitAddon,
+  //   callback: () => void,
+  // ) => {
+  //   const check = () => {
+  //     const width = term.element?.clientWidth ?? 0;
+  //     const height = term.element?.clientHeight ?? 0;
+  //     if (width > 0 && height > 0) {
+  //       fit.fit();
+  //       console.log('FIT RAN', {
+  //         width: term.element?.clientWidth,
+  //         height: term.element?.clientHeight,
+  //         rows: term.rows,
+  //         cols: term.cols,
+  //       });
+  //       callback();
+  //     } else {
+  //       requestAnimationFrame(check);
+  //     }
+  //   };
+  //   check();
+  // };
 
   useEffect(() => {
     if (!terminalRef.current) return;
