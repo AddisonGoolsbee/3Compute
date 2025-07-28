@@ -1,9 +1,9 @@
-import { useEffect, useRef } from 'react';
+import '@xterm/xterm/css/xterm.css';
+import { FitAddon } from '@xterm/addon-fit';
 import { Terminal } from '@xterm/xterm';
 import { WebLinksAddon } from '@xterm/addon-web-links';
 import { SearchAddon } from '@xterm/addon-search';
-import '@xterm/xterm/css/xterm.css';
-import { FitAddon } from '@xterm/addon-fit';
+import { useEffect, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { backendUrl } from '../util/UserData';
 
@@ -23,6 +23,12 @@ export default function TerminalComponent() {
       const height = term.element?.clientHeight ?? 0;
       if (width > 0 && height > 0) {
         fit.fit();
+        console.log('FIT RAN', {
+          width: term.element?.clientWidth,
+          height: term.element?.clientHeight,
+          rows: term.rows,
+          cols: term.cols,
+        });
         callback();
       } else {
         requestAnimationFrame(check);
@@ -51,12 +57,15 @@ export default function TerminalComponent() {
     term.loadAddon(search);
 
     term.open(terminalRef.current);
-    waitForFitReady(term, fitAddon, () => term.focus());
+    // waitForFitReady(term, fitAddon, () => term.focus());
 
     const socket = io(backendUrl, {
       withCredentials: true,
     });
     socketRef.current = socket;
+
+    term.resize(80, 24);
+    socket.emit('resize', { cols: 80, rows: 24 });
 
     term.onData((data) => {
       socket.emit('pty-input', { input: data });
@@ -64,10 +73,12 @@ export default function TerminalComponent() {
 
     // Handle terminal resize events (only for if the user resizes the terminal, not if the browser resizes)
     term.onResize(({ cols, rows }) => {
+      console.log('Terminal resized to', cols, rows);
       socket.emit('resize', { cols, rows });
     });
 
     socket.on('pty-output', (data: { output: string }) => {
+      console.log('Received output:', JSON.stringify(data.output));
       term.write(data.output);
     });
 
