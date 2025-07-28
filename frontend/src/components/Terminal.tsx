@@ -13,29 +13,29 @@ export default function TerminalComponent() {
   const terminalInstanceRef = useRef<Terminal>(null);
   const fitAddonRef = useRef<FitAddon>(null);
 
-  // const waitForFitReady = (
-  //   term: Terminal,
-  //   fit: FitAddon,
-  //   callback: () => void,
-  // ) => {
-  //   const check = () => {
-  //     const width = term.element?.clientWidth ?? 0;
-  //     const height = term.element?.clientHeight ?? 0;
-  //     if (width > 0 && height > 0) {
-  //       fit.fit();
-  //       console.log('FIT RAN', {
-  //         width: term.element?.clientWidth,
-  //         height: term.element?.clientHeight,
-  //         rows: term.rows,
-  //         cols: term.cols,
-  //       });
-  //       callback();
-  //     } else {
-  //       requestAnimationFrame(check);
-  //     }
-  //   };
-  //   check();
-  // };
+  const waitForFitReady = (
+    term: Terminal,
+    fit: FitAddon,
+    callback: () => void,
+  ) => {
+    const check = () => {
+      const width = term.element?.clientWidth ?? 0;
+      const height = term.element?.clientHeight ?? 0;
+      if (width > 0 && height > 0) {
+        fit.fit();
+        console.log('FIT RAN', {
+          width: term.element?.clientWidth,
+          height: term.element?.clientHeight,
+          rows: term.rows,
+          cols: term.cols,
+        });
+        callback();
+      } else {
+        requestAnimationFrame(check);
+      }
+    };
+    check();
+  };
 
   useEffect(() => {
     if (!terminalRef.current) return;
@@ -57,15 +57,12 @@ export default function TerminalComponent() {
     term.loadAddon(search);
 
     term.open(terminalRef.current);
-    // waitForFitReady(term, fitAddon, () => term.focus());
+    waitForFitReady(term, fitAddon, () => term.focus());
 
     const socket = io(backendUrl, {
       withCredentials: true,
     });
     socketRef.current = socket;
-
-    term.resize(80, 24);
-    socket.emit('resize', { cols: 80, rows: 24 });
 
     term.onData((data) => {
       socket.emit('pty-input', { input: data });
