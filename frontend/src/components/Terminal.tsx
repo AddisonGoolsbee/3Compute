@@ -33,10 +33,10 @@ export default function TerminalComponent() {
     term.loadAddon(search);
 
     term.open(terminalRef.current);
-    // requestAnimationFrame(() => {
-    //   // fitAddon.fit();
-    //   term.focus();
-    // });
+    requestAnimationFrame(() => {
+      // fitAddon.fit();
+      term.focus();
+    });
 
     const socket = io(backendUrl, {
       withCredentials: true,
