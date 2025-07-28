@@ -48,9 +48,9 @@ export default function TerminalComponent() {
     });
 
     // Handle terminal resize events
-    term.onResize(({ cols, rows }) => {
-      socket.emit('resize', { cols, rows });
-    });
+    // term.onResize(({ cols, rows }) => {
+    //   socket.emit('resize', { cols, rows });
+    // });
 
     socket.on('pty-output', (data: { output: string }) => {
       term.write(data.output);
@@ -109,7 +109,7 @@ export default function TerminalComponent() {
   }, []);
 
   return (
-    <div className="w-full h-[30dvh] p-2 lum-bg-gray-950  border border-lum-border/40 rounded-lum ">
+    <div className="w-full h-[300px] p-2 lum-bg-gray-950 border border-lum-border/40 rounded-lum ">
       <div ref={terminalRef} className="w-full h-full overflow-hidden" />
     </div>
   );
