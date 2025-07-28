@@ -86,23 +86,23 @@ export default function TerminalComponent() {
     });
 
     // Set up resize observer to handle container size changes
-    // const resizeObserver = new ResizeObserver(() => {
-    //   if (fitAddonRef.current) {
-    //     fitAddonRef.current.fit();
-    //     const dims = fitAddonRef.current.proposeDimensions();
-    //     if (dims && socketRef.current) {
-    //       socketRef.current.emit('resize', {
-    //         cols: dims.cols,
-    //         rows: dims.rows,
-    //       });
-    //     }
-    //   }
-    // });
+    const resizeObserver = new ResizeObserver(() => {
+      if (fitAddonRef.current) {
+        fitAddonRef.current.fit();
+        const dims = fitAddonRef.current.proposeDimensions();
+        if (dims && socketRef.current) {
+          socketRef.current.emit('resize', {
+            cols: dims.cols,
+            rows: dims.rows,
+          });
+        }
+      }
+    });
 
-    // resizeObserver.observe(terminalRef.current);
+    resizeObserver.observe(terminalRef.current);
 
     return () => {
-      // resizeObserver.disconnect();
+      resizeObserver.disconnect();
       socket.disconnect();
       term.dispose();
     };
