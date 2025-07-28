@@ -27,7 +27,6 @@ export default function TerminalComponent() {
         const dims = fit.proposeDimensions();
         if (dims) {
           socket.emit('resize', { cols: dims.cols, rows: dims.rows });
-          console.log('Manual resize sent', dims);
         }
         callback();
       } else {
@@ -71,12 +70,10 @@ export default function TerminalComponent() {
 
     // Handle terminal resize events (only for if the user resizes the terminal, not if the browser resizes)
     term.onResize(({ cols, rows }) => {
-      console.log('Terminal resized to', cols, rows);
       socket.emit('resize', { cols, rows });
     });
 
     socket.on('pty-output', (data: { output: string }) => {
-      console.log('Received output:', JSON.stringify(data.output));
       term.write(data.output);
     });
 
