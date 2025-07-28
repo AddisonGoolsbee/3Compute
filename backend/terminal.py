@@ -146,6 +146,22 @@ def handle_resize(data):
     fd = session_info["fd"]
     user_id = session_info["user_id"]
 
+    # If not attached yet, do it now
+    if not session_info["container_attached"]:
+        try:
+            proc, fd = attach_to_container(session_info["container_name"])
+            session_info["fd"] = fd
+            session_info["container_attached"] = True
+            socketio.start_background_task(read_and_forward_pty_output, sid, True)
+            logger.info(f"Attached to container for user {user_id} in handle_resize()")
+        except Exception as e:
+            logger.error(f"Failed to attach to container for user {user_id}: {e}")
+            socketio.emit("error", {"message": "Failed to connect to terminal. Please try again."}, to=sid)
+            return
+        
+    fd = session_info["fd"]
+    user_id = session_info["user_id"]
+
     logger.debug(f"Resizing terminal for user {user_id}, session {sid}, fd {fd}")
     logger.debug(f"New dimensions: rows={data.get('rows', 'MISSING')}, cols={data.get('cols', 'MISSING')}")
 
@@ -330,19 +346,12 @@ def handle_connect(auth=None):
                     socketio.emit("error", {"message": "Failed to create terminal session. Please try again."}, to=sid)
                     return
 
-    # Attach to tmux session in container
-    try:
-        proc, fd = attach_to_container(container_name)
-        logger.info(f"Attached to tmux in container for user {user_id}")
-    except Exception as e:
-        logger.error(f"Failed to attach to container {container_name}: {e}")
-        # Clean up the container if we can't attach to it
-        _cleanup_user_container(user_id, container_name)
-        # Notify the user of the error
-        socketio.emit("error", {"message": "Failed to connect to terminal. Please try again."}, to=sid)
-        return
-
-    session_map[sid] = {"fd": fd, "user_id": user_id}
+    session_map[sid] = {
+        "fd": None,
+        "user_id": user_id,
+        "container_attached": False,
+        "container_name": container_name,
+    }
     socketio.start_background_task(read_and_forward_pty_output, sid, True)
 
 
