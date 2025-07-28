@@ -13,6 +13,24 @@ export default function TerminalComponent() {
   const terminalInstanceRef = useRef<Terminal>(null);
   const fitAddonRef = useRef<FitAddon>(null);
 
+  const waitForFitReady = (
+    term: Terminal,
+    fit: FitAddon,
+    callback: () => void,
+  ) => {
+    const check = () => {
+      const width = term.element?.clientWidth ?? 0;
+      const height = term.element?.clientHeight ?? 0;
+      if (width > 0 && height > 0) {
+        fit.fit();
+        callback();
+      } else {
+        requestAnimationFrame(check);
+      }
+    };
+    check();
+  };
+
   useEffect(() => {
     if (!terminalRef.current) return;
 
@@ -33,10 +51,7 @@ export default function TerminalComponent() {
     term.loadAddon(search);
 
     term.open(terminalRef.current);
-    requestAnimationFrame(() => {
-      // fitAddon.fit();
-      term.focus();
-    });
+    waitForFitReady(term, fitAddon, () => term.focus());
 
     const socket = io(backendUrl, {
       withCredentials: true,
@@ -47,7 +62,7 @@ export default function TerminalComponent() {
       socket.emit('pty-input', { input: data });
     });
 
-    // Handle terminal resize events
+    // Handle terminal resize events (only for if the user resizes the terminal, not if the browser resizes)
     term.onResize(({ cols, rows }) => {
       socket.emit('resize', { cols, rows });
     });
