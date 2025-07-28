@@ -1,9 +1,9 @@
-import { useEffect, useRef } from 'react';
+import '@xterm/xterm/css/xterm.css';
+import { FitAddon } from '@xterm/addon-fit';
 import { Terminal } from '@xterm/xterm';
 import { WebLinksAddon } from '@xterm/addon-web-links';
 import { SearchAddon } from '@xterm/addon-search';
-import '@xterm/xterm/css/xterm.css';
-import { FitAddon } from '@xterm/addon-fit';
+import { useEffect, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { backendUrl } from '../util/UserData';
 
@@ -12,6 +12,30 @@ export default function TerminalComponent() {
   const socketRef = useRef<Socket>(null);
   const terminalInstanceRef = useRef<Terminal>(null);
   const fitAddonRef = useRef<FitAddon>(null);
+
+  const waitForFitReady = (
+    term: Terminal,
+    fit: FitAddon,
+    socket: Socket,
+    callback: () => void,
+  ) => {
+    const check = () => {
+      const width = term.element?.clientWidth ?? 0;
+      const height = term.element?.clientHeight ?? 0;
+      if (width > 0 && height > 0) {
+        fit.fit();
+        const dims = fit.proposeDimensions();
+        if (dims) {
+          socket.emit('resize', { cols: dims.cols, rows: dims.rows });
+          console.log('Manual resize sent', dims);
+        }
+        callback();
+      } else {
+        requestAnimationFrame(check);
+      }
+    };
+    check();
+  };
 
   useEffect(() => {
     if (!terminalRef.current) return;
@@ -33,26 +57,26 @@ export default function TerminalComponent() {
     term.loadAddon(search);
 
     term.open(terminalRef.current);
-    requestAnimationFrame(() => {
-      fitAddon.fit();
-      term.focus();
-    });
 
     const socket = io(backendUrl, {
       withCredentials: true,
     });
     socketRef.current = socket;
 
+    waitForFitReady(term, fitAddon, socket, () => term.focus());
+
     term.onData((data) => {
       socket.emit('pty-input', { input: data });
     });
 
-    // Handle terminal resize events
+    // Handle terminal resize events (only for if the user resizes the terminal, not if the browser resizes)
     term.onResize(({ cols, rows }) => {
+      console.log('Terminal resized to', cols, rows);
       socket.emit('resize', { cols, rows });
     });
 
     socket.on('pty-output', (data: { output: string }) => {
+      console.log('Received output:', JSON.stringify(data.output));
       term.write(data.output);
     });
 
