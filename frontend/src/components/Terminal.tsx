@@ -16,6 +16,7 @@ export default function TerminalComponent() {
   const waitForFitReady = (
     term: Terminal,
     fit: FitAddon,
+    socket: Socket,
     callback: () => void,
   ) => {
     const check = () => {
@@ -23,12 +24,11 @@ export default function TerminalComponent() {
       const height = term.element?.clientHeight ?? 0;
       if (width > 0 && height > 0) {
         fit.fit();
-        console.log('FIT RAN', {
-          width: term.element?.clientWidth,
-          height: term.element?.clientHeight,
-          rows: term.rows,
-          cols: term.cols,
-        });
+        const dims = fit.proposeDimensions();
+        if (dims) {
+          socket.emit('resize', { cols: dims.cols, rows: dims.rows });
+          console.log('Manual resize sent', dims);
+        }
         callback();
       } else {
         requestAnimationFrame(check);
@@ -57,12 +57,13 @@ export default function TerminalComponent() {
     term.loadAddon(search);
 
     term.open(terminalRef.current);
-    waitForFitReady(term, fitAddon, () => term.focus());
 
     const socket = io(backendUrl, {
       withCredentials: true,
     });
     socketRef.current = socket;
+
+    waitForFitReady(term, fitAddon, socket, () => term.focus());
 
     term.onData((data) => {
       socket.emit('pty-input', { input: data });
