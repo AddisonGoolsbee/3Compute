@@ -33,10 +33,10 @@ export default function TerminalComponent() {
     term.loadAddon(search);
 
     term.open(terminalRef.current);
-    requestAnimationFrame(() => {
-      // fitAddon.fit();
-      term.focus();
-    });
+    // requestAnimationFrame(() => {
+    //   // fitAddon.fit();
+    //   term.focus();
+    // });
 
     const socket = io(backendUrl, {
       withCredentials: true,
@@ -48,9 +48,9 @@ export default function TerminalComponent() {
     });
 
     // Handle terminal resize events
-    term.onResize(({ cols, rows }) => {
-      socket.emit('resize', { cols, rows });
-    });
+    // term.onResize(({ cols, rows }) => {
+    //   socket.emit('resize', { cols, rows });
+    // });
 
     socket.on('pty-output', (data: { output: string }) => {
       term.write(data.output);
@@ -86,23 +86,23 @@ export default function TerminalComponent() {
     });
 
     // Set up resize observer to handle container size changes
-    const resizeObserver = new ResizeObserver(() => {
-      if (fitAddonRef.current) {
-        fitAddonRef.current.fit();
-        const dims = fitAddonRef.current.proposeDimensions();
-        if (dims && socketRef.current) {
-          socketRef.current.emit('resize', {
-            cols: dims.cols,
-            rows: dims.rows,
-          });
-        }
-      }
-    });
+    // const resizeObserver = new ResizeObserver(() => {
+    //   if (fitAddonRef.current) {
+    //     fitAddonRef.current.fit();
+    //     const dims = fitAddonRef.current.proposeDimensions();
+    //     if (dims && socketRef.current) {
+    //       socketRef.current.emit('resize', {
+    //         cols: dims.cols,
+    //         rows: dims.rows,
+    //       });
+    //     }
+    //   }
+    // });
 
-    resizeObserver.observe(terminalRef.current);
+    // resizeObserver.observe(terminalRef.current);
 
     return () => {
-      resizeObserver.disconnect();
+      // resizeObserver.disconnect();
       socket.disconnect();
       term.dispose();
     };
