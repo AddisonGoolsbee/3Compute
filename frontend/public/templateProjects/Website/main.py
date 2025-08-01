@@ -14,5 +14,5 @@ if __name__ == "__main__":
     host = "0.0.0.0"
     port = 8000
 
-    print(f"🚀 Website is up! Listening on http://{host}:{port}")
+    print(f"🚀 Website is up! Listening on http://app.3compute.org:{port}")
     serve(app, host=host, port=port)
