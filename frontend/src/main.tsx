@@ -1,4 +1,4 @@
-import Terminal from './components/Terminal';
+import TerminalTabs from './components/Terminal';
 import Login from './components/Login';
 import Layout from './Layout';
 import { useContext } from 'react';
@@ -9,7 +9,7 @@ export default function App() {
 
   return <>
     <Layout>
-      <Terminal />
+      <TerminalTabs />
     </Layout>
     {!userData.userInfo && <Login />}
   </>;

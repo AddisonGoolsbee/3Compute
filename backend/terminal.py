@@ -1,5 +1,4 @@
 import os
-import pty
 import fcntl
 import struct
 import termios
@@ -9,7 +8,7 @@ import subprocess
 import time
 import threading
 
-from flask import request, current_app
+from flask import request
 from flask_socketio import SocketIO
 from flask_login import current_user
 
@@ -30,7 +29,7 @@ _cleanup_timers: dict[int, threading.Event] = {}
 
 def _discover_existing_containers():
     """Discover existing user containers and restore them to tracking"""
-    from .docker import container_exists, container_is_running
+    from .docker import container_is_running
 
     try:
         # Find all containers with the user-container- prefix
@@ -149,11 +148,11 @@ def handle_resize(data):
     # If not attached yet, do it now
     if not session_info["container_attached"]:
         try:
-            proc, fd = attach_to_container(session_info["container_name"])
+            proc, fd = attach_to_container(session_info["container_name"], session_info["tab_id"])
             session_info["fd"] = fd
             session_info["container_attached"] = True
             socketio.start_background_task(read_and_forward_pty_output, sid, True)
-            logger.info(f"Attached to container for user {user_id} in handle_resize()")
+            logger.info(f"Attached to container for user {user_id} tab {session_info['tab_id']} in handle_resize()")
         except Exception as e:
             logger.error(f"Failed to attach to container for user {user_id}: {e}")
             socketio.emit("error", {"message": "Failed to connect to terminal. Please try again."}, to=sid)
@@ -255,8 +254,8 @@ def _cleanup_user_container(user_id, container_name):
     """Clean up a user's container and remove from tracking"""
     try:
         subprocess.run(["docker", "rm", "-f", container_name], check=False)
-    except:
-        pass
+    except Exception as e:
+        logger.error(f"Failed to cleanup user container {container_name}: {e}")
     user_containers.pop(user_id, None)
 
 
@@ -274,7 +273,9 @@ def handle_connect(auth=None):
 
     user_id = current_user.id
     sid = request.sid
-    logger.info(f"client {sid} connected")
+    # Get tab ID from query parameters
+    tab_id = request.args.get('tabId', '1')
+    logger.info(f"client {sid} connected for tab {tab_id}")
 
     _cancel_idle_poller(user_id)
 
@@ -351,7 +352,19 @@ def handle_connect(auth=None):
         "user_id": user_id,
         "container_attached": False,
         "container_name": container_name,
+        "tab_id": tab_id,
     }
+    
+    # Immediately attach to container for this tab
+    try:
+        proc, fd = attach_to_container(container_name, tab_id)
+        session_map[sid]["fd"] = fd
+        session_map[sid]["container_attached"] = True
+        logger.info(f"Attached to container for user {user_id} tab {tab_id} on connect")
+    except Exception as e:
+        logger.error(f"Failed to attach to container for user {user_id} tab {tab_id}: {e}")
+        socketio.emit("error", {"message": "Failed to create terminal session. Please try again."}, to=sid)
+        return
     socketio.start_background_task(read_and_forward_pty_output, sid, True)
 
 
@@ -365,8 +378,8 @@ def handle_disconnect():
     # close the PTY, kill docker-exec proc, etc…
     try:
         os.close(session["fd"])
-    except:
-        pass
+    except Exception as e:
+        logger.error(f"Failed to close PTY for user {user_id}: {e}")
 
     # If that was the last live session for this user, start the poller
     if not any(s["user_id"] == user_id for s in session_map.values()):
