@@ -4,13 +4,14 @@ Birdflop service for free educational server usage, with templates such as disco
 
 ## Development
 
-- Make sure you have a `.env` file in the `backend` folder
+- Make sure you have a `.env` file in the `backend` and `frontend` folders
 
 ### Frontend
 
 - `cd frontend`
 - `pnpm i` to install dependencies
 - `pnpm dev`
+- Go to `http://127.0.0.1:5173`, NOT localhost
 
 ### Backend
 
