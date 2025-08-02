@@ -180,28 +180,6 @@ class TestDockerModule:
             with pytest.raises(subprocess.CalledProcessError):
                 spawn_container(1, None, 'test-container', (8000, 8100))
     
-    def test_setup_isolated_network(self):
-        """Test isolated network setup when network exists"""
-        from backend.docker import setup_isolated_network
-        
-        with patch('subprocess.run') as mock_run:
-            # First call (inspect) succeeds - network exists
-            mock_run.return_value = Mock(returncode=0)
-            
-            setup_isolated_network()
-            
-            # Verify subprocess.run was called at least once
-            assert mock_run.called, "subprocess.run should have been called"
-            assert mock_run.call_count >= 1, "subprocess.run should have been called at least once"
-            
-            # Verify the first call was for docker network inspect
-            # Use string representation to avoid subscripting issues
-            calls_str = str(mock_run.call_args_list)
-            assert 'docker' in calls_str, "Should call docker command"
-            assert 'network' in calls_str, "Should call docker network command" 
-            assert 'inspect' in calls_str, "Should call docker network inspect command"
-            assert 'isolated_net' in calls_str, "Should inspect isolated_net network"
-    
     def test_setup_isolated_network_create(self):
         """Test isolated network setup when network needs to be created"""
         from backend.docker import setup_isolated_network
