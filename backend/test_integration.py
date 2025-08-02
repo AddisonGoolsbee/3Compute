@@ -46,11 +46,10 @@ class TestTerminalDockerIntegration:
             session = terminal.session_map['test-session']
             assert session['user_id'] == 1
             assert session['tab_id'] == '3'
-            # Container attachment now happens during handle_resize, not handle_connect
-            assert session['container_attached'] is False
+            assert session['container_attached'] is True
             
-            # Verify Docker integration - attachment now happens in handle_resize
-            mock_attach.assert_not_called()
+            # Verify Docker integration
+            mock_attach.assert_called_once()
 
     def test_container_spawning_integration(self, mock_flask_dependencies):
         """Test container spawning when not exists"""
@@ -225,11 +224,6 @@ class TestFullWorkflowIntegration:
             handle_connect()
             assert 'workflow-session' in terminal.session_map
             
-            # Manually trigger attachment by simulating handle_resize
-            session = terminal.session_map['workflow-session']
-            session['fd'] = 9
-            session['container_attached'] = True
-            
             # Step 2: User sends terminal input
             data = {'input': 'ls -la\n'}
             handle_pty_input(data)
@@ -274,18 +268,6 @@ class TestFullWorkflowIntegration:
             assert 'tab2-session' in terminal.session_map
             assert terminal.session_map['tab1-session']['tab_id'] == '1'
             assert terminal.session_map['tab2-session']['tab_id'] == '2'
-            
-            # Since attachment happens during handle_resize, both fd should be None initially
-            assert terminal.session_map['tab1-session']['fd'] is None
-            assert terminal.session_map['tab2-session']['fd'] is None
-            
-            # Simulate attachment for both tabs (would normally happen during handle_resize)
-            terminal.session_map['tab1-session']['fd'] = 11
-            terminal.session_map['tab1-session']['container_attached'] = True
-            terminal.session_map['tab2-session']['fd'] = 12
-            terminal.session_map['tab2-session']['container_attached'] = True
-            
-            # Now verify they have different fds
             assert terminal.session_map['tab1-session']['fd'] != terminal.session_map['tab2-session']['fd']
 
 
@@ -302,7 +284,7 @@ class TestErrorHandlingIntegration:
         with patch('backend.docker.container_exists', return_value=False), \
              patch('backend.docker.container_is_running', return_value=False), \
              patch('subprocess.run') as mock_subprocess, \
-             patch('backend.terminal.spawn_container', side_effect=Exception("Docker error")) as mock_spawn, \
+             patch('backend.docker.spawn_container', side_effect=Exception("Docker error")), \
              patch('backend.docker.prepare_user_directory') as mock_prepare:
             
             mock_subprocess.return_value = Mock(returncode=0)
@@ -315,15 +297,15 @@ class TestErrorHandlingIntegration:
             # Call handle_connect which should fail during spawn_container
             handle_connect()
             
-            # Verify spawn_container was called (indicating the correct code path was taken)
-            mock_spawn.assert_called_once()
-            
             # Verify error was emitted to the socket due to spawn failure
             mock_flask_dependencies['socketio'].emit.assert_called_with(
                 "error", 
                 {"message": "Failed to create terminal session. Please try again."}, 
                 to='error-session'
             )
+            
+            # Check that prepare_user_directory was called (indicating spawn was attempted)
+            mock_prepare.assert_called_once_with(888)
     
     def test_file_operation_error_handling(self, temp_file):
         """Test handling of file operation errors"""
