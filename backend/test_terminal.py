@@ -104,8 +104,7 @@ class TestTerminalModule:
             
             # Verify container was spawned
             mock_spawn.assert_called_once()
-            # Note: attach_to_container is now called during handle_resize, not handle_connect
-            mock_attach.assert_not_called()
+            mock_attach.assert_called_once()
     
     @patch('backend.terminal.os.write')
     def test_handle_pty_input(self, mock_write, mock_flask_dependencies):

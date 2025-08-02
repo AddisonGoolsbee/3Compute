@@ -1,3 +1,4 @@
+import '@xterm/xterm/css/xterm.css';
 import { FitAddon } from '@xterm/addon-fit';
 import { Terminal } from '@xterm/xterm';
 import { WebLinksAddon } from '@xterm/addon-web-links';
@@ -162,7 +163,7 @@ export function TerminalComponent({ tabId, isActive }: TerminalComponentProps) {
         }
       }}
     >
-      <div ref={terminalRef} className="w-full h-full overflow-hidden p-3" />
+      <div ref={terminalRef} className="w-full h-full overflow-hidden" />
     </div>
   );
 }
