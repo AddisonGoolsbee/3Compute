@@ -146,7 +146,7 @@ export function TerminalComponent({ tabId, isActive }: TerminalComponentProps) {
   useEffect(() => {
     if (isActive && !wasActiveRef.current && terminalInstanceRef.current && fitAddonRef.current) {
       // Tab became active, just refit and focus
-      // fitAddonRef.current.fit();
+      fitAddonRef.current.fit();
       terminalInstanceRef.current.focus();
     }
     wasActiveRef.current = isActive;
