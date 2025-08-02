@@ -195,7 +195,7 @@ def _start_idle_poller(user_id: int):
                 text=True,
             )
             if result.returncode != 0:
-                logging.warning(f"docker top failed for {container}: {result.stderr.strip()}")
+                logger.warning(f"docker top failed for {container}: {result.stderr.strip()}")
                 time.sleep(POLL_INTERVAL)
                 continue
 
