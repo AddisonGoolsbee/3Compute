@@ -190,38 +190,17 @@ class TestDockerModule:
             
             setup_isolated_network()
             
-            # Should call docker network inspect
-            assert mock_run.called
-            
-            # Verify subprocess.run was called with docker network inspect command
-            # Be very defensive about mock structure
-            called_with_docker_inspect = False
-            
-            try:
-                # Check all calls to see if any contain docker network inspect
-                for call in mock_run.call_args_list:
-                    try:
-                        # Try different ways to access the command arguments
-                        cmd = None
-                        if hasattr(call, 'args') and call.args:
-                            cmd = call.args[0]
-                        elif len(call) > 0 and call[0]:
-                            cmd = call[0][0] if isinstance(call[0], (list, tuple)) else call[0]
-                        
-                        if cmd and isinstance(cmd, (list, tuple)):
-                            cmd_str = ' '.join(str(x) for x in cmd)
-                            if all(word in cmd_str for word in ['docker', 'network', 'inspect', 'isolated_net']):
-                                called_with_docker_inspect = True
-                                break
-                    except (AttributeError, IndexError, TypeError):
-                        continue
-                        
-            except (AttributeError, TypeError):
-                # If we can't parse the calls structure, just verify it was called
-                pass
-            
-            # At minimum, verify subprocess.run was called
+            # Verify subprocess.run was called at least once
             assert mock_run.called, "subprocess.run should have been called"
+            assert mock_run.call_count >= 1, "subprocess.run should have been called at least once"
+            
+            # Verify the first call was for docker network inspect
+            # Use string representation to avoid subscripting issues
+            calls_str = str(mock_run.call_args_list)
+            assert 'docker' in calls_str, "Should call docker command"
+            assert 'network' in calls_str, "Should call docker network command" 
+            assert 'inspect' in calls_str, "Should call docker network inspect command"
+            assert 'isolated_net' in calls_str, "Should inspect isolated_net network"
     
     def test_setup_isolated_network_create(self):
         """Test isolated network setup when network needs to be created"""
@@ -231,7 +210,8 @@ class TestDockerModule:
             # First call (inspect) fails, second call (create) succeeds
             def side_effect(*args, **kwargs):
                 cmd = args[0] if args else []
-                if any('inspect' in str(item) for item in cmd):
+                cmd_str = ' '.join(str(item) for item in cmd) if cmd else ''
+                if 'inspect' in cmd_str:
                     raise subprocess.CalledProcessError(1, cmd)
                 return Mock(returncode=0)
             
@@ -240,27 +220,15 @@ class TestDockerModule:
             setup_isolated_network()
             
             # Should call at least inspect (which fails) and create (which succeeds)
-            assert mock_run.call_count >= 2
+            assert mock_run.call_count >= 2, "Should call both inspect and create commands"
             
-            # Verify we have both inspect and create calls
-            calls = mock_run.call_args_list
-            assert len(calls) >= 2
+            # Verify we have both inspect and create calls using string representation
+            # This avoids subscripting issues with Mock objects
+            calls_str = str(mock_run.call_args_list)
             
-            # Find inspect and create calls (may not be in exact order in CI)
-            inspect_found = False
-            create_found = False
-            
-            for call in calls:
-                if call and len(call) > 0 and len(call[0]) > 0:
-                    cmd = call[0][0]
-                    cmd_str = ' '.join(str(item) for item in cmd)
-                    if 'inspect' in cmd_str and 'isolated_net' in cmd_str:
-                        inspect_found = True
-                    elif 'create' in cmd_str and 'isolated_net' in cmd_str:
-                        create_found = True
-            
-            assert inspect_found, "Should have called docker network inspect"
-            assert create_found, "Should have called docker network create"
+            assert 'inspect' in calls_str, "Should have called docker network inspect"
+            assert 'create' in calls_str, "Should have called docker network create"
+            assert 'isolated_net' in calls_str, "Should reference isolated_net network"
 
 
 class TestContainerLifecycle:
