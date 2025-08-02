@@ -17,8 +17,7 @@ vi.mock('socket.io-client', () => ({
 
 const mockUserData = {
   userInfo: {
-    id: 1,
-    username: 'testuser',
+    email: 'testuser@example.com',
     port_start: 8000,
     port_end: 8100,
   },
@@ -211,8 +210,7 @@ describe('Terminal Integration Tests', () => {
       ...mockUserData,
       userInfo: {
         ...mockUserData.userInfo,
-        id: 2,
-        username: 'newuser',
+        email: 'newuser@example.com',
       },
     };
 

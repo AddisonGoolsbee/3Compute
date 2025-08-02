@@ -10,8 +10,7 @@ const mockIo = (global as any).mockIo;
 // Mock user data context
 const mockUserData = {
   userInfo: {
-    id: 1,
-    username: 'testuser',
+    email: 'testuser@example.com',
     port_start: 8000,
     port_end: 8100,
   },
