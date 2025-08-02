@@ -219,9 +219,11 @@ export default function Editor() {
         </div>
       ) : mdPreview && currentLanguage === 'markdown' ? (
         <div className="flex-1 overflow-auto p-4">
-          <Markdown>
-            {value}
-          </Markdown>
+          <div className="markdown-content">
+            <Markdown>
+              {value}
+            </Markdown>
+          </div>
         </div>
       ) : (
         <div className="overflow-auto">

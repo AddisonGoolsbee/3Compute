@@ -11,7 +11,7 @@ export default function Login() {
         <div className="flex flex-col">
           <h1 className="mt-0!">3Compute</h1>
           <p className="max-w-80 mb-4">
-            insert description here
+            Start coding instantly for free
           </p>
           <a
             className="lum-btn lum-btn-p-3 lum-bg-blue-800 hover:lum-bg-blue-700 justify-center"

@@ -195,7 +195,7 @@ def _start_idle_poller(user_id: int):
                 text=True,
             )
             if result.returncode != 0:
-                logging.warning(f"docker top failed for {container}: {result.stderr.strip()}")
+                logger.warning(f"docker top failed for {container}: {result.stderr.strip()}")
                 time.sleep(POLL_INTERVAL)
                 continue
 
@@ -235,7 +235,7 @@ def _start_idle_poller(user_id: int):
                 procs.append(cmd_str)
 
             if not procs:
-                logging.info(f"No user processes left in {container}, removing it")
+                logger.info(f"No user processes left in {container}, removing it")
                 subprocess.run(["docker", "rm", "-f", container], check=False)
                 user_containers.pop(user_id, None)
                 break
@@ -305,7 +305,7 @@ def handle_connect(auth=None):
                             "container_name": container_name,
                             "port_range": current_user.port_range,
                         }
-                        logging.info(f"Spawned new container for user {user_id}")
+                        logger.info(f"Spawned new container for user {user_id}")
                     except Exception as e:
                         logger.error(f"Failed to spawn new container for user {user_id}: {e}")
                         socketio.emit(
@@ -318,7 +318,7 @@ def handle_connect(auth=None):
             try:
                 spawn_container(user_id, None, container_name, port_range)
                 user_containers[user_id] = {"container_name": container_name, "port_range": port_range}
-                logging.info(f"Spawned new container for user {user_id}")
+                logger.info(f"Spawned new container for user {user_id}")
             except Exception as e:
                 logger.error(f"Failed to spawn container for user {user_id}: {e}")
                 socketio.emit("error", {"message": "Failed to create terminal session. Please try again."}, to=sid)
@@ -354,17 +354,6 @@ def handle_connect(auth=None):
         "container_name": container_name,
         "tab_id": tab_id,
     }
-    
-    # Immediately attach to container for this tab
-    try:
-        proc, fd = attach_to_container(container_name, tab_id)
-        session_map[sid]["fd"] = fd
-        session_map[sid]["container_attached"] = True
-        logger.info(f"Attached to container for user {user_id} tab {tab_id} on connect")
-    except Exception as e:
-        logger.error(f"Failed to attach to container for user {user_id} tab {tab_id}: {e}")
-        socketio.emit("error", {"message": "Failed to create terminal session. Please try again."}, to=sid)
-        return
     socketio.start_background_task(read_and_forward_pty_output, sid, True)
 
 

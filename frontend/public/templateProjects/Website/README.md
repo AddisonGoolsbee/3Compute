@@ -4,9 +4,9 @@ A fun, personal website template built with Flask. Perfect for creating your own
 
 ## Quick setup
 
-**1. Install dependencies:** pip install -r requirements.txt
-**2. Run the website** python main.py
-**3. Access your website** The terminal will display a link to your website, paste that in your browser and you're done!
+1. **Install dependencies:** `pip install -r requirements.txt`
+2. **Run the website:** `python main.py`
+3. **Access your website:** The terminal will display a link to your website, paste that in your browser and you're done!
 
 ## How does this work?
 
@@ -14,7 +14,7 @@ When you run `main.py`, you're starting a tiny web server using Flask (a Python 
 
 The look and feel comes from `style.css`. This file gives your site its pink gradient background, rounded corners, playful fonts, and makes sure it looks good on both phones and computers. If you hover over buttons or links, you'll notice little animations—those are thanks to the CSS too.
 
-## Custimizing your site
+## Customizing your site
 
 **Edit `index.html` to personalize your website:**
 
