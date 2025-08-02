@@ -2,7 +2,7 @@
 
 ## Introduction
 
-3Compute is ajas enai auhgfneu sajhgb auwan ahasn wa a gasea anatae a asuenfa ajas enai auhgfneu sajhgb auwan ahasn wa a gasea anatae a asuenfa ajas enai auhgfneu sajhgb auwan ahasn wa a gasea anatae a asuenfa
+3Compute is a free educational platform that provides cloud-based development environments for learning and building projects. With pre-configured templates for Discord bots, websites, and other projects, you can start coding immediately without any local setup required.
 
 ## Getting Started
 

@@ -4,13 +4,13 @@ A Discord bot template built with discord.py. Perfect for creating interactive b
 
 ## Quick Setup
 
-**1. Create a Discord Application:** Go to <https://discord.com/developers> and create a new application
-**2. Get your token:** In the left sidebar, click "Bot", click "Reset Token" and then copy the token (token format: something.something.something)
-**3. Configure environment:** In your `.env` file, fill `DISCORD_TOKEN` with your bot token (paste it after the =)
-**4. Invite bot to server:** Back in the Discord developer website, go to "OAuth2" in the left sidebar, scroll down to the scopes section and select "bot" and "applications.commands", scroll down to the bot permissions section and select "Send Messages", scroll down, copy the generated URL and paste it in your browser to invite the bot to your server
-**5. Get Discord server ID:** To see the bot work immediately you'll need your Discord server's ID. In Discord, go to User Settings → Advanced and turn Developer Mode on. Then, right click your server icon click copy server ID, then in your `.env` file, fill `GUILD_ID` with your server ID (paste it after the =)
-**6. Install dependencies:** `pip install -r requirements.txt`
-**7. Run your bot:** `python main.py`
+1. **Create a Discord Application:** Go to <https://discord.com/developers> and create a new application
+2. **Get your token:** In the left sidebar, click "Bot", click "Reset Token" and then copy the token (token format: something.something.something)
+3. **Configure environment:** In your `.env` file, fill `DISCORD_TOKEN` with your bot token (paste it after the =)
+4. **Invite bot to server:** Back in the Discord developer website, go to "OAuth2" in the left sidebar, scroll down to the scopes section and select "bot" and "applications.commands", scroll down to the bot permissions section and select "Send Messages", scroll down, copy the generated URL and paste it in your browser to invite the bot to your server
+5. **Get Discord server ID:** To see the bot work immediately you'll need your Discord server's ID. In Discord, go to User Settings → Advanced and turn Developer Mode on. Then, right click your server icon click copy server ID, then in your `.env` file, fill `GUILD_ID` with your server ID (paste it after the =)
+6. **Install dependencies:** `pip install -r requirements.txt`
+7. **Run your bot:** `python main.py`
 
 ## How does this work?
 
