@@ -1,0 +1,62 @@
+name: Unit & Integration Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test-frontend:
+    runs-on: ubuntu-22.04
+    name: Frontend Tests
+
+    steps:
+      - name: Checkout full repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install pnpm
+        run: npm install -g pnpm
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: pnpm i
+
+      - name: Run frontend linting
+        working-directory: frontend
+        run: pnpm lint
+
+      - name: Run frontend tests
+        working-directory: frontend
+        run: pnpm test:coverage
+
+  test-backend:
+    runs-on: ubuntu-22.04
+    name: Backend Tests
+
+    steps:
+      - name: Checkout full repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python + venv
+        run: |
+          python3 -m venv .venv
+          source .venv/bin/activate
+          pip install --upgrade pip
+          pip install -r backend/requirements.txt
+          pip install -r backend/requirements-test.txt
+
+      - name: Run backend tests
+        run: |
+          source .venv/bin/activate
+          cd backend
+          python -m pytest --cov=. --cov-report=xml --cov-report=term-missing

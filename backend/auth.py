@@ -9,18 +9,16 @@ import logging
 
 logger = logging.getLogger("auth")
 
-GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
-GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
-PORT_BASE = int(os.getenv("PORT_BASE"))
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "test-client-id")
+GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET", "test-client-secret")
+PORT_BASE = int(os.getenv("PORT_BASE", "8000"))
 if os.getenv("FLASK_ENV") == "production":
     logger.debug("Running in production mode")
     REDIRECT_URI = os.getenv("REDIRECT_URI_PROD")
     FRONTEND_ORIGIN = os.getenv("FRONTEND_ORIGIN_PROD")
 else:
-    if not os.getenv("FRONTEND_ORIGIN_DEV") or not os.getenv("REDIRECT_URI_DEV"):
-        raise ValueError("FRONTEND_ORIGIN_DEV or REDIRECT_URI_DEV environment variable is not set.")
-    FRONTEND_ORIGIN = os.getenv("FRONTEND_ORIGIN_DEV")
-    REDIRECT_URI = os.getenv("REDIRECT_URI_DEV")
+    FRONTEND_ORIGIN = os.getenv("FRONTEND_ORIGIN_DEV", "http://localhost:3000")
+    REDIRECT_URI = os.getenv("REDIRECT_URI_DEV", "http://localhost:5000/auth/callback")
 
 auth_bp = Blueprint("auth", __name__)
 
@@ -73,6 +71,12 @@ def update_user_data(user_id, user_info, ip_address):
 
     save_users_to_json(users_data)
     return users_data[user_id]
+
+
+def get_user_data(user_id):
+    """Get user data by user ID"""
+    users_data = load_users_from_json()
+    return users_data.get(str(user_id))
 
 
 class User(UserMixin):

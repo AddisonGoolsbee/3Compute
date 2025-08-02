@@ -1,6 +1,6 @@
 import { ChangeEvent, useCallback, useContext, useEffect, useState } from 'react';
 import CodeMirror from '@uiw/react-codemirror';
-import { File, Save } from 'lucide-react';
+import { File, Save, Check, X } from 'lucide-react';
 import { backendUrl, UserDataContext } from '../util/UserData';
 import { getClasses, SelectMenuRaw } from '@luminescent/ui-react';
 import { languageMap } from '../util/languageMap';
@@ -46,6 +46,7 @@ export default function Editor() {
   const [mdPreview, setMdPreview] = useState<boolean>(true);
   const [currentLanguage, setCurrentLanguage] = useState<keyof typeof languageMap>('javascript');
   const [isImage, setIsImage] = useState<boolean>(false);
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const onChange = useCallback((val: string) => {
     setValue(val);
   }, []);
@@ -154,27 +155,53 @@ export default function Editor() {
                   }
                 />
                 <button
-                  className="lum-btn rounded-lum-2 text-xs gap-1 lum-bg-green-700 hover:lum-bg-green-600 w-full lum-btn-p-1"
+                  className={getClasses({
+                    'lum-btn rounded-lum-2 text-xs gap-1 w-full lum-btn-p-1': true,
+                    'lum-bg-green-700 hover:lum-bg-green-600': saveStatus === 'idle',
+                    'lum-bg-blue-700': saveStatus === 'saving',
+                    'lum-bg-green-600': saveStatus === 'saved',
+                    'lum-bg-red-700': saveStatus === 'error',
+                  })}
                   onClick={async () => {
-                    if (!userData.currentFile) return;
-                    const response = await fetch(`${backendUrl}/file${userData.currentFile.location}`, {
-                      method: 'PUT',
-                      body: value,
-                      headers: {
-                        'Content-Type': 'application/json',
-                      },
-                      credentials: 'include',
-                    });
-                    if (!response.ok) {
-                      console.error('Failed to save file');
-                    } else {
-                      console.log('File saved successfully');
+                    if (!userData.currentFile || saveStatus === 'saving') return;
+
+                    setSaveStatus('saving');
+
+                    try {
+                      const response = await fetch(`${backendUrl}/file${userData.currentFile.location}`, {
+                        method: 'PUT',
+                        body: value,
+                        headers: {
+                          'Content-Type': 'application/json',
+                        },
+                        credentials: 'include',
+                      });
+
+                      if (!response.ok) {
+                        console.error('Failed to save file');
+                        setSaveStatus('error');
+                        setTimeout(() => setSaveStatus('idle'), 3000);
+                      } else {
+                        console.log('File saved successfully');
+                        setSaveStatus('saved');
+                        setTimeout(() => setSaveStatus('idle'), 2000);
+                      }
+                    } catch (error) {
+                      console.error('Error saving file:', error);
+                      setSaveStatus('error');
+                      setTimeout(() => setSaveStatus('idle'), 3000);
                     }
-                    // Optionally, you can show a notification or update the UI
                   }}
+                  disabled={saveStatus === 'saving'}
                 >
-                  <Save size={16} />
-                  Save
+                  {saveStatus === 'saving' && <Save size={16} className="animate-pulse" />}
+                  {saveStatus === 'saved' && <Check size={16} />}
+                  {saveStatus === 'error' && <X size={16} />}
+                  {saveStatus === 'idle' && <Save size={16} />}
+                  {saveStatus === 'saving' && 'Saving...'}
+                  {saveStatus === 'saved' && 'Saved!'}
+                  {saveStatus === 'error' && 'Error'}
+                  {saveStatus === 'idle' && 'Save'}
                 </button>
               </>
             )}

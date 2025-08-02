@@ -1,3 +1,4 @@
+# Core
 .venv
 __pycache__
 .env
@@ -6,6 +7,12 @@ scratch/
 .react-router/
 backend/users.json
 frontend/build/
+
+# Testing
+.coverage
+coverage/
+coverage.xml
+pytest.ini
 
 # Logs
 logs
