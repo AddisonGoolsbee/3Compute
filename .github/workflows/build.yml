@@ -1,4 +1,4 @@
-name: CI Build
+name: Build Verification
 
 on:
   push:
@@ -9,12 +9,13 @@ on:
 jobs:
   build:
     runs-on: ubuntu-22.04
+    name: Build Application
 
     steps:
       - name: Checkout full repo
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # full history
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -26,13 +27,11 @@ jobs:
 
       - name: Install frontend dependencies
         working-directory: frontend
-        run: |
-          pnpm i
+        run: pnpm i
 
       - name: Build frontend
         working-directory: frontend
-        run: |
-          pnpm build
+        run: pnpm build
 
       - name: Setup Python + venv
         run: |

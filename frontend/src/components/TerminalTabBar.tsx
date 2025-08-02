@@ -27,16 +27,16 @@ export const TerminalTabBar: FC<TabBarProps> = ({
         <div
           key={w}
           className={`flex items-center group relative ${
-            w === active 
-              ? 'bg-lum-bg-gray-950 border-b-2 border-blue-500/60' 
+            w === active
+              ? 'bg-lum-bg-gray-950 border-b-2 border-blue-500/60'
               : 'bg-transparent hover:bg-lum-bg-gray-900/50'
           }`}
         >
           <button
             onClick={() => onSelect(w)}
             className={`px-3 py-2 text-sm transition-colors flex-1 ${
-              w === active 
-                ? 'text-lum-text' 
+              w === active
+                ? 'text-lum-text'
                 : 'text-lum-text-secondary hover:text-lum-text'
             }`}
           >
@@ -49,8 +49,8 @@ export const TerminalTabBar: FC<TabBarProps> = ({
                 onClose(w);
               }}
               className={`w-6 h-6 mr-1 flex items-center justify-center text-xs transition-opacity ${
-                w === active 
-                  ? 'opacity-60 hover:opacity-100 text-lum-text' 
+                w === active
+                  ? 'opacity-60 hover:opacity-100 text-lum-text'
                   : 'opacity-0 group-hover:opacity-60 hover:!opacity-100 text-lum-text-secondary'
               }`}
             >

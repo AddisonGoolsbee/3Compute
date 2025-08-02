@@ -20,6 +20,21 @@ Birdflop service for free educational server usage, with templates such as disco
 - `python -m backend` to run the backend
 
 
+### Testing
+
+3Compute includes some testing for both frontend and backend:
+
+```bash
+# Run all tests
+./run-tests.sh
+
+# Backend tests only
+cd backend && pytest --cov=. --cov-report=term-missing
+
+# Frontend tests only  
+cd frontend && pnpm test:coverage
+```
+
 #### Productionization (Debian 12)
 - github/3compute deploy key in /root/.ssh/id_rsa
 - mkdir /var/www && cd /var/www

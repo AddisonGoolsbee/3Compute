@@ -164,9 +164,9 @@ export default function Editor() {
                   })}
                   onClick={async () => {
                     if (!userData.currentFile || saveStatus === 'saving') return;
-                    
+
                     setSaveStatus('saving');
-                    
+
                     try {
                       const response = await fetch(`${backendUrl}/file${userData.currentFile.location}`, {
                         method: 'PUT',
@@ -176,7 +176,7 @@ export default function Editor() {
                         },
                         credentials: 'include',
                       });
-                      
+
                       if (!response.ok) {
                         console.error('Failed to save file');
                         setSaveStatus('error');

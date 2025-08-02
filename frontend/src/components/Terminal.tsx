@@ -67,8 +67,8 @@ export function TerminalComponent({ tabId, isActive }: TerminalComponentProps) {
     const socket = io(backendUrl, {
       withCredentials: true,
       query: {
-        tabId: tabId
-      }
+        tabId: tabId,
+      },
     });
     socketRef.current = socket;
 
@@ -140,7 +140,7 @@ export function TerminalComponent({ tabId, isActive }: TerminalComponentProps) {
       socket.disconnect();
       term.dispose();
     };
-  }, []);
+  }, [tabId]);
 
   // Handle tab switching - basic refit when becoming active
   useEffect(() => {
@@ -153,7 +153,7 @@ export function TerminalComponent({ tabId, isActive }: TerminalComponentProps) {
   }, [isActive]);
 
   return (
-    <div 
+    <div
       className={`absolute inset-0 w-full h-full ${isActive ? 'visible' : 'invisible pointer-events-none'}`}
       data-tab-id={tabId}
       onClick={() => {
@@ -197,7 +197,6 @@ export default function TerminalTabs() {
   const handleSelectTab = useCallback((tabId: string) => {
     setActiveTab(tabId);
   }, []);
-
 
   return (
     <div className="w-full h-[30dvh] lum-bg-gray-950 border border-lum-border/40 rounded-lum flex flex-col overflow-hidden">
