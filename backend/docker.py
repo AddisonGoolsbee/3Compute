@@ -167,13 +167,15 @@ def spawn_container(user_id, slave_fd, container_name, port_range=None):
         raise
 
 
-def attach_to_container(container_name):
+def attach_to_container(container_name, tab_id="1"):
     # Check if container is running
     if not container_is_running(container_name):
         logger.error(f"Cannot attach to container '{container_name}' - it is not running")
         raise RuntimeError(f"Container {container_name} is not running")
 
     master_fd, slave_fd = pty.openpty()
+    # Create unique tmux session for each tab
+    session_name = f"3compute-tab{tab_id}"
     cmd = [
         "docker",
         "exec",
@@ -181,9 +183,9 @@ def attach_to_container(container_name):
         container_name,
         "sh",
         "-lc",
-        "tmux new-session -d -A -s 3compute; tmux attach -t 3compute",
+        f"tmux new-session -d -A -s {session_name}; tmux attach -t {session_name}",
     ]
-    logger.info(f"Attaching to container '{container_name}' with tmux session")
+    logger.info(f"Attaching to container '{container_name}' with tmux session '{session_name}'")
     try:
         proc = subprocess.Popen(cmd, stdin=slave_fd, stdout=slave_fd, stderr=slave_fd, close_fds=True)
         return proc, master_fd

@@ -1,0 +1,6 @@
+# Testing dependencies
+pytest==8.3.4
+pytest-cov==6.0.0
+pytest-mock==3.14.0
+pytest-asyncio==0.25.0
+coverage==8.1.0
