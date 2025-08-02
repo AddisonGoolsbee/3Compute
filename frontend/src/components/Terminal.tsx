@@ -198,6 +198,16 @@ export default function TerminalTabs() {
     setActiveTab(tabId);
   }, []);
 
+  // Handle tab switching - basic refit when becoming active
+  useEffect(() => {
+    if (isActive && !wasActiveRef.current && terminalInstanceRef.current && fitAddonRef.current) {
+      // Tab became active, just refit and focus
+      fitAddonRef.current.fit();
+      terminalInstanceRef.current.focus();
+    }
+    wasActiveRef.current = isActive;
+  }, [isActive]);
+
   return (
     <div className="w-full h-[30dvh] lum-bg-gray-950 border border-lum-border/40 rounded-lum flex flex-col overflow-hidden">
       <TerminalTabBar
