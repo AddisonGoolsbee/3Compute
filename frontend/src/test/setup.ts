@@ -1,8 +1,8 @@
 import '@testing-library/jest-dom';
-import { beforeEach } from 'vitest';
+import { beforeEach, vi } from 'vitest';
 
 // Mock ResizeObserver
-global.ResizeObserver = vi.fn(() => ({
+globalThis.ResizeObserver = vi.fn(() => ({
   observe: vi.fn(),
   unobserve: vi.fn(),
   disconnect: vi.fn(),
@@ -33,8 +33,8 @@ vi.mock('socket.io-client', () => ({
 }))
 
 // Export for test usage
-;(global as any).mockSocket = mockSocket
-;(global as any).mockIo = mockIo;
+;(globalThis as any).mockSocket = mockSocket
+;(globalThis as any).mockIo = mockIo;
 
 // Mock xterm
 vi.mock('@xterm/xterm', () => ({

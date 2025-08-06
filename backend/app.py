@@ -1,23 +1,11 @@
 #!/usr/bin/env python3
 import argparse
-import atexit
 import logging
 import os
 import signal
 import sys
 from .config.logging_config import configure_logging
-
-configure_logging()
-
 from dotenv import load_dotenv
-
-os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"  # Only for localhost/dev
-load_dotenv()
-
-logging.getLogger("werkzeug").setLevel(logging.ERROR)
-logger = logging.getLogger("app")
-
-
 from flask import Flask
 from flask_cors import CORS
 from flask_socketio import SocketIO
@@ -26,8 +14,18 @@ from flask_login import LoginManager
 from .auth import auth_bp, load_user
 from .files import files_bp
 from .webhook import webhook_bp
-from .terminal import init_terminal, user_containers
+from .terminal import init_terminal
 from .docker import setup_isolated_network, CONTAINER_USER_UID, CONTAINER_USER_GID
+
+configure_logging()
+
+
+os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"  # Only for localhost/dev
+load_dotenv()
+
+logging.getLogger("werkzeug").setLevel(logging.ERROR)
+logger = logging.getLogger("app")
+
 
 
 app = Flask(__name__)

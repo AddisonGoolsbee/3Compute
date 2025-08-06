@@ -2,8 +2,7 @@
 Unit tests for terminal.py module
 """
 import pytest
-from unittest.mock import Mock, patch, MagicMock
-import os
+from unittest.mock import Mock, patch
 import threading
 
 class TestTerminalModule:
@@ -104,7 +103,8 @@ class TestTerminalModule:
             
             # Verify container was spawned
             mock_spawn.assert_called_once()
-            mock_attach.assert_called_once()
+            # Attachment happens later in resize handler, not immediately
+            assert terminal.session_map[sid]["container_attached"] is False
     
     @patch('backend.terminal.os.write')
     def test_handle_pty_input(self, mock_write, mock_flask_dependencies):

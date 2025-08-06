@@ -181,9 +181,9 @@ export default function TerminalTabs() {
     if (!userData.userInfo) {
       return;
     }
-    
+
     console.log('Saving tab state:', { tabs: tabsToSave, active_tab: activeTabToSave }); // Debug log
-    
+
     try {
       const response = await fetch(`${backendUrl}/tabs`, {
         method: 'POST',
@@ -196,7 +196,7 @@ export default function TerminalTabs() {
           active_tab: activeTabToSave,
         }),
       });
-      
+
       if (!response.ok) {
         console.error('Failed to save tab state:', response.status, response.statusText);
       } else {
@@ -219,7 +219,7 @@ export default function TerminalTabs() {
       const response = await fetch(`${backendUrl}/tabs`, {
         credentials: 'include',
       });
-      
+
       if (response.ok) {
         const data = await response.json();
         console.log('Loaded tab state:', data); // Debug log
@@ -255,7 +255,7 @@ export default function TerminalTabs() {
       const timeoutId = setTimeout(() => {
         saveTabState(tabs, activeTab);
       }, 100); // Small debounce to avoid too many saves
-      
+
       return () => clearTimeout(timeoutId);
     }
   }, [tabs, activeTab, isLoading, userData.userInfo, saveTabState]);
@@ -290,7 +290,7 @@ export default function TerminalTabs() {
     if (activeTab === tabId) {
       setActiveTab(newTabs[0]);
     }
-    
+
     // saveTabState will be called automatically by the effect
   }, [tabs, activeTab]);
 
