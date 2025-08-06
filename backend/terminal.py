@@ -354,17 +354,7 @@ def handle_connect(auth=None):
         "container_name": container_name,
         "tab_id": tab_id,
     }
-    
-    # Immediately attach to container for this tab
-    try:
-        proc, fd = attach_to_container(container_name, tab_id)
-        session_map[sid]["fd"] = fd
-        session_map[sid]["container_attached"] = True
-        logger.info(f"Attached to container for user {user_id} tab {tab_id} on connect")
-    except Exception as e:
-        logger.error(f"Failed to attach to container for user {user_id} tab {tab_id}: {e}")
-        socketio.emit("error", {"message": "Failed to create terminal session. Please try again."}, to=sid)
-        return
+
     socketio.start_background_task(read_and_forward_pty_output, sid, True)
 
 
