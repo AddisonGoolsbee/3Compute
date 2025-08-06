@@ -136,10 +136,19 @@ def login():
 @auth_bp.route("/callback")
 def callback():
     google = OAuth2Session(GOOGLE_CLIENT_ID, redirect_uri=REDIRECT_URI)
+    
+    # In production, ensure the authorization_response URL uses HTTPS
+    auth_response_url = request.url
+    if os.getenv("FLASK_ENV") == "production":
+        # Replace http:// with https:// if present to fix proxy forwarding issues
+        auth_response_url = auth_response_url.replace("http://", "https://")
+        logger.debug(f"Original request URL: {request.url}")
+        logger.debug(f"Modified auth response URL: {auth_response_url}")
+    
     google.fetch_token(
         "https://oauth2.googleapis.com/token",
         client_secret=GOOGLE_CLIENT_SECRET,
-        authorization_response=request.url,
+        authorization_response=auth_response_url,
     )
     user_info = google.get("https://www.googleapis.com/oauth2/v2/userinfo").json()
     is_new = user_info["id"] not in users

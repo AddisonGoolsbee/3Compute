@@ -12,13 +12,14 @@ from flask import Flask
 from flask_cors import CORS
 from flask_socketio import SocketIO
 from flask_login import LoginManager
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 # THIS BLOCK MUST STAY IN THIS ORDER. OTHERWISE AUTH BREAKS.
 ##### START BLOCK
 load_dotenv()
 
-if os.getenv("FLASK_ENV") == "development":
-    os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"  # Only for localhost/dev
+if os.getenv("FLASK_ENV") != "production":
+    os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"  # Allow HTTP for development
     logging.getLogger("werkzeug").setLevel(logging.DEBUG)
 
 from .auth import auth_bp, load_user
@@ -36,6 +37,10 @@ logger = logging.getLogger("app")
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.getenv("FLASK_SECRET")
+
+# Configure proxy handling for production deployments behind reverse proxy
+if os.getenv("FLASK_ENV") == "production":
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 
 if os.getenv("FLASK_ENV") == "production":
     logger.debug("Running in production mode")
