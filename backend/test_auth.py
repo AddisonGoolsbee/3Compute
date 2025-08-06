@@ -51,7 +51,7 @@ class TestAuthModule:
             'email': 'test@example.com'
         }
         
-        update_user_data(123, user_info, '192.168.1.1')
+        update_user_data(123, user_info, '192.168.1.1', 8000)
         
         # Verify file was written
         mock_open.assert_called()
@@ -96,7 +96,7 @@ class TestAuthModule:
             'email': 'updated@example.com'
         }
         
-        update_user_data(123, user_info, '192.168.1.3')
+        update_user_data(123, user_info, '192.168.1.3', 8010)
         
         # Verify file operations
         assert mock_open.call_count == 2
@@ -115,7 +115,7 @@ class TestAuthModule:
         
         with patch('backend.auth.USERS_JSON_FILE', temp_file):
             # Create user data first
-            update_user_data(123, user_info, '192.168.1.1')
+            update_user_data(123, user_info, '192.168.1.1', 8000)
             
             # Test retrieving user data
             result = get_user_data(123)
@@ -176,7 +176,6 @@ class TestAuthRoutes:
         mock_oauth.return_value = mock_session
         
         with flask_app.test_request_context():
-            from flask import session
             result = login()
             
             # Verify OAuth URL generation
@@ -202,11 +201,11 @@ class TestAuthRoutes:
         mock_oauth.return_value = mock_session
         
         with flask_app.test_request_context('/?code=test123&state=state123'):
-            from flask import session, request
+            from flask import session
             session['oauth_state'] = 'state123'
             
             with patch('flask_login.login_user') as mock_login_user, \
-                 patch('backend.auth.users', {}) as mock_users, \
+                 patch('backend.auth.users', {}), \
                  patch('flask.request') as mock_flask_request:
                 
                 # Mock the request object properly
@@ -221,7 +220,7 @@ class TestAuthRoutes:
                     mock_login_user.assert_called_once()
                     # Check that result is a redirect (Flask response object)
                     assert hasattr(result, 'status_code')
-                except Exception as e:
+                except Exception:
                     # If there's an OAuth flow issue, that's expected in tests
                     # Just verify the mocks were setup correctly
                     assert mock_oauth.called
