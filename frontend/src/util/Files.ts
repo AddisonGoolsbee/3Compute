@@ -13,6 +13,24 @@ export interface FolderType extends FileType {
 
 export type Files = (FolderType | FileType)[];
 
+function sortFilesRecursive(items: Files): void {
+  // Sort folders first, then files; both alphabetically (case-insensitive)
+  items.sort((a, b) => {
+    const aIsFolder = 'files' in a;
+    const bIsFolder = 'files' in b;
+    if (aIsFolder && !bIsFolder) return -1;
+    if (!aIsFolder && bIsFolder) return 1;
+    return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+  });
+
+  // Recurse into folders
+  for (const item of items) {
+    if ('files' in item) {
+      sortFilesRecursive(item.files);
+    }
+  }
+}
+
 export async function fetchFilesList() {
   // Fetch the list of files
   const fileRes = await fetch(`${backendUrl}/list-files`, {
@@ -65,6 +83,9 @@ export async function fetchFilesList() {
       current = folder.files;
     }
   }
+
+  // Ensure stable alphabetical ordering
+  sortFilesRecursive(files);
 
   return files;
 }

@@ -16,6 +16,8 @@ export type UserData = {
   openFolders: string[];
   setOpenFolders: Dispatch<SetStateAction<string[]>>;
   refreshFiles: () => Promise<void>;
+  isUserEditingName?: boolean;
+  setIsUserEditingName?: Dispatch<SetStateAction<boolean>>;
 }
 
 export const backendUrl =
@@ -63,6 +65,8 @@ export const defaultUserData: UserData = {
   openFolders: [defaultFolder.location],
   setOpenFolders: () => {},
   refreshFiles: async () => {},
+  isUserEditingName: false,
+  setIsUserEditingName: () => {},
 };
 
 export const UserDataContext = createContext<UserData>(defaultUserData);

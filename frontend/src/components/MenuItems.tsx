@@ -11,6 +11,7 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
     openFolders,
     setOpenFolders,
     refreshFiles,
+    setIsUserEditingName,
   } = useContext(UserDataContext);
 
   return (
@@ -64,9 +65,34 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
                     <input
                       type="text"
                       defaultValue={file.name}
+                      autoFocus
+                      onFocus={(e) => {
+                        setIsUserEditingName?.(true);
+                        // Highlight entire name for quick editing
+                        const input = e.currentTarget;
+                        input.setSelectionRange(0, input.value.length);
+                      }}
+                      onChange={(e) => {
+                        // Clear any previous validity error as the user types
+                        e.currentTarget.setCustomValidity('');
+                      }}
                       onBlur={async (e) => {
-                        refreshFiles();
-                        const name = e.target.value.trim();
+                        const input = e.currentTarget;
+                        const name = input.value.trim();
+
+                        // Validate: name must be unique among siblings (case-insensitive)
+                        if (name) {
+                          const hasDuplicate = files?.some((sibling) => sibling !== file && sibling.name.toLowerCase() === name.toLowerCase());
+                          if (hasDuplicate) {
+                            input.setCustomValidity('A file or folder with that name already exists.');
+                            input.reportValidity();
+                            // Keep editing by re-focusing and selecting
+                            input.focus();
+                            input.setSelectionRange(0, input.value.length);
+                            return;
+                          }
+                        }
+
                         if (name && name !== file.name) {
                           const newLocation = file.location.replace(file.name, name);
                           const res = await fetch(`${backendUrl}/file${newLocation}`, {
@@ -78,7 +104,29 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
                           });
                           if (res.ok) {
                             await refreshFiles();
+                          } else {
+                            // If creation failed (e.g., server-side conflict), keep editing
+                            input.setCustomValidity('Unable to create. Try a different name.');
+                            input.reportValidity();
+                            input.focus();
+                            input.setSelectionRange(0, input.value.length);
+                            return;
                           }
+                        } else {
+                          // Empty or unchanged name: discard placeholder by refreshing from backend
+                          await refreshFiles();
+                        }
+                        // End editing state so auto-refresh resumes
+                        setIsUserEditingName?.(false);
+                      }}
+                      onKeyDown={async (e) => {
+                        if (e.key === 'Enter') {
+                          (e.target as HTMLInputElement).blur();
+                        }
+                        if (e.key === 'Escape') {
+                          // Cancel creation
+                          await refreshFiles();
+                          setIsUserEditingName?.(false);
                         }
                       }}
                       className="lum-input py-0 px-1 rounded-lum-2 w-full -ml-1 lum-bg-gray-900"

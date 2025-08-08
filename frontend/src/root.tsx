@@ -18,6 +18,7 @@ export function Layout({ children }: { children: ReactNode }) {
   const [openFolders, setOpenFolders] = useState<string[]>([]);
   const [currentFile, setCurrentFile] = useState<FileType | undefined>();
   const [files, setFilesClientSide] = useState<Files | undefined>(loaderData?.files);
+  const [isUserEditingName, setIsUserEditingName] = useState(false);
 
   const refreshFiles = useCallback(async () => {
     try {
@@ -37,6 +38,8 @@ export function Layout({ children }: { children: ReactNode }) {
     currentFile,
     setCurrentFile,
     refreshFiles,
+    isUserEditingName,
+    setIsUserEditingName,
   };
 
   // Update files state when loaderData changes
@@ -45,6 +48,21 @@ export function Layout({ children }: { children: ReactNode }) {
       setFilesClientSide(loaderData.files);
     }
   }, [loaderData?.files, files]);
+
+  // Periodically refresh files to reflect changes made via CLI inside the container
+  useEffect(() => {
+    if (!loaderData?.userInfo) return;
+
+    const intervalId = window.setInterval(() => {
+      // Skip refresh when the tab is hidden to reduce load
+      if (document.hidden) return;
+      // Pause refresh while the user is actively typing a name to avoid losing placeholders
+      if (isUserEditingName) return;
+      refreshFiles();
+    }, 400);
+
+    return () => window.clearInterval(intervalId);
+  }, [loaderData?.userInfo, refreshFiles, isUserEditingName]);
 
   return (
     <html lang="en">

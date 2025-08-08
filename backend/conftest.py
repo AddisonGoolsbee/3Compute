@@ -2,7 +2,7 @@
 Pytest configuration and fixtures
 """
 import pytest
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch
 import tempfile
 import os
 import sys
