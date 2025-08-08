@@ -2,7 +2,6 @@ from flask import Blueprint, request
 from flask_login import current_user
 import os
 import subprocess
-import stat
 from .docker import CONTAINER_USER_UID, CONTAINER_USER_GID
 
 files_bp = Blueprint("upload", __name__)
@@ -102,7 +101,7 @@ def upload_folder():
                 ],
                 check=True,
             )
-        except subprocess.CalledProcessError as e:
+        except subprocess.CalledProcessError:
             # If the directory doesn't exist or cd fails, continue without error
             pass
 
@@ -123,6 +122,13 @@ def list_files():
     file_tree = []
 
     for root, dirs, files in os.walk(upload_dir):
+        # Include directories (with trailing slash) so empty folders are discoverable
+        for d in dirs:
+            full_path = os.path.join(root, d)
+            relative_path = os.path.relpath(full_path, upload_dir)
+            file_tree.append(f"{relative_path}/")
+
+        # Include files
         for name in files:
             full_path = os.path.join(root, name)
             relative_path = os.path.relpath(full_path, upload_dir)
@@ -143,7 +149,16 @@ def handle_file(filename):
         # Create a new directory or file
         if filename.endswith('/'):
             # It's a directory
-            os.makedirs(file_path, exist_ok=True)
+            # Normalize: avoid trailing slash for existence checks
+            normalized_path = file_path[:-1]
+            # If a file exists with the same name, return conflict
+            if os.path.isfile(normalized_path):
+                return {"error": "A file with the same name already exists"}, 409
+            try:
+                os.makedirs(file_path, exist_ok=True)
+            except NotADirectoryError:
+                # One of the parents is a file; cannot create directory path
+                return {"error": "A file exists in the path; cannot create directory"}, 409
             set_container_ownership(file_path)
             return "Directory created successfully", 200
         else:
@@ -153,6 +168,9 @@ def handle_file(filename):
                 os.makedirs(dir_path, exist_ok=True)
                 set_container_ownership(dir_path)
         # create an empty file if it doesn't exist
+        # If a directory with the same name exists, return conflict
+        if os.path.isdir(file_path):
+            return {"error": "A folder with the same name already exists"}, 409
         if os.path.exists(file_path):
             return "File already exists", 400
         with open(file_path, "w") as f:

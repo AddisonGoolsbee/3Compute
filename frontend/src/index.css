@@ -60,20 +60,30 @@ body {
 }
 
 .markdown-content ol {
-  @apply list-decimal list-inside;
+  @apply list-decimal list-outside pl-0;
 }
 
 .markdown-content ul {
-  @apply list-disc list-inside;
+  @apply list-disc list-outside pl-0;
+}
+
+/* Tighter indentation for nested lists */
+.markdown-content li > ul,
+.markdown-content li > ol,
+.markdown-content ul ul,
+.markdown-content ul ol,
+.markdown-content ol ul,
+.markdown-content ol ol {
+  @apply ml-4 pl-0 mt-1 mb-2;
 }
 
 .markdown-content li {
-  @apply leading-relaxed;
+  @apply leading-relaxed mb-1;
   display: list-item;
 }
 
 .markdown-content li > p {
-  @apply mb-2;
+  @apply mb-1;
 }
 
 .markdown-content blockquote {

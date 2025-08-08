@@ -8,6 +8,7 @@ export default function NewButton() {
 
   const handleFileClick = () => {
     if (!userData.files) return;
+    userData.setIsUserEditingName?.(true);
     const newFile = {
       name: 'new_file',
       location: '/new_file',
@@ -18,6 +19,7 @@ export default function NewButton() {
 
   const handleFolderClick = () => {
     if (!userData.files) return;
+    userData.setIsUserEditingName?.(true);
     const newFile = {
       name: 'new_folder',
       location: '/new_folder/',
