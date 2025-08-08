@@ -184,7 +184,7 @@ export default function Editor() {
                       } else {
                         console.log('File saved successfully');
                         setSaveStatus('saved');
-                        setTimeout(() => setSaveStatus('idle'), 2000);
+                        setTimeout(() => setSaveStatus('idle'), 1000);
                       }
                     } catch (error) {
                       console.error('Error saving file:', error);

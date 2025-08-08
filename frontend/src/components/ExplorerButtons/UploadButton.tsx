@@ -1,5 +1,5 @@
 import { Files, Folder, Upload } from 'lucide-react';
-import { useRef, useContext } from 'react';
+import { useRef, useContext, useState } from 'react';
 import { SelectMenuRaw } from '@luminescent/ui-react';
 import { backendUrl, UserDataContext } from '../../util/UserData';
 import { StatusContext } from '../../util/Files';
@@ -7,6 +7,7 @@ import { StatusContext } from '../../util/Files';
 export default function UploadButton() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const folderInputRef = useRef<HTMLInputElement>(null);
+  const [menuKey, setMenuKey] = useState(0);
   const { setStatus } = useContext(StatusContext);
   const userData = useContext(UserDataContext);
 
@@ -17,6 +18,8 @@ export default function UploadButton() {
     if (!fileList || fileList.length === 0) return;
 
     setStatus('Uploading...');
+    // Force remount of the dropdown to collapse it
+    setMenuKey((k) => k + 1);
 
     const formData = new FormData();
     Array.from(fileList).forEach((file) => {
@@ -27,24 +30,36 @@ export default function UploadButton() {
       ? `${backendUrl}/upload-folder`
       : `${backendUrl}/upload`;
 
-    const res = await fetch(endpoint, {
-      method: 'POST',
-      body: formData,
-      credentials: 'include',
-    });
+    // Add a timeout so we don't hang forever on network/proxy issues
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10 * 60 * 1000); // 10 minutes
 
-    setStatus(res.ok ? 'Upload successful' : 'Upload failed');
-    if (res.status === 413) {
-      setStatus('Failed: File too large');
-    }
-    if (res.ok) {
-      await userData.refreshFiles();
-    }
+    try {
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
+        signal: controller.signal,
+      });
 
-    setTimeout(() => setStatus(null), 3000);
+      setStatus(res.ok ? 'Upload successful' : 'Upload failed');
+      if (res.status === 413) {
+        setStatus('Failed: File too large');
+      }
+      if (res.ok) {
+        await userData.refreshFiles();
+      }
+    } catch {
+      // Network error, timeout, or abort
+      setStatus('Upload failed: network error');
+    } finally {
+      clearTimeout(timeoutId);
+      setTimeout(() => setStatus(null), 1000);
+    }
   };
 
   return <SelectMenuRaw
+    key={menuKey}
     id="upload"
     className="lum-btn-p-1 rounded-lum-2 gap-1 text-xs lum-bg-purple-950 hover:lum-bg-purple-900"
     customDropdown
