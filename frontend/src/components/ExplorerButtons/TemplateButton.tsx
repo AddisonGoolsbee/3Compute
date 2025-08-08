@@ -48,14 +48,11 @@ export default function TemplateButton() {
               /8000/g,
               userData.userInfo.port_start.toString(),
             );
-            // Replace 0.0.0.0 with backendUrl without the port and without the protocol
-            let backendUrlNoProto = backendUrl.replace(/^https?:\/\//, '');
-            backendUrlNoProto = backendUrlNoProto.replace(/:[0-9]+$/, '');
-            backendUrlNoProto = backendUrlNoProto.replace(
-              /localhost/,
-              '0.0.0.0',
+            // Ensure the host remains 0.0.0.0 for local accessibility
+            modifiedText = modifiedText.replace(
+              /host\s*=\s*['"][^'"]+['"]/,
+              'host = "0.0.0.0"',
             );
-            modifiedText = modifiedText.replace(/0.0.0.0/g, backendUrlNoProto);
           }
 
           // Convert back to blob for FormData
@@ -83,6 +80,21 @@ export default function TemplateButton() {
 
       setStatus('Template uploaded!');
       await userData.refreshFiles();
+
+      // Expand the uploaded template folder and select README in the explorer
+      const templateFolderLocation = `/${templateName}`;
+      const readmeCandidate = (files.find((f) => /^(readme)(\.|$)/i.test(f)) || 'README.md');
+      const readmeLocation = `${templateFolderLocation}/${readmeCandidate}`;
+
+      userData.setOpenFolders((prev) => (
+        prev.includes(templateFolderLocation)
+          ? prev
+          : [...prev, templateFolderLocation]
+      ));
+      userData.setCurrentFile({
+        name: readmeCandidate,
+        location: readmeLocation,
+      });
     } catch (error) {
       console.error('Template upload error:', error);
       setStatus(
@@ -92,7 +104,7 @@ export default function TemplateButton() {
       );
     }
 
-    setTimeout(() => setStatus(null), 3000);
+    setTimeout(() => setStatus(null), 1000);
   };
 
   const templateNames = Object.keys(manifest);
