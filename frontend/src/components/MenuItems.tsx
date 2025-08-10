@@ -94,7 +94,10 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
                         }
 
                         if (name && name !== file.name) {
-                          const newLocation = file.location.replace(file.name, name);
+                          const parentPath = file.location.endsWith('/')
+                            ? file.location
+                            : file.location.slice(0, -file.name.length);
+                          const newLocation = `${parentPath}${name}${'files' in file ? '/' : ''}`;
                           const res = await fetch(`${backendUrl}/file${newLocation}`, {
                             method: 'POST',
                             headers: {

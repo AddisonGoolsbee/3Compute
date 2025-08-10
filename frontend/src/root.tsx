@@ -1,4 +1,4 @@
-import { ReactNode, useCallback, useEffect, useState } from 'react';
+import { ReactNode, useCallback, useEffect, useRef, useState } from 'react';
 import { Links, Meta, Outlet, Scripts, ScrollRestoration, useLoaderData } from 'react-router';
 import NavComponent from './components/Nav';
 import { default as HomeLayout } from './Layout';
@@ -19,10 +19,20 @@ export function Layout({ children }: { children: ReactNode }) {
   const [currentFile, setCurrentFile] = useState<FileType | undefined>();
   const [files, setFilesClientSide] = useState<Files | undefined>(loaderData?.files);
   const [isUserEditingName, setIsUserEditingName] = useState(false);
+  const isUserEditingNameRef = useRef(isUserEditingName);
+
+  // Keep a live ref of editing state to guard against in-flight refreshes overwriting editor input
+  useEffect(() => {
+    isUserEditingNameRef.current = isUserEditingName;
+  }, [isUserEditingName]);
 
   const refreshFiles = useCallback(async () => {
+    // Skip starting a refresh while the user is typing a name
+    if (isUserEditingNameRef.current) return;
     try {
       const newFiles = await fetchFilesList();
+      // If user started editing while the request was in-flight, ignore this result
+      if (isUserEditingNameRef.current) return;
       setFilesClientSide(newFiles);
     } catch (error) {
       console.error('Failed to refresh files:', error);
