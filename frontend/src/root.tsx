@@ -30,14 +30,30 @@ export function Layout({ children }: { children: ReactNode }) {
     // Skip starting a refresh while the user is typing a name
     if (isUserEditingNameRef.current) return;
     try {
+      const oldCurrent = currentFile;
       const newFiles = await fetchFilesList();
       // If user started editing while the request was in-flight, ignore this result
       if (isUserEditingNameRef.current) return;
       setFilesClientSide(newFiles);
+      // Preserve currently open file selection by object identity replacement
+      if (oldCurrent) {
+        const match = (function findMatch(items: Files): typeof oldCurrent | undefined {
+          for (const item of items) {
+            if ('files' in item) {
+              const found = findMatch(item.files);
+              if (found) return found as any;
+            } else if (item.location === oldCurrent.location) {
+              return item as any;
+            }
+          }
+          return undefined;
+        })(newFiles);
+        if (match) setCurrentFile(match);
+      }
     } catch (error) {
       console.error('Failed to refresh files:', error);
     }
-  }, []);
+  }, [currentFile]);
 
   const userData = {
     ...loaderData,

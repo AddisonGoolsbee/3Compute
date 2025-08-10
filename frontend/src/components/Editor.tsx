@@ -101,7 +101,7 @@ export default function Editor() {
 
     const lang = Object.keys(languageMap).find(l => languageMap[l as keyof typeof languageMap].extensions.includes(ext)) as keyof typeof languageMap | undefined || 'text';
     setCurrentLanguage(lang);
-  })(), [userData, userData.currentFile]);
+  })(), [userData.currentFile?.location]);
 
   return (
     <div className="relative transition-all flex flex-col rounded-lum max-w-3/4 bg-[#1A1B26] w-full border border-lum-border/20">
