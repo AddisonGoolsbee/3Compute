@@ -19,6 +19,8 @@ export function Layout({ children }: { children: ReactNode }) {
   const [currentFile, setCurrentFile] = useState<FileType | undefined>();
   const [files, setFilesClientSide] = useState<Files | undefined>(loaderData?.files);
   const [isUserEditingName, setIsUserEditingName] = useState(false);
+  const [selectedLocation, setSelectedLocation] = useState<string | undefined>();
+  const [dragOverLocation, setDragOverLocation] = useState<string | undefined>();
   const isUserEditingNameRef = useRef(isUserEditingName);
 
   // Keep a live ref of editing state to guard against in-flight refreshes overwriting editor input
@@ -66,6 +68,10 @@ export function Layout({ children }: { children: ReactNode }) {
     refreshFiles,
     isUserEditingName,
     setIsUserEditingName,
+    selectedLocation,
+    setSelectedLocation,
+    dragOverLocation,
+    setDragOverLocation,
   };
 
   // Update files state when loaderData changes

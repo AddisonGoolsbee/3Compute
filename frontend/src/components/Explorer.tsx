@@ -1,6 +1,6 @@
 import { useContext, useState } from 'react';
 import { FolderIcon } from 'lucide-react';
-import { defaultUserData, UserDataContext } from '../util/UserData';
+import { backendUrl, defaultUserData, UserDataContext } from '../util/UserData';
 import UploadButton from './ExplorerButtons/UploadButton';
 import NewButton from './ExplorerButtons/NewButton';
 import MenuItems from './MenuItems';
@@ -40,7 +40,51 @@ export default function Explorer() {
           {status}
         </span>
       </div>
-      <div className="flex-1 overflow-auto">
+      <div
+        className="flex-1 overflow-auto"
+        onClick={(e) => {
+          // Deselect when clicking blank space within the list area
+          if ((e.target as HTMLElement).closest('[data-explorer-item]')) return;
+          userData.setSelectedLocation?.(undefined);
+        }}
+        onDragOver={(e) => {
+          // Allow dropping to root only when hovering blank space (not over an item)
+          if ((e.target as HTMLElement).closest('[data-explorer-item]')) return;
+          e.preventDefault();
+          e.dataTransfer.dropEffect = 'move';
+          (e.currentTarget as HTMLElement).classList.add('ring-1', 'ring-blue-400/30');
+        }}
+        onDragLeave={(e) => {
+          (e.currentTarget as HTMLElement).classList.remove('ring-1', 'ring-blue-400/30');
+        }}
+        onDragEnd={(e) => {
+          (e.currentTarget as HTMLElement).classList.remove('ring-1', 'ring-blue-400/30');
+        }}
+        onDrop={async (e) => {
+          // Only handle drop to root if not dropped on an item
+          if ((e.target as HTMLElement).closest('[data-explorer-item]')) return;
+          e.preventDefault();
+          (e.currentTarget as HTMLElement).classList.remove('ring-1', 'ring-blue-400/30');
+          let source = e.dataTransfer.getData('text/x-3compute-source');
+          if (!source) source = e.dataTransfer.getData('text/plain');
+          if (!source) return;
+          const srcName = source.split('/').filter(Boolean).pop() || '';
+          const destination = `/${srcName}${source.endsWith('/') ? '/' : ''}`;
+          if (destination === source) return;
+          const res = await fetch(`${backendUrl}/move`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ source, destination })
+          });
+          if (res.ok) {
+            await userData.refreshFiles();
+          } else {
+            const text = await res.text().catch(() => '');
+            console.error('Move to root failed', res.status, text);
+          }
+        }}
+      >
         {Array.isArray(userData?.files) ? (
           <MenuItems files={userData?.files} />
         ) : userData?.userInfo ? (
