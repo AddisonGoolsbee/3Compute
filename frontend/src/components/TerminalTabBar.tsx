@@ -44,7 +44,7 @@ export const TerminalTabBar: FC<TabBarProps> = ({
             Terminal {w}
           </button>
           {tabs.length > 1 && (
-            <button
+            <button title="Close Terminal"
               onClick={(e) => {
                 e.stopPropagation();
                 onClose(w);

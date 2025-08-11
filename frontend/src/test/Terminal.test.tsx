@@ -94,7 +94,7 @@ describe('TerminalTabs', () => {
     renderWithContext(<TerminalTabs />);
 
     // Close button should not be visible for single tab (checking for actual close button)
-    const actualCloseButton = screen.queryByText('×');
+    const actualCloseButton = screen.getByTitle('Close Terminal');
     expect(actualCloseButton).toBeFalsy();
   });
 
@@ -155,7 +155,7 @@ describe('TerminalTabBar', () => {
 
     render(<TerminalTabBar {...mockProps} />);
 
-    await user.click(screen.getByText('+'));
+    await user.click(screen.getByTitle('New Terminal'));
 
     expect(mockProps.onNew).toHaveBeenCalled();
   });
