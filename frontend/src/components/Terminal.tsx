@@ -7,6 +7,7 @@ import { useEffect, useRef, useState, useCallback, useContext } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { backendUrl, UserDataContext } from '../util/UserData';
 import { TerminalTabBar } from './TerminalTabBar';
+import { getClasses } from '@luminescent/ui-react';
 
 interface TerminalComponentProps {
   tabId: string;
@@ -154,7 +155,11 @@ export function TerminalComponent({ tabId, isActive }: TerminalComponentProps) {
 
   return (
     <div
-      className={`absolute inset-0 w-full h-full ${isActive ? 'visible' : 'invisible pointer-events-none'}`}
+      className={getClasses({
+        'absolute inset-0 w-full h-full': true,
+        'visible': isActive,
+        'invisible pointer-events-none': !isActive,
+      })}
       data-tab-id={tabId}
       onClick={() => {
         // Ensure terminal gets focus when clicked

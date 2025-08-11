@@ -2,6 +2,7 @@ import Editor from './components/Editor';
 import { useContext, useState, useEffect, ReactNode } from 'react';
 import { UserDataContext } from './util/UserData';
 import Explorer from './components/Explorer';
+import { getClasses } from '@luminescent/ui-react';
 
 export default function Layout({ children }: { children?: ReactNode }) {
   const userData = useContext(UserDataContext);
@@ -25,9 +26,10 @@ export default function Layout({ children }: { children?: ReactNode }) {
     <>
       {showOverlay && (
         <div
-          className={`h-screen w-screen fixed top-0 left-0 backdrop-blur-lg bg-gray-900/50 z-10 transition-opacity duration-200 ${
-            isVisible ? 'opacity-100' : 'opacity-0'
-          }`}
+          className={getClasses({
+            'h-screen w-screen fixed top-0 left-0 backdrop-blur-lg bg-gray-900/50 z-10 transition-opacity duration-200': true,
+            'opacity-0': !isVisible,
+          })}
         />
       )}
       <div className="h-[calc(100svh-6rem)] flex flex-col gap-1 items-center justify-center max-w-6xl mx-auto">
