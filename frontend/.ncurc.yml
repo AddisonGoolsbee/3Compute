@@ -1,0 +1,2 @@
+reject:
+  - "typescript" # 5.9 broken with eslint
