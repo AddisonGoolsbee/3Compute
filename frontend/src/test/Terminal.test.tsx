@@ -94,7 +94,7 @@ describe('TerminalTabs', () => {
     renderWithContext(<TerminalTabs />);
 
     // Close button should not be visible for single tab (checking for actual close button)
-    const actualCloseButton = screen.getByTitle('Close Terminal');
+    const actualCloseButton = screen.queryByTitle('Close Terminal');
     expect(actualCloseButton).toBeFalsy();
   });
 
