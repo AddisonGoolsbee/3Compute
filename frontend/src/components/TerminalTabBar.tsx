@@ -29,16 +29,16 @@ export const TerminalTabBar: FC<TabBarProps> = ({
         <div
           key={w}
           className={getClasses({
-            'lum-btn p-0 rounded-lum-1 lum-bg-transparent group relative': true,
+            'lum-btn gap-0 p-0 rounded-lum-1 lum-bg-transparent group relative': true,
             'lum-bg-gray-900 border-x-transparent border-t-transparent border-blue-500/60': w === active,
           })}
         >
           <button
             onClick={() => onSelect(w)}
             className={getClasses({
-              'lum-btn-p-1 text-sm transition-colors flex-1': true,
+              'w-full lum-btn-p-1 text-sm transition-colors flex-1 cursor-pointer': true,
               'text-lum-text': w === active,
-              'text-lum-text-secondary group-hover:text-lum-text': w !== active,
+              'text-lum-text-secondary hover:text-lum-text': w !== active,
             })}
           >
             Terminal {w}
@@ -50,9 +50,8 @@ export const TerminalTabBar: FC<TabBarProps> = ({
                 onClose(w);
               }}
               className={getClasses({
-                'lum-btn p-0 h-full rounded-lum-2 text-xs lum-bg-transparent hover:lum-bg-red-900': true,
-                'text-lum-text': w === active,
-                'text-lum-text-secondary group-hover:text-lum-text': w !== active,
+                'lum-btn p-1 h-full rounded-lum-2 text-xs lum-bg-transparent hover:lum-bg-transparent cursor-pointer': true,
+                'text-lum-text-secondary hover:text-lum-text': true,
               })}
             >
               <X size={16} />
