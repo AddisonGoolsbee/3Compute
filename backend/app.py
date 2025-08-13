@@ -26,7 +26,7 @@ from .auth import auth_bp, load_user
 ##### END BLOCK
 from .files import files_bp
 from .webhook import webhook_bp
-from .terminal import init_terminal
+from .terminal import init_terminal, terminal_bp
 from .docker import setup_isolated_network, CONTAINER_USER_UID, CONTAINER_USER_GID
 
 
@@ -61,6 +61,7 @@ login_manager.user_loader(load_user)
 app.register_blueprint(auth_bp)
 app.register_blueprint(files_bp)
 app.register_blueprint(webhook_bp)
+app.register_blueprint(terminal_bp)
 init_terminal(socketio)
 
 

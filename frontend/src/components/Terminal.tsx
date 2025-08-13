@@ -283,6 +283,14 @@ export default function TerminalTabs() {
       return;
     }
 
+    // Request backend to kill all processes for this tab (tmux session)
+    fetch(`${backendUrl}/terminal/close-tab`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ tabId }),
+    }).catch(() => {});
+
     const newTabs = tabs.filter(id => id !== tabId);
     setTabs(newTabs);
 

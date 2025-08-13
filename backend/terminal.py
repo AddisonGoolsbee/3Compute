@@ -8,15 +8,17 @@ import subprocess
 import time
 import threading
 
-from flask import request
+from flask import request, Blueprint
 from flask_socketio import SocketIO
 from flask_login import current_user
 
-from .docker import attach_to_container, spawn_container
+from .docker import attach_to_container, spawn_container, container_is_running
 
 logger = logging.getLogger("terminal")
 
 socketio: SocketIO = None  # will be assigned in init
+terminal_bp = Blueprint("terminal", __name__)
+
 # each user gets a single container. But if they have multiple tabs open, each session will get its own sid (resize properties etc)
 # user_id → container info
 user_containers = {}
@@ -80,6 +82,41 @@ def init_terminal(socketio_instance):
     _discover_existing_containers()
     _start_pollers_for_orphaned_containers()  # Start pollers for discovered containers
     logger.debug("Terminal module initialized")
+
+
+@terminal_bp.post("/terminal/close-tab")
+def close_tab_http():
+    """HTTP endpoint to kill all processes for a given terminal tab by killing its tmux session."""
+    if not current_user.is_authenticated:
+        return "Unauthorized", 401
+
+    data = request.get_json(silent=True) or {}
+    tab_id = str(data.get("tabId") or "").strip() or "1"
+    user_id = current_user.id
+    container_name = user_containers.get(user_id, {}).get("container_name")
+    if not container_name:
+        return {"error": "No container for user"}, 404
+
+    session_name = f"3compute-tab{tab_id}"
+    try:
+        subprocess.run(
+            [
+                "docker",
+                "exec",
+                container_name,
+                "tmux",
+                "kill-session",
+                "-t",
+                session_name,
+            ],
+            check=True,
+        )
+    except subprocess.CalledProcessError as e:
+        logger.warning(f"Failed to kill tmux session {session_name} in {container_name}: {e}")
+        # Return 200 to avoid blocking UI even if session is already gone
+        return "No session or already terminated", 200
+
+    return "Terminated", 200
 
 
 def _register_handlers():
@@ -148,7 +185,25 @@ def handle_resize(data):
     # If not attached yet, do it now
     if not session_info["container_attached"]:
         try:
-            proc, fd = attach_to_container(session_info["container_name"], session_info["tab_id"])
+            container_name = session_info["container_name"]
+            # Ensure container is running before attaching; handle race when reopening quickly
+            if not container_is_running(container_name):
+                logger.info(f"Container {container_name} not running at attach time; attempting restart")
+                try:
+                    subprocess.run(["docker", "start", container_name], check=True)
+                    logger.info(f"Restarted container {container_name}")
+                except subprocess.CalledProcessError:
+                    logger.warning(f"Failed to restart {container_name}; spawning new container")
+                    try:
+                        port_range = getattr(current_user, "port_range", None)
+                        spawn_container(user_id, None, container_name, port_range)
+                        logger.info(f"Spawned replacement container {container_name}")
+                    except Exception as e:
+                        logger.error(f"Failed to spawn replacement container {container_name}: {e}")
+                        socketio.emit("error", {"message": "Failed to connect to terminal. Please try again."}, to=sid)
+                        return
+
+            proc, fd = attach_to_container(container_name, session_info["tab_id"])
             session_info["fd"] = fd
             session_info["container_attached"] = True
             socketio.start_background_task(read_and_forward_pty_output, sid, True)
