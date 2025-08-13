@@ -15,9 +15,13 @@ export type UserData = {
   setCurrentFile: Dispatch<SetStateAction<FileType | undefined>>;
   openFolders: string[];
   setOpenFolders: Dispatch<SetStateAction<string[]>>;
-  refreshFiles: () => Promise<void>;
+  refreshFiles: (preserveLocation?: string) => Promise<void>;
   isUserEditingName?: boolean;
   setIsUserEditingName?: Dispatch<SetStateAction<boolean>>;
+  selectedLocation?: string;
+  setSelectedLocation?: Dispatch<SetStateAction<string | undefined>>;
+  dragOverLocation?: string;
+  setDragOverLocation?: Dispatch<SetStateAction<string | undefined>>;
 }
 
 export const backendUrl =
@@ -67,6 +71,10 @@ export const defaultUserData: UserData = {
   refreshFiles: async () => {},
   isUserEditingName: false,
   setIsUserEditingName: () => {},
+  selectedLocation: defaultFiles[0].location,
+  setSelectedLocation: () => {},
+  dragOverLocation: undefined,
+  setDragOverLocation: () => {},
 };
 
 export const UserDataContext = createContext<UserData>(defaultUserData);

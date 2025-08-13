@@ -12,6 +12,10 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
     setOpenFolders,
     refreshFiles,
     setIsUserEditingName,
+    selectedLocation,
+    setSelectedLocation,
+    dragOverLocation,
+    setDragOverLocation,
   } = useContext(UserDataContext);
 
   return (
@@ -19,13 +23,111 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
       {Array.isArray(files) ? (
         files.map((file) => (
           <Fragment key={file.location}>
-            <div className={getClasses({
-              'lum-btn': !file.renaming,
-              'flex items-center justify-between': file.renaming,
-              'p-0 gap-0 lum-bg-transparent rounded-lum-1': true,
-              'bg-gray-900/30 border-lum-border/10': currentFile?.location === file.location,
-            })}>
+            <div
+              className={getClasses({
+                'lum-btn': !file.renaming,
+                'flex items-center justify-between': file.renaming,
+                'p-0 gap-0 lum-bg-transparent rounded-lum-1': true,
+                'bg-gray-700/30 border-lum-border/10':
+                  currentFile?.location === file.location || selectedLocation === file.location,
+              })}
+              draggable={!file.renaming}
+              onDragStart={(e) => {
+                if (file.renaming) return;
+                try { e.dataTransfer.setData('text/x-3compute-source', file.location); } catch { void 0; }
+                try { e.dataTransfer.setData('text/plain', file.location); } catch { void 0; }
+                e.dataTransfer.effectAllowed = 'move';
+              }}
+              onDragOver={(e) => {
+                // Always prevent default so drop can fire; we validate in onDrop
+                e.preventDefault();
+                if ('files' in file && !file.renaming) {
+                  e.dataTransfer.dropEffect = 'move';
+                } else {
+                  e.dataTransfer.dropEffect = 'none';
+                }
+              }}
+              onDragEnter={(e) => {
+                if ('files' in file && !file.renaming) {
+                  e.preventDefault();
+                  setDragOverLocation?.(file.location);
+                }
+              }}
+              onDragLeave={(e) => {
+                if ('files' in file && !file.renaming) {
+                  if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                    setDragOverLocation?.(undefined);
+                  }
+                }
+              }}
+              onDragEnd={() => {
+                setDragOverLocation?.(undefined);
+              }}
+              onDrop={async (e) => {
+                if (!('files' in file)) return; // only drop into folders
+                e.preventDefault();
+                setDragOverLocation?.(undefined);
+                let source = e.dataTransfer.getData('text/x-3compute-source');
+                if (!source) {
+                  source = e.dataTransfer.getData('text/plain');
+                }
+                if (!source) return;
+                // Build destination path under this folder
+                const srcName = source.split('/').filter(Boolean).pop() || '';
+                const destBase = file.location.endsWith('/') ? file.location.slice(0, -1) : file.location;
+                const destination = `${destBase}/${srcName}${source.endsWith('/') ? '/' : ''}`;
+                if (destination === source) return;
+                // If the open editor file is the moved item or inside the moved folder, update it pre-refresh
+                if (currentFile?.location) {
+                  const currentLoc = currentFile.location;
+                  if (currentLoc === source) {
+                    setCurrentFile({ name: currentFile.name || srcName, location: destination });
+                    setSelectedLocation?.(destination);
+                  } else if (source.endsWith('/') && currentLoc.startsWith(source)) {
+                    const suffix = currentLoc.slice(source.length);
+                    const newLoc = `${destination}${suffix}`;
+                    setCurrentFile({ name: currentFile.name, location: newLoc });
+                  }
+                }
+                let res = await fetch(`${backendUrl}/move`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  credentials: 'include',
+                  body: JSON.stringify({ source, destination }),
+                });
+                if (res.status === 409) {
+                  // Name conflict: prompt user to replace
+                  const name = srcName;
+                  const confirmed = window.confirm(`A file or folder named "${name}" already exists here. Replace it? This cannot be undone.`);
+                  if (!confirmed) return;
+                  res = await fetch(`${backendUrl}/move`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ source, destination, overwrite: true }),
+                  });
+                }
+                if (res.ok) {
+                  await refreshFiles();
+                  setOpenFolders((prev) => prev.includes(file.location) ? prev : [...prev, file.location]);
+                } else {
+                  const text = await res.text().catch(() => '');
+                  console.error('Move failed', res.status, text);
+                }
+              }}
+              onClick={() => {
+                setSelectedLocation?.(file.location);
+              }}
+              data-explorer-item
+            >
               <button
+                draggable={!file.renaming}
+                onDragStart={(e) => {
+                  if (file.renaming) return;
+                  try { e.dataTransfer.setData('text/x-3compute-source', file.location); } catch { void 0; }
+                  try { e.dataTransfer.setData('text/plain', file.location); } catch { void 0; }
+                  e.dataTransfer.effectAllowed = 'move';
+                }}
                 onClick={() => {
                   if (file.renaming) return; // Prevent opening if renaming
                   if ('files' in file) {
@@ -44,6 +146,7 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
                 className={getClasses({
                   'flex flex-1 lum-btn-p-1 rounded-lum-1 rounded-r-none items-center gap-2 w-full text-left lum-bg-transparent': true,
                   'cursor-pointer': !('files' in file),
+                  'ring-1 ring-blue-400/40': dragOverLocation === file.location && 'files' in file,
                 })}
                 style={{ paddingLeft: `calc(0.5rem + ${count * 0.5}rem)` }}
               >
@@ -93,10 +196,10 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
                           }
                         }
 
-                        if (name && name !== file.name) {
-                          const parentPath = file.location.endsWith('/')
-                            ? file.location
-                            : file.location.slice(0, -file.name.length);
+                        if (name && (file.renaming || name !== file.name)) {
+                          const loc = file.location;
+                          const locNoSlash = loc.endsWith('/') ? loc.slice(0, -1) : loc;
+                          const parentPath = locNoSlash.slice(0, locNoSlash.lastIndexOf('/') + 1);
                           const newLocation = `${parentPath}${name}${'files' in file ? '/' : ''}`;
                           const res = await fetch(`${backendUrl}/file${newLocation}`, {
                             method: 'POST',

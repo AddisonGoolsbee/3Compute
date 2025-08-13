@@ -136,6 +136,79 @@ def list_files():
 
     return {"files": file_tree}, 200
 
+@files_bp.post("/move")
+def move_file_or_folder():
+    """Move/rename a file or directory within the user's workspace.
+
+    Expects JSON body: { "source": "/path/from", "destination": "/path/to" }
+    Both paths are relative to the user's upload directory. Leading slashes are allowed.
+    """
+    if not current_user.is_authenticated:
+        return "Unauthorized", 401
+
+    data = request.get_json(silent=True) or {}
+    source_param = (data.get("source") or "").lstrip("/")
+    destination_param = (data.get("destination") or "").lstrip("/")
+    overwrite = bool(data.get("overwrite"))
+
+    if not source_param or not destination_param:
+        return "Invalid path", 400
+
+    user_id = current_user.id
+    upload_dir = f"/tmp/uploads/{user_id}"
+
+    src_path = os.path.normpath(os.path.join(upload_dir, source_param))
+    dst_path = os.path.normpath(os.path.join(upload_dir, destination_param))
+
+    # Security: ensure resulting paths stay within the user's directory
+    if not src_path.startswith(upload_dir) or not dst_path.startswith(upload_dir):
+        return "Invalid path", 400
+
+    if not os.path.exists(src_path):
+        return "Source not found", 404
+
+    # Disallow moving a folder into itself or its descendants
+    try:
+        src_rel = os.path.relpath(src_path, upload_dir)
+        dst_rel = os.path.relpath(dst_path, upload_dir)
+        if dst_rel == src_rel or dst_rel.startswith(src_rel + os.sep):
+            return {"error": "Cannot move a folder into itself or its subdirectory"}, 400
+    except ValueError:
+        # relpath can throw on different drives; unlikely in Linux containers, but guard anyway
+        pass
+
+    # Ensure destination parent exists
+    dst_parent = os.path.dirname(dst_path)
+    if dst_parent and not os.path.exists(dst_parent):
+        try:
+            os.makedirs(dst_parent, exist_ok=True)
+            set_container_ownership(dst_parent)
+        except NotADirectoryError:
+            return {"error": "A file exists in the destination path"}, 409
+
+    # Prevent overwriting existing files/folders unless overwrite flag is set
+    if os.path.exists(dst_path):
+        if not overwrite:
+            return {"error": "Destination already exists"}, 409
+        # If overwriting, remove existing destination first
+        try:
+            if os.path.isdir(dst_path):
+                import shutil
+                shutil.rmtree(dst_path)
+            else:
+                os.remove(dst_path)
+        except OSError as e:
+            return {"error": f"Failed to replace destination: {e}"}, 500
+
+    try:
+        os.rename(src_path, dst_path)
+        # Set ownership on the moved item (best-effort)
+        set_container_ownership(dst_path)
+    except OSError as e:
+        return {"error": f"Failed to move: {e}"}, 500
+
+    return "Moved successfully", 200
+
 @files_bp.route("/file/<path:filename>", methods=["GET", "PUT", "DELETE", "POST"])
 def handle_file(filename):
     if not current_user.is_authenticated:

@@ -9,25 +9,77 @@ export default function NewButton() {
   const handleFileClick = () => {
     if (!userData.files) return;
     userData.setIsUserEditingName?.(true);
+    const base = computeBasePath(userData.files, userData.selectedLocation);
+    // Ensure the base folder is open for visibility
+    const folderKey = base.endsWith('/') ? base.slice(0, -1) : base;
+    if (folderKey && folderKey !== '/') {
+      userData.setOpenFolders((prev) => prev.includes(folderKey) ? prev : [...prev, folderKey]);
+    }
     const newFile = {
       name: 'new_file',
-      location: '/new_file',
-      renaming: true, // Set renaming to true to allow immediate editing
-    };
-    userData.setFilesClientSide([...userData.files, newFile]);
+      location: `${base}new_file`,
+      renaming: true,
+    } as const;
+    // Insert into nested structure client-side for immediate UX
+    const next = insertPlaceholder(userData.files, base, newFile);
+    userData.setFilesClientSide(next);
   };
 
   const handleFolderClick = () => {
     if (!userData.files) return;
     userData.setIsUserEditingName?.(true);
-    const newFile = {
+    const base = computeBasePath(userData.files, userData.selectedLocation);
+    const newFolder = {
       name: 'new_folder',
-      location: '/new_folder/',
-      renaming: true, // Set renaming to true to allow immediate editing
-      files: [], // Initialize with an empty array for folders
-    };
-    userData.setFilesClientSide([...userData.files, newFile]);
+      location: `${base}new_folder/`,
+      renaming: true,
+      files: [],
+    } as const;
+    const next = insertPlaceholder(userData.files, base, newFolder);
+    userData.setFilesClientSide(next);
+    userData.setOpenFolders((prev) => prev.includes(base.endsWith('/') ? base.slice(0, -1) : base) ? prev : [...prev, base.endsWith('/') ? base.slice(0, -1) : base]);
   };
+
+  // Helper: immutably insert placeholder under base folder
+  function insertPlaceholder(files: any[], base: string, item: any): any[] {
+    const normBase = base.endsWith('/') ? base.slice(0, -1) : base;
+    if (normBase === '' || normBase === '/') {
+      return [...files, item];
+    }
+    return files.map((f) => {
+      if ('files' in f) {
+        if (f.location === normBase) {
+          return { ...f, files: [...f.files, item] };
+        }
+        return { ...f, files: insertPlaceholder(f.files, base, item) };
+      }
+      return f;
+    });
+  }
+
+  function computeBasePath(files: any[] | undefined, selected?: string) {
+    if (!selected) return '/';
+    const isFolder = !!findFolderByLocation(files, selected);
+    if (isFolder) {
+      return selected.endsWith('/') ? selected : `${selected}/`;
+    }
+    // file selected: return its parent folder path with trailing slash
+    const idx = selected.lastIndexOf('/');
+    if (idx >= 0) return selected.slice(0, idx + 1) || '/';
+    return '/';
+  }
+
+  function findFolderByLocation(files: any[] | undefined, loc: string): any | undefined {
+    if (!files) return undefined;
+    for (const f of files) {
+      if ('files' in f) {
+        if (f.location === loc || f.location === loc.replace(/\/$/, '')) return f;
+        const found = findFolderByLocation(f.files, loc);
+        if (found) return found;
+      }
+    }
+    return undefined;
+  }
 
   return <SelectMenuRaw
     id="upload"

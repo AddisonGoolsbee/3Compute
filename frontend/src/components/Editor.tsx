@@ -75,33 +75,40 @@ export default function Editor() {
     }
   }, [userData]);
 
-  useEffect(() => void (async () => {
-    if (!userData.currentFile) return;
+  useEffect(() => {
+    const controller = new AbortController();
+    const currentLocation = userData.currentFile?.location;
+    (async () => {
+      if (!userData.currentFile) return;
 
-    // Check if the current file is an image
-    const isImageFileType = isImageFile(userData.currentFile.name);
-    setIsImage(isImageFileType);
-    if (isImageFileType) return;
+      // Check if the current file is an image
+      const isImageFileType = isImageFile(userData.currentFile.name);
+      setIsImage(isImageFileType);
+      if (isImageFileType) return;
 
-    // Load the file content
-    const fileres = await fetch(`${backendUrl}/file${userData.currentFile.location}`, {
-      credentials: 'include',
-    });
-    if (!fileres.ok) {
-      console.error('Failed to load file:', userData.currentFile.location);
-      userData.setCurrentFile(undefined);
-      return;
-    }
-    const file = await fileres.text();
-    setValue(file);
+      // Load the file content
+      const fileres = await fetch(`${backendUrl}/file${userData.currentFile.location}`, {
+        credentials: 'include',
+        signal: controller.signal,
+      });
+      if (!fileres.ok) {
+        console.error('Failed to load file:', userData.currentFile.location);
+        userData.setCurrentFile(undefined);
+        return;
+      }
+      const file = await fileres.text();
+      if (currentLocation !== userData.currentFile?.location) return; // stale response
+      setValue(file);
 
-    // Set the language based on the file extension
-    const ext = userData.currentFile.name.split('.').pop()?.toLowerCase();
-    if (!ext) return;
+      // Set the language based on the file extension
+      const ext = userData.currentFile.name.split('.').pop()?.toLowerCase();
+      if (!ext) return;
 
-    const lang = Object.keys(languageMap).find(l => languageMap[l as keyof typeof languageMap].extensions.includes(ext)) as keyof typeof languageMap | undefined || 'text';
-    setCurrentLanguage(lang);
-  })(), [userData, userData.currentFile]);
+      const lang = Object.keys(languageMap).find(l => languageMap[l as keyof typeof languageMap].extensions.includes(ext)) as keyof typeof languageMap | undefined || 'text';
+      setCurrentLanguage(lang);
+    })();
+    return () => controller.abort();
+  }, [userData.currentFile?.location]);
 
   return (
     <div className="relative transition-all flex flex-col rounded-lum max-w-3/4 bg-[#1A1B26] w-full border border-lum-border/20">
@@ -172,7 +179,7 @@ export default function Editor() {
                         method: 'PUT',
                         body: value,
                         headers: {
-                          'Content-Type': 'application/json',
+                          'Content-Type': 'text/plain; charset=utf-8',
                         },
                         credentials: 'include',
                       });
