@@ -29,8 +29,8 @@ export const TerminalTabBar: FC<TabBarProps> = ({
         <div
           key={w}
           className={getClasses({
-            'lum-btn gap-0 p-0.5 rounded-lum-1 rounded-b-none lum-bg-transparent group relative fade-in-fast hover:lum-bg-gray-900': true,
-            'border-gray-800 border-b border-b-blue-500/60 hover:border-b-blue-500': w === active,
+            'lum-btn gap-0 p-0.5 rounded-lum-1 rounded-b-none lum-bg-transparent group relative fade-in-fast hover:lum-bg-gray-900 border-b-2': true,
+            'border-gray-800 border-b-blue-500/60 hover:border-b-blue-500': w === active,
             'hover:border-transparent': w !== active,
           })}
         >
