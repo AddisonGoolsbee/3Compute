@@ -71,12 +71,34 @@ export default function Explorer() {
           const srcName = source.split('/').filter(Boolean).pop() || '';
           const destination = `/${srcName}${source.endsWith('/') ? '/' : ''}`;
           if (destination === source) return;
-          const res = await fetch(`${backendUrl}/move`, {
+          // Update open editor file path if it is the moved item or within it
+          if (userData.currentFile?.location) {
+            const currentLoc = userData.currentFile.location;
+            if (currentLoc === source) {
+              userData.setCurrentFile({ name: userData.currentFile.name || srcName, location: destination });
+              userData.setSelectedLocation?.(destination);
+            } else if (source.endsWith('/') && currentLoc.startsWith(source)) {
+              const suffix = currentLoc.slice(source.length);
+              const newLoc = `${destination}${suffix}`;
+              userData.setCurrentFile({ name: userData.currentFile.name, location: newLoc });
+            }
+          }
+          let res = await fetch(`${backendUrl}/move`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
             body: JSON.stringify({ source, destination })
           });
+          if (res.status === 409) {
+            const confirmed = window.confirm(`A file or folder named "${srcName}" already exists at root. Replace it? This cannot be undone.`);
+            if (!confirmed) return;
+            res = await fetch(`${backendUrl}/move`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              credentials: 'include',
+              body: JSON.stringify({ source, destination, overwrite: true })
+            });
+          }
           if (res.ok) {
             await userData.refreshFiles();
           } else {

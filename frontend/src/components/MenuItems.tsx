@@ -77,12 +77,36 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
                 const destBase = file.location.endsWith('/') ? file.location.slice(0, -1) : file.location;
                 const destination = `${destBase}/${srcName}${source.endsWith('/') ? '/' : ''}`;
                 if (destination === source) return;
-                const res = await fetch(`${backendUrl}/move`, {
+                // If the open editor file is the moved item or inside the moved folder, update it pre-refresh
+                if (currentFile?.location) {
+                  const currentLoc = currentFile.location;
+                  if (currentLoc === source) {
+                    setCurrentFile({ name: currentFile.name || srcName, location: destination });
+                    setSelectedLocation?.(destination);
+                  } else if (source.endsWith('/') && currentLoc.startsWith(source)) {
+                    const suffix = currentLoc.slice(source.length);
+                    const newLoc = `${destination}${suffix}`;
+                    setCurrentFile({ name: currentFile.name, location: newLoc });
+                  }
+                }
+                let res = await fetch(`${backendUrl}/move`, {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   credentials: 'include',
                   body: JSON.stringify({ source, destination })
                 });
+                if (res.status === 409) {
+                  // Name conflict: prompt user to replace
+                  const name = srcName;
+                  const confirmed = window.confirm(`A file or folder named \"${name}\" already exists here. Replace it? This cannot be undone.`);
+                  if (!confirmed) return;
+                  res = await fetch(`${backendUrl}/move`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ source, destination, overwrite: true })
+                  });
+                }
                 if (res.ok) {
                   await refreshFiles();
                   setOpenFolders((prev) => prev.includes(file.location) ? prev : [...prev, file.location]);

@@ -149,6 +149,7 @@ def move_file_or_folder():
     data = request.get_json(silent=True) or {}
     source_param = (data.get("source") or "").lstrip("/")
     destination_param = (data.get("destination") or "").lstrip("/")
+    overwrite = bool(data.get("overwrite"))
 
     if not source_param or not destination_param:
         return "Invalid path", 400
@@ -185,9 +186,19 @@ def move_file_or_folder():
         except NotADirectoryError:
             return {"error": "A file exists in the destination path"}, 409
 
-    # Prevent overwriting existing files/folders
+    # Prevent overwriting existing files/folders unless overwrite flag is set
     if os.path.exists(dst_path):
-        return {"error": "Destination already exists"}, 409
+        if not overwrite:
+            return {"error": "Destination already exists"}, 409
+        # If overwriting, remove existing destination first
+        try:
+            if os.path.isdir(dst_path):
+                import shutil
+                shutil.rmtree(dst_path)
+            else:
+                os.remove(dst_path)
+        except OSError as e:
+            return {"error": f"Failed to replace destination: {e}"}, 500
 
     try:
         os.rename(src_path, dst_path)
