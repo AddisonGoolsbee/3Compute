@@ -19,6 +19,7 @@ export default function NewButton() {
       name: 'new_file',
       location: `${base}new_file`,
       renaming: true,
+      placeholder: true,
     } as const;
     // Insert into nested structure client-side for immediate UX
     const next = insertPlaceholder(userData.files, base, newFile);
@@ -34,6 +35,7 @@ export default function NewButton() {
       location: `${base}new_folder/`,
       renaming: true,
       files: [],
+      placeholder: true,
     } as const;
     const next = insertPlaceholder(userData.files, base, newFolder);
     userData.setFilesClientSide(next);

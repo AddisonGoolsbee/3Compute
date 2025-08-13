@@ -21,6 +21,8 @@ export function Layout({ children }: { children: ReactNode }) {
   const [isUserEditingName, setIsUserEditingName] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState<string | undefined>();
   const [dragOverLocation, setDragOverLocation] = useState<string | undefined>();
+  const [contentVersion, setContentVersion] = useState<number>(0);
+  const [contextMenu, setContextMenu] = useState<{ visible: boolean; x: number; y: number; targetLocation?: string }>({ visible: false, x: 0, y: 0 });
   const isUserEditingNameRef = useRef(isUserEditingName);
 
   // Keep a live ref of editing state to guard against in-flight refreshes overwriting editor input
@@ -57,6 +59,23 @@ export function Layout({ children }: { children: ReactNode }) {
     }
   }, [currentFile]);
 
+  // Global handler to enter renaming mode by location (used by right-click)
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail as { location: string } | undefined;
+      if (!detail || !files) return;
+      setIsUserEditingName(true);
+      const mutate = (items: Files): Files => items.map((it) => {
+        if (it.location === detail.location) return { ...it, renaming: true } as any;
+        if ('files' in it) return { ...it, files: mutate(it.files) } as any;
+        return it;
+      });
+      setFilesClientSide(mutate(files));
+    };
+    document.addEventListener('3compute:rename', handler as EventListener);
+    return () => document.removeEventListener('3compute:rename', handler as EventListener);
+  }, [files]);
+
   const userData = {
     ...loaderData,
     files,
@@ -72,7 +91,40 @@ export function Layout({ children }: { children: ReactNode }) {
     setSelectedLocation,
     dragOverLocation,
     setDragOverLocation,
+    contentVersion,
+    setContentVersion,
+    contextMenu,
+    setContextMenu,
   };
+
+  // Ensure only one item is in renaming mode at a time; invoked via right-click context action
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail as { location: string } | undefined;
+      if (!detail) return;
+      setIsUserEditingName(true);
+      setFilesClientSide((prev) => {
+        if (!prev) return prev;
+        const clearAndFlag = (items: Files): Files => items.map((it) => {
+          const base: any = { ...it, renaming: false };
+          if ('files' in it) return { ...base, files: clearAndFlag(it.files) } as any;
+          return base;
+        });
+        // Clear all renaming flags first
+        let next = clearAndFlag(prev);
+        // Now set renaming on the target
+        const setFlag = (items: Files): Files => items.map((it) => {
+          if (it.location === detail.location) return { ...(it as any), renaming: true };
+          if ('files' in it) return { ...it, files: setFlag(it.files) } as any;
+          return it;
+        });
+        next = setFlag(next);
+        return next;
+      });
+    };
+    document.addEventListener('3compute:rename', handler as EventListener);
+    return () => document.removeEventListener('3compute:rename', handler as EventListener);
+  }, []);
 
   // Update files state when loaderData changes
   useEffect(() => {
@@ -91,13 +143,13 @@ export function Layout({ children }: { children: ReactNode }) {
       // Pause refresh while the user is actively typing a name to avoid losing placeholders
       if (isUserEditingName) return;
       refreshFiles();
-    }, 400);
+    }, 300);
 
     return () => window.clearInterval(intervalId);
   }, [loaderData?.userInfo, refreshFiles, isUserEditingName]);
 
   return (
-    <html lang="en">
+    <html lang="en" onClick={() => setContextMenu({ visible: false, x: 0, y: 0 })}>
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />

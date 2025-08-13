@@ -22,6 +22,20 @@ export type UserData = {
   setSelectedLocation?: Dispatch<SetStateAction<string | undefined>>;
   dragOverLocation?: string;
   setDragOverLocation?: Dispatch<SetStateAction<string | undefined>>;
+  contentVersion?: number;
+  setContentVersion?: Dispatch<SetStateAction<number>>;
+  contextMenu?: {
+    visible: boolean;
+    x: number;
+    y: number;
+    targetLocation?: string;
+  };
+  setContextMenu?: Dispatch<SetStateAction<{
+    visible: boolean;
+    x: number;
+    y: number;
+    targetLocation?: string;
+  }>>;
 }
 
 export const backendUrl =
@@ -75,6 +89,10 @@ export const defaultUserData: UserData = {
   setSelectedLocation: () => {},
   dragOverLocation: undefined,
   setDragOverLocation: () => {},
+  contentVersion: 0,
+  setContentVersion: () => {},
+  contextMenu: { visible: false, x: 0, y: 0, targetLocation: undefined },
+  setContextMenu: () => {},
 };
 
 export const UserDataContext = createContext<UserData>(defaultUserData);

@@ -5,6 +5,7 @@ export interface FileType {
   readonly name: string;
   readonly location: string;
   renaming?: boolean; // Used to indicate if the file is being renamed
+  placeholder?: boolean; // Indicates a client-side placeholder prior to creation
 }
 
 export interface FolderType extends FileType {
