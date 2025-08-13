@@ -1,6 +1,4 @@
 
-import { getClasses } from '@luminescent/ui-react';
-import { Plus, X } from 'lucide-react';
 import { FC } from 'react';
 
 export interface TabBarProps {
@@ -24,47 +22,49 @@ export const TerminalTabBar: FC<TabBarProps> = ({
   onClose,
 }) => {
   return (
-    <div className="flex items-center lum-bg-gray-950 border-x-0 border-t-0 p-1 gap-1 overflow-x-scroll">
+    <div className="flex items-center bg-lum-bg-gray-950/50 border-b border-lum-border/20">
       {tabs.map((w) => (
         <div
           key={w}
-          className={getClasses({
-            'lum-btn gap-0 p-0 rounded-lum-1 lum-bg-transparent group relative': true,
-            'lum-bg-gray-900 border-x-transparent border-t-transparent border-blue-500/60': w === active,
-          })}
+          className={`flex items-center group relative ${
+            w === active
+              ? 'bg-lum-bg-gray-950 border-b-2 border-blue-500/60'
+              : 'bg-transparent hover:bg-lum-bg-gray-900/50'
+          }`}
         >
           <button
             onClick={() => onSelect(w)}
-            className={getClasses({
-              'w-full lum-btn-p-1 text-sm transition-colors flex-1 cursor-pointer': true,
-              'text-lum-text': w === active,
-              'text-lum-text-secondary hover:text-lum-text': w !== active,
-            })}
+            className={`px-3 py-2 text-sm transition-colors flex-1 ${
+              w === active
+                ? 'text-lum-text'
+                : 'text-lum-text-secondary hover:text-lum-text'
+            }`}
           >
             Terminal {w}
           </button>
           {tabs.length > 1 && (
-            <button title="Close Terminal"
+            <button
               onClick={(e) => {
                 e.stopPropagation();
                 onClose(w);
               }}
-              className={getClasses({
-                'lum-btn p-1 h-full rounded-lum-2 text-xs lum-bg-transparent hover:lum-bg-transparent cursor-pointer': true,
-                'text-lum-text-secondary hover:text-lum-text': true,
-              })}
+              className={`w-6 h-6 mr-1 flex items-center justify-center text-xs transition-opacity ${
+                w === active
+                  ? 'opacity-60 hover:opacity-100 text-lum-text'
+                  : 'opacity-0 group-hover:opacity-60 hover:!opacity-100 text-lum-text-secondary'
+              }`}
             >
-              <X size={16} />
+              ×
             </button>
           )}
         </div>
       ))}
       <button
         onClick={onNew}
-        className="lum-btn p-0.5 rounded-lum-2 lum-bg-transparent"
+        className="px-3 py-2 text-sm text-lum-text-secondary hover:text-lum-text hover:bg-lum-bg-gray-900/50 transition-colors"
         title="New Terminal"
       >
-        <Plus size={16} />
+        +
       </button>
     </div>
   );
