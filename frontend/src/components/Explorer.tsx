@@ -87,7 +87,7 @@ export default function Explorer() {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
-            body: JSON.stringify({ source, destination })
+            body: JSON.stringify({ source, destination }),
           });
           if (res.status === 409) {
             const confirmed = window.confirm(`A file or folder named "${srcName}" already exists at root. Replace it? This cannot be undone.`);
@@ -96,7 +96,7 @@ export default function Explorer() {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               credentials: 'include',
-              body: JSON.stringify({ source, destination, overwrite: true })
+              body: JSON.stringify({ source, destination, overwrite: true }),
             });
           }
           if (res.ok) {

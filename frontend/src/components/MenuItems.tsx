@@ -25,17 +25,17 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
           <Fragment key={file.location}>
             <div
               className={getClasses({
-              'lum-btn': !file.renaming,
-              'flex items-center justify-between': file.renaming,
-              'p-0 gap-0 lum-bg-transparent rounded-lum-1': true,
+                'lum-btn': !file.renaming,
+                'flex items-center justify-between': file.renaming,
+                'p-0 gap-0 lum-bg-transparent rounded-lum-1': true,
                 'bg-gray-700/30 border-lum-border/10':
                   currentFile?.location === file.location || selectedLocation === file.location,
               })}
               draggable={!file.renaming}
               onDragStart={(e) => {
                 if (file.renaming) return;
-                try { e.dataTransfer.setData('text/x-3compute-source', file.location); } catch {}
-                try { e.dataTransfer.setData('text/plain', file.location); } catch {}
+                try { e.dataTransfer.setData('text/x-3compute-source', file.location); } catch { void 0; }
+                try { e.dataTransfer.setData('text/plain', file.location); } catch { void 0; }
                 e.dataTransfer.effectAllowed = 'move';
               }}
               onDragOver={(e) => {
@@ -93,18 +93,18 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   credentials: 'include',
-                  body: JSON.stringify({ source, destination })
+                  body: JSON.stringify({ source, destination }),
                 });
                 if (res.status === 409) {
                   // Name conflict: prompt user to replace
                   const name = srcName;
-                  const confirmed = window.confirm(`A file or folder named \"${name}\" already exists here. Replace it? This cannot be undone.`);
+                  const confirmed = window.confirm(`A file or folder named "${name}" already exists here. Replace it? This cannot be undone.`);
                   if (!confirmed) return;
                   res = await fetch(`${backendUrl}/move`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     credentials: 'include',
-                    body: JSON.stringify({ source, destination, overwrite: true })
+                    body: JSON.stringify({ source, destination, overwrite: true }),
                   });
                 }
                 if (res.ok) {
@@ -124,8 +124,8 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
                 draggable={!file.renaming}
                 onDragStart={(e) => {
                   if (file.renaming) return;
-                  try { e.dataTransfer.setData('text/x-3compute-source', file.location); } catch {}
-                  try { e.dataTransfer.setData('text/plain', file.location); } catch {}
+                  try { e.dataTransfer.setData('text/x-3compute-source', file.location); } catch { void 0; }
+                  try { e.dataTransfer.setData('text/plain', file.location); } catch { void 0; }
                   e.dataTransfer.effectAllowed = 'move';
                 }}
                 onClick={() => {
