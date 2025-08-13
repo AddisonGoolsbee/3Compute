@@ -16,6 +16,9 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
     setSelectedLocation,
     dragOverLocation,
     setDragOverLocation,
+    setContentVersion,
+    contextMenu,
+    setContextMenu,
   } = useContext(UserDataContext);
 
   return (
@@ -31,6 +34,11 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
                 'bg-gray-700/30 border-lum-border/10':
                   currentFile?.location === file.location || selectedLocation === file.location,
               })}
+              onContextMenu={(e) => {
+                e.preventDefault();
+                setSelectedLocation?.(file.location);
+                setContextMenu?.({ visible: true, x: e.clientX, y: e.clientY, targetLocation: file.location });
+              }}
               draggable={!file.renaming}
               onDragStart={(e) => {
                 if (file.renaming) return;
@@ -108,6 +116,8 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
                   });
                 }
                 if (res.ok) {
+                  // Bump content version to ensure editor fetches fresh content if the open file was replaced
+                  setContentVersion?.((v) => (v ?? 0) + 1);
                   await refreshFiles();
                   setOpenFolders((prev) => prev.includes(file.location) ? prev : [...prev, file.location]);
                 } else {
@@ -196,34 +206,69 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
                           }
                         }
 
-                        if (name && (file.renaming || name !== file.name)) {
-                          const loc = file.location;
-                          const locNoSlash = loc.endsWith('/') ? loc.slice(0, -1) : loc;
-                          const parentPath = locNoSlash.slice(0, locNoSlash.lastIndexOf('/') + 1);
-                          const newLocation = `${parentPath}${name}${'files' in file ? '/' : ''}`;
-                          const res = await fetch(`${backendUrl}/file${newLocation}`, {
-                            method: 'POST',
-                            headers: {
-                              'Content-Type': 'application/json',
-                            },
-                            credentials: 'include',
-                          });
-                          if (res.ok) {
+                        const isFolder = 'files' in file;
+                        const originalLocation = file.location;
+                        const originalName = file.name;
+                        const locNoSlash = originalLocation.endsWith('/') ? originalLocation.slice(0, -1) : originalLocation;
+                        const parentPath = locNoSlash.slice(0, locNoSlash.lastIndexOf('/') + 1);
+                        const newLocation = `${parentPath}${name || originalName}${isFolder ? '/' : ''}`;
+
+                        try {
+                          if ((file as any).placeholder) {
+                            // Create brand-new file/folder at newLocation
+                            if (!name) {
+                              // Empty or unchanged name on placeholder: keep default
+                              // newLocation already accounts for default name
+                            }
+                            const res = await fetch(`${backendUrl}/file${newLocation}`, {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              credentials: 'include',
+                            });
+                            if (!res.ok) {
+                              input.setCustomValidity('Unable to create. Try a different name.');
+                              input.reportValidity();
+                              input.focus();
+                              input.setSelectionRange(0, input.value.length);
+                              return;
+                            }
+                            await refreshFiles();
+                          } else if (name && name !== originalName) {
+                            // Rename existing by moving to new path
+                            const moveRes = await fetch(`${backendUrl}/move`, {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              credentials: 'include',
+                              body: JSON.stringify({ source: originalLocation, destination: newLocation }),
+                            });
+                            if (!moveRes.ok) {
+                              if (moveRes.status === 409) {
+                                input.setCustomValidity('Name already exists.');
+                                input.reportValidity();
+                                input.focus();
+                                input.setSelectionRange(0, input.value.length);
+                                return;
+                              }
+                              input.setCustomValidity('Unable to rename.');
+                              input.reportValidity();
+                              input.focus();
+                              input.setSelectionRange(0, input.value.length);
+                              return;
+                            }
+                            // Update current selection/editor if needed
+                            if (currentFile?.location === originalLocation) {
+                              setCurrentFile({ name, location: newLocation });
+                              setSelectedLocation?.(newLocation);
+                            }
                             await refreshFiles();
                           } else {
-                            // If creation failed (e.g., server-side conflict), keep editing
-                            input.setCustomValidity('Unable to create. Try a different name.');
-                            input.reportValidity();
-                            input.focus();
-                            input.setSelectionRange(0, input.value.length);
-                            return;
+                            // Unchanged rename on existing item: just refresh to clear renaming flag
+                            await refreshFiles();
                           }
-                        } else {
-                          // Empty or unchanged name: discard placeholder by refreshing from backend
-                          await refreshFiles();
+                        } finally {
+                          // End editing state so auto-refresh resumes
+                          setIsUserEditingName?.(false);
                         }
-                        // End editing state so auto-refresh resumes
-                        setIsUserEditingName?.(false);
                       }}
                       onKeyDown={async (e) => {
                         if (e.key === 'Enter') {
@@ -288,6 +333,24 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
         ))
       ) : (
         <div className="text-gray-500">No files found</div>
+      )}
+      {contextMenu?.visible && contextMenu.targetLocation && (
+        <div
+          className="fixed z-50 lum-bg-gray-900 border border-lum-border/40 rounded-lum-2 shadow-lg"
+          style={{ left: contextMenu.x, top: contextMenu.y }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button
+            className="lum-btn lum-btn-p-1 rounded-lum-1 w-full text-left"
+            onClick={() => {
+              setContextMenu?.({ visible: false, x: 0, y: 0, targetLocation: undefined });
+              // Ensure only one item is renaming: clear any existing placeholders/renaming
+              document.dispatchEvent(new CustomEvent('3compute:rename', { detail: { location: contextMenu.targetLocation } }));
+            }}
+          >
+            Rename
+          </button>
+        </div>
       )}
     </div>
   );

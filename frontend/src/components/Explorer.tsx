@@ -100,6 +100,7 @@ export default function Explorer() {
             });
           }
           if (res.ok) {
+            userData.setContentVersion?.((v) => (v ?? 0) + 1);
             await userData.refreshFiles();
           } else {
             const text = await res.text().catch(() => '');

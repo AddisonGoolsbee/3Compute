@@ -87,7 +87,7 @@ export default function Editor() {
       if (isImageFileType) return;
 
       // Load the file content
-      const fileres = await fetch(`${backendUrl}/file${userData.currentFile.location}`, {
+      const fileres = await fetch(`${backendUrl}/file${userData.currentFile.location}?t=${userData.contentVersion ?? 0}`, {
         credentials: 'include',
         signal: controller.signal,
       });
@@ -108,7 +108,7 @@ export default function Editor() {
       setCurrentLanguage(lang);
     })();
     return () => controller.abort();
-  }, [userData.currentFile?.location]);
+  }, [userData.currentFile?.location, userData.contentVersion]);
 
   return (
     <div className="relative transition-all flex flex-col rounded-lum max-w-3/4 bg-[#1A1B26] w-full border border-lum-border/20">
