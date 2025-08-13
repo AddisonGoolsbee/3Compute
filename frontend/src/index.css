@@ -29,6 +29,10 @@ body {
   animation: fadeIn 0.6s ease-out forwards;
 }
 
+.fade-in-fast {
+  animation: fadeIn 0.1s ease-out forwards;
+}
+
 .fade-in-delayed {
   animation: fadeIn 0.6s ease-out 0.2s forwards;
   opacity: 0;

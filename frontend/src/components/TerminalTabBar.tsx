@@ -24,12 +24,12 @@ export const TerminalTabBar: FC<TabBarProps> = ({
   onClose,
 }) => {
   return (
-    <div className="flex items-center lum-bg-gray-950 border-x-0 border-t-0 p-1 gap-1 overflow-x-scroll">
+    <div className="flex items-center lum-bg-gray-950 border-x-0 border-y-0 p-1 pb-0 gap-1 overflow-x-scroll">
       {tabs.map((w) => (
         <div
           key={w}
           className={getClasses({
-            'lum-btn gap-0 p-0 rounded-lum-1 lum-bg-transparent group relative': true,
+            'lum-btn gap-0 p-0 rounded-lum-1 rounded-b-none lum-bg-transparent group relative fade-in-fast': true,
             'lum-bg-gray-900 border-x-transparent border-t-transparent border-blue-500/60': w === active,
           })}
         >
@@ -51,6 +51,7 @@ export const TerminalTabBar: FC<TabBarProps> = ({
               }}
               className={getClasses({
                 'lum-btn p-1 h-full rounded-lum-2 text-xs lum-bg-transparent hover:lum-bg-transparent cursor-pointer': true,
+                'opacity-0 group-hover:opacity-100': w !== active,
                 'text-lum-text-secondary hover:text-lum-text': true,
               })}
             >
@@ -61,7 +62,10 @@ export const TerminalTabBar: FC<TabBarProps> = ({
       ))}
       <button
         onClick={onNew}
-        className="lum-btn p-0.5 rounded-lum-2 lum-bg-transparent"
+        className={getClasses({
+          'lum-btn p-1 h-full rounded-lum-2 text-xs lum-bg-transparent hover:lum-bg-transparent cursor-pointer': true,
+          'text-lum-text-secondary hover:text-lum-text': true,
+        })}
         title="New Terminal"
       >
         <Plus size={16} />
