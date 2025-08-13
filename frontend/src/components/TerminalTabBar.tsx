@@ -24,13 +24,14 @@ export const TerminalTabBar: FC<TabBarProps> = ({
   onClose,
 }) => {
   return (
-    <div className="flex items-center lum-bg-gray-950 border-x-0 border-y-0 p-1 pb-0 gap-1 overflow-x-scroll">
+    <div className="flex items-center lum-bg-gray-950 border-x-0 border-t-0 p-1 pb-0 gap-1 overflow-x-scroll">
       {tabs.map((w) => (
         <div
           key={w}
           className={getClasses({
-            'lum-btn gap-0 p-0 rounded-lum-1 rounded-b-none lum-bg-transparent group relative fade-in-fast': true,
-            'lum-bg-gray-900 border-x-transparent border-t-transparent border-blue-500/60': w === active,
+            'lum-btn gap-0 p-0.5 rounded-lum-1 rounded-b-none lum-bg-transparent group relative fade-in-fast hover:lum-bg-gray-900': true,
+            'border-gray-800 border-b border-b-blue-500/60 hover:border-b-blue-500': w === active,
+            'hover:border-transparent': w !== active,
           })}
         >
           <button
