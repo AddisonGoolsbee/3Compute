@@ -41,9 +41,11 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
               className={getClasses({
                 'lum-btn': !file.renaming,
                 'flex items-center justify-between': file.renaming,
-                'p-0 gap-0 lum-bg-transparent rounded-lum-1': true,
-                'bg-gray-700/30 border-lum-border/10':
+                'p-0 gap-0 rounded-lum-1': true,
+                'lum-bg-gray-900 hover:lum-bg-gray-800':
                   currentFile?.location === file.location || selectedLocation === file.location,
+                'lum-bg-transparent hover:lum-bg-gray-950':
+                  currentFile?.location !== file.location && selectedLocation !== file.location,
               })}
               onContextMenu={(e) => {
                 e.preventDefault();
