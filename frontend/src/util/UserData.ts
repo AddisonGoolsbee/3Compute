@@ -24,13 +24,13 @@ export type UserData = {
   setDragOverLocation?: Dispatch<SetStateAction<string | undefined>>;
   contentVersion?: number;
   setContentVersion?: Dispatch<SetStateAction<number>>;
-  contextMenu?: {
+  contextMenu: {
     visible: boolean;
     x: number;
     y: number;
     targetLocation?: string;
   };
-  setContextMenu?: Dispatch<SetStateAction<{
+  setContextMenu: Dispatch<SetStateAction<{
     visible: boolean;
     x: number;
     y: number;

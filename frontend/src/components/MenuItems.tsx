@@ -1,6 +1,6 @@
-import { FileIcon, FolderClosed, FolderOpen, Trash, X } from 'lucide-react';
+import { FileIcon, FolderClosed, FolderOpen, MoreHorizontal, Pencil, Trash, X } from 'lucide-react';
 import { getClasses } from '@luminescent/ui-react';
-import { useContext, Fragment } from 'react';
+import { useContext, Fragment, useEffect } from 'react';
 import { backendUrl, UserData, UserDataContext } from '../util/UserData';
 import { languageMap } from '../util/languageMap';
 
@@ -20,6 +20,17 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
     contextMenu,
     setContextMenu,
   } = useContext(UserDataContext);
+
+  // Auto-hide context menu on any click outside
+  useEffect(() => {
+    const handler = () => {
+      setContextMenu({ ...contextMenu, visible: false });
+      document.removeEventListener('click', handler);
+    };
+    if (!contextMenu.visible) return document.removeEventListener('click', handler);
+    document.addEventListener('click', handler);
+    return () => document.removeEventListener('click', handler);
+  }, [contextMenu, contextMenu.visible, setContextMenu]);
 
   return (
     <div className="flex flex-col gap-1">
@@ -291,26 +302,18 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
               {'files' in file && (
                 <p className="text-gray-500! text-sm">{file.files.length}</p>
               )}
-              <button className="lum-btn cursor-pointer rounded-lum-1 rounded-l-none p-1 items-center gap-1 text-gray-500 text-sm hover:text-gray-300 lum-bg-transparent hover:lum-bg-transparent"
-                onClick={async () => {
+              <button className="lum-btn cursor-pointer rounded-lum-1 rounded-l-none p-2 items-center gap-1 text-gray-500 text-sm hover:text-gray-300 lum-bg-transparent hover:lum-bg-transparent"
+                onClick={async (e) => {
                   if (file.renaming) return await refreshFiles();
-                  const response = await fetch(`${backendUrl}/file${file.location}`, {
-                    method: 'DELETE',
-                    credentials: 'include',
-                  });
-                  if (response.ok) {
-                    setCurrentFile(undefined);
-                    setOpenFolders((prev) => prev.filter((f) => f !== file.location));
-                    await refreshFiles();
-                  } else {
-                    console.error('Failed to delete file:', response.statusText);
-                  }
+                  console.log('h');
+                  setSelectedLocation?.(file.location);
+                  setContextMenu?.({ visible: true, x: e.clientX, y: e.clientY, targetLocation: file.location });
                 }}
               >
                 {file.renaming ? (
                   <X size={16} />
                 ) : (
-                  <Trash size={16} />
+                  <MoreHorizontal size={16} />
                 )}
               </button>
             </div>
@@ -334,24 +337,44 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
       ) : (
         <div className="text-gray-500">No files found</div>
       )}
-      {contextMenu?.visible && contextMenu.targetLocation && (
-        <div
-          className="fixed z-50 lum-bg-gray-900 border border-lum-border/40 rounded-lum-2 shadow-lg"
-          style={{ left: contextMenu.x, top: contextMenu.y }}
-          onClick={(e) => e.stopPropagation()}
+      <div
+        className={getClasses({
+          'transition-opacity duration-300 fixed lum-card p-1 gap-1 z-50 drop-shadow-xl drop-shadow-black lum-bg-gray-900/50 backdrop-blur-lg': true,
+          'opacity-0 pointer-events-none': !contextMenu.visible,
+        })}
+        style={{ left: contextMenu.x, top: contextMenu.y }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          className="lum-btn lum-btn-p-1 rounded-lum-1 gap-0.5 w-full text-left lum-bg-transparent"
+          onClick={() => {
+            // Ensure only one item is renaming: clear any existing placeholders/renaming
+            document.dispatchEvent(new CustomEvent('3compute:rename', { detail: { location: contextMenu.targetLocation } }));
+          }}
         >
-          <button
-            className="lum-btn lum-btn-p-1 rounded-lum-1 w-full text-left"
-            onClick={() => {
-              setContextMenu?.({ visible: false, x: 0, y: 0, targetLocation: undefined });
-              // Ensure only one item is renaming: clear any existing placeholders/renaming
-              document.dispatchEvent(new CustomEvent('3compute:rename', { detail: { location: contextMenu.targetLocation } }));
-            }}
-          >
-            Rename
-          </button>
-        </div>
-      )}
+          <Pencil size={16} className="inline mr-2" />
+          Rename
+        </button>
+        <button
+          className="lum-btn lum-btn-p-1 rounded-lum-1 gap-0.5 w-full text-left lum-bg-transparent"
+          onClick={async () => {
+            const response = await fetch(`${backendUrl}/file${contextMenu.targetLocation}`, {
+              method: 'DELETE',
+              credentials: 'include',
+            });
+            if (response.ok) {
+              setCurrentFile(undefined);
+              setOpenFolders((prev) => prev.filter((f) => f !== contextMenu.targetLocation));
+              await refreshFiles();
+            } else {
+              console.error('Failed to delete file:', response.statusText);
+            }
+          }}
+        >
+          <Trash size={16} className="inline mr-2" />
+          Delete
+        </button>
+      </div>
     </div>
   );
 }

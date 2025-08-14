@@ -149,7 +149,7 @@ export function Layout({ children }: { children: ReactNode }) {
   }, [loaderData?.userInfo, refreshFiles, isUserEditingName]);
 
   return (
-    <html lang="en" onClick={() => setContextMenu({ visible: false, x: 0, y: 0 })}>
+    <html lang="en">
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
