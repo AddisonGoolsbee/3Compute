@@ -29,15 +29,15 @@ export const TerminalTabBar: FC<TabBarProps> = ({
         <div
           key={w}
           className={getClasses({
-            'lum-btn gap-0 p-0.5 rounded-lum-1 rounded-b-none lum-bg-transparent group relative fade-in-fast hover:lum-bg-gray-900 border-b-2': true,
-            'border-gray-800 border-b-blue-500/60 hover:border-b-blue-500': w === active,
-            'hover:border-transparent': w !== active,
+            'lum-btn gap-0 rounded-lum-1 p-0 rounded-b-none lum-bg-transparent group relative fade-in-fast border-b-3 hover:border-b-3 border-transparent hover:border-transparent': true,
+            'border-b-blue-500/60 hover:border-b-blue-500 lum-bg-gray-800 hover:lum-bg-gray-700': w === active,
+            'hover:lum-bg-gray-900': w !== active,
           })}
         >
           <button
             onClick={() => onSelect(w)}
             className={getClasses({
-              'w-full lum-btn-p-1 text-sm transition-colors flex-1 cursor-pointer': true,
+              'w-full px-3 py-1.5 text-sm transition-colors flex-1 cursor-pointer': true,
               'text-lum-text': w === active,
               'text-lum-text-secondary hover:text-lum-text': w !== active,
             })}
@@ -51,7 +51,7 @@ export const TerminalTabBar: FC<TabBarProps> = ({
                 onClose(w);
               }}
               className={getClasses({
-                'lum-btn p-1 h-full rounded-lum-2 text-xs lum-bg-transparent hover:lum-bg-transparent cursor-pointer': true,
+                'lum-btn p-1.5 pr-2 h-full rounded-lum-2 text-xs lum-bg-transparent hover:lum-bg-transparent cursor-pointer': true,
                 'opacity-0 group-hover:opacity-100': w !== active,
                 'text-lum-text-secondary hover:text-lum-text': true,
               })}
