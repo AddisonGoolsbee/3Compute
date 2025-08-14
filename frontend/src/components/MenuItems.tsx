@@ -44,7 +44,7 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
                 'p-0 gap-0 rounded-lum-1': true,
                 'lum-bg-gray-900 hover:lum-bg-gray-800':
                   currentFile?.location === file.location || selectedLocation === file.location,
-                'lum-bg-transparent hover:lum-bg-gray-950':
+                'lum-bg-transparent hover:lum-bg-gray-900/50':
                   currentFile?.location !== file.location && selectedLocation !== file.location,
               })}
               onContextMenu={(e) => {
