@@ -27,7 +27,10 @@ export default function Explorer() {
         <div className="grid grid-cols-2 gap-1">
           <UploadButton />
           <NewButton />
-          <TemplateButton />
+          {/* temporary col span 2 till git is implemented */}
+          <div className="col-span-2">
+            <TemplateButton />
+          </div>
           {/*<GitButton />*/}
         </div>
       </div>

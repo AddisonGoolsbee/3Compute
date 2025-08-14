@@ -132,7 +132,7 @@ export default function TemplateButton() {
     dropdown={
       <div className="flex items-center gap-1">
         <LayoutTemplate size={16} />
-        Templates
+        Use a template
       </div>
     }
   />;
