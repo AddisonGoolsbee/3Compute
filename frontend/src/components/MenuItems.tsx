@@ -341,7 +341,7 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
       )}
       <div
         className={getClasses({
-          'transition-opacity duration-300 fixed lum-card p-1 gap-1 z-50 drop-shadow-xl drop-shadow-black lum-bg-gray-900/50 backdrop-blur-lg': true,
+          'transition-opacity duration-300 fixed lum-card p-1 gap-1 z-50 drop-shadow-xl lum-bg-gray-900/50 backdrop-blur-lg': true,
           'opacity-0 pointer-events-none': !contextMenu.visible,
         })}
         style={{ left: contextMenu.x, top: contextMenu.y }}
