@@ -11,7 +11,7 @@ MAX_USERS = 20
 num_cpus = os.cpu_count() or 1
 memory_mb = psutil.virtual_memory().total // (1024 * 1024)
 
-cpu_per_user = round(num_cpus / MAX_USERS, 2)
+cpu_per_user = 1.0
 memory_per_user = round(memory_mb / MAX_USERS, 2)
 
 # Container user UID/GID that matches the dedicated system user
