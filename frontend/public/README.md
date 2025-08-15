@@ -28,7 +28,7 @@ You can also interact through the terminal below by typing commands:
 - Use starter templates that set up common projects in one click.
 - Open multiple terminal tabs and run multiple processes; your tabs are saved.
 
-## Workspace tour
+## Workspace Tour
 
 ### File Explorer (left)
 
@@ -45,10 +45,6 @@ You can also interact through the terminal below by typing commands:
   - After creation, the template's `README.md` will open for step-by-step instructions to configuring and running your application.
 - Open: click a file to open it in the editor. Click a folder to expand/collapse it.
 - Delete: use the trash icon on any file or folder.
-
-#### Templates
-
-
 
 ### Editor (center)
 
