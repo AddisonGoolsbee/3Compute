@@ -1,5 +1,5 @@
 import { Nav, LogoBirdflop, SelectMenuRaw } from '@luminescent/ui-react';
-import { LogOut, User } from 'lucide-react';
+import { LogOut, School } from 'lucide-react';
 import { useContext } from 'react';
 import { Link } from 'react-router';
 import { backendUrl, UserDataContext } from '../util/UserData';
@@ -27,6 +27,14 @@ export default function NavComponent() {
       }
       end={
         <>
+          <a
+            href="/classrooms"
+            onClick={handleLogout}
+            className="lum-btn lum-bg-transparent"
+          >
+            <School size={20} />
+            Classrooms
+          </a>
           {userData?.userInfo && (
             <SelectMenuRaw className="lum-bg-transparent"
               customDropdown dropdown={
@@ -44,14 +52,14 @@ export default function NavComponent() {
                 </div>
               }
               extra-buttons={<>
-                <a
+                {/*<a
                   href="/profile"
                   onClick={handleLogout}
                   className="lum-btn lum-bg-transparent rounded-lum-1"
                 >
                   <User size={20} />
                   Profile
-                </a>
+                </a>*/}
                 <button
                   onClick={handleLogout}
                   className="lum-btn lum-bg-transparent rounded-lum-1 hover:lum-bg-red-700"
