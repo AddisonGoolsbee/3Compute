@@ -32,10 +32,10 @@ def load_users_from_json():
         if os.path.exists(USERS_JSON_FILE):
             with open(USERS_JSON_FILE, "r") as f:
                 return json.load(f)
-        return {}
+        return []
     except Exception as e:
         logger.error(f"Error loading users from JSON: {e}")
-        return {}
+        return []
 
 
 def save_users_to_json(users_data):
@@ -51,12 +51,19 @@ def update_user_data(user_id, user_info, ip_address, port_start=None):
     """Update user data in JSON file with new IP address and port assignment"""
     users_data = load_users_from_json()
 
-    if user_id not in users_data:
+    found_object = None
+    for item in users_data:
+        if item["id"] == user_id:
+            found_object = item
+            break
+
+    if found_object is None:
         # New user - must have port_start provided
         if port_start is None:
             raise ValueError("port_start must be provided for new users")
         
-        users_data[user_id] = {
+        users_data.append({
+            "id": user_id,
             "email": user_info["email"],
             "first_login": datetime.now().isoformat(),
             "last_login": datetime.now().isoformat(),
@@ -69,40 +76,49 @@ def update_user_data(user_id, user_info, ip_address, port_start=None):
                 "tabs": ["1"],
                 "active_tab": "1"
             }
-        }
+        })
     else:
         # Existing user
-        users_data[user_id]["last_login"] = datetime.now().isoformat()
-        users_data[user_id]["login_count"] += 1
+        found_object["last_login"] = datetime.now().isoformat()
+        found_object["login_count"] += 1
 
         # Add new IP address if not already present
-        if ip_address not in users_data[user_id]["ip_addresses"]:
-            users_data[user_id]["ip_addresses"].append(ip_address)
-        
+        if ip_address not in found_object["ip_addresses"]:
+            found_object["ip_addresses"].append(ip_address)
+
         # Ensure all required fields exist for existing users
-        if "terminal_tabs" not in users_data[user_id]:
-            users_data[user_id]["terminal_tabs"] = {
+        if "terminal_tabs" not in found_object:
+            found_object["terminal_tabs"] = {
                 "tabs": ["1"],
                 "active_tab": "1"
             }
         
         # Ensure port information exists (for backward compatibility)
-        if "port_start" not in users_data[user_id] and port_start is not None:
-            users_data[user_id]["port_start"] = port_start
-            users_data[user_id]["port_end"] = port_start + 9
-        
-        # Ensure volume path exists
-        if "volume_path" not in users_data[user_id]:
-            users_data[user_id]["volume_path"] = f"/tmp/uploads/{user_id}"
+        if "port_start" not in found_object and port_start is not None:
+            found_object["port_start"] = port_start
+            found_object["port_end"] = port_start + 9
 
+        # Ensure volume path exists
+        if "volume_path" not in found_object:
+            found_object["volume_path"] = f"/tmp/uploads/{user_id}"
+
+    for item in users_data:
+        if item["id"] == user_id:
+            found_object = item
+            break
     save_users_to_json(users_data)
-    return users_data[user_id]
+    return found_object
 
 
 def get_user_data(user_id):
     """Get user data by user ID"""
     users_data = load_users_from_json()
-    return users_data.get(str(user_id))
+    found_object = None
+    for item in users_data:
+        if item["id"] == 2:
+            found_object = item
+            break
+    return found_object
 
 
 class User(UserMixin):
