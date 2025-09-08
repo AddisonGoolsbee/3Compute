@@ -117,9 +117,9 @@ def mock_flask_dependencies():
     mock_socketio = Mock()
     mock_socketio.emit = Mock()
     
-    with patch('backend.terminal.request', mock_request), \
-         patch('backend.terminal.current_user', mock_user), \
-         patch('backend.terminal.socketio', mock_socketio):
+    with patch('backend.blueprints.terminal.request', mock_request), \
+         patch('backend.blueprints.terminal.current_user', mock_user), \
+         patch('backend.blueprints.terminal.socketio', mock_socketio):
         
         yield {
             'request': mock_request,
@@ -131,7 +131,7 @@ def mock_flask_dependencies():
 def reset_module_state():
     """Reset module state between tests"""
     # Clear session and container maps
-    import backend.terminal as terminal
+    import backend.blueprints.terminal as terminal
     terminal.session_map.clear()
     terminal.user_containers.clear()
     terminal._cleanup_timers.clear()

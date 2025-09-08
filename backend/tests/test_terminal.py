@@ -10,7 +10,7 @@ class TestTerminalModule:
     
     def test_set_winsize(self):
         """Test terminal window size setting"""
-        from backend.terminal import set_winsize
+        from backend.blueprints.terminal import set_winsize
         
         # Mock file descriptor and fcntl
         with patch('fcntl.ioctl') as mock_ioctl, \
@@ -27,7 +27,7 @@ class TestTerminalModule:
     
     def test_session_map_operations(self):
         """Test session mapping operations"""
-        import backend.terminal as terminal
+        import backend.blueprints.terminal as terminal
         
         # Clear session map
         terminal.session_map.clear()
@@ -55,7 +55,7 @@ class TestTerminalModule:
     
     def test_user_containers_operations(self):
         """Test user containers mapping operations"""
-        import backend.terminal as terminal
+        import backend.blueprints.terminal as terminal
         
         # Clear user containers
         terminal.user_containers.clear()
@@ -73,12 +73,12 @@ class TestTerminalModule:
         assert terminal.user_containers[user_id]["container_name"] == "user-container-1"
         assert terminal.user_containers[user_id]["port_range"] == (8000, 8100)
     
-    @patch('backend.terminal.attach_to_container')
-    @patch('backend.terminal.socketio')
+    @patch('backend.blueprints.terminal.attach_to_container')
+    @patch('backend.blueprints.terminal.socketio')
     def test_handle_connect_new_user(self, mock_socketio, mock_attach, mock_flask_dependencies):
         """Test terminal connection for new user"""
-        import backend.terminal as terminal
-        from backend.terminal import handle_connect
+        import backend.blueprints.terminal as terminal
+        from backend.blueprints.terminal import handle_connect
         
         # Clear state
         terminal.session_map.clear()
@@ -87,7 +87,7 @@ class TestTerminalModule:
         # Mock container operations
         mock_attach.return_value = (Mock(), 5)  # proc, fd
         
-        with patch('backend.terminal.spawn_container') as mock_spawn, \
+        with patch('backend.blueprints.terminal.spawn_container') as mock_spawn, \
              patch('backend.docker.container_exists', return_value=False):
             
             mock_spawn.return_value = None
@@ -106,11 +106,11 @@ class TestTerminalModule:
             # Attachment happens later in resize handler, not immediately
             assert terminal.session_map[sid]["container_attached"] is False
     
-    @patch('backend.terminal.os.write')
+    @patch('backend.blueprints.terminal.os.write')
     def test_handle_pty_input(self, mock_write, mock_flask_dependencies):
         """Test PTY input handling"""
-        import backend.terminal as terminal
-        from backend.terminal import handle_pty_input
+        import backend.blueprints.terminal as terminal
+        from backend.blueprints.terminal import handle_pty_input
         
         # Set up session
         sid = mock_flask_dependencies['request'].sid
@@ -131,7 +131,7 @@ class TestTerminalModule:
     
     def test_handle_pty_input_unauthorized(self, mock_flask_dependencies):
         """Test PTY input handling with unauthorized user"""
-        from backend.terminal import handle_pty_input
+        from backend.blueprints.terminal import handle_pty_input
         
         # Mock unauthorized user
         mock_flask_dependencies['user'].is_authenticated = False
@@ -142,12 +142,12 @@ class TestTerminalModule:
         # Should return unauthorized
         assert result == ("Unauthorized", 401)
     
-    @patch('backend.terminal.set_winsize')
-    @patch('backend.terminal.attach_to_container')
+    @patch('backend.blueprints.terminal.set_winsize')
+    @patch('backend.blueprints.terminal.attach_to_container')
     def test_handle_resize(self, mock_attach, mock_set_winsize, mock_flask_dependencies):
         """Test terminal resize handling"""
-        import backend.terminal as terminal
-        from backend.terminal import handle_resize
+        import backend.blueprints.terminal as terminal
+        from backend.blueprints.terminal import handle_resize
         
         # Set up session
         sid = mock_flask_dependencies['request'].sid
@@ -171,7 +171,7 @@ class TestTerminalModule:
     
     def test_cleanup_timers(self):
         """Test cleanup timer management"""
-        import backend.terminal as terminal
+        import backend.blueprints.terminal as terminal
         
         # Clear timers
         terminal._cleanup_timers.clear()
@@ -185,7 +185,7 @@ class TestTerminalModule:
         assert isinstance(terminal._cleanup_timers[user_id], threading.Event)
         
         # Test canceling timer
-        from backend.terminal import _cancel_idle_poller
+        from backend.blueprints.terminal import _cancel_idle_poller
         _cancel_idle_poller(user_id)
         
         # Timer should be set (cancelled)
@@ -197,7 +197,7 @@ class TestTabSessionManagement:
     
     def test_unique_tab_sessions(self):
         """Test that different tabs create separate sessions"""
-        import backend.terminal as terminal
+        import backend.blueprints.terminal as terminal
         
         terminal.session_map.clear()
         
@@ -233,10 +233,10 @@ class TestTabSessionManagement:
         # Test default tab ID
         mock_flask_dependencies['request'].args.get.return_value = None
         
-        from backend.terminal import handle_connect
+        from backend.blueprints.terminal import handle_connect
         
-        with patch('backend.terminal.attach_to_container') as mock_attach, \
-             patch('backend.terminal.spawn_container'), \
+        with patch('backend.blueprints.terminal.attach_to_container') as mock_attach, \
+             patch('backend.blueprints.terminal.spawn_container'), \
              patch('backend.docker.container_exists', return_value=False):
             
             mock_attach.return_value = (Mock(), 5)
@@ -247,8 +247,8 @@ class TestTabSessionManagement:
     
     def test_session_disconnect_cleanup(self, mock_flask_dependencies):
         """Test session cleanup on disconnect"""
-        import backend.terminal as terminal
-        from backend.terminal import handle_disconnect
+        import backend.blueprints.terminal as terminal
+        from backend.blueprints.terminal import handle_disconnect
         
         # Set up session
         sid = mock_flask_dependencies['request'].sid

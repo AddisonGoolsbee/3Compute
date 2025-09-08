@@ -22,11 +22,11 @@ if os.getenv("FLASK_ENV") != "production":
     os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"  # Allow HTTP for development
     logging.getLogger("werkzeug").setLevel(logging.DEBUG)
 
-from .auth import auth_bp, load_user
+from .blueprints.auth import auth_bp, load_user
 ##### END BLOCK
-from .files import files_bp
-from .webhook import webhook_bp
-from .terminal import init_terminal, terminal_bp
+from .blueprints.files import files_bp
+from .blueprints.webhook import webhook_bp
+from .blueprints.terminal import init_terminal, terminal_bp
 from .docker import setup_isolated_network, CONTAINER_USER_UID, CONTAINER_USER_GID
 
 

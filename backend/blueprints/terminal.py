@@ -12,7 +12,7 @@ from flask import request, Blueprint
 from flask_socketio import SocketIO
 from flask_login import current_user
 
-from .docker import attach_to_container, spawn_container, container_is_running
+from ..docker import attach_to_container, spawn_container, container_is_running
 
 logger = logging.getLogger("terminal")
 
@@ -31,7 +31,7 @@ _cleanup_timers: dict[int, threading.Event] = {}
 
 def _discover_existing_containers():
     """Discover existing user containers and restore them to tracking"""
-    from .docker import container_is_running
+    from ..docker import container_is_running
 
     try:
         # Find all containers with the user-container- prefix
@@ -337,7 +337,7 @@ def handle_connect(auth=None):
     container_name = f"user-container-{user_id}"
     if user_id not in user_containers:
         # Check if container already exists and use it
-        from .docker import container_exists, container_is_running
+        from ..docker import container_exists, container_is_running
 
         if container_exists(container_name):
             if container_is_running(container_name):
@@ -380,7 +380,7 @@ def handle_connect(auth=None):
                 return
     else:
         # User has a container tracked, but check if it's actually running
-        from .docker import container_is_running
+        from ..docker import container_is_running
 
         # Update port_range if it was None (from discovery)
         if user_containers[user_id]["port_range"] is None:

@@ -2,7 +2,7 @@ from flask import Blueprint, request
 from flask_login import current_user
 import os
 import subprocess
-from .docker import CONTAINER_USER_UID, CONTAINER_USER_GID
+from ..docker import CONTAINER_USER_UID, CONTAINER_USER_GID
 
 files_bp = Blueprint("upload", __name__)
 

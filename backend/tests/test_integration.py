@@ -15,8 +15,8 @@ class TestTerminalDockerIntegration:
     @patch('subprocess.Popen')
     def test_full_terminal_connection_flow(self, mock_popen, mock_pty, mock_running, mock_flask_dependencies):
         """Test complete terminal connection workflow"""
-        import backend.terminal as terminal
-        from backend.terminal import handle_connect
+        import backend.blueprints.terminal as terminal
+        from backend.blueprints.terminal import handle_connect
         
         # Configure docker mocks
         mock_running.return_value = True
@@ -29,7 +29,7 @@ class TestTerminalDockerIntegration:
         terminal.user_containers.clear()
         
         with patch('backend.docker.container_exists', return_value=True), \
-             patch('backend.terminal.attach_to_container') as mock_attach:
+             patch('backend.blueprints.terminal.attach_to_container') as mock_attach:
             
             # Configure mocks
             mock_flask_dependencies['user'].id = 1
@@ -54,8 +54,8 @@ class TestTerminalDockerIntegration:
 
     def test_container_spawning_integration(self, mock_flask_dependencies):
         """Test container spawning when not exists"""
-        import backend.terminal as terminal
-        from backend.terminal import handle_connect
+        import backend.blueprints.terminal as terminal
+        from backend.blueprints.terminal import handle_connect
         
         terminal.session_map.clear()
         terminal.user_containers.clear()
@@ -63,7 +63,7 @@ class TestTerminalDockerIntegration:
         with patch('backend.docker.container_exists', return_value=False), \
              patch('backend.docker.container_is_running', return_value=False), \
              patch('backend.docker.spawn_container') as mock_spawn, \
-             patch('backend.terminal.attach_to_container') as mock_attach, \
+             patch('backend.blueprints.terminal.attach_to_container') as mock_attach, \
              patch('subprocess.run') as mock_subprocess, \
              patch('backend.docker.prepare_user_directory') as mock_prepare:
             
@@ -98,14 +98,14 @@ class TestAuthFileIntegration:
     
     def test_user_data_persistence(self, temp_file):
         """Test user data storage and retrieval"""
-        from backend.auth import update_user_data, get_user_data
+        from backend.blueprints.auth import update_user_data, get_user_data
         
         # Test data
         user_info = {
             'email': 'test@example.com'
         }
         
-        with patch('backend.auth.USERS_JSON_FILE', temp_file):
+        with patch('backend.blueprints.auth.USERS_JSON_FILE', temp_file):
             # Store user data
             update_user_data('test-user-123', user_info, '127.0.0.1', 8000)
             
@@ -119,7 +119,7 @@ class TestAuthFileIntegration:
     
     def test_multiple_users_data_persistence(self, temp_file):
         """Test multiple users data storage"""
-        from backend.auth import update_user_data, get_user_data
+        from backend.blueprints.auth import update_user_data, get_user_data
         
         users = [
             {'id': '1', 'email': 'user1@test.com'},
@@ -127,7 +127,7 @@ class TestAuthFileIntegration:
             {'id': '3', 'email': 'user3@test.com'}
         ]
         
-        with patch('backend.auth.USERS_JSON_FILE', temp_file):
+        with patch('backend.blueprints.auth.USERS_JSON_FILE', temp_file):
             # Store multiple users
             for i, user in enumerate(users):
                 update_user_data(user['id'], {'email': user['email']}, '192.168.1.1', 8000 + i * 10)
@@ -146,8 +146,8 @@ class TestTerminalAuthIntegration:
     
     def test_authenticated_user_terminal_access(self, mock_flask_dependencies):
         """Test terminal access for authenticated users"""
-        import backend.terminal as terminal
-        from backend.terminal import handle_pty_input
+        import backend.blueprints.terminal as terminal
+        from backend.blueprints.terminal import handle_pty_input
         
         terminal.session_map.clear()
         
@@ -176,7 +176,7 @@ class TestTerminalAuthIntegration:
     
     def test_unauthenticated_user_terminal_denial(self, mock_flask_dependencies):
         """Test terminal access denial for unauthenticated users"""
-        from backend.terminal import handle_pty_input
+        from backend.blueprints.terminal import handle_pty_input
         
         # Setup unauthenticated user
         mock_flask_dependencies['user'].is_authenticated = False
@@ -196,8 +196,8 @@ class TestFullWorkflowIntegration:
     @patch('subprocess.Popen')
     def test_complete_user_workflow(self, mock_popen, mock_pty, mock_run, mock_flask_dependencies):
         """Test complete user workflow from auth to terminal"""
-        import backend.terminal as terminal
-        from backend.terminal import handle_connect, handle_pty_input, handle_disconnect
+        import backend.blueprints.terminal as terminal
+        from backend.blueprints.terminal import handle_connect, handle_pty_input, handle_disconnect
         
         # Configure Docker mocks
         mock_run.return_value = Mock(returncode=0, stdout='running\n')
@@ -209,7 +209,7 @@ class TestFullWorkflowIntegration:
         terminal.user_containers.clear()
         
         with patch('backend.docker.container_exists', return_value=True), \
-             patch('backend.terminal.attach_to_container') as mock_attach, \
+             patch('backend.blueprints.terminal.attach_to_container') as mock_attach, \
              patch('os.write') as mock_write, \
              patch('os.close') as mock_close:
             
@@ -226,7 +226,7 @@ class TestFullWorkflowIntegration:
             assert 'workflow-session' in terminal.session_map
             
             # Step 1.5: Simulate terminal resize which triggers attachment
-            from backend.terminal import handle_resize
+            from backend.blueprints.terminal import handle_resize
             resize_data = {'rows': 24, 'cols': 80}
             handle_resize(resize_data)
             
@@ -242,15 +242,15 @@ class TestFullWorkflowIntegration:
     
     def test_multi_tab_user_session(self, mock_flask_dependencies):
         """Test user with multiple terminal tabs"""
-        import backend.terminal as terminal
-        from backend.terminal import handle_connect
+        import backend.blueprints.terminal as terminal
+        from backend.blueprints.terminal import handle_connect
         
         terminal.session_map.clear()
         
         with patch('backend.docker.container_exists', return_value=True), \
              patch('backend.docker.container_is_running', return_value=True), \
              patch('subprocess.run') as mock_subprocess, \
-             patch('backend.terminal.attach_to_container') as mock_attach:
+             patch('backend.blueprints.terminal.attach_to_container') as mock_attach:
             
             mock_subprocess.return_value = Mock(returncode=0)
             mock_flask_dependencies['user'].id = 6
@@ -287,8 +287,8 @@ class TestErrorHandlingIntegration:
     
     def test_docker_failure_handling(self, mock_flask_dependencies):
         """Test handling of Docker operation failures"""
-        import backend.terminal as terminal
-        from backend.terminal import handle_connect
+        import backend.blueprints.terminal as terminal
+        from backend.blueprints.terminal import handle_connect
         
         terminal.session_map.clear()
         terminal.user_containers.clear()
@@ -296,9 +296,9 @@ class TestErrorHandlingIntegration:
         with patch('backend.docker.container_exists', return_value=False), \
              patch('backend.docker.container_is_running', return_value=False), \
              patch('subprocess.run') as mock_subprocess, \
-             patch('backend.terminal.spawn_container', side_effect=Exception("Docker error")), \
+             patch('backend.blueprints.terminal.spawn_container', side_effect=Exception("Docker error")), \
              patch('backend.docker.prepare_user_directory') as mock_prepare, \
-             patch('backend.terminal.socketio'):
+             patch('backend.blueprints.terminal.socketio'):
             
             mock_subprocess.return_value = Mock(returncode=0)
             mock_prepare.return_value = None
@@ -323,12 +323,12 @@ class TestErrorHandlingIntegration:
     
     def test_file_operation_error_handling(self, temp_file):
         """Test handling of file operation errors"""
-        from backend.auth import get_user_data
+        from backend.blueprints.auth import get_user_data
         
         # Remove the temp file to simulate error
         os.unlink(temp_file)
         
-        with patch('backend.auth.USERS_JSON_FILE', temp_file):
+        with patch('backend.blueprints.auth.USERS_JSON_FILE', temp_file):
             # Should handle missing file gracefully
             result = get_user_data('nonexistent-user')
             assert result is None

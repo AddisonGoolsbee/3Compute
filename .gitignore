@@ -6,6 +6,7 @@ __pycache__
 scratch/
 .react-router/
 backend/users.json
+backend/classrooms.json
 frontend/build/
 
 # Testing

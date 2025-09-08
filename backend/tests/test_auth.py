@@ -11,12 +11,14 @@ class TestAuthModule:
     
     def test_user_class_properties(self):
         """Test User class basic properties"""
-        from backend.auth import User
+        from backend.blueprints.auth import User
         
-        user = User('123', 'test@example.com', 8000)
+        user = User('123', 'test@example.com', 'Test User', 'https://example.com/test_user.png', 8000)
         
         assert user.id == '123'
         assert user.email == 'test@example.com'
+        assert user.name == 'Test User'
+        assert user.picture == 'https://example.com/test_user.png'
         assert user.port_start == 8000
         assert user.port_end == 8009  # port_start + 9
         assert user.port_range == (8000, 8009)
@@ -26,16 +28,16 @@ class TestAuthModule:
     
     def test_user_get_id(self):
         """Test User.get_id method"""
-        from backend.auth import User
+        from backend.blueprints.auth import User
         
-        user = User('test-user-456', 'test@example.com', 8010)
+        user = User('test-user-456', 'test@example.com', 'Test User', 'https://example.com/test_user.png', 8010)
         assert user.get_id() == 'test-user-456'
     
     @patch('builtins.open')
     @patch('os.path.exists')
     def test_update_user_data_new_user(self, mock_exists, mock_open):
         """Test updating user data for new user"""
-        from backend.auth import update_user_data
+        from backend.blueprints.auth import update_user_data
         
         # Mock file doesn't exist
         mock_exists.return_value = False
@@ -48,6 +50,7 @@ class TestAuthModule:
             'id': 123,
             'login': 'testuser',
             'name': 'Test User',
+            'picture': 'https://example.com/test_user.png',
             'email': 'test@example.com'
         }
         
@@ -61,7 +64,7 @@ class TestAuthModule:
     @patch('os.path.exists')
     def test_update_user_data_existing_user(self, mock_exists, mock_open):
         """Test updating user data for existing user"""
-        from backend.auth import update_user_data
+        from backend.blueprints.auth import update_user_data
         
         # Mock file exists
         mock_exists.return_value = True
@@ -103,7 +106,7 @@ class TestAuthModule:
     
     def test_get_user_data(self, temp_file):
         """Test get_user_data function"""
-        from backend.auth import get_user_data, update_user_data
+        from backend.blueprints.auth import get_user_data, update_user_data
         
         # Setup test data
         user_info = {
@@ -113,7 +116,7 @@ class TestAuthModule:
             'email': 'test@example.com'
         }
         
-        with patch('backend.auth.USERS_JSON_FILE', temp_file):
+        with patch('backend.blueprints.auth.USERS_JSON_FILE', temp_file):
             # Create user data first
             update_user_data(123, user_info, '192.168.1.1', 8000)
             
@@ -126,18 +129,18 @@ class TestAuthModule:
     
     def test_get_user_data_nonexistent(self, temp_file):
         """Test get_user_data with non-existent user"""
-        from backend.auth import get_user_data
+        from backend.blueprints.auth import get_user_data
         
-        with patch('backend.auth.USERS_JSON_FILE', temp_file):
+        with patch('backend.blueprints.auth.USERS_JSON_FILE', temp_file):
             result = get_user_data(999)
             assert result is None
     
-    @patch('backend.auth.users')
+    @patch('backend.blueprints.auth.users')
     def test_load_user_existing(self, mock_users):
         """Test loading existing user"""
-        from backend.auth import load_user, User
+        from backend.blueprints.auth import load_user, User
         
-        mock_user = User('123', 'test@example.com', 8000)
+        mock_user = User('123', 'test@example.com', 'Test User', 'https://example.com/test_user.png', 8000)
         mock_users.get.return_value = mock_user
         
         result = load_user('123')
@@ -145,10 +148,10 @@ class TestAuthModule:
         assert result == mock_user
         mock_users.get.assert_called_once_with('123')
     
-    @patch('backend.auth.users')
+    @patch('backend.blueprints.auth.users')
     def test_load_user_nonexistent(self, mock_users):
         """Test loading non-existent user"""
-        from backend.auth import load_user
+        from backend.blueprints.auth import load_user
         
         mock_users.get.return_value = None
         
@@ -160,12 +163,12 @@ class TestAuthModule:
 class TestAuthRoutes:
     """Test cases for authentication routes"""
     
-    @patch('backend.auth.OAuth2Session')
-    @patch('backend.auth.GOOGLE_CLIENT_ID', 'test-client-id')
-    @patch('backend.auth.FRONTEND_ORIGIN', 'http://localhost:3000')
+    @patch('backend.blueprints.auth.OAuth2Session')
+    @patch('backend.blueprints.auth.GOOGLE_CLIENT_ID', 'test-client-id')
+    @patch('backend.blueprints.auth.FRONTEND_ORIGIN', 'http://localhost:3000')
     def test_login_route(self, mock_oauth, flask_app):
         """Test login route generates correct OAuth URL"""
-        from backend.auth import login
+        from backend.blueprints.auth import login
         
         # Mock OAuth session
         mock_session = Mock()
@@ -183,11 +186,11 @@ class TestAuthRoutes:
             # Check that result is a redirect (Flask response object)
             assert hasattr(result, 'status_code')
     
-    @patch('backend.auth.OAuth2Session')
-    @patch('backend.auth.update_user_data')
+    @patch('backend.blueprints.auth.OAuth2Session')
+    @patch('backend.blueprints.auth.update_user_data')
     def test_callback_route_success(self, mock_update_user, mock_oauth, flask_app):
         """Test successful OAuth callback"""
-        from backend.auth import callback
+        from backend.blueprints.auth import callback
         
         # Mock OAuth session
         mock_session = Mock()
@@ -205,7 +208,7 @@ class TestAuthRoutes:
             session['oauth_state'] = 'state123'
             
             with patch('flask_login.login_user') as mock_login_user, \
-                 patch('backend.auth.users', {}), \
+                 patch('backend.blueprints.auth.users', {}), \
                  patch('flask.request') as mock_flask_request:
                 
                 # Mock the request object properly
@@ -227,10 +230,10 @@ class TestAuthRoutes:
     
     def test_logout_route(self, flask_app):
         """Test logout route"""
-        from backend.auth import logout
+        from backend.blueprints.auth import logout
         
         with flask_app.test_request_context():
-            with patch('backend.auth.logout_user') as mock_logout:
+            with patch('backend.blueprints.auth.logout_user') as mock_logout:
                 result = logout()
                 
                 # Verify logout was called
@@ -245,12 +248,12 @@ class TestPortAllocation:
     
     def test_port_range_calculation(self):
         """Test port range calculation based on user ID"""
-        from backend.auth import User
+        from backend.blueprints.auth import User
         
         # Test different user IDs generate different port ranges
-        user1 = User('1', 'user1@example.com', 8000)
-        user2 = User('2', 'user2@example.com', 8010)
-        
+        user1 = User('1', 'user1@example.com', 'Test User', 'https://example.com/test_user.png', 8000)
+        user2 = User('2', 'user2@example.com', 'Test User 2', 'https://example.com/test_user_2.png', 8010)
+
         # Port ranges should be different for different users
         # Test that port_range property works correctly
         assert user1.port_start == 8000
@@ -265,9 +268,9 @@ class TestPortAllocation:
     
     def test_port_range_bounds(self):
         """Test port range stays within valid bounds"""
-        from backend.auth import User
-        
-        user = User('999', 'user999@example.com', 8000)
+        from backend.blueprints.auth import User
+
+        user = User('999', 'user999@example.com', 'Test User 999', 'https://example.com/test_user_999.png', 8000)
         # Test that port_end is calculated correctly (port_start + 9)
         assert user.port_start == 8000
         assert user.port_end == 8009
