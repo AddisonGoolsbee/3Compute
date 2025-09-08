@@ -12,6 +12,8 @@ const mockIo = (globalThis as any).mockIo;
 const mockUserData = {
   userInfo: {
     email: 'testuser@example.com',
+    name: 'Test User',
+    picture: 'https://example.com/profile.jpg',
     port_start: 8000,
     port_end: 8100,
   },
@@ -22,6 +24,8 @@ const mockUserData = {
   currentFile: undefined,
   setCurrentFile: vi.fn(),
   refreshFiles: vi.fn(),
+  contextMenu: { visible: false, x: 0, y: 0 },
+  setContextMenu: vi.fn(),
 };
 
 const renderWithContext = (component: React.ReactElement) => {
