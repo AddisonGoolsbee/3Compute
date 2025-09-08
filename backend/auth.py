@@ -106,9 +106,12 @@ def get_user_data(user_id):
 
 
 class User(UserMixin):
-    def __init__(self, id_, email, port_start):
+    def __init__(self, id_, email, name, picture, port_start):
         self.id = id_
         self.email = email
+        self.name = name
+        self.picture = picture
+
         self.port_start = port_start
 
     @property
@@ -175,7 +178,7 @@ def callback():
     # Update user data in JSON file
     update_user_data(user_info["id"], user_info, request.remote_addr, port_start)
 
-    user = User(user_info["id"], user_info["email"], port_start)
+    user = User(user_info["id"], user_info["email"], user_info["name"], user_info["picture"], port_start)
     users[user.id] = user
     login_user(user)
     logger.info(f"User {user.id} logged in from IP {request.remote_addr}")
@@ -191,7 +194,13 @@ def logout():
 @auth_bp.route("/me")
 def me():
     if current_user.is_authenticated:
-        return {"email": current_user.email, "port_start": current_user.port_start, "port_end": current_user.port_end}
+        return {
+            "email": current_user.email,
+            "name": current_user.name,
+            "picture": current_user.picture,
+            "port_start": current_user.port_start,
+            "port_end": current_user.port_end
+        }
     return {"error": "unauthenticated"}, 401
 
 

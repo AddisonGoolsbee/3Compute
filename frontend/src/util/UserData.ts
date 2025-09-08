@@ -3,6 +3,8 @@ import { fetchFilesList, Files, FileType } from './Files';
 
 export interface UserInfo {
   email: string;
+  picture?: string;
+  name: string;
   port_start: number;
   port_end: number;
 }

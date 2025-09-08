@@ -24,7 +24,10 @@ export default function TemplateButton() {
 
   const handleUseTemplate = async (templateName: string) => {
     if (!templateName) return;
-    setStatus('Uploading template…');
+    setStatus({
+      type: 'info',
+      message: 'Uploading template…',
+    });
 
     const files = manifest[templateName] || [];
     const formData = new FormData();
@@ -78,7 +81,10 @@ export default function TemplateButton() {
         throw new Error(`Upload failed: ${res.status} ${errorText}`);
       }
 
-      setStatus('Template uploaded!');
+      setStatus({
+        type: 'success',
+        message: 'Template uploaded!',
+      });
       await userData.refreshFiles();
 
       // Expand the uploaded template folder and select README in the explorer
@@ -97,11 +103,12 @@ export default function TemplateButton() {
       });
     } catch (error) {
       console.error('Template upload error:', error);
-      setStatus(
-        `Upload failed: ${
+      setStatus({
+        type: 'error',
+        message: `Upload failed: ${
           error instanceof Error ? error.message : 'Unknown error'
         }`,
-      );
+      });
     }
 
     setTimeout(() => setStatus(null), 1000);
@@ -115,6 +122,7 @@ export default function TemplateButton() {
 
   return <SelectMenuRaw
     id="template-select"
+    btnClass="lum-btn-p-1 lum-bg-transparent text-sm"
     className="lum-btn-p-1 rounded-lum-2 gap-1 text-xs lum-bg-blue-950 hover:lum-bg-blue-900 w-full"
     value={selected}
     onChange={(e: ChangeEvent<HTMLSelectElement>) => {

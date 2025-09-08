@@ -91,9 +91,13 @@ export async function fetchFilesList() {
   return files;
 }
 
+export type Status = {
+  type: 'error' | 'success' | 'info';
+  message: string;
+} | null
 export interface StatusContextType {
-  status: string | null;
-  setStatus: (status: string | null) => void;
+  status: Status;
+  setStatus: (status: Status) => void;
 }
 
 export const StatusContext = createContext<StatusContextType>({

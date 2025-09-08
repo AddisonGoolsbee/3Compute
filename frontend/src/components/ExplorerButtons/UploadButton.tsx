@@ -17,7 +17,10 @@ export default function UploadButton() {
   const handleFiles = async (fileList: FileList | null, isFolder: boolean) => {
     if (!fileList || fileList.length === 0) return;
 
-    setStatus('Uploading...');
+    setStatus({
+      type: 'info',
+      message: 'Uploading...',
+    });
     // Force remount of the dropdown to collapse it
     setMenuKey((k) => k + 1);
 
@@ -42,16 +45,28 @@ export default function UploadButton() {
         signal: controller.signal,
       });
 
-      setStatus(res.ok ? 'Upload successful' : 'Upload failed');
+      setStatus(res.ok ? {
+        type: 'success',
+        message: 'Upload successful',
+      } : {
+        type: 'error',
+        message: 'Upload failed',
+      });
       if (res.status === 413) {
-        setStatus('Failed: File too large');
+        setStatus({
+          type: 'error',
+          message: 'Failed: File too large',
+        });
       }
       if (res.ok) {
         await userData.refreshFiles();
       }
-    } catch {
+    } catch (error) {
       // Network error, timeout, or abort
-      setStatus('Upload failed: network error');
+      setStatus({
+        type: 'error',
+        message: `Upload failed: ${error instanceof Error ? error.message : 'unknown error'}`,
+      });
     } finally {
       clearTimeout(timeoutId);
       setTimeout(() => setStatus(null), 1000);

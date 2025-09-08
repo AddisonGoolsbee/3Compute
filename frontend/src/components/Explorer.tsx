@@ -1,16 +1,16 @@
 import { useContext, useState } from 'react';
-import { FolderIcon } from 'lucide-react';
+import { Check, FolderIcon, X } from 'lucide-react';
 import { backendUrl, defaultUserData, UserDataContext } from '../util/UserData';
 import UploadButton from './ExplorerButtons/UploadButton';
 import NewButton from './ExplorerButtons/NewButton';
 import MenuItems from './MenuItems';
 import TemplateButton from './ExplorerButtons/TemplateButton';
 import { getClasses } from '@luminescent/ui-react';
-import { StatusContext } from '../util/Files';
+import { Status, StatusContext } from '../util/Files';
 
 export default function Explorer() {
   const userData = useContext(UserDataContext);
-  const [status, setStatus] = useState<string | null>(null);
+  const [status, setStatus] = useState<Status>(null);
 
   return <StatusContext value={{ status, setStatus }}>
     <div className="flex max-w-1/4 flex-1 flex-col lum-card gap-1 p-1 lum-bg-gray-950 border-lum-border/30">
@@ -38,9 +38,15 @@ export default function Explorer() {
         'transition-all duration-500 flex items-center gap-2 p-1 pl-2 lum-bg-gray-900 rounded-lum-1 rounded-t-sm': true,
         '-mt-8 opacity-0 pointer-events-none': !status,
       })}>
-        <div className="lum-loading w-4 h-4 m-0.5 border-2" />
+        <div className="h-4 -mr-2" />
+        {status?.type === 'info'
+          && <div className="lum-loading w-4 h-4 m-0.5 border-2" /> }
+        {status?.type === 'success'
+          && <Check size={16} /> }
+        {status?.type === 'error'
+          && <X size={16} /> }
         <span className="flex-1">
-          {status}
+          {status?.message}
         </span>
       </div>
       <div

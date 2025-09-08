@@ -1,5 +1,5 @@
-import { Nav, LogoBirdflop } from '@luminescent/ui-react';
-import { LogOut } from 'lucide-react';
+import { Nav, LogoBirdflop, SelectMenuRaw } from '@luminescent/ui-react';
+import { LogOut, User } from 'lucide-react';
 import { useContext } from 'react';
 import { Link } from 'react-router';
 import { backendUrl, UserDataContext } from '../util/UserData';
@@ -28,13 +28,39 @@ export default function NavComponent() {
       end={
         <>
           {userData?.userInfo && (
-            <button
-              onClick={handleLogout}
-              className="lum-btn lum-bg-transparent text-red-300 hover:lum-bg-red-700"
-            >
-              <LogOut size={20} />
-              Log out
-            </button>
+            <SelectMenuRaw className="lum-bg-transparent"
+              customDropdown dropdown={
+                <div className="flex gap-3 items-center">
+                  {userData.userInfo.picture &&
+                    <img
+                      src={userData.userInfo.picture}
+                      alt="User Avatar"
+                      className="w-6 h-6 rounded-full"
+                    />
+                  }
+                  {userData.userInfo.name ||
+                    userData.userInfo.email ||
+                    'User'}
+                </div>
+              }
+              extra-buttons={<>
+                <a
+                  href="/profile"
+                  onClick={handleLogout}
+                  className="lum-btn lum-bg-transparent rounded-lum-1"
+                >
+                  <User size={20} />
+                  Profile
+                </a>
+                <button
+                  onClick={handleLogout}
+                  className="lum-btn lum-bg-transparent rounded-lum-1 hover:lum-bg-red-700"
+                >
+                  <LogOut size={20} />
+                  Log out
+                </button>
+              </>}
+            />
           )}
         </>
       }
