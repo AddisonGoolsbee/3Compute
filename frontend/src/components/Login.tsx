@@ -1,7 +1,6 @@
 import { SiGoogle } from '@icons-pack/react-simple-icons';
-import { LogoBirdflop, SelectMenuRaw } from '@luminescent/ui-react';
+import { LogoBirdflop } from '@luminescent/ui-react';
 import { backendUrl } from '../util/UserData';
-import { School } from 'lucide-react';
 import FourSquares from './4Squares';
 
 export default function Login() {
@@ -19,40 +18,19 @@ export default function Login() {
             Sign in with:
           </p>
           <a
-            className="lum-btn lum-btn-p-3 lum-bg-blue-900 hover:lum-bg-blue-700 mb-2"
+            className="lum-btn lum-btn-p-3 lum-bg-gray-900 hover:lum-bg-gray-700 mb-2"
             href={`${backendUrl}/login?type=google`}
           >
             <SiGoogle size={20} />
             Google
           </a>
           <a
-            className="lum-btn lum-btn-p-3 lum-bg-blue-900 hover:lum-bg-blue-700 mb-2"
+            className="lum-btn lum-btn-p-3 lum-bg-gray-900 hover:lum-bg-gray-700 mb-2"
             href={`${backendUrl}/login?type=microsoft`}
           >
             <FourSquares size={20} />
             Microsoft
           </a>
-          <SelectMenuRaw customDropdown className="lum-btn-p-3 lum-bg-transparent hover:lum-bg-gray-700"
-            dropdown={<div className="flex gap-3 items-center">
-              <School size={20} />
-              Sign in as a teacher
-            </div>}
-            extra-buttons={<>
-              <a
-                className="lum-btn rounded-lum-1 lum-bg-transparent"
-                href={`${backendUrl}/login?type=google?teacher=true`}
-              >
-                <SiGoogle size={20} />
-                Google
-              </a>
-              <a
-                className="lum-btn rounded-lum-1 lum-bg-transparent"
-                href={`${backendUrl}/login?type=microsoft?teacher=true`}
-              >
-                <FourSquares size={20} />
-                Microsoft
-              </a>
-            </>}/>
         </div>
       </div>
     </div>
