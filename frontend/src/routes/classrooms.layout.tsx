@@ -55,7 +55,7 @@ export default function Layout() {
           </p>
 
           <hr/>
-          <form className="flex flex-col gap-2">
+          <form className="flex flex-col gap-2" id="create-classroom-form" method="dialog">
             <label htmlFor="classroom-name">
               Classroom name
             </label>
@@ -77,7 +77,7 @@ export default function Layout() {
             }}>
               <X size={20} /> Cancel
             </button>
-            <button form="publish-preset-form" className="lum-btn lum-bg-green-900/50 hover:lum-bg-green-900" id="publish-preset">
+            <button form="create-classroom-form" className="lum-btn lum-bg-green-900/50 hover:lum-bg-green-900" id="create-classroom">
               <Save size={20} /> Create Classroom
             </button>
           </div>
