@@ -1,37 +1,15 @@
 import Editor from '../components/Editor';
-import { useContext, useState, useEffect, ReactNode } from 'react';
+import { useContext, ReactNode } from 'react';
 import { UserDataContext } from '../util/UserData';
 import Explorer from '../components/Explorer';
-import { getClasses } from '@luminescent/ui-react';
+import BlurOverlay from '../components/BlurOverlay';
 
 export default function Layout({ children }: { children?: ReactNode }) {
   const userData = useContext(UserDataContext);
-  const [showOverlay, setShowOverlay] = useState(true);
-  const [isVisible, setIsVisible] = useState(true);
-
-  useEffect(() => {
-    if (userData.userInfo) {
-      setIsVisible(false);
-      const timer = setTimeout(() => {
-        setShowOverlay(false);
-      }, 200);
-      return () => clearTimeout(timer);
-    } else {
-      setShowOverlay(true);
-      setIsVisible(true);
-    }
-  }, [userData]);
 
   return (
     <>
-      {showOverlay && (
-        <div
-          className={getClasses({
-            'h-screen w-screen fixed top-0 left-0 backdrop-blur-lg bg-gray-900/50 z-10 transition-opacity duration-200': true,
-            'opacity-0': !isVisible,
-          })}
-        />
-      )}
+      <BlurOverlay />
       <div className="h-[calc(100svh-6rem)] flex flex-col gap-1 items-center justify-center max-w-6xl mx-auto">
         <div className="flex flex-1 h-10 w-full gap-1">
           <Explorer />
