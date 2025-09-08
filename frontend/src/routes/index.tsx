@@ -1,6 +1,6 @@
 import TerminalTabs from '../components/Terminal';
 import Login from '../components/Login';
-import Layout from '../Layout';
+import Layout from './index.layout';
 import { useContext } from 'react';
 import { UserDataContext } from '../util/UserData';
 

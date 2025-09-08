@@ -1,7 +1,7 @@
 import { ReactNode, useCallback, useEffect, useRef, useState } from 'react';
 import { Links, Meta, Outlet, Scripts, ScrollRestoration, useLoaderData } from 'react-router';
 import NavComponent from './components/Nav';
-import { default as HomeLayout } from './Layout';
+import IndexLayout from './routes/index.layout';
 import { UserData, UserDataContext, clientLoader } from './util/UserData';
 import { fetchFilesList, Files, FileType } from './util/Files';
 
@@ -10,7 +10,7 @@ export { clientLoader };
 
 // HydrateFallback is rendered while the client loader is running
 export function HydrateFallback() {
-  return <HomeLayout />;
+  return <IndexLayout />;
 }
 
 export function Layout({ children }: { children: ReactNode }) {
