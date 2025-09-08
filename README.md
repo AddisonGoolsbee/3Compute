@@ -30,7 +30,7 @@ Birdflop service for free educational server usage, with templates such as disco
 ./run-tests.sh
 
 # Backend tests only
-cd backend && pytest --cov=. --cov-report=term-missing
+python -m pytest backend/ --cov=backend --cov-report=term-missing
 
 # Frontend tests only  
 cd frontend && pnpm test:coverage

@@ -58,5 +58,4 @@ jobs:
       - name: Run backend tests
         run: |
           source .venv/bin/activate
-          cd backend
-          python -m pytest --cov=. --cov-report=xml --cov-report=term-missing
+          python -m pytest /backend --cov=backend --cov-report=xml --cov-report=term-missing
