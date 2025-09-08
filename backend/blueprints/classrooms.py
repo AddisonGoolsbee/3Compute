@@ -88,9 +88,11 @@ def get_classroom_data(classroom_code):
 
 
 class Classroom():
-    def __init__(self, classroom_code, email, name, picture, port_start):
-        self.classroom_code = classroom_code
+    def __init__(self, _id, email, name, description, port_start):
+        self.classroom_code = _id
         self.teachers = [email]
+        self.name = name
+        self.description = description
         self.users = {}
         self.invites = []
         self.volume_path = f"/tmp/uploads/{classroom_code}"
@@ -105,5 +107,26 @@ class Classroom():
         return (self.port_start, self.port_end)
 
 
-def load_classroom(classroom_code):
-    return classrooms.get(classroom_code)
+@classrooms_bp.route("/classrooms", methods=["POST"])
+def create_classroom():
+    """Create a new classroom"""
+    if not current_user.is_authenticated:
+        return {"error": "Unauthorized"}, 401
+    
+    try:
+        data = request.get_json()
+        if not data or "name" not in data or "description" not in data:
+            return {"error": "Invalid data format. Expected 'name' and 'description'."}, 400
+
+        # Create a new classroom object
+        classroom = Classroom(str(uuid.uuid4()), current_user.email, data["name"], data["description"], PORT_BASE)
+
+        # Save the new classroom
+        classrooms[classroom.classroom_code] = classroom
+        save_classrooms_to_json(classrooms)
+
+        return {"success": True, "classroom": classroom.classroom_code}, 201
+
+    except Exception as e:
+        logger.error(f"Error creating classroom: {e}")
+        return {"error": "Internal server error"}, 500

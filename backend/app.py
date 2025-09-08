@@ -24,6 +24,7 @@ if os.getenv("FLASK_ENV") != "production":
 
 from .blueprints.auth import auth_bp, load_user
 ##### END BLOCK
+from .blueprints.classrooms import classrooms_bp
 from .blueprints.files import files_bp
 from .blueprints.webhook import webhook_bp
 from .blueprints.terminal import init_terminal, terminal_bp
