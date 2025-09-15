@@ -1,0 +1,38 @@
+{
+  "1": {
+    "email": "dev@example.com",
+    "first_login": "2025-09-13T22:01:14-07:00",
+    "last_login": "2025-09-13T22:01:14-07:00",
+    "ip_addresses": [
+      "127.0.0.1"
+    ],
+    "login_count": 1,
+    "port_start": 10000,
+    "port_end": 10009,
+    "volume_path": "/tmp/uploads/1",
+    "terminal_tabs": {
+      "tabs": [
+        "1"
+      ],
+      "active_tab": "1"
+    }
+  },
+  "123": {
+    "email": "test@example.com",
+    "first_login": "2025-09-13T21:47:16-07:00",
+    "last_login": "2025-09-13T22:02:23-07:00",
+    "ip_addresses": [
+      "127.0.0.1"
+    ],
+    "login_count": 9,
+    "port_start": 10000,
+    "port_end": 10009,
+    "volume_path": "/tmp/uploads/123",
+    "terminal_tabs": {
+      "tabs": [
+        "1"
+      ],
+      "active_tab": "1"
+    }
+  }
+}
