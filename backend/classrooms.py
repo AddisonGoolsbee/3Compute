@@ -67,6 +67,11 @@ def _ensure_classroom_dirs(classroom_id: str):
     return base
 
 
+def _user_is_instructor(classroom: dict, user_id: str) -> bool:
+    """Return True if the given user_id is an instructor for the classroom."""
+    return user_id in classroom.get("instructors", [])
+
+
 @classrooms_bp.route("/classrooms", methods=["GET"])
 def list_classrooms():
     if not current_user.is_authenticated:
@@ -158,18 +163,26 @@ def join_classroom():
         if not target:
             # Delay response slightly could be client-side; we keep backend fast
             return {"error": "Invalid code"}, 404
+        # Normalize user id to string for consistent comparisons
+        user_id_str = str(current_user.id)
+        # Prevent instructors from attempting to "join" their own classroom as a participant.
+        if _user_is_instructor(target, user_id_str):
+            return {"error": "You are the instructor of this classroom"}, 400
+        # If already a participant, block with distinct message
+        if user_id_str in [str(u) for u in target.get("participants", [])]:
+            return {"error": "You already joined this classroom"}, 400
         # Add user as participant if not already instructor/participant
         changed = False
-        if current_user.id not in target.get("instructors", []) and current_user.id not in target.get(
-            "participants", []
-        ):
-            target.setdefault("participants", []).append(current_user.id)
+        if user_id_str not in [str(u) for u in target.get("instructors", [])] and user_id_str not in [
+            str(u) for u in target.get("participants", [])
+        ]:
+            target.setdefault("participants", []).append(user_id_str)
             data[target["id"]] = target
             _save_classrooms(data)
             changed = True
         # Restart container to include participant classroom mount/symlink
-        user_id = current_user.id
-        container_name = f"user-container-{user_id}"
+        user_id = current_user.id  # keep original type for container naming
+        container_name = f"user-container-{user_id_str}"
         restarted = False
         port_range = getattr(current_user, "port_range", None)
         if container_exists(container_name):

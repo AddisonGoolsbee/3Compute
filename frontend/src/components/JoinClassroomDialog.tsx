@@ -35,7 +35,17 @@ export default function JoinClassroomDialog({ open, onClose }: Props) {
         body: JSON.stringify({ code: trimmed }),
       });
       if (!res.ok) {
-        setError("that code is invalid");
+        // Try to read specific error message from backend
+        try {
+          const errData = await res.json();
+          if (errData?.error) {
+            setError(errData.error.toLowerCase());
+          } else {
+            setError("that code is invalid");
+          }
+        } catch {
+          setError("that code is invalid");
+        }
         setSubmitting(false);
         return;
       }
