@@ -22,10 +22,10 @@ CONTAINER_USER_GID = 995
 def prepare_user_directory(user_id):
     """Ensure user directory exists with correct ownership before container creation"""
     user_dir = f"/tmp/uploads/{user_id}"
-    
+
     # Create the directory if it doesn't exist
     os.makedirs(user_dir, exist_ok=True)
-    
+
     # Set ownership to match container user
     try:
         os.chown(user_dir, CONTAINER_USER_UID, CONTAINER_USER_GID)
@@ -33,6 +33,14 @@ def prepare_user_directory(user_id):
         logger.debug(f"Set ownership of {user_dir} to UID {CONTAINER_USER_UID}")
     except OSError as e:
         logger.warning(f"Failed to set ownership for {user_dir}: {e}")
+
+
+def volume_exists(volume_name: str) -> bool:  # legacy placeholder (unused now)
+    return False
+
+
+def ensure_user_volume(user_id: str) -> str:  # legacy placeholder
+    raise RuntimeError("Named volumes disabled in reverted configuration")
 
 
 def setup_isolated_network(network_name="isolated_net"):
@@ -121,8 +129,10 @@ def spawn_container(user_id, slave_fd, container_name, port_range=None):
         logger.warning(f"Container {container_name} already exists, not creating a new one")
         raise RuntimeError(f"Container {container_name} already exists")
 
-    # Prepare user directory with correct ownership before mounting
+    # Prepare host directory with correct ownership before mounting
     prepare_user_directory(user_id)
+
+    mount_spec = f"/tmp/uploads/{user_id}:/app"
 
     cmd = [
         "docker",
@@ -133,23 +143,17 @@ def spawn_container(user_id, slave_fd, container_name, port_range=None):
         container_name,
         "--hostname",
         "3compute",
-        "--network=isolated_net",  # prevent containers from accessing other containers or host, but allows internet
-        "--cap-drop=ALL",  # prevent a bunch of admin linux stuff
-        "--user=999:995",  # login as dedicated 3compute-container user to avoid any host conflicts
-        # Security profiles
+        "--network=isolated_net",  # isolated network
+        "--cap-drop=ALL",
+        "--user=999:995",
         "--security-opt",
-        "no-new-privileges",  # prevent container from gaining priviledge
-        # "--security-opt",
-        # "seccomp",  # restricts syscalls
-        # Resource limits
+        "no-new-privileges",
         "--cpus",
         str(cpu_per_user),
         "--memory",
         f"{memory_per_user}m",
-        # TODO: bandwidth limit
-        # TODO: disk limit, perhaps by making everything read-only and adding a volume?
         "-v",
-        f"/tmp/uploads/{user_id}:/app",
+        mount_spec,
     ]
 
     if port_range:

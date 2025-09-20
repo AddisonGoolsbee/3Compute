@@ -70,7 +70,6 @@ def setup_uploads_directory():
     uploads_dir = "/tmp/uploads"
     os.makedirs(uploads_dir, exist_ok=True)
     
-    # Set ownership to match container user (UID 10000)
     try:
         os.chown(uploads_dir, CONTAINER_USER_UID, CONTAINER_USER_GID)
         os.chmod(uploads_dir, 0o755)
