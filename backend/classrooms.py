@@ -138,3 +138,55 @@ def create_classroom():
     except Exception as e:
         logger.error(f"Failed to create classroom: {e}")
         return {"error": "Internal server error"}, 500
+
+
+@classrooms_bp.route("/classrooms/join", methods=["POST"])
+def join_classroom():
+    if not current_user.is_authenticated:
+        return {"error": "Unauthorized"}, 401
+    try:
+        payload = request.get_json(silent=True) or {}
+        code = (payload.get("code") or "").strip().upper()
+        if not code:
+            return {"error": "Code required"}, 400
+        data = _load_classrooms()
+        target = None
+        for c in data.values():
+            if c.get("access_code") == code:
+                target = c
+                break
+        if not target:
+            # Delay response slightly could be client-side; we keep backend fast
+            return {"error": "Invalid code"}, 404
+        # Add user as participant if not already instructor/participant
+        changed = False
+        if current_user.id not in target.get("instructors", []) and current_user.id not in target.get("participants", []):
+            target.setdefault("participants", []).append(current_user.id)
+            data[target["id"]] = target
+            _save_classrooms(data)
+            changed = True
+        # Hello world side-effect (log + placeholder for future logic)
+        logger.info(f"HELLO WORLD: user {current_user.id} joined classroom {target['id']} (changed={changed})")
+        return {"joined": True, "classroom_id": target["id"], "name": target.get("name")}, 200
+    except Exception as e:
+        logger.error(f"Failed to join classroom: {e}")
+        return {"error": "Internal server error"}, 500
+
+
+@classrooms_bp.route("/classrooms/validate-code", methods=["POST"])
+def validate_classroom_code():
+    if not current_user.is_authenticated:
+        return {"error": "Unauthorized"}, 401
+    try:
+        payload = request.get_json(silent=True) or {}
+        code = (payload.get("code") or "").strip().upper()
+        if not code:
+            return {"valid": False}, 200
+        data = _load_classrooms()
+        for c in data.values():
+            if c.get("access_code") == code:
+                return {"valid": True}, 200
+        return {"valid": False}, 200
+    except Exception as e:
+        logger.error(f"Failed to validate classroom code: {e}")
+        return {"valid": False}, 200

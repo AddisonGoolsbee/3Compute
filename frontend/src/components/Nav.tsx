@@ -1,12 +1,14 @@
 import { Nav, LogoBirdflop } from "@luminescent/ui-react";
-import { LogOut, Plus } from "lucide-react";
+import { LogOut, Plus, LogIn } from "lucide-react";
 import { useContext, useState } from "react";
 import { Link } from "react-router";
 import { backendUrl, UserDataContext } from "../util/UserData";
 import CreateClassroomDialog from "./CreateClassroomDialog";
+import JoinClassroomDialog from "./JoinClassroomDialog";
 
 export default function NavComponent() {
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [joinOpen, setJoinOpen] = useState(false);
 
   const handleLogout = async () => {
     await fetch(`${backendUrl}/logout`, {
@@ -33,7 +35,16 @@ export default function NavComponent() {
           <>
             {userData?.userInfo && (
               <button
-                onClick={() => setDialogOpen(true)}
+                onClick={() => setJoinOpen(true)}
+                className="lum-btn lum-bg-transparent hover:lum-bg-nav-bg flex items-center gap-1 cursor-pointer select-none text-sm font-medium transition-colors"
+              >
+                <LogIn size={16} className="opacity-80" />
+                <span>Join Classroom</span>
+              </button>
+            )}
+            {userData?.userInfo && (
+              <button
+                onClick={() => setCreateOpen(true)}
                 className="lum-btn lum-bg-transparent hover:lum-bg-nav-bg flex items-center gap-1 cursor-pointer select-none text-sm font-medium transition-colors"
               >
                 <Plus size={16} className="opacity-80" />
@@ -53,8 +64,12 @@ export default function NavComponent() {
         }
       />
       <CreateClassroomDialog
-        open={!!userData?.userInfo && dialogOpen}
-        onClose={() => setDialogOpen(false)}
+        open={!!userData?.userInfo && createOpen}
+        onClose={() => setCreateOpen(false)}
+      />
+      <JoinClassroomDialog
+        open={!!userData?.userInfo && joinOpen}
+        onClose={() => setJoinOpen(false)}
       />
     </>
   );

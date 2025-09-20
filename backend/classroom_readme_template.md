@@ -3,6 +3,7 @@
 Access Code: `{{ACCESS_CODE}}`
 
 ## What is a 3Compute Classroom?
+
 A classroom groups a set of participants (students) with one or more instructors and provides a shared logical space inside the coding environment. For each classroom you own:
 
 - A host directory is mounted read-only inside your container at `/classrooms/{{CLASSROOM_ID}}`.

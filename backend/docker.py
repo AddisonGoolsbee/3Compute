@@ -277,8 +277,9 @@ def spawn_container(user_id, slave_fd, container_name, port_range=None):
                 access_code = access_codes.get(cid, "UNKNOWN")
                 # Perform placeholder substitution server-side to avoid complicated shell escaping
                 content = (
-                    template_content
-                    .replace("{{CLASSROOM_NAME}}", cid)  # Name not readily available here; could extend mapping if needed
+                    template_content.replace(
+                        "{{CLASSROOM_NAME}}", cid
+                    )  # Name not readily available here; could extend mapping if needed
                     .replace("{{CLASSROOM_ID}}", cid)
                     .replace("{{ACCESS_CODE}}", access_code)
                     .replace("{{SLUG}}", slug)

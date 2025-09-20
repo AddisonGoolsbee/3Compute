@@ -7,3 +7,4 @@
 
 - Scroll doesn't work
 - folder view in file explorer doesn't work 
+- cat readme flops the second time super weird formating until reload
