@@ -184,6 +184,26 @@ export default function TerminalTabs() {
   const [tabs, setTabs] = useState<string[]>(["1"]);
   const [activeTab, setActiveTab] = useState<string>("1");
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [restartToken, setRestartToken] = useState<number>(0); // bump to remount terminals
+
+  // Listen for restart event
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      console.log("Terminal restart requested", detail);
+      // Force re-mount by updating key state; preserve tab structure
+      setRestartToken(Date.now());
+    };
+    window.addEventListener(
+      "terminal-restart-required",
+      handler as EventListener
+    );
+    return () =>
+      window.removeEventListener(
+        "terminal-restart-required",
+        handler as EventListener
+      );
+  }, []);
 
   // Function to save tab state to backend
   const saveTabState = useCallback(
@@ -360,7 +380,7 @@ export default function TerminalTabs() {
       <div className="flex-1 relative">
         {tabs.map((tabId) => (
           <TerminalComponent
-            key={tabId}
+            key={tabId + "-" + restartToken}
             tabId={tabId}
             isActive={activeTab === tabId}
           />

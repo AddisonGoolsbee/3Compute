@@ -6,6 +6,7 @@ import os
 import signal
 import sys
 from .config.logging_config import configure_logging
+
 configure_logging()
 
 from flask import Flask
@@ -23,12 +24,13 @@ if os.getenv("FLASK_ENV") != "production":
     logging.getLogger("werkzeug").setLevel(logging.DEBUG)
 
 from .auth import auth_bp, load_user
+
 ##### END BLOCK
 from .files import files_bp
 from .webhook import webhook_bp
 from .terminal import init_terminal, terminal_bp
 from .docker import setup_isolated_network, CONTAINER_USER_UID, CONTAINER_USER_GID
-
+from .classrooms import classrooms_bp
 
 
 logging.getLogger("werkzeug").setLevel(logging.ERROR)
@@ -62,6 +64,7 @@ app.register_blueprint(auth_bp)
 app.register_blueprint(files_bp)
 app.register_blueprint(webhook_bp)
 app.register_blueprint(terminal_bp)
+app.register_blueprint(classrooms_bp)
 init_terminal(socketio)
 
 
@@ -69,7 +72,7 @@ def setup_uploads_directory():
     """Create /tmp/uploads directory with proper ownership for container access"""
     uploads_dir = "/tmp/uploads"
     os.makedirs(uploads_dir, exist_ok=True)
-    
+
     try:
         os.chown(uploads_dir, CONTAINER_USER_UID, CONTAINER_USER_GID)
         os.chmod(uploads_dir, 0o755)
