@@ -125,15 +125,20 @@ def container_is_running(container_name):
 
 
 def _load_classrooms_for_user(user_id: str):
+    """Return tuple (instructor_classrooms, participant_classrooms)."""
+    inst, part = [], []
     try:
         if os.path.exists(CLASSROOMS_JSON_FILE):
             with open(CLASSROOMS_JSON_FILE, "r") as f:
                 data = json.load(f)
-            # filter classrooms where user is instructor
-            return [c for c in data.values() if user_id in c.get("instructors", [])]
+            for c in data.values():
+                if user_id in c.get("instructors", []):
+                    inst.append(c)
+                elif user_id in c.get("participants", []):
+                    part.append(c)
     except Exception as e:
         logger.warning(f"Failed loading classrooms for mounts: {e}")
-    return []
+    return inst, part
 
 
 def _slugify(name: str) -> str:
@@ -143,7 +148,7 @@ def _slugify(name: str) -> str:
     return name or "classroom"
 
 
-def spawn_container(user_id, slave_fd, container_name, port_range=None):
+def spawn_container(user_id, slave_fd, container_name, port_range=None, user_email: str | None = None):
     # Only create a new container if one doesn't already exist
     if container_exists(container_name):
         logger.warning(f"Container {container_name} already exists, not creating a new one")
@@ -176,11 +181,13 @@ def spawn_container(user_id, slave_fd, container_name, port_range=None):
         mount_spec,
     ]
 
-    # Add classroom mounts (read-write shared) under /app/classrooms/<id>
-    classrooms = _load_classrooms_for_user(str(user_id))
-    slug_map = {}  # id -> slug
+    # Add classroom mounts for instructor + participant
+    inst_classrooms, part_classrooms = _load_classrooms_for_user(str(user_id))
+    slug_map = {}  # id -> slug (instructor) or participant variant
+    participant_mode = {}  # id -> True if user is participant (not instructor)
     used_slugs = set()
-    for c in classrooms:
+    all_classrooms = inst_classrooms + part_classrooms
+    for c in all_classrooms:
         class_id = c.get("id")
         name = c.get("name") or class_id
         host_path = os.path.join(CLASSROOMS_ROOT, class_id)
@@ -189,13 +196,12 @@ def spawn_container(user_id, slave_fd, container_name, port_range=None):
             continue
         slug = _slugify(name)
         base_slug = slug
-        # collision handling
         if slug in used_slugs:
             suffix = class_id.split("-")[0][:4]
             slug = f"{base_slug}-{suffix}"
         used_slugs.add(slug)
         slug_map[class_id] = slug
-        # mount to /classrooms/<id>
+        participant_mode[class_id] = c not in inst_classrooms
         target_dir = f"/classrooms/{class_id}"
         cmd.extend(["-v", f"{host_path}:{target_dir}"])
 
@@ -206,7 +212,7 @@ def spawn_container(user_id, slave_fd, container_name, port_range=None):
     if slug_map:
         import base64
 
-        mapping_json = json.dumps(slug_map)
+        mapping_json = json.dumps({"slugs": slug_map, "participant": participant_mode})
         b64 = base64.b64encode(mapping_json.encode()).decode()
         cmd.extend(["-e", f"CLASSROOM_SLUG_MAP_B64={b64}"])
 
@@ -221,33 +227,34 @@ def spawn_container(user_id, slave_fd, container_name, port_range=None):
         logger.error(f"[{user_id}] Failed to start container '{container_name}': {e}")
         raise
 
-    # Create symlinks inside container: /app/<slug> -> /classrooms/<id>
+    # Create symlinks: instructor -> /classrooms/<id>; participant -> /classrooms/<id>/participants/<email>
     if slug_map:
-        link_commands = [
-            # ensure /classrooms permissions root-owned, non-writable by user (555)
-            "chown root:root /classrooms || true",
-            "chmod 555 /classrooms || true",
-        ]
+        sanitized_email = (user_email or "participant").replace("/", "_")
+        link_commands = ["chown root:root /classrooms || true", "chmod 555 /classrooms || true"]
         for cid, slug in slug_map.items():
-            # Set classroom dir writable by container user (so they can edit contents) but not by others
             link_commands.append(f"chown 999:995 /classrooms/{cid} || true")
-            link_commands.append(f"chmod 555 /classrooms/{cid} || true")
-            # Ensure subdirs exist
             link_commands.append(f"mkdir -p /classrooms/{cid}/templates /classrooms/{cid}/participants || true")
-            # templates & participants dirs: make directory itself read/execute only (no create/delete) but contents writeable -> tricky.
-            # Approach: directory 755 allows creates; we instead set 755 on classroom, 555 on participants, 755 on templates then inside templates user can write.
+            # basic perms; keep participants dir traversable
             link_commands.append(f"chmod 755 /classrooms/{cid}/templates || true")
-            link_commands.append(f"chmod 555 /classrooms/{cid}/participants || true")
-            # Remove existing slug path if any (file, dir, or symlink) then create symlink
+            link_commands.append(f"chmod 755 /classrooms/{cid}/participants || true")
+            target_path = (
+                f"/classrooms/{cid}"
+                if not participant_mode.get(cid)
+                else f"/classrooms/{cid}/participants/{sanitized_email}"
+            )
+            if participant_mode.get(cid):
+                # create personal participant folder
+                link_commands.append(f"mkdir -p /classrooms/{cid}/participants/{sanitized_email} || true")
+                link_commands.append(f"chown 999:995 /classrooms/{cid}/participants/{sanitized_email} || true")
+                link_commands.append(f"chmod 755 /classrooms/{cid}/participants/{sanitized_email} || true")
             link_commands.append(f"rm -rf /app/{slug} || true")
-            link_commands.append(f"ln -s /classrooms/{cid} /app/{slug}")
-        link_commands.append("echo 'Symlinks + permissions applied'")
-        shell_cmd = " && ".join(link_commands)
+            link_commands.append(f"ln -s {target_path} /app/{slug}")
+        link_commands.append("echo 'Symlinks + permissions (participant-aware) applied'")
         try:
-            subprocess.run(["docker", "exec", container_name, "sh", "-lc", shell_cmd], check=True)
-            logger.info(f"[{user_id}] Applied symlinks and permissions for classrooms (slug map: {slug_map})")
+            subprocess.run(["docker", "exec", container_name, "sh", "-lc", " && ".join(link_commands)], check=True)
+            logger.info(f"[{user_id}] Applied participant-aware symlinks (map: {slug_map})")
         except subprocess.CalledProcessError as e:
-            logger.error(f"[{user_id}] Failed applying symlinks/permissions: {e}")
+            logger.error(f"[{user_id}] Failed applying participant symlinks: {e}")
 
     # Template-based README generation for each classroom (overwrite each restart)
     if slug_map:

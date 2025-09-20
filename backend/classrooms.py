@@ -127,7 +127,7 @@ def create_classroom():
             if user_id in user_containers:
                 user_containers.pop(user_id, None)
         try:
-            spawn_container(user_id, None, container_name, port_range)
+            spawn_container(user_id, None, container_name, port_range, getattr(current_user, "email", None))
             restarted = True
             user_containers[user_id] = {"container_name": container_name, "port_range": port_range}
         except Exception as e:
@@ -160,14 +160,35 @@ def join_classroom():
             return {"error": "Invalid code"}, 404
         # Add user as participant if not already instructor/participant
         changed = False
-        if current_user.id not in target.get("instructors", []) and current_user.id not in target.get("participants", []):
+        if current_user.id not in target.get("instructors", []) and current_user.id not in target.get(
+            "participants", []
+        ):
             target.setdefault("participants", []).append(current_user.id)
             data[target["id"]] = target
             _save_classrooms(data)
             changed = True
-        # Hello world side-effect (log + placeholder for future logic)
-        logger.info(f"HELLO WORLD: user {current_user.id} joined classroom {target['id']} (changed={changed})")
-        return {"joined": True, "classroom_id": target["id"], "name": target.get("name")}, 200
+        # Restart container to include participant classroom mount/symlink
+        user_id = current_user.id
+        container_name = f"user-container-{user_id}"
+        restarted = False
+        port_range = getattr(current_user, "port_range", None)
+        if container_exists(container_name):
+            try:
+                subprocess.run(["docker", "rm", "-f", container_name], check=False)
+            except Exception as e:
+                logger.warning(f"Failed to remove old container {container_name}: {e}")
+            if user_id in user_containers:
+                user_containers.pop(user_id, None)
+        try:
+            spawn_container(user_id, None, container_name, port_range, getattr(current_user, "email", None))
+            restarted = True
+            user_containers[user_id] = {"container_name": container_name, "port_range": port_range}
+        except Exception as e:
+            logger.error(f"Failed to spawn container after classroom join: {e}")
+        logger.info(
+            f"JOIN: user {current_user.id} joined classroom {target['id']} (added_participant={changed}, restarted={restarted})"
+        )
+        return {"joined": True, "classroom_id": target["id"], "name": target.get("name"), "restarted": restarted}, 200
     except Exception as e:
         logger.error(f"Failed to join classroom: {e}")
         return {"error": "Internal server error"}, 500

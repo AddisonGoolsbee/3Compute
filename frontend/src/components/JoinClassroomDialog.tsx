@@ -40,8 +40,20 @@ export default function JoinClassroomDialog({ open, onClose }: Props) {
         return;
       }
       const data = await res.json();
+      if (data.restarted) {
+        window.dispatchEvent(
+          new CustomEvent("terminal-restart-required", {
+            detail: {
+              reason: "classroom-joined",
+              classroomId: data.classroom_id,
+            },
+          })
+        );
+      }
       window.dispatchEvent(
-        new CustomEvent("classroom-joined", { detail: { classroomId: data.classroom_id } })
+        new CustomEvent("classroom-joined", {
+          detail: { classroomId: data.classroom_id },
+        })
       );
       onClose();
     } catch (e) {
@@ -72,7 +84,10 @@ export default function JoinClassroomDialog({ open, onClose }: Props) {
             autoFocus
             value={code}
             onChange={(e) => {
-              const val = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6);
+              const val = e.target.value
+                .toUpperCase()
+                .replace(/[^A-Z0-9]/g, "")
+                .slice(0, 6);
               setCode(val);
             }}
             className="lum-input w-full"

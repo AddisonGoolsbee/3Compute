@@ -196,7 +196,7 @@ def handle_resize(data):
                     logger.warning(f"Failed to restart {container_name}; spawning new container")
                     try:
                         port_range = getattr(current_user, "port_range", None)
-                        spawn_container(user_id, None, container_name, port_range)
+                        spawn_container(user_id, None, container_name, port_range, getattr(current_user, "email", None))
                         logger.info(f"Spawned replacement container {container_name}")
                     except Exception as e:
                         logger.error(f"Failed to spawn replacement container {container_name}: {e}")
@@ -212,7 +212,7 @@ def handle_resize(data):
             logger.error(f"Failed to attach to container for user {user_id}: {e}")
             socketio.emit("error", {"message": "Failed to connect to terminal. Please try again."}, to=sid)
             return
-        
+
     fd = session_info["fd"]
     user_id = session_info["user_id"]
 
@@ -329,7 +329,7 @@ def handle_connect(auth=None):
     user_id = current_user.id
     sid = request.sid
     # Get tab ID from query parameters
-    tab_id = request.args.get('tabId', '1')
+    tab_id = request.args.get("tabId", "1")
     logger.info(f"client {sid} connected for tab {tab_id}")
 
     _cancel_idle_poller(user_id)
@@ -355,7 +355,9 @@ def handle_connect(auth=None):
                     # Only remove if restart failed
                     subprocess.run(["docker", "rm", "-f", container_name], check=False)
                     try:
-                        spawn_container(user_id, None, container_name, current_user.port_range)
+                        spawn_container(
+                            user_id, None, container_name, current_user.port_range, getattr(current_user, "email", None)
+                        )
                         user_containers[user_id] = {
                             "container_name": container_name,
                             "port_range": current_user.port_range,
@@ -371,7 +373,7 @@ def handle_connect(auth=None):
             # No existing container, create a new one
             port_range = current_user.port_range
             try:
-                spawn_container(user_id, None, container_name, port_range)
+                spawn_container(user_id, None, container_name, port_range, getattr(current_user, "email", None))
                 user_containers[user_id] = {"container_name": container_name, "port_range": port_range}
                 logging.info(f"Spawned new container for user {user_id}")
             except Exception as e:
@@ -395,7 +397,9 @@ def handle_connect(auth=None):
                 logger.warning(f"Failed to restart container {container_name}, creating new one")
                 _cleanup_user_container(user_id, container_name)
                 try:
-                    spawn_container(user_id, None, container_name, current_user.port_range)
+                    spawn_container(
+                        user_id, None, container_name, current_user.port_range, getattr(current_user, "email", None)
+                    )
                     user_containers[user_id] = {"container_name": container_name, "port_range": current_user.port_range}
                 except Exception as e:
                     logger.error(f"Failed to spawn new container for user {user_id}: {e}")
