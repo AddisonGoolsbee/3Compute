@@ -249,6 +249,52 @@ def spawn_container(user_id, slave_fd, container_name, port_range=None):
         except subprocess.CalledProcessError as e:
             logger.error(f"[{user_id}] Failed applying symlinks/permissions: {e}")
 
+    # Template-based README generation for each classroom (overwrite each restart)
+    if slug_map:
+        template_path = os.path.join("backend", "classroom_readme_template.md")
+        template_content = None
+        try:
+            with open(template_path, "r") as tf:
+                template_content = tf.read()
+        except Exception as e:
+            logger.warning(f"[{user_id}] Could not read classroom README template: {e}")
+
+        if template_content:
+            # Load full classrooms data again to fetch access codes (already small file)
+            access_codes = {}
+            try:
+                if os.path.exists(CLASSROOMS_JSON_FILE):
+                    with open(CLASSROOMS_JSON_FILE, "r") as f:
+                        all_cls = json.load(f)
+                    for cid, data in all_cls.items():
+                        access_codes[cid] = data.get("access_code", "UNKNOWN")
+            except Exception as e:
+                logger.warning(f"[{user_id}] Failed reloading classrooms for README access codes: {e}")
+
+            # Build a single shell script that writes each README (quote-safe using cat EOF)
+            write_cmds = []
+            for cid, slug in slug_map.items():
+                access_code = access_codes.get(cid, "UNKNOWN")
+                # Perform placeholder substitution server-side to avoid complicated shell escaping
+                content = (
+                    template_content
+                    .replace("{{CLASSROOM_NAME}}", cid)  # Name not readily available here; could extend mapping if needed
+                    .replace("{{CLASSROOM_ID}}", cid)
+                    .replace("{{ACCESS_CODE}}", access_code)
+                    .replace("{{SLUG}}", slug)
+                )
+                # Escape any EOF markers inside content (unlikely) by replacing literal EOF lines
+                safe_content = content.replace("EOF", "E0F")
+                write_cmds.append(
+                    f"if [ -d /classrooms/{cid} ]; then cat > /classrooms/{cid}/README.md <<'EOF'\n{safe_content}\nEOF\nfi"
+                )
+            script = " ; ".join(write_cmds)
+            try:
+                subprocess.run(["docker", "exec", container_name, "sh", "-lc", script], check=True)
+                logger.info(f"[{user_id}] Classroom README files written from template")
+            except subprocess.CalledProcessError as e:
+                logger.warning(f"[{user_id}] Failed writing README files from template: {e}")
+
 
 def attach_to_container(container_name, tab_id="1"):
     # Check if container is running
