@@ -20,7 +20,6 @@ Birdflop service for free educational server usage, with templates such as disco
 - `docker build -t 3compute:latest backend` to build the docker image
 - `python -m backend` to run the backend
 
-
 ### Testing
 
 3Compute includes some testing for both frontend and backend:
@@ -32,17 +31,26 @@ Birdflop service for free educational server usage, with templates such as disco
 # Backend tests only
 cd backend && pytest --cov=. --cov-report=term-missing
 
-# Frontend tests only  
+# Frontend tests only
 cd frontend && pnpm test:coverage
 ```
 
-#### Productionization (Debian 12)
+## Troubleshooting
+
+- TypeError: Failed to fetch at Module.clientLoader (http://localhost:5173/src/util/UserData.ts:5:25)
+  - go to 127.0.0.1 instead of localhost
+- Failed to set ownership for /tmp/uploads
+  - run the backend with sudo: `sudo python -m backend`
+
+## Productionization (Debian 12)
+
 - github/3compute deploy key in /root/.ssh/id_rsa
 - mkdir /var/www && cd /var/www
 - apt install git
 - git clone git@github.com:birdflop/3compute.git && cd 3compute
 
 # Add Docker's official GPG key:
+
 ```
 sudo apt-get update
 sudo apt-get install ca-certificates curl
@@ -52,6 +60,7 @@ sudo chmod a+r /etc/apt/keyrings/docker.asc
 ```
 
 # Add the repository to Apt sources:
+
 ```
 echo \
   "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian \
@@ -72,10 +81,13 @@ apt install python3.11-venv
 python3 -m venv .venv && source .venv/bin/activate && pip3 install -r backend/requirements.txt
 nano backend/.env
 ```
+
 paste .env in
 
 Move the production/ files in
+
 - chmod +x /opt/deploy.sh
+
 ```
 sudo systemctl daemon-reexec
 sudo systemctl daemon-reload
@@ -88,15 +100,15 @@ apt install -y nodejs
 npm install -g pnpm
 ```
 
-```cd frontend
+````cd frontend
 pnpm i
 pnpm build```
 
-```
+````
+
 apt install -y nginx certbot python3-certbot-nginx
 sudo certbot certonly --nginx -d www.3compute.org
 sudo certbot certonly --nginx -d api.3compute.org```
-
 
 `rm /etc/nginx/sites-enabled/default`
 
@@ -105,6 +117,3 @@ sudo certbot certonly --nginx -d api.3compute.org```
 - sudo chown -R www-data:www-data /var/www/3compute
 
 service nginx restart
-
-
-

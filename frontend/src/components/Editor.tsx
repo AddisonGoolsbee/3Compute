@@ -56,7 +56,7 @@ export default function Editor() {
     if (userData.currentFile) return;
     // Find a default file to open
     let currentFile: FileType | undefined;
-    console.log(userData.files);
+    // console.log(userData.files);f
     if (userData.files && userData.files.length > 0) {
       currentFile = findDefaultFile(userData.files);
     }

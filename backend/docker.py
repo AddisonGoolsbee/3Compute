@@ -3,6 +3,8 @@ import pty
 import subprocess
 import platform
 import logging
+import json
+import re
 
 import psutil
 
@@ -18,21 +20,28 @@ memory_per_user = round(memory_mb / MAX_USERS, 2)
 CONTAINER_USER_UID = 999
 CONTAINER_USER_GID = 995
 
+CLASSROOMS_JSON_FILE = "backend/classrooms.json"
+CLASSROOMS_ROOT = "/tmp/classrooms"
+
 
 def prepare_user_directory(user_id):
     """Ensure user directory exists with correct ownership before container creation"""
     user_dir = f"/tmp/uploads/{user_id}"
-    
-    # Create the directory if it doesn't exist
     os.makedirs(user_dir, exist_ok=True)
-    
-    # Set ownership to match container user
+    # Removed placeholder classrooms dir creation (not needed now)
     try:
         os.chown(user_dir, CONTAINER_USER_UID, CONTAINER_USER_GID)
-        os.chmod(user_dir, 0o755)  # drwxr-xr-x
-        logger.debug(f"Set ownership of {user_dir} to UID {CONTAINER_USER_UID}")
+        os.chmod(user_dir, 0o755)
     except OSError as e:
         logger.warning(f"Failed to set ownership for {user_dir}: {e}")
+
+
+def volume_exists(volume_name: str) -> bool:  # legacy placeholder (unused now)
+    return False
+
+
+def ensure_user_volume(user_id: str) -> str:  # legacy placeholder
+    raise RuntimeError("Named volumes disabled in reverted configuration")
 
 
 def setup_isolated_network(network_name="isolated_net"):
@@ -115,14 +124,40 @@ def container_is_running(container_name):
         return False
 
 
-def spawn_container(user_id, slave_fd, container_name, port_range=None):
+def _load_classrooms_for_user(user_id: str):
+    """Return tuple (instructor_classrooms, participant_classrooms)."""
+    inst, part = [], []
+    try:
+        if os.path.exists(CLASSROOMS_JSON_FILE):
+            with open(CLASSROOMS_JSON_FILE, "r") as f:
+                data = json.load(f)
+            for c in data.values():
+                if user_id in c.get("instructors", []):
+                    inst.append(c)
+                elif user_id in c.get("participants", []):
+                    part.append(c)
+    except Exception as e:
+        logger.warning(f"Failed loading classrooms for mounts: {e}")
+    return inst, part
+
+
+def _slugify(name: str) -> str:
+    name = name.lower()
+    name = re.sub(r"[^a-z0-9\s-]", "", name)
+    name = re.sub(r"[\s-]+", "-", name).strip("-")
+    return name or "classroom"
+
+
+def spawn_container(user_id, slave_fd, container_name, port_range=None, user_email: str | None = None):
     # Only create a new container if one doesn't already exist
     if container_exists(container_name):
         logger.warning(f"Container {container_name} already exists, not creating a new one")
         raise RuntimeError(f"Container {container_name} already exists")
 
-    # Prepare user directory with correct ownership before mounting
+    # Prepare host directory with correct ownership before mounting
     prepare_user_directory(user_id)
+
+    mount_spec = f"/tmp/uploads/{user_id}:/app"
 
     cmd = [
         "docker",
@@ -133,38 +168,140 @@ def spawn_container(user_id, slave_fd, container_name, port_range=None):
         container_name,
         "--hostname",
         "3compute",
-        "--network=isolated_net",  # prevent containers from accessing other containers or host, but allows internet
-        "--cap-drop=ALL",  # prevent a bunch of admin linux stuff
-        "--user=999:995",  # login as dedicated 3compute-container user to avoid any host conflicts
-        # Security profiles
+        "--network=isolated_net",
+        "--cap-drop=ALL",
+        "--user=999:995",
         "--security-opt",
-        "no-new-privileges",  # prevent container from gaining priviledge
-        # "--security-opt",
-        # "seccomp",  # restricts syscalls
-        # Resource limits
+        "no-new-privileges",
         "--cpus",
         str(cpu_per_user),
         "--memory",
         f"{memory_per_user}m",
-        # TODO: bandwidth limit
-        # TODO: disk limit, perhaps by making everything read-only and adding a volume?
         "-v",
-        f"/tmp/uploads/{user_id}:/app",
+        mount_spec,
     ]
+
+    # Add classroom mounts for instructor + participant
+    inst_classrooms, part_classrooms = _load_classrooms_for_user(str(user_id))
+    slug_map = {}  # id -> slug (instructor) or participant variant
+    participant_mode = {}  # id -> True if user is participant (not instructor)
+    used_slugs = set()
+    all_classrooms = inst_classrooms + part_classrooms
+    for c in all_classrooms:
+        class_id = c.get("id")
+        name = c.get("name") or class_id
+        host_path = os.path.join(CLASSROOMS_ROOT, class_id)
+        if not os.path.isdir(host_path):
+            logger.warning(f"Expected classroom dir missing: {host_path}")
+            continue
+        slug = _slugify(name)
+        base_slug = slug
+        if slug in used_slugs:
+            suffix = class_id.split("-")[0][:4]
+            slug = f"{base_slug}-{suffix}"
+        used_slugs.add(slug)
+        slug_map[class_id] = slug
+        participant_mode[class_id] = c not in inst_classrooms
+        target_dir = f"/classrooms/{class_id}"
+        cmd.extend(["-v", f"{host_path}:{target_dir}"])
 
     if port_range:
         cmd.extend(["-p", f"{port_range[0]}-{port_range[1]}:{port_range[0]}-{port_range[1]}"])
 
+    # Environment variable with mapping (JSON) for optional in-container logic
+    if slug_map:
+        import base64
+
+        mapping_json = json.dumps({"slugs": slug_map, "participant": participant_mode})
+        b64 = base64.b64encode(mapping_json.encode()).decode()
+        cmd.extend(["-e", f"CLASSROOM_SLUG_MAP_B64={b64}"])
+
     cmd.append("3compute")
 
-    logger.info(f"[{user_id}] Attempting to spawn container '{container_name}' with cmd: {' '.join(cmd)}")
+    logger.info(f"[{user_id}] Docker run building with {len(slug_map)} classroom mounts")
 
     try:
         subprocess.run(cmd, check=True)
-        logger.info(f"[{user_id}] Successfully started container '{container_name}'")
+        logger.info(f"[{user_id}] Started container '{container_name}'")
     except subprocess.CalledProcessError as e:
         logger.error(f"[{user_id}] Failed to start container '{container_name}': {e}")
         raise
+
+    # Create symlinks: instructor -> /classrooms/<id>; participant -> /classrooms/<id>/participants/<email>
+    if slug_map:
+        sanitized_email = (user_email or "participant").replace("/", "_")
+        link_commands = ["chown root:root /classrooms || true", "chmod 555 /classrooms || true"]
+        for cid, slug in slug_map.items():
+            link_commands.append(f"chown 999:995 /classrooms/{cid} || true")
+            link_commands.append(f"mkdir -p /classrooms/{cid}/templates /classrooms/{cid}/participants || true")
+            # basic perms; keep participants dir traversable
+            link_commands.append(f"chmod 755 /classrooms/{cid}/templates || true")
+            link_commands.append(f"chmod 755 /classrooms/{cid}/participants || true")
+            target_path = (
+                f"/classrooms/{cid}"
+                if not participant_mode.get(cid)
+                else f"/classrooms/{cid}/participants/{sanitized_email}"
+            )
+            if participant_mode.get(cid):
+                # create personal participant folder
+                link_commands.append(f"mkdir -p /classrooms/{cid}/participants/{sanitized_email} || true")
+                link_commands.append(f"chown 999:995 /classrooms/{cid}/participants/{sanitized_email} || true")
+                link_commands.append(f"chmod 755 /classrooms/{cid}/participants/{sanitized_email} || true")
+            link_commands.append(f"rm -rf /app/{slug} || true")
+            link_commands.append(f"ln -s {target_path} /app/{slug}")
+        link_commands.append("echo 'Symlinks + permissions (participant-aware) applied'")
+        try:
+            subprocess.run(["docker", "exec", container_name, "sh", "-lc", " && ".join(link_commands)], check=True)
+            logger.info(f"[{user_id}] Applied participant-aware symlinks (map: {slug_map})")
+        except subprocess.CalledProcessError as e:
+            logger.error(f"[{user_id}] Failed applying participant symlinks: {e}")
+
+    # Template-based README generation for each classroom (overwrite each restart)
+    if slug_map:
+        template_path = os.path.join("backend", "classroom_readme_template.md")
+        template_content = None
+        try:
+            with open(template_path, "r") as tf:
+                template_content = tf.read()
+        except Exception as e:
+            logger.warning(f"[{user_id}] Could not read classroom README template: {e}")
+
+        if template_content:
+            # Load full classrooms data again to fetch access codes (already small file)
+            access_codes = {}
+            try:
+                if os.path.exists(CLASSROOMS_JSON_FILE):
+                    with open(CLASSROOMS_JSON_FILE, "r") as f:
+                        all_cls = json.load(f)
+                    for cid, data in all_cls.items():
+                        access_codes[cid] = data.get("access_code", "UNKNOWN")
+            except Exception as e:
+                logger.warning(f"[{user_id}] Failed reloading classrooms for README access codes: {e}")
+
+            # Build a single shell script that writes each README (quote-safe using cat EOF)
+            write_cmds = []
+            for cid, slug in slug_map.items():
+                access_code = access_codes.get(cid, "UNKNOWN")
+                # Perform placeholder substitution server-side to avoid complicated shell escaping
+                content = (
+                    template_content.replace(
+                        "{{CLASSROOM_NAME}}", cid
+                    )  # Name not readily available here; could extend mapping if needed
+                    .replace("{{CLASSROOM_ID}}", cid)
+                    .replace("{{ACCESS_CODE}}", access_code)
+                    .replace("{{SLUG}}", slug)
+                )
+                # Escape any EOF markers inside content (unlikely) by replacing literal EOF lines
+                safe_content = content.replace("EOF", "E0F")
+                write_cmds.append(
+                    f"if [ -d /classrooms/{cid} ]; then cat > /classrooms/{cid}/README.md <<'EOF'\n{safe_content}\nEOF\nfi"
+                )
+            script = " ; ".join(write_cmds)
+            try:
+                subprocess.run(["docker", "exec", container_name, "sh", "-lc", script], check=True)
+                logger.info(f"[{user_id}] Classroom README files written from template")
+            except subprocess.CalledProcessError as e:
+                logger.warning(f"[{user_id}] Failed writing README files from template: {e}")
 
 
 def attach_to_container(container_name, tab_id="1"):

@@ -26,10 +26,21 @@ def configure_logging():
 
     # Avoid duplicate handlers if already configured
     if not root_logger.handlers:
-        file_handler = logging.FileHandler(logname, mode="a")
-        file_handler.setFormatter(formatter)
-        root_logger.addHandler(file_handler)
-
+        # Always add a stream handler
         stream_handler = logging.StreamHandler()
         stream_handler.setFormatter(formatter)
         root_logger.addHandler(stream_handler)
+
+        # Try to add file handler, fallback silently (already have console)
+        try:
+            file_handler = logging.FileHandler(logname, mode="a")
+            file_handler.setFormatter(formatter)
+            root_logger.addHandler(file_handler)
+        except PermissionError as e:
+            root_logger.warning(
+                "File logging disabled (permission error on %s): %s", logname, e
+            )
+        except OSError as e:
+            root_logger.warning(
+                "File logging disabled (OS error on %s): %s", logname, e
+            )

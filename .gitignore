@@ -1,3 +1,5 @@
+backend/*.json
+
 # Core
 .venv
 __pycache__
@@ -5,7 +7,6 @@ __pycache__
 !frontend/public/**/.env
 scratch/
 .react-router/
-backend/users.json
 frontend/build/
 
 # Testing
