@@ -10,6 +10,7 @@ export interface UserInfo {
 export type UserData = {
   userInfo?: UserInfo;
   files?: Files;
+  classroomSymlinks?: Record<string, { id: string; name?: string; archived?: boolean }>;
   setFilesClientSide: Dispatch<SetStateAction<Files | undefined>>;
   currentFile?: FileType;
   setCurrentFile: Dispatch<SetStateAction<FileType | undefined>>;
@@ -36,7 +37,7 @@ export type UserData = {
     y: number;
     targetLocation?: string;
   }>>;
-}
+};
 
 export const backendUrl =
   import.meta.env.VITE_ENVIRONMENT === 'production'
@@ -49,11 +50,12 @@ export async function clientLoader() {
   if (!userRes.ok) return {};
   const userInfo: UserInfo = await userRes.json();
 
-  const files = await fetchFilesList();
+  const { files, classroomSymlinks } = await fetchFilesList();
 
   return {
     userInfo,
     files,
+    classroomSymlinks,
   };
 }
 
@@ -93,6 +95,7 @@ export const defaultUserData: UserData = {
   setContentVersion: () => {},
   contextMenu: { visible: false, x: 0, y: 0, targetLocation: undefined },
   setContextMenu: () => {},
+  classroomSymlinks: {},
 };
 
 export const UserDataContext = createContext<UserData>(defaultUserData);

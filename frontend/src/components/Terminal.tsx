@@ -1,13 +1,13 @@
-import "@xterm/xterm/css/xterm.css";
-import { FitAddon } from "@xterm/addon-fit";
-import { Terminal } from "@xterm/xterm";
-import { WebLinksAddon } from "@xterm/addon-web-links";
-import { SearchAddon } from "@xterm/addon-search";
-import { useEffect, useRef, useState, useCallback, useContext } from "react";
-import { io, Socket } from "socket.io-client";
-import { backendUrl, UserDataContext } from "../util/UserData";
-import { TerminalTabBar } from "./TerminalTabBar";
-import { getClasses } from "@luminescent/ui-react";
+import '@xterm/xterm/css/xterm.css';
+import { FitAddon } from '@xterm/addon-fit';
+import { Terminal } from '@xterm/xterm';
+import { WebLinksAddon } from '@xterm/addon-web-links';
+import { SearchAddon } from '@xterm/addon-search';
+import { useEffect, useRef, useState, useCallback, useContext } from 'react';
+import { io, Socket } from 'socket.io-client';
+import { backendUrl, UserDataContext } from '../util/UserData';
+import { TerminalTabBar } from './TerminalTabBar';
+import { getClasses } from '@luminescent/ui-react';
 
 interface TerminalComponentProps {
   tabId: string;
@@ -25,7 +25,7 @@ export function TerminalComponent({ tabId, isActive }: TerminalComponentProps) {
     term: Terminal,
     fit: FitAddon,
     socket: Socket,
-    callback: () => void
+    callback: () => void,
   ) => {
     const check = () => {
       const width = term.element?.clientWidth ?? 0;
@@ -34,7 +34,7 @@ export function TerminalComponent({ tabId, isActive }: TerminalComponentProps) {
         fit.fit();
         const dims = fit.proposeDimensions();
         if (dims) {
-          socket.emit("resize", { cols: dims.cols, rows: dims.rows });
+          socket.emit('resize', { cols: dims.cols, rows: dims.rows });
         }
         callback();
       } else {
@@ -79,44 +79,44 @@ export function TerminalComponent({ tabId, isActive }: TerminalComponentProps) {
     });
 
     term.onData((data) => {
-      socket.emit("pty-input", { input: data });
+      socket.emit('pty-input', { input: data });
     });
 
     // Handle terminal resize events (only for if the user resizes the terminal, not if the browser resizes)
     term.onResize(({ cols, rows }) => {
-      socket.emit("resize", { cols, rows });
+      socket.emit('resize', { cols, rows });
     });
 
-    socket.on("pty-output", (data: { output: string }) => {
+    socket.on('pty-output', (data: { output: string }) => {
       term.write(data.output);
     });
 
     // Handle authentication errors
-    socket.on("connect_error", (error) => {
-      console.error("Terminal connection error:", error);
+    socket.on('connect_error', (error) => {
+      console.error('Terminal connection error:', error);
       if (
-        error.message.includes("Unauthorized") ||
-        error.message.includes("401")
+        error.message.includes('Unauthorized') ||
+        error.message.includes('401')
       ) {
         // Redirect to login or show logout message
-        window.location.href = "/login";
+        window.location.href = '/login';
       }
     });
 
     // Handle error events from server
-    socket.on("error", (data) => {
-      console.error("Server error:", data);
-      if (data.message === "Unauthorized") {
-        window.location.href = "/login";
+    socket.on('error', (data) => {
+      console.error('Server error:', data);
+      if (data.message === 'Unauthorized') {
+        window.location.href = '/login';
       }
     });
 
     // Handle disconnect events
-    socket.on("disconnect", (reason) => {
-      console.log("Terminal disconnected:", reason);
-      if (reason === "io server disconnect") {
+    socket.on('disconnect', (reason) => {
+      console.log('Terminal disconnected:', reason);
+      if (reason === 'io server disconnect') {
         // Server disconnected us, likely due to auth issues
-        window.location.href = "/login";
+        window.location.href = '/login';
       }
     });
 
@@ -126,7 +126,7 @@ export function TerminalComponent({ tabId, isActive }: TerminalComponentProps) {
         fitAddonRef.current.fit();
         const dims = fitAddonRef.current.proposeDimensions();
         if (dims && socketRef.current) {
-          socketRef.current.emit("resize", {
+          socketRef.current.emit('resize', {
             cols: dims.cols,
             rows: dims.rows,
           });
@@ -161,9 +161,9 @@ export function TerminalComponent({ tabId, isActive }: TerminalComponentProps) {
   return (
     <div
       className={getClasses({
-        "absolute inset-0 w-full h-full": true,
+        'absolute inset-0 w-full h-full': true,
         visible: isActive,
-        "invisible pointer-events-none": !isActive,
+        'invisible pointer-events-none': !isActive,
       })}
       data-tab-id={tabId}
       onClick={() => {
@@ -181,8 +181,8 @@ export function TerminalComponent({ tabId, isActive }: TerminalComponentProps) {
 // Main terminal component with tabs
 export default function TerminalTabs() {
   const userData = useContext(UserDataContext);
-  const [tabs, setTabs] = useState<string[]>(["1"]);
-  const [activeTab, setActiveTab] = useState<string>("1");
+  const [tabs, setTabs] = useState<string[]>(['1']);
+  const [activeTab, setActiveTab] = useState<string>('1');
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [restartToken, setRestartToken] = useState<number>(0); // bump to remount terminals
 
@@ -190,18 +190,18 @@ export default function TerminalTabs() {
   useEffect(() => {
     const handler = (e: Event) => {
       const detail = (e as CustomEvent).detail;
-      console.log("Terminal restart requested", detail);
+      console.log('Terminal restart requested', detail);
       // Force re-mount by updating key state; preserve tab structure
       setRestartToken(Date.now());
     };
     window.addEventListener(
-      "terminal-restart-required",
-      handler as EventListener
+      'terminal-restart-required',
+      handler as EventListener,
     );
     return () =>
       window.removeEventListener(
-        "terminal-restart-required",
-        handler as EventListener
+        'terminal-restart-required',
+        handler as EventListener,
       );
   }, []);
 
@@ -213,18 +213,18 @@ export default function TerminalTabs() {
         return;
       }
 
-      console.log("Saving tab state:", {
+      console.log('Saving tab state:', {
         tabs: tabsToSave,
         active_tab: activeTabToSave,
       }); // Debug log
 
       try {
         const response = await fetch(`${backendUrl}/tabs`, {
-          method: "POST",
+          method: 'POST',
           headers: {
-            "Content-Type": "application/json",
+            'Content-Type': 'application/json',
           },
-          credentials: "include",
+          credentials: 'include',
           body: JSON.stringify({
             tabs: tabsToSave,
             active_tab: activeTabToSave,
@@ -233,18 +233,18 @@ export default function TerminalTabs() {
 
         if (!response.ok) {
           console.error(
-            "Failed to save tab state:",
+            'Failed to save tab state:',
             response.status,
-            response.statusText
+            response.statusText,
           );
         } else {
-          console.log("Successfully saved tab state"); // Debug log
+          console.log('Successfully saved tab state'); // Debug log
         }
       } catch (error) {
-        console.error("Failed to save tab state:", error);
+        console.error('Failed to save tab state:', error);
       }
     },
-    [userData.userInfo]
+    [userData.userInfo],
   );
 
   // Function to load tab state from backend
@@ -257,25 +257,25 @@ export default function TerminalTabs() {
 
     try {
       const response = await fetch(`${backendUrl}/tabs`, {
-        credentials: "include",
+        credentials: 'include',
       });
 
       if (response.ok) {
         const data = await response.json();
-        console.log("Loaded tab state:", data); // Debug log
+        console.log('Loaded tab state:', data); // Debug log
         if (data.tabs && data.active_tab) {
           setTabs(data.tabs);
           setActiveTab(data.active_tab);
         }
       } else {
         console.error(
-          "Failed to load tab state:",
+          'Failed to load tab state:',
           response.status,
-          response.statusText
+          response.statusText,
         );
       }
     } catch (error) {
-      console.error("Failed to load tab state:", error);
+      console.error('Failed to load tab state:', error);
     } finally {
       setIsLoading(false);
     }
@@ -287,8 +287,8 @@ export default function TerminalTabs() {
       loadTabState();
     } else {
       // Reset to default state when user logs out
-      setTabs(["1"]);
-      setActiveTab("1");
+      setTabs(['1']);
+      setActiveTab('1');
       setIsLoading(false);
     }
   }, [userData.userInfo, loadTabState]);
@@ -330,9 +330,9 @@ export default function TerminalTabs() {
 
       // Request backend to kill all processes for this tab (tmux session)
       fetch(`${backendUrl}/terminal/close-tab`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ tabId }),
       }).catch(() => {});
 
@@ -346,16 +346,16 @@ export default function TerminalTabs() {
 
       // saveTabState will be called automatically by the effect
     },
-    [tabs, activeTab]
+    [tabs, activeTab],
   );
 
   const handleSelectTab = useCallback(
     (tabId: string) => {
-      console.log("Selecting tab:", tabId, "Current tabs:", tabs); // Debug log
+      console.log('Selecting tab:', tabId, 'Current tabs:', tabs); // Debug log
       setActiveTab(tabId);
       // saveTabState will be called automatically by the effect
     },
-    [tabs]
+    [tabs],
   );
 
   if (isLoading) {
@@ -380,7 +380,7 @@ export default function TerminalTabs() {
       <div className="flex-1 relative">
         {tabs.map((tabId) => (
           <TerminalComponent
-            key={tabId + "-" + restartToken}
+            key={tabId + '-' + restartToken}
             tabId={tabId}
             isActive={activeTab === tabId}
           />

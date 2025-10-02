@@ -1,11 +1,12 @@
 # auth.py
-import os
 import json
-from datetime import datetime
-from flask import Blueprint, redirect, request
-from flask_login import login_user, logout_user, current_user, UserMixin
-from requests_oauthlib import OAuth2Session
 import logging
+import os
+from datetime import datetime
+
+from flask import Blueprint, redirect, request
+from flask_login import UserMixin, current_user, login_user, logout_user
+from requests_oauthlib import OAuth2Session
 
 logger = logging.getLogger("auth")
 
@@ -55,7 +56,7 @@ def update_user_data(user_id, user_info, ip_address, port_start=None):
         # New user - must have port_start provided
         if port_start is None:
             raise ValueError("port_start must be provided for new users")
-        
+
         users_data[user_id] = {
             "email": user_info["email"],
             "first_login": datetime.now().isoformat(),
@@ -65,10 +66,7 @@ def update_user_data(user_id, user_info, ip_address, port_start=None):
             "port_start": port_start,
             "port_end": port_start + 9,
             "volume_path": f"/tmp/uploads/{user_id}",
-            "terminal_tabs": {
-                "tabs": ["1"],
-                "active_tab": "1"
-            }
+            "terminal_tabs": {"tabs": ["1"], "active_tab": "1"},
         }
     else:
         # Existing user
@@ -78,19 +76,16 @@ def update_user_data(user_id, user_info, ip_address, port_start=None):
         # Add new IP address if not already present
         if ip_address not in users_data[user_id]["ip_addresses"]:
             users_data[user_id]["ip_addresses"].append(ip_address)
-        
+
         # Ensure all required fields exist for existing users
         if "terminal_tabs" not in users_data[user_id]:
-            users_data[user_id]["terminal_tabs"] = {
-                "tabs": ["1"],
-                "active_tab": "1"
-            }
-        
+            users_data[user_id]["terminal_tabs"] = {"tabs": ["1"], "active_tab": "1"}
+
         # Ensure port information exists (for backward compatibility)
         if "port_start" not in users_data[user_id] and port_start is not None:
             users_data[user_id]["port_start"] = port_start
             users_data[user_id]["port_end"] = port_start + 9
-        
+
         # Ensure volume path exists
         if "volume_path" not in users_data[user_id]:
             users_data[user_id]["volume_path"] = f"/tmp/uploads/{user_id}"
@@ -126,9 +121,15 @@ def load_user(user_id):
 
 @auth_bp.route("/login")
 def login():
-    google = OAuth2Session(GOOGLE_CLIENT_ID, redirect_uri=REDIRECT_URI, scope=["openid", "email", "profile"])
+    google = OAuth2Session(
+        GOOGLE_CLIENT_ID,
+        redirect_uri=REDIRECT_URI,
+        scope=["openid", "email", "profile"],
+    )
     auth_url, _ = google.authorization_url(
-        "https://accounts.google.com/o/oauth2/auth", access_type="offline", prompt="select_account"
+        "https://accounts.google.com/o/oauth2/auth",
+        access_type="offline",
+        prompt="select_account",
     )
     return redirect(auth_url)
 
@@ -136,7 +137,7 @@ def login():
 @auth_bp.route("/callback")
 def callback():
     google = OAuth2Session(GOOGLE_CLIENT_ID, redirect_uri=REDIRECT_URI)
-    
+
     # In production, ensure the authorization_response URL uses HTTPS
     auth_response_url = request.url
     if os.getenv("FLASK_ENV") == "production":
@@ -144,7 +145,7 @@ def callback():
         auth_response_url = auth_response_url.replace("http://", "https://")
         logger.debug(f"Original request URL: {request.url}")
         logger.debug(f"Modified auth response URL: {auth_response_url}")
-    
+
     google.fetch_token(
         "https://oauth2.googleapis.com/token",
         client_secret=GOOGLE_CLIENT_SECRET,
@@ -191,7 +192,11 @@ def logout():
 @auth_bp.route("/me")
 def me():
     if current_user.is_authenticated:
-        return {"email": current_user.email, "port_start": current_user.port_start, "port_end": current_user.port_end}
+        return {
+            "email": current_user.email,
+            "port_start": current_user.port_start,
+            "port_end": current_user.port_end,
+        }
     return {"error": "unauthenticated"}, 401
 
 
@@ -211,30 +216,29 @@ def get_terminal_tabs():
     """Get user's terminal tab state"""
     if not current_user.is_authenticated:
         return {"error": "Unauthorized"}, 401
-    
+
     user_data = get_user_data(current_user.id)
     if user_data and "terminal_tabs" in user_data:
         tabs_data = user_data["terminal_tabs"]
-        
+
         # Validate the stored data
-        if (isinstance(tabs_data.get("tabs"), list) and 
-            isinstance(tabs_data.get("active_tab"), str) and
-            tabs_data["tabs"] and 
-            tabs_data["active_tab"] in tabs_data["tabs"]):
-            
+        if (
+            isinstance(tabs_data.get("tabs"), list)
+            and isinstance(tabs_data.get("active_tab"), str)
+            and tabs_data["tabs"]
+            and tabs_data["active_tab"] in tabs_data["tabs"]
+        ):
             # Sanitize tab IDs
-            sanitized_tabs = [tab for tab in tabs_data["tabs"] if isinstance(tab, str) and tab.isalnum()]
+            sanitized_tabs = [
+                tab
+                for tab in tabs_data["tabs"]
+                if isinstance(tab, str) and tab.isalnum()
+            ]
             if sanitized_tabs and tabs_data["active_tab"] in sanitized_tabs:
-                return {
-                    "tabs": sanitized_tabs,
-                    "active_tab": tabs_data["active_tab"]
-                }
-    
+                return {"tabs": sanitized_tabs, "active_tab": tabs_data["active_tab"]}
+
     # Return default tabs if none exist or data is invalid
-    return {
-        "tabs": ["1"],
-        "active_tab": "1"
-    }
+    return {"tabs": ["1"], "active_tab": "1"}
 
 
 @auth_bp.route("/tabs", methods=["POST"])
@@ -242,54 +246,62 @@ def save_terminal_tabs():
     """Save user's terminal tab state"""
     if not current_user.is_authenticated:
         return {"error": "Unauthorized"}, 401
-    
+
     try:
         data = request.get_json()
         if not data or "tabs" not in data or "active_tab" not in data:
-            return {"error": "Invalid data format. Expected 'tabs' array and 'active_tab' string."}, 400
-        
+            return {
+                "error": "Invalid data format. Expected 'tabs' array and 'active_tab' string."
+            }, 400
+
         # Validate data types
-        if not isinstance(data["tabs"], list) or not isinstance(data["active_tab"], str):
-            return {"error": "Invalid data types. 'tabs' must be array, 'active_tab' must be string."}, 400
-        
+        if not isinstance(data["tabs"], list) or not isinstance(
+            data["active_tab"], str
+        ):
+            return {
+                "error": "Invalid data types. 'tabs' must be array, 'active_tab' must be string."
+            }, 400
+
         # Validate that active_tab is in tabs list
         if data["active_tab"] not in data["tabs"]:
             return {"error": "Active tab must be in the tabs list."}, 400
-        
+
         # Validate tabs array - must be non-empty, contain only strings
         if not data["tabs"] or not all(isinstance(tab, str) for tab in data["tabs"]):
-            return {"error": "Tabs array must be non-empty and contain only strings."}, 400
-        
+            return {
+                "error": "Tabs array must be non-empty and contain only strings."
+            }, 400
+
         # Sanitize tab IDs - only allow alphanumeric characters
         sanitized_tabs = []
         for tab in data["tabs"]:
             if tab.isalnum():
                 sanitized_tabs.append(tab)
-        
+
         if not sanitized_tabs:
             return {"error": "No valid tab IDs found."}, 400
-        
+
         # Make sure active tab is still valid after sanitization
         if data["active_tab"] not in sanitized_tabs:
             data["active_tab"] = sanitized_tabs[0]
-        
+
         # Load current user data and update terminal tabs
         users_data = load_users_from_json()
         user_id = current_user.id
-        
+
         if user_id not in users_data:
             return {"error": "User not found"}, 404
-        
+
         users_data[user_id]["terminal_tabs"] = {
             "tabs": sanitized_tabs,
-            "active_tab": data["active_tab"]
+            "active_tab": data["active_tab"],
         }
-        
+
         save_users_to_json(users_data)
         logger.info(f"Saved terminal tabs for user {user_id}: {data}")
-        
+
         return {"success": True}
-    
+
     except Exception as e:
         logger.error(f"Error saving terminal tabs for user {current_user.id}: {e}")
         return {"error": "Internal server error"}, 500

@@ -1,10 +1,16 @@
-from flask import Blueprint, request
-from flask_login import current_user
+import json
+import logging
 import os
 import subprocess
-from .docker import CONTAINER_USER_UID, CONTAINER_USER_GID
+
+from flask import Blueprint, request
+from flask_login import current_user
+
+from .classrooms import CLASSROOMS_JSON_FILE
+from .docker import CLASSROOMS_ROOT, CONTAINER_USER_GID, CONTAINER_USER_UID
 
 files_bp = Blueprint("upload", __name__)
+
 
 def set_container_ownership(path):
     """Set ownership of a file/directory to match the container user"""
@@ -17,9 +23,55 @@ def set_container_ownership(path):
             os.chmod(path, 0o644)  # -rw-r--r-- for files
     except OSError as e:
         # Log the error but don't fail - this might happen in dev environments
-        import logging
         logger = logging.getLogger("files")
         logger.warning(f"Failed to set ownership for {path}: {e}")
+
+
+def _resolve_classroom_path(upload_dir: str, rel_path: str) -> str | None:
+    """If rel_path begins with a symlink that targets /classrooms/<...>,
+    map it to the corresponding host path under CLASSROOMS_ROOT.
+
+    Returns the mapped absolute host path, or None if not a classroom symlink path.
+    """
+    try:
+        # Normalize relative path
+        safe_rel = (rel_path or "").lstrip("/")
+        if not safe_rel:
+            return None
+        parts = safe_rel.split("/", 1)
+        top = parts[0]
+        remainder = parts[1] if len(parts) > 1 else ""
+        top_abs = os.path.join(upload_dir, top)
+        if not os.path.islink(top_abs):
+            return None
+        target = os.readlink(top_abs)
+        # We only handle classroom links created inside the container
+        if not target.startswith("/classrooms/"):
+            return None
+        # Translate container path to host path
+        tail = target[len("/classrooms/") :].lstrip("/")
+        host_base = os.path.join(CLASSROOMS_ROOT, tail)
+        return os.path.join(host_base, remainder) if remainder else host_base
+    except OSError:
+        return None
+
+
+def _append_classroom_tree_entries(
+    file_list: list[str], slug_name: str, host_base: str
+):
+    """Append directory and file entries for a classroom mount under the given slug name."""
+    if not os.path.isdir(host_base):
+        return
+    # Root of the classroom under this slug
+    file_list.append(f"{slug_name}/")
+    for root, dirs, files in os.walk(host_base):
+        rel = os.path.relpath(root, host_base)
+        prefix = slug_name if rel == "." else f"{slug_name}/{rel}"
+        for d in dirs:
+            file_list.append(f"{prefix}/{d}/")
+        for name in files:
+            file_list.append(f"{prefix}/{name}")
+
 
 @files_bp.post("/upload")
 def upload():
@@ -120,21 +172,72 @@ def list_files():
         return {"files": []}, 200
 
     file_tree = []
+    expanded_symlinks: set[str] = set()
+    classroom_symlinks: dict[str, str] = {}
 
+    # First, include user files under /tmp/uploads/<id>
     for root, dirs, files in os.walk(upload_dir):
         # Include directories (with trailing slash) so empty folders are discoverable
-        for d in dirs:
+        for d in list(dirs):
             full_path = os.path.join(root, d)
             relative_path = os.path.relpath(full_path, upload_dir)
+            # If this directory is a symlink to a classroom, expand its tree from the host path
+            if os.path.islink(full_path):
+                target = os.readlink(full_path)
+                if target.startswith("/classrooms/"):
+                    tail = target[len("/classrooms/") :].lstrip("/")
+                    host_base = os.path.join(CLASSROOMS_ROOT, tail)
+                    _append_classroom_tree_entries(file_tree, relative_path, host_base)
+                    expanded_symlinks.add(f"{relative_path}/")
+                    if "/" not in relative_path:
+                        classroom_id = tail.split("/", 1)[0]
+                        classroom_symlinks[relative_path] = classroom_id
+                    # Prevent os.walk from descending into this symlink path
+                    dirs.remove(d)
+                    continue
             file_tree.append(f"{relative_path}/")
 
         # Include files
         for name in files:
             full_path = os.path.join(root, name)
             relative_path = os.path.relpath(full_path, upload_dir)
+            if os.path.islink(full_path):
+                target = os.readlink(full_path)
+                if target.startswith("/classrooms/"):
+                    tail = target[len("/classrooms/") :].lstrip("/")
+                    host_base = os.path.join(CLASSROOMS_ROOT, tail)
+                    _append_classroom_tree_entries(file_tree, relative_path, host_base)
+                    expanded_symlinks.add(relative_path)
+                    continue
             file_tree.append(relative_path)
 
-    return {"files": file_tree}, 200
+    if expanded_symlinks:
+        file_tree = [entry for entry in file_tree if entry not in expanded_symlinks]
+
+    classroom_meta: dict[str, dict] = {}
+    if classroom_symlinks:
+        all_classrooms = {}
+        try:
+            if os.path.exists(CLASSROOMS_JSON_FILE):
+                with open(CLASSROOMS_JSON_FILE, "r") as f:
+                    all_classrooms = json.load(f)
+        except Exception as e:
+            logging.getLogger("files").warning(
+                f"Failed loading classrooms metadata: {e}"
+            )
+
+        for slug, cid in classroom_symlinks.items():
+            info = {}
+            if isinstance(all_classrooms, dict):
+                info = all_classrooms.get(cid, {}) or {}
+            classroom_meta[slug] = {
+                "id": cid,
+                "name": info.get("name"),
+                "archived": info.get("archived", False),
+            }
+
+    return {"files": file_tree, "classroomMeta": classroom_meta}, 200
+
 
 @files_bp.post("/move")
 def move_file_or_folder():
@@ -172,7 +275,9 @@ def move_file_or_folder():
         src_rel = os.path.relpath(src_path, upload_dir)
         dst_rel = os.path.relpath(dst_path, upload_dir)
         if dst_rel == src_rel or dst_rel.startswith(src_rel + os.sep):
-            return {"error": "Cannot move a folder into itself or its subdirectory"}, 400
+            return {
+                "error": "Cannot move a folder into itself or its subdirectory"
+            }, 400
     except ValueError:
         # relpath can throw on different drives; unlikely in Linux containers, but guard anyway
         pass
@@ -194,6 +299,7 @@ def move_file_or_folder():
         try:
             if os.path.isdir(dst_path):
                 import shutil
+
                 shutil.rmtree(dst_path)
             else:
                 os.remove(dst_path)
@@ -209,6 +315,7 @@ def move_file_or_folder():
 
     return "Moved successfully", 200
 
+
 @files_bp.route("/file/<path:filename>", methods=["GET", "PUT", "DELETE", "POST"])
 def handle_file(filename):
     if not current_user.is_authenticated:
@@ -216,11 +323,13 @@ def handle_file(filename):
 
     user_id = current_user.id
     upload_dir = f"/tmp/uploads/{user_id}"
-    file_path = os.path.join(upload_dir, filename)
+    # Map classroom symlink paths to host filesystem if applicable
+    mapped = _resolve_classroom_path(upload_dir, filename)
+    file_path = mapped if mapped else os.path.join(upload_dir, filename)
 
     if request.method == "POST":
         # Create a new directory or file
-        if filename.endswith('/'):
+        if filename.endswith("/"):
             # It's a directory
             # Normalize: avoid trailing slash for existence checks
             normalized_path = file_path[:-1]
@@ -231,7 +340,9 @@ def handle_file(filename):
                 os.makedirs(file_path, exist_ok=True)
             except NotADirectoryError:
                 # One of the parents is a file; cannot create directory path
-                return {"error": "A file exists in the path; cannot create directory"}, 409
+                return {
+                    "error": "A file exists in the path; cannot create directory"
+                }, 409
             set_container_ownership(file_path)
             return "Directory created successfully", 200
         else:
@@ -255,11 +366,12 @@ def handle_file(filename):
         return "File not found", 404
 
     elif request.method == "GET":
-        image_extensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg', 'ico']
-        file_ext = filename.split('.')[-1].lower() if '.' in filename else ''
-        
+        image_extensions = ["jpg", "jpeg", "png", "gif", "bmp", "webp", "svg", "ico"]
+        file_ext = filename.split(".")[-1].lower() if "." in filename else ""
+
         if file_ext in image_extensions:
             from flask import send_file
+
             return send_file(file_path)
         else:
             try:
@@ -268,6 +380,7 @@ def handle_file(filename):
                 return content, 200
             except UnicodeDecodeError:
                 from flask import send_file
+
                 return send_file(file_path)
 
     elif request.method == "PUT":
@@ -280,6 +393,7 @@ def handle_file(filename):
     elif request.method == "DELETE":
         if os.path.isdir(file_path):
             import shutil
+
             shutil.rmtree(file_path)
         else:
             os.remove(file_path)

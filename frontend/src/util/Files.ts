@@ -4,6 +4,7 @@ import { backendUrl } from './UserData';
 export interface FileType {
   readonly name: string;
   readonly location: string;
+  readonly classroomId?: string;
   renaming?: boolean; // Used to indicate if the file is being renamed
   placeholder?: boolean; // Indicates a client-side placeholder prior to creation
 }
@@ -32,13 +33,22 @@ function sortFilesRecursive(items: Files): void {
   }
 }
 
-export async function fetchFilesList() {
+export type FilesResponse = {
+  files: Files;
+  classroomSymlinks: Record<string, { id: string; name?: string; archived?: boolean }>;
+};
+
+export async function fetchFilesList(): Promise<FilesResponse> {
   // Fetch the list of files
   const fileRes = await fetch(`${backendUrl}/list-files`, {
     credentials: 'include',
   });
-  if (!fileRes.ok) return [];
-  const filesData: { files: string[] } = await fileRes.json();
+  if (!fileRes.ok) return { files: [], classroomSymlinks: {} };
+  const filesData: {
+    files: string[];
+    classroomMeta?: Record<string, { id: string; name?: string; archived?: boolean }>;
+  } = await fileRes.json();
+  const classroomSymlinks = filesData.classroomMeta || {};
 
   // Construct the files structure
   const files: Files = [];
@@ -53,16 +63,23 @@ export async function fetchFilesList() {
       // if the part already exists, we just continue
       const existing = current.find((f) => f.name === part);
       if (existing) {
-        current = 'files' in existing ? existing.files : [];
+        if ('files' in existing) {
+          current = existing.files;
+        } else {
+          current = [];
+        }
         continue;
       }
 
       // if it's the last part, we create a file
       if (i === parts.length - 1) {
+        const location = `/${parts.slice(0, i + 1).join('/')}`;
+        const classroomMeta = classroomSymlinks[parts[0]];
         current.push({
           name: part,
-          location: `/${parts.slice(0, i + 1).join('/')}`,
-        });
+          location,
+          classroomId: classroomMeta?.id,
+        } as FileType);
         continue;
       }
 
@@ -75,11 +92,13 @@ export async function fetchFilesList() {
         continue;
       }
       // create a new folder
+      const classroomMeta = classroomSymlinks[parts[0]];
       const folder: FolderType = {
         name: part,
         location: `/${parts.slice(0, i + 1).join('/')}`,
         files: [],
-      };
+        ...(classroomMeta?.id ? { classroomId: classroomMeta.id } : {}),
+      } as FolderType;
       current.push(folder);
       current = folder.files;
     }
@@ -88,7 +107,7 @@ export async function fetchFilesList() {
   // Ensure stable alphabetical ordering
   sortFilesRecursive(files);
 
-  return files;
+  return { files, classroomSymlinks };
 }
 
 export interface StatusContextType {

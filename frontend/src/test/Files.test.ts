@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Mock fetch
-global.fetch = vi.fn();
+(globalThis as any).fetch = vi.fn();
 
 describe('Files utilities', () => {
   beforeEach(() => {
@@ -13,7 +13,7 @@ describe('Files utilities', () => {
     // Mock successful response
     ;(fetch as any).mockResolvedValueOnce({
       ok: true,
-      json: async () => ({ files: {} }),
+      json: async () => ({ files: [], classroomMeta: {} }),
     });
 
     const FilesModule = await import('../util/Files');
@@ -21,7 +21,8 @@ describe('Files utilities', () => {
 
     if (fetchFilesList) {
       const result = await fetchFilesList();
-      expect(result).toBeDefined();
+      expect(result.files).toBeDefined();
+      expect(result.classroomSymlinks).toBeDefined();
     }
   });
 

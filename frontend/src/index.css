@@ -95,7 +95,7 @@ body {
 }
 
 .markdown-content code {
-  @apply bg-gray-800 px-1 py-0.5 rounded text-sm font-mono;
+  @apply bg-gray-800 px-1 py-0.5 rounded text-sm font-mono select-text;
 }
 
 .markdown-content pre {

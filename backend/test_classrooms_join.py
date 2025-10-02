@@ -1,6 +1,7 @@
 import json
+from unittest.mock import patch
+
 import pytest
-from unittest.mock import patch, Mock
 
 
 @pytest.fixture
@@ -11,9 +12,11 @@ def mock_flask_user(monkeypatch):
             self.email = email
             self.is_authenticated = True
             self.port_range = (8000, 8010)
+
     user = User("user-123", "test@example.com")
     monkeypatch.setattr("backend.classrooms.current_user", user)
     return user
+
 
 @pytest.fixture
 def temp_classrooms_file(tmp_path, monkeypatch):
@@ -24,6 +27,7 @@ def temp_classrooms_file(tmp_path, monkeypatch):
 
 def test_duplicate_join_returns_400(mock_flask_user, temp_classrooms_file):
     from backend import classrooms
+
     # Seed a classroom with access code
     classroom_id = "abc-class"
     access_code = "ABC123"
@@ -41,10 +45,13 @@ def test_duplicate_join_returns_400(mock_flask_user, temp_classrooms_file):
         json.dump(data, f)
 
     # First join should succeed (200)
-    with patch("backend.classrooms.spawn_container") as mock_spawn, \
-         patch("backend.classrooms.container_exists", return_value=False), \
-         patch("backend.classrooms.user_containers", {}):
+    with (
+        patch("backend.classrooms.spawn_container") as _,
+        patch("backend.classrooms.container_exists", return_value=False),
+        patch("backend.classrooms.user_containers", {}),
+    ):
         from flask import Flask
+
         app = Flask(__name__)
         app.register_blueprint(classrooms.classrooms_bp)
         client = app.test_client()
@@ -63,8 +70,11 @@ def test_duplicate_join_returns_400(mock_flask_user, temp_classrooms_file):
         assert "already" in err.get("error", "").lower()
 
 
-def test_instructor_cannot_join_self(mock_flask_user, temp_classrooms_file, monkeypatch):
+def test_instructor_cannot_join_self(
+    mock_flask_user, temp_classrooms_file, monkeypatch
+):
     from backend import classrooms
+
     # Make user instructor
     classroom_id = "instr-class"
     access_code = "ZZZ999"
@@ -81,10 +91,13 @@ def test_instructor_cannot_join_self(mock_flask_user, temp_classrooms_file, monk
     with open(temp_classrooms_file, "w") as f:
         json.dump(data, f)
 
-    with patch("backend.classrooms.spawn_container") as mock_spawn, \
-         patch("backend.classrooms.container_exists", return_value=False), \
-         patch("backend.classrooms.user_containers", {}):
+    with (
+        patch("backend.classrooms.spawn_container") as _,
+        patch("backend.classrooms.container_exists", return_value=False),
+        patch("backend.classrooms.user_containers", {}),
+    ):
         from flask import Flask
+
         app = Flask(__name__)
         app.register_blueprint(classrooms.classrooms_bp)
         client = app.test_client()

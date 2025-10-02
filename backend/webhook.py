@@ -1,14 +1,16 @@
-import os
-import hmac
 import hashlib
-import subprocess
-from flask import Blueprint, request, abort
+import hmac
 import logging
+import os
+import subprocess
+
+from flask import Blueprint, abort, request
 
 logger = logging.getLogger("webhook")
 
 webhook_bp = Blueprint("webhook", __name__)
 WEBHOOK_SECRET = os.getenv("GITHUB_WEBHOOK_SECRET", "").encode()
+
 
 @webhook_bp.route("/github-webhook", methods=["POST"])
 def github_webhook():
@@ -26,7 +28,9 @@ def github_webhook():
     mac = hmac.new(WEBHOOK_SECRET, msg=request.data, digestmod=hashlib.sha256)
 
     if not hmac.compare_digest(mac.hexdigest(), sig_hash):
-        logger.debug(f"Invalid signature. X-Hub-Signature-256: {signature} Computed HMAC: {mac.hexdigest()}")
+        logger.debug(
+            f"Invalid signature. X-Hub-Signature-256: {signature} Computed HMAC: {mac.hexdigest()}"
+        )
         abort(403, "Invalid signature")
 
     payload = request.json
@@ -38,10 +42,14 @@ def github_webhook():
         logger.debug(f"Skipped non-complete action: {payload.get('action')}")
         return "Skipped non-complete action", 204
     if payload.get("workflow_run", {}).get("conclusion") != "success":
-        logger.debug(f"Skipped unsuccessful run: {payload.get('workflow_run', {}).get('conclusion')}")
+        logger.debug(
+            f"Skipped unsuccessful run: {payload.get('workflow_run', {}).get('conclusion')}"
+        )
         return "Skipped unsuccessful run", 204
     if payload.get("workflow_run", {}).get("head_branch") != "main":
-        logger.debug(f"Skipped non-main branch: {payload.get('workflow_run', {}).get('head_branch')}")
+        logger.debug(
+            f"Skipped non-main branch: {payload.get('workflow_run', {}).get('head_branch')}"
+        )
         return "Skipped non-main branch", 204
 
     # Run deployment script asynchronously

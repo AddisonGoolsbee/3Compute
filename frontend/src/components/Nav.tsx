@@ -1,10 +1,10 @@
-import { Nav, LogoBirdflop } from "@luminescent/ui-react";
-import { LogOut, Plus, LogIn } from "lucide-react";
-import { useContext, useState } from "react";
-import { Link } from "react-router";
-import { backendUrl, UserDataContext } from "../util/UserData";
-import CreateClassroomDialog from "./CreateClassroomDialog";
-import JoinClassroomDialog from "./JoinClassroomDialog";
+import { Nav, LogoBirdflop } from '@luminescent/ui-react';
+import { LogOut, Plus, LogIn } from 'lucide-react';
+import { useContext, useState } from 'react';
+import { Link } from 'react-router';
+import { backendUrl, UserDataContext } from '../util/UserData';
+import CreateClassroomDialog from './CreateClassroomDialog';
+import JoinClassroomDialog from './JoinClassroomDialog';
 
 export default function NavComponent() {
   const [createOpen, setCreateOpen] = useState(false);
@@ -12,9 +12,9 @@ export default function NavComponent() {
 
   const handleLogout = async () => {
     await fetch(`${backendUrl}/logout`, {
-      credentials: "include",
+      credentials: 'include',
     });
-    window.location.href = "/";
+    window.location.href = '/';
   };
 
   const userData = useContext(UserDataContext);
@@ -27,7 +27,7 @@ export default function NavComponent() {
             to="/"
             className="lum-btn lum-bg-transparent hover:lum-bg-nav-bg"
           >
-            <LogoBirdflop size={24} fillGradient={["#54daf4", "#545eb6"]} />
+            <LogoBirdflop size={24} fillGradient={['#54daf4', '#545eb6']} />
             <span className="font-semibold -ml-1">3Compute</span>
           </Link>
         }
@@ -36,7 +36,7 @@ export default function NavComponent() {
             {userData?.userInfo && (
               <button
                 onClick={() => setJoinOpen(true)}
-                className="lum-btn lum-bg-transparent hover:lum-bg-nav-bg flex items-center gap-1 cursor-pointer select-none text-sm font-medium transition-colors"
+                className="lum-btn lum-bg-transparent hover:lum-bg-nav-bg flex items-center gap-1 cursor-pointer select-none text-sm font-medium transition-colors px-3 py-2"
               >
                 <LogIn size={16} className="opacity-80" />
                 <span>Join Classroom</span>
@@ -45,7 +45,7 @@ export default function NavComponent() {
             {userData?.userInfo && (
               <button
                 onClick={() => setCreateOpen(true)}
-                className="lum-btn lum-bg-transparent hover:lum-bg-nav-bg flex items-center gap-1 cursor-pointer select-none text-sm font-medium transition-colors"
+                className="lum-btn lum-bg-transparent hover:lum-bg-nav-bg flex items-center gap-1 cursor-pointer select-none text-sm font-medium transition-colors px-3 py-2"
               >
                 <Plus size={16} className="opacity-80" />
                 <span>Create Classroom</span>
@@ -54,7 +54,7 @@ export default function NavComponent() {
             {userData?.userInfo && (
               <button
                 onClick={handleLogout}
-                className="lum-btn lum-bg-transparent text-red-300 hover:lum-bg-red-700"
+                className="lum-btn lum-bg-transparent hover:lum-bg-red-700 flex items-center gap-1 cursor-pointer select-none text-sm font-medium transition-colors px-3 py-2 text-red-300"
               >
                 <LogOut size={20} />
                 Log out
