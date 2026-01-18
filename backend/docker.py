@@ -441,6 +441,8 @@ def attach_to_container(container_name, tab_id="1"):
     master_fd, slave_fd = pty.openpty()
     # Create unique tmux session for each tab
     session_name = f"3compute-tab{tab_id}"
+    tmux_conf = "/home/myuser/.tmux.conf"
+    # Source the config after attaching to ensure settings are applied even if server was already running
     cmd = [
         "docker",
         "exec",
@@ -448,7 +450,7 @@ def attach_to_container(container_name, tab_id="1"):
         container_name,
         "sh",
         "-lc",
-        f"tmux new-session -d -A -s {session_name}; tmux attach -t {session_name}",
+        f"tmux -f {tmux_conf} new-session -d -A -s {session_name}; tmux source-file {tmux_conf} 2>/dev/null; tmux attach -t {session_name}",
     ]
     logger.info(
         f"Attaching to container '{container_name}' with tmux session '{session_name}'"

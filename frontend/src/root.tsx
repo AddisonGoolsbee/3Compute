@@ -34,31 +34,17 @@ export function Layout({ children }: { children: ReactNode }) {
     // Skip starting a refresh while the user is typing a name
     if (isUserEditingName) return;
     try {
-      const oldCurrent = currentFile;
       const { files: newFiles, classroomSymlinks: newMap } = await fetchFilesList();
       // If user started editing while the request was in-flight, ignore this result
       if (isUserEditingName) return;
       setFilesClientSide(newFiles);
       setClassroomSymlinks(newMap);
-      // Preserve currently open file selection by object identity replacement
-      if (oldCurrent) {
-        const match = (function findMatch(items: Files): typeof oldCurrent | undefined {
-          for (const item of items) {
-            if ('files' in item) {
-              const found = findMatch(item.files);
-              if (found) return found as any;
-            } else if (item.location === oldCurrent.location) {
-              return item as any;
-            }
-          }
-          return undefined;
-        })(newFiles);
-        if (match) setCurrentFile(match);
-      }
+      // Note: We don't update currentFile here to avoid triggering re-renders in Editor
+      // The Editor depends on currentFile.location (string) not the object reference
     } catch (error) {
       console.error('Failed to refresh files:', error);
     }
-  }, [currentFile, isUserEditingName]);
+  }, [isUserEditingName]);
 
   // Global handler to enter renaming mode by location (used by right-click)
   useEffect(() => {
@@ -188,7 +174,7 @@ export function Layout({ children }: { children: ReactNode }) {
   }, [refreshFiles, classroomSymlinks]);
 
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />

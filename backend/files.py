@@ -283,7 +283,7 @@ def list_files():
     classroom_symlinks: dict[str, str] = {}
 
     logger = logging.getLogger("files")
-    logger.info(f"[{user_id}] Listing files in {upload_dir}")
+    logger.debug(f"[{user_id}] Listing files in {upload_dir}")
 
     top_level_symlinks: set[str] = set()
 
@@ -295,7 +295,7 @@ def list_files():
                 continue
 
             target = os.readlink(full_path)
-            logger.info(f"[{user_id}] Found top-level symlink: {entry} -> {target}")
+            logger.debug(f"[{user_id}] Found top-level symlink: {entry} -> {target}")
 
             tail = None
             if target.startswith(CLASSROOMS_ROOT):
@@ -303,7 +303,7 @@ def list_files():
             elif target.startswith("/classrooms/"):
                 tail = target[len("/classrooms/") :].lstrip("/")
             else:
-                logger.info(
+                logger.debug(
                     f"[{user_id}] Symlink {entry} does not target classrooms directory, skipping"
                 )
                 continue
@@ -323,7 +323,7 @@ def list_files():
             top_level_symlinks.add(entry)
 
             classroom_id = tail.split("/", 1)[0]
-            logger.info(
+            logger.debug(
                 f"[{user_id}] Recording classroom symlink: {entry} -> {classroom_id}"
             )
             classroom_symlinks[entry] = classroom_id
@@ -345,7 +345,7 @@ def list_files():
             # If this directory is a symlink to a classroom, expand its tree from the host path
             if os.path.islink(full_path):
                 target = os.readlink(full_path)
-                logger.info(f"[{user_id}] Found symlink: {relative_path} -> {target}")
+                logger.debug(f"[{user_id}] Found symlink: {relative_path} -> {target}")
                 if target.startswith("/classrooms/"):
                     tail = target[len("/classrooms/") :].lstrip("/")
                     host_base = os.path.join(CLASSROOMS_ROOT, tail)
@@ -353,7 +353,7 @@ def list_files():
                     expanded_symlinks.add(f"{relative_path}/")
                     if "/" not in relative_path:
                         classroom_id = tail.split("/", 1)[0]
-                        logger.info(
+                        logger.debug(
                             f"[{user_id}] Recording classroom symlink: {relative_path} -> {classroom_id}"
                         )
                         classroom_symlinks[relative_path] = classroom_id
@@ -380,7 +380,7 @@ def list_files():
         file_tree = [entry for entry in file_tree if entry not in expanded_symlinks]
 
     classroom_meta: dict[str, dict] = {}
-    logger.info(f"[{user_id}] Found classroom_symlinks: {classroom_symlinks}")
+    logger.debug(f"[{user_id}] Found classroom_symlinks: {classroom_symlinks}")
 
     if classroom_symlinks:
         all_classrooms = {}
@@ -388,7 +388,7 @@ def list_files():
             if os.path.exists(CLASSROOMS_JSON_FILE):
                 with open(CLASSROOMS_JSON_FILE, "r") as f:
                     all_classrooms = json.load(f)
-                logger.info(
+                logger.debug(
                     f"[{user_id}] Loaded classrooms.json with {len(all_classrooms)} classrooms"
                 )
         except Exception as e:
@@ -403,11 +403,11 @@ def list_files():
                 "name": info.get("name"),
                 "archived": info.get("archived", False),
             }
-            logger.info(
+            logger.debug(
                 f"[{user_id}] Added classroom_meta[{slug}] = {classroom_meta[slug]}"
             )
 
-    logger.info(f"[{user_id}] Returning classroom_meta: {classroom_meta}")
+    logger.debug(f"[{user_id}] Returning classroom_meta: {classroom_meta}")
     return {"files": file_tree, "classroomMeta": classroom_meta}, 200
 
 
@@ -509,6 +509,22 @@ def handle_file(filename):
             return "Invalid path", 400
     except ValueError:
         return "Invalid path", 400
+
+    # Prevent writes to templates folders (read-only for participants)
+    # Templates can only be modified by instructors via the dedicated upload endpoint
+    if request.method in ("POST", "PUT", "DELETE"):
+        # Check if path is in a templates folder (either directly or via classroom-templates symlink)
+        rel_to_classrooms = ""
+        if file_path.startswith(CLASSROOMS_ROOT):
+            rel_to_classrooms = file_path[len(CLASSROOMS_ROOT):].lstrip("/")
+        is_templates_path = (
+            "/templates/" in f"/{rel_to_classrooms}" or
+            rel_to_classrooms.endswith("/templates") or
+            "/classroom-templates/" in filename or
+            filename.startswith("classroom-templates/")
+        )
+        if is_templates_path:
+            return {"error": "Templates folder is read-only. Use 'Copy to Workspace' instead."}, 403
 
     if request.method == "POST":
         # Create a new directory or file

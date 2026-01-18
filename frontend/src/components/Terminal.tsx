@@ -65,6 +65,16 @@ export function TerminalComponent({ tabId, isActive }: TerminalComponentProps) {
 
     term.open(terminalRef.current);
 
+    // Handle mouse wheel scrolling - intercept and scroll terminal buffer directly
+    const handleWheel = (e: WheelEvent) => {
+      // Only handle if terminal is ready (has dimensions)
+      if (!term.element || !term.cols || !term.rows) return;
+      e.preventDefault();
+      const scrollLines = Math.round(e.deltaY / 30); // Adjust sensitivity
+      term.scrollLines(scrollLines);
+    };
+    terminalRef.current.addEventListener('wheel', handleWheel, { passive: false });
+
     const socket = io(backendUrl, {
       withCredentials: true,
       query: {
@@ -135,8 +145,10 @@ export function TerminalComponent({ tabId, isActive }: TerminalComponentProps) {
     });
 
     resizeObserver.observe(terminalRef.current);
+    const currentRef = terminalRef.current;
 
     return () => {
+      currentRef.removeEventListener('wheel', handleWheel);
       resizeObserver.disconnect();
       socket.disconnect();
       term.dispose();
@@ -360,7 +372,7 @@ export default function TerminalTabs() {
 
   if (isLoading) {
     return (
-      <div className="w-full h-[50dvh] lum-bg-gray-950 border border-lum-border/40 rounded-lum flex flex-col overflow-hidden">
+      <div className="w-full h-[40dvh] lum-bg-gray-950 border border-lum-border/40 rounded-lum flex flex-col overflow-hidden">
         <div className="flex-1 flex items-center justify-center">
           <div className="text-lum-text-secondary">Loading terminals...</div>
         </div>
@@ -369,7 +381,7 @@ export default function TerminalTabs() {
   }
 
   return (
-    <div className="w-full h-[50dvh] lum-bg-gray-950 border border-lum-border/40 rounded-lum flex flex-col overflow-hidden">
+    <div className="w-full h-[40dvh] lum-bg-gray-950 border border-lum-border/40 rounded-lum flex flex-col overflow-hidden">
       <TerminalTabBar
         tabs={tabs}
         active={activeTab}

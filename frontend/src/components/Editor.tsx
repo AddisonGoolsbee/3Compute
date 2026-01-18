@@ -13,13 +13,10 @@ import Markdown from 'react-markdown';
 import { Files, FileType } from '../util/Files';
 
 function findDefaultFile(files: Files): FileType | undefined {
-  console.log('Finding default file in:', files);
-
   const defaultFileNames = ['readme', 'index.'];
   for (const fileName of defaultFileNames) {
     for (const item of files) {
       if (!('files' in item) && item.name.toLowerCase().startsWith(fileName.toLowerCase())) {
-        console.log('Found default file:', item);
         return item;
       }
     }
@@ -52,18 +49,27 @@ export default function Editor() {
   }, []);
   const userData = useContext(UserDataContext);
 
+  // Track if we've already tried to find a default file
+  const [initialFileSet, setInitialFileSet] = useState(false);
+
   useEffect(() => {
-    if (userData.currentFile) return;
+    // Only run once to set initial file
+    if (initialFileSet) return;
+    if (userData.currentFile) {
+      setInitialFileSet(true);
+      return;
+    }
     // Find a default file to open
-    let currentFile: FileType | undefined;
-    // console.log(userData.files);f
     if (userData.files && userData.files.length > 0) {
-      currentFile = findDefaultFile(userData.files);
+      const defaultFile = findDefaultFile(userData.files);
+      if (defaultFile) {
+        userData.setCurrentFile(defaultFile);
+        setInitialFileSet(true);
+        return;
+      }
     }
-    if (currentFile) {
-      userData.setCurrentFile(currentFile);
-    }
-    else {
+    // No files available yet, show welcome message
+    if (userData.files !== undefined) {
       setCurrentLanguage('markdown');
       fetch('/README.md')
         .then(response => response.text())
@@ -72,64 +78,51 @@ export default function Editor() {
           setMdPreview(true);
         })
         .catch(err => console.error('Error loading README.md:', err));
+      setInitialFileSet(true);
     }
-  }, [userData]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userData.currentFile, userData.files, initialFileSet]);
 
   useEffect(() => {
     const controller = new AbortController();
-    const currentLocation = userData.currentFile?.location;
+    const currentFile = userData.currentFile;
+    const currentLocation = currentFile?.location;
+    const contentVersion = userData.contentVersion;
     (async () => {
-      if (!userData.currentFile) {
-        console.log('Editor: No current file');
-        return;
-      }
-
-      console.log('Editor: Loading file:', userData.currentFile.location);
+      if (!currentFile) return;
 
       // Check if the current file is an image
-      const isImageFileType = isImageFile(userData.currentFile.name);
+      const isImageFileType = isImageFile(currentFile.name);
       setIsImage(isImageFileType);
-      if (isImageFileType) {
-        console.log('Editor: File is an image');
-        return;
-      }
+      if (isImageFileType) return;
 
       // Load the file content
-      const url = `${backendUrl}/file${userData.currentFile.location}?t=${userData.contentVersion ?? 0}`;
-      console.log('Editor: Fetching:', url);
-      
-      const fileres = await fetch(url, {
+      const fileres = await fetch(`${backendUrl}/file${currentFile.location}?t=${contentVersion ?? 0}`, {
         credentials: 'include',
         signal: controller.signal,
       });
       
       if (!fileres.ok) {
-        console.error('Editor: Failed to load file:', userData.currentFile.location, 'Status:', fileres.status);
-        const errorText = await fileres.text().catch(() => '');
-        console.error('Editor: Error response:', errorText);
-        userData.setCurrentFile(undefined);
+        console.error('Failed to load file:', currentFile.location);
+        // Don't reset currentFile to avoid infinite loop - just show empty content
+        setValue(`Failed to load file: ${currentFile.location}`);
         return;
       }
       
       const file = await fileres.text();
-      console.log('Editor: File loaded successfully, length:', file.length);
-      
-      if (currentLocation !== userData.currentFile?.location) {
-        console.log('Editor: Stale response, ignoring');
-        return; // stale response
-      }
+      if (currentLocation !== userData.currentFile?.location) return; // stale response
       
       setValue(file);
 
       // Set the language based on the file extension
-      const ext = userData.currentFile.name.split('.').pop()?.toLowerCase();
+      const ext = currentFile.name.split('.').pop()?.toLowerCase();
       if (!ext) return;
 
       const lang = Object.keys(languageMap).find(l => languageMap[l as keyof typeof languageMap].extensions.includes(ext)) as keyof typeof languageMap | undefined || 'text';
       setCurrentLanguage(lang);
-      console.log('Editor: File loaded and displayed');
     })();
     return () => controller.abort();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userData.currentFile?.location, userData.contentVersion]);
 
   return (
@@ -211,7 +204,6 @@ export default function Editor() {
                         setSaveStatus('error');
                         setTimeout(() => setSaveStatus('idle'), 3000);
                       } else {
-                        console.log('File saved successfully');
                         setSaveStatus('saved');
                         setTimeout(() => setSaveStatus('idle'), 1000);
                       }

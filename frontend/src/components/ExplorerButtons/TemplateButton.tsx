@@ -41,26 +41,19 @@ export default function TemplateButton() {
   useEffect(() => {
     if (!userData?.userInfo || !userData?.classroomSymlinks) return;
     
-    console.log('Loading classroom templates. Available symlinks:', userData.classroomSymlinks);
-    
     fetch(`${backendUrl}/classrooms/templates`, { credentials: 'include' })
       .then((res) => res.json())
       .then((data) => {
         const classroomsWithTemplates = Array.isArray(data.classrooms) ? data.classrooms : [];
-        console.log('Loaded classroom templates:', classroomsWithTemplates);
         
         // Only show classrooms that are actually mounted in the user's workspace
         const availableClassrooms = classroomsWithTemplates.filter((classroom: ClassroomWithTemplates) => {
           const slug = Object.keys(userData.classroomSymlinks || {}).find(
             s => userData.classroomSymlinks?.[s]?.id === classroom.id
           );
-          if (!slug) {
-            console.warn(`Classroom ${classroom.name} (${classroom.id}) not mounted in workspace`);
-          }
           return !!slug;
         });
         
-        console.log('Available mounted classrooms:', availableClassrooms);
         setClassroomTemplates(availableClassrooms);
       })
       .catch((err) => console.error('Failed to load classroom templates', err));
@@ -165,9 +158,6 @@ export default function TemplateButton() {
       // Find the classroom folder in the user's file list
       const classroomSymlinks = userData.classroomSymlinks || {};
       
-      console.log('Available classroom symlinks:', classroomSymlinks);
-      console.log('Looking for classroom ID:', classroomId);
-      
       const classroomSlug = Object.keys(classroomSymlinks).find(
         slug => classroomSymlinks[slug]?.id === classroomId
       );
@@ -192,14 +182,10 @@ export default function TemplateButton() {
 
         for (const base of baseCandidates) {
           const url = `${backendUrl}/file/${classroomSlug}/${base}/${templateName}/${filename}`;
-          console.log('Fetching:', url);
           const res = await fetch(url, { credentials: 'include' });
           if (res.ok) {
             if (!resolvedBase) {
               resolvedBase = base;
-              if (base === 'templates') {
-                console.warn(`Falling back to templates/ for classroom ${classroomId}`);
-              }
             }
             return await res.blob();
           }
