@@ -9,7 +9,7 @@ export default tseslint.config(
   globalIgnores(['node_modules/*', 'dist/*', 'build/*', 'server/*', 'tmp/*', '.react-router/*']),
   js.configs.recommended,
   tseslint.configs.recommended,
-  reactHooks.configs['recommended-latest'],
+  reactHooks.configs.flat['recommended-latest'],
   reactRefresh.configs.vite,
   {
     files: ['**/*.{ts,tsx}'],
@@ -17,6 +17,7 @@ export default tseslint.config(
       globals: globals.browser,
     },
     rules: {
+      'react-hooks/set-state-in-effect': 'off',
       '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/no-unsafe-member-access': 'off',
       '@typescript-eslint/no-unsafe-assignment': 'off',

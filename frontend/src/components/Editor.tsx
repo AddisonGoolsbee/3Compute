@@ -101,17 +101,17 @@ export default function Editor() {
         credentials: 'include',
         signal: controller.signal,
       });
-      
+
       if (!fileres.ok) {
         console.error('Failed to load file:', currentFile.location);
         // Don't reset currentFile to avoid infinite loop - just show empty content
         setValue(`Failed to load file: ${currentFile.location}`);
         return;
       }
-      
+
       const file = await fileres.text();
       if (currentLocation !== userData.currentFile?.location) return; // stale response
-      
+
       setValue(file);
 
       // Set the language based on the file extension

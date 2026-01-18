@@ -40,20 +40,20 @@ export default function TemplateButton() {
   // 2) load classroom templates for students/instructors to browse
   useEffect(() => {
     if (!userData?.userInfo || !userData?.classroomSymlinks) return;
-    
+
     fetch(`${backendUrl}/classrooms/templates`, { credentials: 'include' })
       .then((res) => res.json())
       .then((data) => {
         const classroomsWithTemplates = Array.isArray(data.classrooms) ? data.classrooms : [];
-        
+
         // Only show classrooms that are actually mounted in the user's workspace
         const availableClassrooms = classroomsWithTemplates.filter((classroom: ClassroomWithTemplates) => {
           const slug = Object.keys(userData.classroomSymlinks || {}).find(
-            s => userData.classroomSymlinks?.[s]?.id === classroom.id
+            s => userData.classroomSymlinks?.[s]?.id === classroom.id,
           );
           return !!slug;
         });
-        
+
         setClassroomTemplates(availableClassrooms);
       })
       .catch((err) => console.error('Failed to load classroom templates', err));
@@ -61,7 +61,7 @@ export default function TemplateButton() {
 
   const handleUseTemplate = async (templateName: string) => {
     if (!templateName) return;
-    
+
     // Always upload built-in templates to personal workspace
     // Teachers can manually copy to classroom folders if needed
     await uploadToPersonalWorkspace(templateName);
@@ -157,15 +157,15 @@ export default function TemplateButton() {
     try {
       // Find the classroom folder in the user's file list
       const classroomSymlinks = userData.classroomSymlinks || {};
-      
+
       const classroomSlug = Object.keys(classroomSymlinks).find(
-        slug => classroomSymlinks[slug]?.id === classroomId
+        slug => classroomSymlinks[slug]?.id === classroomId,
       );
 
       if (!classroomSlug) {
         console.error('Classroom not found. Available symlinks:', Object.keys(classroomSymlinks));
         throw new Error(
-          'Classroom folder not mounted. Try refreshing the page or logging out and back in.'
+          'Classroom folder not mounted. Try refreshing the page or logging out and back in.',
         );
       }
 
@@ -212,7 +212,7 @@ export default function TemplateButton() {
 
       // Add files to formData with the correct paths
       for (const { filename, blob } of fetchedFiles) {
-        const filePath = basePath 
+        const filePath = basePath
           ? `${classroomSlug}/${basePath}/${templateName}/${filename}`
           : `${classroomSlug}/${templateName}/${filename}`;
         formData.append('files', blob, filePath);
@@ -244,14 +244,14 @@ export default function TemplateButton() {
       const templateFolderLocation = basePath
         ? `${classroomRoot}/${basePath}/${templateName}`
         : `${classroomRoot}/${templateName}`;
-      
+
       // Expand parent folders too if needed
       const foldersToOpen = [classroomRoot];
       if (basePath) {
         foldersToOpen.push(`${classroomRoot}/${basePath}`);
       }
       foldersToOpen.push(templateFolderLocation);
-      
+
       userData.setOpenFolders((prev) => {
         const newFolders = foldersToOpen.filter(f => !prev.includes(f));
         return newFolders.length > 0 ? [...prev, ...newFolders] : prev;
@@ -276,14 +276,14 @@ export default function TemplateButton() {
 
   // Build values list with classroom templates first if available
   const selectValues = [];
-  
+
   if (classroomTemplates.length > 0) {
     selectValues.push({
       name: 'Classroom Templates',
       value: '__classroom_templates__',
     });
   }
-  
+
   selectValues.push(...templateNames.map((name) => ({
     name: name.replace(/[-_]/g, ' '),
     value: name,
@@ -397,7 +397,7 @@ export default function TemplateButton() {
                     await uploadClassroomTemplate(
                       selectedClassroom.id,
                       template.name,
-                      template.files
+                      template.files,
                     );
                     setSelectedClassroom(null);
                     setSelected('');

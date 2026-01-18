@@ -393,7 +393,7 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
             const isClassroomRoot = !contextMenu.targetLocation.includes('/', 1);
             const slug = contextMenu.targetLocation.split('/').filter(Boolean)[0];
             const classroom = slug ? classroomSymlinks?.[slug] : undefined;
-            
+
             // Handle classroom archive/restore - classroom roots can only be archived, not deleted
             if (isClassroomRoot && classroom) {
               window.dispatchEvent(new CustomEvent('3compute:classroom-action', {
@@ -404,32 +404,32 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
               }));
               return;
             }
-            
+
             // Don't allow deletion of classroom roots at all
             if (isClassroomRoot) {
               return;
             }
-            
+
             // Handle regular file/folder deletion (not classroom roots)
             if (!window.confirm(`Delete "${contextMenu.targetLocation}"? This cannot be undone.`)) {
               return;
             }
-            
+
             try {
               const res = await fetch(`${backendUrl}/file${contextMenu.targetLocation}`, {
                 method: 'DELETE',
                 credentials: 'include',
               });
-              
+
               if (!res.ok) {
                 console.error('Failed to delete:', contextMenu.targetLocation);
                 alert('Failed to delete file');
                 return;
               }
-              
+
               // Refresh file list
               await refreshFiles();
-              
+
               // Clear current file if it was deleted
               if (currentFile?.location === contextMenu.targetLocation) {
                 setCurrentFile(undefined);
