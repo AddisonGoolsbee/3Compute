@@ -4,6 +4,7 @@ import os
 import platform
 import pty
 import re
+import shutil
 import subprocess
 
 import psutil
@@ -293,8 +294,68 @@ def spawn_container(
                 link_commands.append(
                     f"chmod 775 /classrooms/{cid}/participants/{sanitized_email} || true"
                 )
+                # create symlink to templates inside participant folder so students can access them
+                link_commands.append(
+                    f"rm -rf /classrooms/{cid}/participants/{sanitized_email}/classroom-templates || true"
+                )
+                link_commands.append(
+                    f"ln -s /classrooms/{cid}/templates /classrooms/{cid}/participants/{sanitized_email}/classroom-templates"
+                )
+            # Create symlink inside container for immediate access
             link_commands.append(f"rm -rf /app/{slug} || true")
             link_commands.append(f"ln -s {target_path} /app/{slug}")
+
+            # Also create symlink on HOST filesystem so backend can detect it
+            # Map container paths to host paths
+            if participant_mode.get(cid):
+                # Student: link to participant folder on host
+                host_source = f"/tmp/uploads/{user_id}/{slug}"
+                host_target = f"{CLASSROOMS_ROOT}/{cid}/participants/{sanitized_email}"
+            else:
+                # Instructor: link to classroom root on host
+                host_source = f"/tmp/uploads/{user_id}/{slug}"
+                host_target = f"{CLASSROOMS_ROOT}/{cid}"
+
+            try:
+                # Ensure base classroom directories exist on host
+                os.makedirs(host_target, exist_ok=True)
+
+                # For participants, mirror classroom-templates symlink on host
+                if participant_mode.get(cid):
+                    templates_target = os.path.join(CLASSROOMS_ROOT, cid, "templates")
+                    os.makedirs(templates_target, exist_ok=True)
+
+                    templates_link = os.path.join(host_target, "classroom-templates")
+                    if os.path.islink(templates_link) or os.path.exists(templates_link):
+                        if os.path.islink(templates_link):
+                            os.unlink(templates_link)
+                        elif os.path.isdir(templates_link):
+                            shutil.rmtree(templates_link)
+                        else:
+                            os.remove(templates_link)
+                    os.symlink(templates_target, templates_link)
+
+                # Remove existing symlink or file if any
+                if os.path.islink(host_source) or os.path.exists(host_source):
+                    if os.path.islink(host_source):
+                        os.unlink(host_source)
+                    elif os.path.isdir(host_source):
+                        shutil.rmtree(host_source)
+                    else:
+                        os.remove(host_source)
+
+                # Ensure parent directory exists for symlink
+                os.makedirs(os.path.dirname(host_source), exist_ok=True)
+
+                # Create the symlink on host
+                os.symlink(host_target, host_source)
+                logger.info(
+                    f"[{user_id}] Created host symlink: {host_source} -> {host_target}"
+                )
+            except Exception as e:
+                logger.error(
+                    f"[{user_id}] Failed to create host symlink {host_source}: {e}"
+                )
         link_commands.append(
             "echo 'Symlinks + permissions (participant-aware) applied'"
         )

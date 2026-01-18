@@ -12,6 +12,16 @@ from .docker import CLASSROOMS_ROOT, CONTAINER_USER_GID, CONTAINER_USER_UID
 files_bp = Blueprint("upload", __name__)
 
 
+def _translate_container_path(path: str) -> str:
+    """Convert absolute container classroom paths to host paths."""
+    if not path:
+        return path
+    if path.startswith("/classrooms/"):
+        tail = path[len("/classrooms/") :].lstrip("/")
+        return os.path.join(CLASSROOMS_ROOT, tail)
+    return path
+
+
 def set_container_ownership(path):
     """Set ownership of a file/directory to match the container user"""
     try:
@@ -45,32 +55,126 @@ def _resolve_classroom_path(upload_dir: str, rel_path: str) -> str | None:
         if not os.path.islink(top_abs):
             return None
         target = os.readlink(top_abs)
-        # We only handle classroom links created inside the container
-        if not target.startswith("/classrooms/"):
+        if target.startswith("/classrooms/"):
+            tail = target[len("/classrooms/") :].lstrip("/")
+        elif target.startswith(CLASSROOMS_ROOT):
+            tail = target[len(CLASSROOMS_ROOT) :].lstrip("/")
+        else:
             return None
-        # Translate container path to host path
-        tail = target[len("/classrooms/") :].lstrip("/")
         host_base = os.path.join(CLASSROOMS_ROOT, tail)
-        return os.path.join(host_base, remainder) if remainder else host_base
+        candidate = os.path.join(host_base, remainder) if remainder else host_base
+
+        try:
+            resolved = os.path.realpath(candidate)
+        except OSError:
+            resolved = candidate
+
+        translated = _translate_container_path(resolved)
+        normalized = os.path.normpath(translated)
+
+        # Ensure the final path stays within the classrooms root
+        try:
+            if os.path.commonpath([CLASSROOMS_ROOT, normalized]) != CLASSROOMS_ROOT:
+                return None
+        except ValueError:
+            return None
+
+        return normalized
     except OSError:
         return None
 
 
 def _append_classroom_tree_entries(
-    file_list: list[str], slug_name: str, host_base: str
+    file_list: list[str], slug_name: str, host_base: str, _visited_paths=None
 ):
     """Append directory and file entries for a classroom mount under the given slug name."""
     if not os.path.isdir(host_base):
         return
+
+    # Track visited paths to avoid infinite symlink loops
+    if _visited_paths is None:
+        _visited_paths = set()
+
+    # Resolve to canonical path to detect loops
+    try:
+        canonical = os.path.realpath(host_base)
+        if canonical in _visited_paths:
+            return
+        _visited_paths.add(canonical)
+    except OSError:
+        return
+
     # Root of the classroom under this slug
     file_list.append(f"{slug_name}/")
-    for root, dirs, files in os.walk(host_base):
+
+    # First pass: handle symlinks specially at this level
+    try:
+        for entry in os.listdir(host_base):
+            full_path = os.path.join(host_base, entry)
+            if os.path.islink(full_path):
+                try:
+                    # Check if symlink target exists and is a directory
+                    target = os.readlink(full_path)
+                    # Try to resolve container paths to host paths
+                    if target.startswith("/classrooms/"):
+                        target_host = target.replace(
+                            "/classrooms/", f"{CLASSROOMS_ROOT}/"
+                        )
+                    else:
+                        # Relative or other absolute path
+                        if not os.path.isabs(target):
+                            target_host = os.path.join(host_base, target)
+                        else:
+                            target_host = target
+
+                    # Check if it points to a directory
+                    if os.path.isdir(target_host):
+                        # Add as directory
+                        dir_entry = f"{slug_name}/{entry}/"
+                        if dir_entry not in file_list:
+                            file_list.append(dir_entry)
+                            # Recursively add contents
+                            _append_classroom_tree_entries(
+                                file_list,
+                                f"{slug_name}/{entry}",
+                                target_host,
+                                _visited_paths,
+                            )
+                    else:
+                        # Symlink to file
+                        file_entry = f"{slug_name}/{entry}"
+                        if file_entry not in file_list:
+                            file_list.append(file_entry)
+                except (OSError, IOError) as e:
+                    logger = logging.getLogger("files")
+                    logger.debug(f"Failed to process symlink {full_path}: {e}")
+    except Exception as e:
+        logger = logging.getLogger("files")
+        logger.warning(f"Failed to process top-level symlinks in {host_base}: {e}")
+
+    # Second pass: use os.walk for regular files and directories (skip symlinks)
+    for root, dirs, files in os.walk(host_base, followlinks=False):
         rel = os.path.relpath(root, host_base)
         prefix = slug_name if rel == "." else f"{slug_name}/{rel}"
-        for d in dirs:
-            file_list.append(f"{prefix}/{d}/")
+
+        # Filter out symlinks from dirs since we already handled them above
+        for d in list(dirs):
+            full_path = os.path.join(root, d)
+            if not os.path.islink(full_path):
+                entry = f"{prefix}/{d}/"
+                if entry not in file_list:
+                    file_list.append(entry)
+            else:
+                # Remove from dirs to prevent os.walk from descending
+                dirs.remove(d)
+
+        # Add regular files (not symlinks)
         for name in files:
-            file_list.append(f"{prefix}/{name}")
+            full_path = os.path.join(root, name)
+            if not os.path.islink(full_path):
+                entry = f"{prefix}/{name}"
+                if entry not in file_list:
+                    file_list.append(entry)
 
 
 @files_bp.post("/upload")
@@ -112,11 +216,14 @@ def upload_folder():
         safe_path = os.path.normpath(os.path.join(upload_dir, f.filename))
         if not safe_path.startswith(upload_dir):
             continue  # prevent directory traversal
-        dir_path = os.path.dirname(safe_path)
+        # Resolve classroom symlink destinations to host paths if needed
+        classroom_target = _resolve_classroom_path(upload_dir, f.filename)
+        dest_path = classroom_target if classroom_target else safe_path
+        dir_path = os.path.dirname(dest_path)
         os.makedirs(dir_path, exist_ok=True)
         set_container_ownership(dir_path)
-        f.save(safe_path)
-        set_container_ownership(safe_path)
+        f.save(dest_path)
+        set_container_ownership(dest_path)
 
     # Check if move-into parameter is provided
     move_into = request.form.get("move-into")
@@ -175,15 +282,70 @@ def list_files():
     expanded_symlinks: set[str] = set()
     classroom_symlinks: dict[str, str] = {}
 
-    # First, include user files under /tmp/uploads/<id>
+    logger = logging.getLogger("files")
+    logger.info(f"[{user_id}] Listing files in {upload_dir}")
+
+    top_level_symlinks: set[str] = set()
+
+    # Detect top-level classroom symlinks first so the backend knows about them
+    try:
+        for entry in os.listdir(upload_dir):
+            full_path = os.path.join(upload_dir, entry)
+            if not os.path.islink(full_path):
+                continue
+
+            target = os.readlink(full_path)
+            logger.info(f"[{user_id}] Found top-level symlink: {entry} -> {target}")
+
+            tail = None
+            if target.startswith(CLASSROOMS_ROOT):
+                tail = target[len(CLASSROOMS_ROOT) :].lstrip("/")
+            elif target.startswith("/classrooms/"):
+                tail = target[len("/classrooms/") :].lstrip("/")
+            else:
+                logger.info(
+                    f"[{user_id}] Symlink {entry} does not target classrooms directory, skipping"
+                )
+                continue
+
+            if not tail:
+                continue
+
+            host_base = os.path.join(CLASSROOMS_ROOT, tail)
+            if not os.path.exists(host_base):
+                logger.warning(
+                    f"[{user_id}] Host classroom path missing for symlink {entry}: {host_base}"
+                )
+                continue
+
+            _append_classroom_tree_entries(file_tree, entry, host_base)
+            expanded_symlinks.add(f"{entry}/")
+            top_level_symlinks.add(entry)
+
+            classroom_id = tail.split("/", 1)[0]
+            logger.info(
+                f"[{user_id}] Recording classroom symlink: {entry} -> {classroom_id}"
+            )
+            classroom_symlinks[entry] = classroom_id
+    except FileNotFoundError:
+        pass
+
+    # Include user files under /tmp/uploads/<id>
     for root, dirs, files in os.walk(upload_dir):
         # Include directories (with trailing slash) so empty folders are discoverable
         for d in list(dirs):
             full_path = os.path.join(root, d)
             relative_path = os.path.relpath(full_path, upload_dir)
+
+            # Skip top-level classroom symlinks already processed
+            if relative_path.split(os.sep)[0] in top_level_symlinks:
+                dirs.remove(d)
+                continue
+
             # If this directory is a symlink to a classroom, expand its tree from the host path
             if os.path.islink(full_path):
                 target = os.readlink(full_path)
+                logger.info(f"[{user_id}] Found symlink: {relative_path} -> {target}")
                 if target.startswith("/classrooms/"):
                     tail = target[len("/classrooms/") :].lstrip("/")
                     host_base = os.path.join(CLASSROOMS_ROOT, tail)
@@ -191,6 +353,9 @@ def list_files():
                     expanded_symlinks.add(f"{relative_path}/")
                     if "/" not in relative_path:
                         classroom_id = tail.split("/", 1)[0]
+                        logger.info(
+                            f"[{user_id}] Recording classroom symlink: {relative_path} -> {classroom_id}"
+                        )
                         classroom_symlinks[relative_path] = classroom_id
                     # Prevent os.walk from descending into this symlink path
                     dirs.remove(d)
@@ -215,16 +380,19 @@ def list_files():
         file_tree = [entry for entry in file_tree if entry not in expanded_symlinks]
 
     classroom_meta: dict[str, dict] = {}
+    logger.info(f"[{user_id}] Found classroom_symlinks: {classroom_symlinks}")
+
     if classroom_symlinks:
         all_classrooms = {}
         try:
             if os.path.exists(CLASSROOMS_JSON_FILE):
                 with open(CLASSROOMS_JSON_FILE, "r") as f:
                     all_classrooms = json.load(f)
+                logger.info(
+                    f"[{user_id}] Loaded classrooms.json with {len(all_classrooms)} classrooms"
+                )
         except Exception as e:
-            logging.getLogger("files").warning(
-                f"Failed loading classrooms metadata: {e}"
-            )
+            logger.warning(f"[{user_id}] Failed loading classrooms metadata: {e}")
 
         for slug, cid in classroom_symlinks.items():
             info = {}
@@ -235,7 +403,11 @@ def list_files():
                 "name": info.get("name"),
                 "archived": info.get("archived", False),
             }
+            logger.info(
+                f"[{user_id}] Added classroom_meta[{slug}] = {classroom_meta[slug]}"
+            )
 
+    logger.info(f"[{user_id}] Returning classroom_meta: {classroom_meta}")
     return {"files": file_tree, "classroomMeta": classroom_meta}, 200
 
 
@@ -326,6 +498,17 @@ def handle_file(filename):
     # Map classroom symlink paths to host filesystem if applicable
     mapped = _resolve_classroom_path(upload_dir, filename)
     file_path = mapped if mapped else os.path.join(upload_dir, filename)
+    file_path = os.path.normpath(file_path)
+
+    # Guard against breaking out of upload_dir / classrooms root
+    try:
+        allowed_roots = [upload_dir, CLASSROOMS_ROOT]
+        if not any(
+            os.path.commonpath([root, file_path]) == root for root in allowed_roots
+        ):
+            return "Invalid path", 400
+    except ValueError:
+        return "Invalid path", 400
 
     if request.method == "POST":
         # Create a new directory or file

@@ -79,25 +79,46 @@ export default function Editor() {
     const controller = new AbortController();
     const currentLocation = userData.currentFile?.location;
     (async () => {
-      if (!userData.currentFile) return;
+      if (!userData.currentFile) {
+        console.log('Editor: No current file');
+        return;
+      }
+
+      console.log('Editor: Loading file:', userData.currentFile.location);
 
       // Check if the current file is an image
       const isImageFileType = isImageFile(userData.currentFile.name);
       setIsImage(isImageFileType);
-      if (isImageFileType) return;
+      if (isImageFileType) {
+        console.log('Editor: File is an image');
+        return;
+      }
 
       // Load the file content
-      const fileres = await fetch(`${backendUrl}/file${userData.currentFile.location}?t=${userData.contentVersion ?? 0}`, {
+      const url = `${backendUrl}/file${userData.currentFile.location}?t=${userData.contentVersion ?? 0}`;
+      console.log('Editor: Fetching:', url);
+      
+      const fileres = await fetch(url, {
         credentials: 'include',
         signal: controller.signal,
       });
+      
       if (!fileres.ok) {
-        console.error('Failed to load file:', userData.currentFile.location);
+        console.error('Editor: Failed to load file:', userData.currentFile.location, 'Status:', fileres.status);
+        const errorText = await fileres.text().catch(() => '');
+        console.error('Editor: Error response:', errorText);
         userData.setCurrentFile(undefined);
         return;
       }
+      
       const file = await fileres.text();
-      if (currentLocation !== userData.currentFile?.location) return; // stale response
+      console.log('Editor: File loaded successfully, length:', file.length);
+      
+      if (currentLocation !== userData.currentFile?.location) {
+        console.log('Editor: Stale response, ignoring');
+        return; // stale response
+      }
+      
       setValue(file);
 
       // Set the language based on the file extension
@@ -106,9 +127,10 @@ export default function Editor() {
 
       const lang = Object.keys(languageMap).find(l => languageMap[l as keyof typeof languageMap].extensions.includes(ext)) as keyof typeof languageMap | undefined || 'text';
       setCurrentLanguage(lang);
+      console.log('Editor: File loaded and displayed');
     })();
     return () => controller.abort();
-  }, [userData, userData.currentFile?.location, userData.contentVersion]);
+  }, [userData.currentFile?.location, userData.contentVersion]);
 
   return (
     <div className="relative transition-all flex flex-col rounded-lum max-w-3/4 bg-[#1A1B26] w-full border border-lum-border/20">

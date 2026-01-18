@@ -452,3 +452,148 @@ def manage_instructors(classroom_id):
         _save_classrooms(data)
         return {"removed": True}
     return {"error": "Not an instructor"}, 404
+
+
+@classrooms_bp.route("/classrooms/templates", methods=["GET"])
+def list_classroom_templates():
+    """List all available classroom templates for the current user."""
+    if not current_user.is_authenticated:
+        return {"error": "Unauthorized"}, 401
+
+    user_id = str(current_user.id)
+    data = _load_classrooms()
+    result = []
+
+    # Find all classrooms where user is a participant or instructor
+    for classroom in data.values():
+        is_participant = user_id in classroom.get("participants", [])
+        is_instructor = user_id in classroom.get("instructors", [])
+
+        if not (is_participant or is_instructor):
+            continue
+
+        # Check if templates directory exists and has content
+        classroom_id = classroom.get("id")
+        templates_dir = os.path.join(CLASSROOMS_ROOT, classroom_id, "templates")
+
+        if not os.path.isdir(templates_dir):
+            continue
+
+        # List template folders
+        templates = []
+        try:
+            for entry in os.listdir(templates_dir):
+                template_path = os.path.join(templates_dir, entry)
+                if os.path.isdir(template_path):
+                    # List files in the template
+                    files = []
+                    for root, dirs, filenames in os.walk(template_path):
+                        for filename in filenames:
+                            rel_path = os.path.relpath(
+                                os.path.join(root, filename), template_path
+                            )
+                            files.append(rel_path)
+
+                    if files:  # Only include non-empty templates
+                        templates.append({"name": entry, "files": files})
+        except Exception as e:
+            logger.warning(
+                f"Failed to list templates for classroom {classroom_id}: {e}"
+            )
+            continue
+
+        # Only include classroom if it has templates
+        if templates:
+            result.append(
+                {
+                    "id": classroom_id,
+                    "name": classroom.get("name", classroom_id),
+                    "templates": templates,
+                }
+            )
+
+    return {"classrooms": result}, 200
+
+
+@classrooms_bp.route("/classrooms/<classroom_id>/templates/upload", methods=["POST"])
+def upload_classroom_template(classroom_id):
+    """Upload a template to a classroom's templates directory."""
+    if not current_user.is_authenticated:
+        return {"error": "Unauthorized"}, 401
+
+    data = _load_classrooms()
+    c = _get_classroom(data, classroom_id)
+    if not c:
+        return {"error": "Not found"}, 404
+
+    # Only instructors can upload templates
+    if str(current_user.id) not in c.get("instructors", []):
+        return {"error": "Forbidden"}, 403
+
+    try:
+        # Get the template files from the request
+        files = request.files.getlist("files")
+        if not files:
+            return {"error": "No files provided"}, 400
+
+        # Get the template name (optional, for organizing into subdirectories)
+        template_name = request.form.get("template_name", "").strip()
+
+        # Ensure classroom directories exist
+        classroom_base = os.path.join(CLASSROOMS_ROOT, classroom_id)
+        templates_dir = os.path.join(classroom_base, "templates")
+        os.makedirs(templates_dir, exist_ok=True)
+
+        # If template_name is provided, create a subdirectory
+        if template_name:
+            target_dir = os.path.join(templates_dir, template_name)
+            os.makedirs(target_dir, exist_ok=True)
+        else:
+            target_dir = templates_dir
+
+        # Save each file
+        saved_files = []
+        for file in files:
+            if file.filename:
+                # Clean the filename to prevent path traversal
+                filename = os.path.basename(file.filename)
+                # Handle nested paths within the template (e.g., "Template/file.py")
+                if "/" in file.filename:
+                    parts = file.filename.split("/")
+                    # Skip the first part if it matches template_name
+                    if template_name and parts[0] == template_name:
+                        parts = parts[1:]
+                    # Create nested directories
+                    nested_path = os.path.join(target_dir, *parts[:-1])
+                    if nested_path != target_dir:
+                        os.makedirs(nested_path, exist_ok=True)
+                    filepath = os.path.join(nested_path, parts[-1])
+                else:
+                    filepath = os.path.join(target_dir, filename)
+
+                file.save(filepath)
+                # Set proper ownership
+                try:
+                    os.chown(filepath, CONTAINER_USER_UID, CONTAINER_USER_GID)
+                    # Also ensure parent directories have correct permissions
+                    parent = os.path.dirname(filepath)
+                    while parent.startswith(templates_dir):
+                        os.chown(parent, CONTAINER_USER_UID, CONTAINER_USER_GID)
+                        os.chmod(parent, 0o775)
+                        if parent == templates_dir:
+                            break
+                        parent = os.path.dirname(parent)
+                except PermissionError as e:
+                    logger.warning(f"Failed to chown {filepath}: {e}")
+
+                saved_files.append(filename)
+
+        logger.info(
+            f"Uploaded {len(saved_files)} template files to classroom {classroom_id} "
+            f"by user {current_user.id}"
+        )
+        return {"uploaded": True, "files": saved_files, "count": len(saved_files)}, 200
+
+    except Exception as e:
+        logger.error(f"Failed to upload classroom template: {e}")
+        return {"error": "Internal server error"}, 500
