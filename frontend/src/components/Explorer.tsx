@@ -5,6 +5,7 @@ import UploadButton from './ExplorerButtons/UploadButton';
 import NewButton from './ExplorerButtons/NewButton';
 import MenuItems from './MenuItems';
 import TemplateButton from './ExplorerButtons/TemplateButton';
+import ClassroomsButton from './ExplorerButtons/ClassroomsButton';
 import { getClasses } from '@luminescent/ui-react';
 import { StatusContext } from '../util/Files';
 
@@ -27,11 +28,8 @@ export default function Explorer() {
         <div className="grid grid-cols-2 gap-1">
           <UploadButton />
           <NewButton />
-          {/* temporary col span 2 till git is implemented */}
-          <div className="col-span-2">
-            <TemplateButton />
-          </div>
-          {/*<GitButton />*/}
+          <TemplateButton />
+          <ClassroomsButton />
         </div>
       </div>
       <div className={getClasses({
