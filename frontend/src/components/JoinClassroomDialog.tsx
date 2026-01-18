@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { backendUrl } from "../util/UserData";
+import { useEffect, useState } from 'react';
+import { backendUrl } from '../util/UserData';
 
 interface Props {
   open: boolean;
@@ -7,13 +7,13 @@ interface Props {
 }
 
 export default function JoinClassroomDialog({ open, onClose }: Props) {
-  const [code, setCode] = useState("");
+  const [code, setCode] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (open) {
-      setCode("");
+      setCode('');
       setSubmitting(false);
       setError(null);
     }
@@ -29,9 +29,9 @@ export default function JoinClassroomDialog({ open, onClose }: Props) {
     await new Promise((r) => setTimeout(r, 500));
     try {
       const res = await fetch(`${backendUrl}/classrooms/join`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ code: trimmed }),
       });
       if (!res.ok) {
@@ -39,12 +39,12 @@ export default function JoinClassroomDialog({ open, onClose }: Props) {
         try {
           const errData = await res.json();
           if (errData?.error) {
-            setError(errData.error.toLowerCase());
+            setError(errData.error);
           } else {
-            setError("that code is invalid");
+            setError('that code is invalid');
           }
         } catch {
-          setError("that code is invalid");
+          setError('that code is invalid');
         }
         setSubmitting(false);
         return;
@@ -52,22 +52,22 @@ export default function JoinClassroomDialog({ open, onClose }: Props) {
       const data = await res.json();
       if (data.restarted) {
         window.dispatchEvent(
-          new CustomEvent("terminal-restart-required", {
+          new CustomEvent('terminal-restart-required', {
             detail: {
-              reason: "classroom-joined",
+              reason: 'classroom-joined',
               classroomId: data.classroom_id,
             },
-          })
+          }),
         );
       }
       window.dispatchEvent(
-        new CustomEvent("classroom-joined", {
+        new CustomEvent('classroom-joined', {
           detail: { classroomId: data.classroom_id },
-        })
+        }),
       );
       onClose();
-    } catch (e) {
-      setError("that code is invalid");
+    } catch {
+      setError('that code is invalid');
     } finally {
       setSubmitting(false);
     }
@@ -78,12 +78,12 @@ export default function JoinClassroomDialog({ open, onClose }: Props) {
   return (
     <div className="fixed inset-0 flex items-center justify-center z-50">
       <div
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/30 backdrop-blur-sm"
         onClick={onClose}
       />
       <form
         onSubmit={handleSubmit}
-        className="relative lum-bg-nav-bg border border-white/10 rounded-lg shadow-xl w-full max-w-sm p-5 flex flex-col gap-4"
+        className="relative border border-white/10 rounded-lg shadow-xl w-full max-w-md p-6 flex flex-col gap-4 lum-bg-nav-bg"
       >
         <h2 className="text-lg font-semibold">Join Classroom</h2>
         <div className="flex flex-col gap-1">
@@ -96,7 +96,7 @@ export default function JoinClassroomDialog({ open, onClose }: Props) {
             onChange={(e) => {
               const val = e.target.value
                 .toUpperCase()
-                .replace(/[^A-Z0-9]/g, "")
+                .replace(/[^A-Z0-9]/g, '')
                 .slice(0, 6);
               setCode(val);
             }}
@@ -121,11 +121,11 @@ export default function JoinClassroomDialog({ open, onClose }: Props) {
             disabled={!code || submitting}
             className={`lum-btn ${
               code && !submitting
-                ? "lum-bg-blue-600 hover:lum-bg-blue-500"
-                : "lum-bg-gray-600 opacity-50 cursor-not-allowed"
+                ? 'lum-bg-blue-600 hover:lum-bg-blue-500'
+                : 'lum-bg-gray-600 opacity-50 cursor-not-allowed'
             }`}
           >
-            {submitting ? "Checking..." : "Join"}
+            {submitting ? 'Checking...' : 'Join'}
           </button>
         </div>
       </form>

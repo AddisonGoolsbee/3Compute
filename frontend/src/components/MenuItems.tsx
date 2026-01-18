@@ -19,7 +19,16 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
     setContentVersion,
     contextMenu,
     setContextMenu,
+    classroomSymlinks,
   } = useContext(UserDataContext);
+
+  const isProtectedLocation = (location?: string) => {
+    if (!location) return false;
+    const parts = location.split('/').filter(Boolean);
+    if (parts.length < 2) return false;
+    const second = parts[1];
+    return second === 'classroom-templates' || second === 'participants';
+  };
 
   // Auto-hide context menu on any click outside
   useEffect(() => {
@@ -350,9 +359,28 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
         <button
           className="lum-btn lum-btn-p-1 rounded-lum-1 gap-0.5 w-full text-left lum-bg-transparent"
           onClick={() => {
-            // Ensure only one item is renaming: clear any existing placeholders/renaming
-            document.dispatchEvent(new CustomEvent('3compute:rename', { detail: { location: contextMenu.targetLocation } }));
+            if (!contextMenu.targetLocation) return;
+            if (isProtectedLocation(contextMenu.targetLocation)) return;
+            const isClassroomRoot = !contextMenu.targetLocation.includes('/', 1);
+            if (isClassroomRoot) {
+              window.dispatchEvent(new CustomEvent('3compute:classroom-action', {
+                detail: { location: contextMenu.targetLocation, action: 'rename' },
+              }));
+            } else {
+              document.dispatchEvent(new CustomEvent('3compute:rename', { detail: { location: contextMenu.targetLocation } }));
+            }
           }}
+          disabled={(() => {
+            if (!contextMenu.targetLocation) return true;
+            if (isProtectedLocation(contextMenu.targetLocation)) return true;
+            const isClassroomRoot = !contextMenu.targetLocation.includes('/', 1);
+            if (isClassroomRoot) {
+              const slug = contextMenu.targetLocation.split('/').filter(Boolean)[0];
+              const classroom = slug ? classroomSymlinks?.[slug] : undefined;
+              return !classroom;
+            }
+            return false;
+          })()}
         >
           <Pencil size={16} className="inline mr-2" />
           Rename
@@ -360,21 +388,78 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
         <button
           className="lum-btn lum-btn-p-1 rounded-lum-1 gap-0.5 w-full text-left lum-bg-transparent"
           onClick={async () => {
-            const response = await fetch(`${backendUrl}/file${contextMenu.targetLocation}`, {
-              method: 'DELETE',
-              credentials: 'include',
-            });
-            if (response.ok) {
-              setCurrentFile(undefined);
-              setOpenFolders((prev) => prev.filter((f) => f !== contextMenu.targetLocation));
+            if (!contextMenu.targetLocation) return;
+            if (isProtectedLocation(contextMenu.targetLocation)) return;
+            const isClassroomRoot = !contextMenu.targetLocation.includes('/', 1);
+            const slug = contextMenu.targetLocation.split('/').filter(Boolean)[0];
+            const classroom = slug ? classroomSymlinks?.[slug] : undefined;
+
+            // Handle classroom archive/restore - classroom roots can only be archived, not deleted
+            if (isClassroomRoot && classroom) {
+              window.dispatchEvent(new CustomEvent('3compute:classroom-action', {
+                detail: {
+                  location: contextMenu.targetLocation,
+                  action: classroom.archived ? 'restore' : 'archive',
+                },
+              }));
+              return;
+            }
+
+            // Don't allow deletion of classroom roots at all
+            if (isClassroomRoot) {
+              return;
+            }
+
+            // Handle regular file/folder deletion (not classroom roots)
+            if (!window.confirm(`Delete "${contextMenu.targetLocation}"? This cannot be undone.`)) {
+              return;
+            }
+
+            try {
+              const res = await fetch(`${backendUrl}/file${contextMenu.targetLocation}`, {
+                method: 'DELETE',
+                credentials: 'include',
+              });
+
+              if (!res.ok) {
+                console.error('Failed to delete:', contextMenu.targetLocation);
+                alert('Failed to delete file');
+                return;
+              }
+
+              // Refresh file list
               await refreshFiles();
-            } else {
-              console.error('Failed to delete file:', response.statusText);
+
+              // Clear current file if it was deleted
+              if (currentFile?.location === contextMenu.targetLocation) {
+                setCurrentFile(undefined);
+              }
+              // If we removed a top-level item, ensure selection resets
+              if (!contextMenu.targetLocation.includes('/', 1)) {
+                setSelectedLocation?.(undefined);
+              }
+            } catch (error) {
+              console.error('Error deleting file:', error);
+              alert('Error deleting file');
             }
           }}
+          disabled={(() => {
+            if (!contextMenu.targetLocation) return true;
+            if (isProtectedLocation(contextMenu.targetLocation)) return true;
+            return false;
+          })()}
         >
           <Trash size={16} className="inline mr-2" />
-          Delete
+          {(() => {
+            if (!contextMenu.targetLocation) return 'Delete';
+            const isClassroomRoot = !contextMenu.targetLocation.includes('/', 1);
+            const slug = contextMenu.targetLocation.split('/').filter(Boolean)[0];
+            const classroom = slug ? classroomSymlinks?.[slug] : undefined;
+            if (isClassroomRoot && classroom) {
+              return classroom.archived ? 'Restore' : 'Archive';
+            }
+            return 'Delete';
+          })()}
         </button>
       </div>
     </div>

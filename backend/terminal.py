@@ -1,18 +1,18 @@
-import os
 import fcntl
-import struct
-import termios
 import logging
+import os
 import select
+import struct
 import subprocess
-import time
+import termios
 import threading
+import time
 
-from flask import request, Blueprint
-from flask_socketio import SocketIO
+from flask import Blueprint, request
 from flask_login import current_user
+from flask_socketio import SocketIO
 
-from .docker import attach_to_container, spawn_container, container_is_running
+from .docker import attach_to_container, container_is_running, spawn_container
 
 logger = logging.getLogger("terminal")
 
@@ -36,7 +36,15 @@ def _discover_existing_containers():
     try:
         # Find all containers with the user-container- prefix
         result = subprocess.run(
-            ["docker", "ps", "-a", "--filter", "name=user-container-", "--format", "{{.Names}}"],
+            [
+                "docker",
+                "ps",
+                "-a",
+                "--filter",
+                "name=user-container-",
+                "--format",
+                "{{.Names}}",
+            ],
             capture_output=True,
             text=True,
             check=True,
@@ -54,13 +62,23 @@ def _discover_existing_containers():
 
             # Check if container is running
             if container_is_running(container_name):
-                logger.info(f"Found running container {container_name} for user {user_id}")
+                logger.info(
+                    f"Found running container {container_name} for user {user_id}"
+                )
                 # We'll need to get the port range from the user object when they connect
-                user_containers[user_id] = {"container_name": container_name, "port_range": None}
+                user_containers[user_id] = {
+                    "container_name": container_name,
+                    "port_range": None,
+                }
             else:
-                logger.info(f"Found stopped container {container_name} for user {user_id}")
+                logger.info(
+                    f"Found stopped container {container_name} for user {user_id}"
+                )
                 # For stopped containers, we'll let the connection logic handle restarting them
-                user_containers[user_id] = {"container_name": container_name, "port_range": None}
+                user_containers[user_id] = {
+                    "container_name": container_name,
+                    "port_range": None,
+                }
 
     except subprocess.CalledProcessError as e:
         logger.warning(f"Failed to discover existing containers: {e}")
@@ -112,7 +130,9 @@ def close_tab_http():
             check=True,
         )
     except subprocess.CalledProcessError as e:
-        logger.warning(f"Failed to kill tmux session {session_name} in {container_name}: {e}")
+        logger.warning(
+            f"Failed to kill tmux session {session_name} in {container_name}: {e}"
+        )
         # Return 200 to avoid blocking UI even if session is already gone
         return "No session or already terminated", 200
 
@@ -175,7 +195,9 @@ def handle_resize(data):
     logger.debug(f"Resize request from session {sid}")
 
     if sid not in session_map:
-        logger.warning(f"Session {sid} not found in session_map. Available sessions: {list(session_map.keys())}")
+        logger.warning(
+            f"Session {sid} not found in session_map. Available sessions: {list(session_map.keys())}"
+        )
         return
 
     session_info = session_map[sid]
@@ -188,42 +210,70 @@ def handle_resize(data):
             container_name = session_info["container_name"]
             # Ensure container is running before attaching; handle race when reopening quickly
             if not container_is_running(container_name):
-                logger.info(f"Container {container_name} not running at attach time; attempting restart")
+                logger.info(
+                    f"Container {container_name} not running at attach time; attempting restart"
+                )
                 try:
                     subprocess.run(["docker", "start", container_name], check=True)
                     logger.info(f"Restarted container {container_name}")
                 except subprocess.CalledProcessError:
-                    logger.warning(f"Failed to restart {container_name}; spawning new container")
+                    logger.warning(
+                        f"Failed to restart {container_name}; spawning new container"
+                    )
                     try:
                         port_range = getattr(current_user, "port_range", None)
-                        spawn_container(user_id, None, container_name, port_range, getattr(current_user, "email", None))
+                        spawn_container(
+                            user_id,
+                            None,
+                            container_name,
+                            port_range,
+                            getattr(current_user, "email", None),
+                        )
                         logger.info(f"Spawned replacement container {container_name}")
                     except Exception as e:
-                        logger.error(f"Failed to spawn replacement container {container_name}: {e}")
-                        socketio.emit("error", {"message": "Failed to connect to terminal. Please try again."}, to=sid)
+                        logger.error(
+                            f"Failed to spawn replacement container {container_name}: {e}"
+                        )
+                        socketio.emit(
+                            "error",
+                            {
+                                "message": "Failed to connect to terminal. Please try again."
+                            },
+                            to=sid,
+                        )
                         return
 
             proc, fd = attach_to_container(container_name, session_info["tab_id"])
             session_info["fd"] = fd
             session_info["container_attached"] = True
             socketio.start_background_task(read_and_forward_pty_output, sid, True)
-            logger.info(f"Attached to container for user {user_id} tab {session_info['tab_id']} in handle_resize()")
+            logger.info(
+                f"Attached to container for user {user_id} tab {session_info['tab_id']} in handle_resize()"
+            )
         except Exception as e:
             logger.error(f"Failed to attach to container for user {user_id}: {e}")
-            socketio.emit("error", {"message": "Failed to connect to terminal. Please try again."}, to=sid)
+            socketio.emit(
+                "error",
+                {"message": "Failed to connect to terminal. Please try again."},
+                to=sid,
+            )
             return
 
     fd = session_info["fd"]
     user_id = session_info["user_id"]
 
     logger.debug(f"Resizing terminal for user {user_id}, session {sid}, fd {fd}")
-    logger.debug(f"New dimensions: rows={data.get('rows', 'MISSING')}, cols={data.get('cols', 'MISSING')}")
+    logger.debug(
+        f"New dimensions: rows={data.get('rows', 'MISSING')}, cols={data.get('cols', 'MISSING')}"
+    )
 
     try:
         set_winsize(fd, data["rows"], data["cols"])
         logger.debug(f"Successfully resized terminal to {data['rows']}x{data['cols']}")
     except KeyError as e:
-        logger.error(f"Missing required resize data: {e}. Available keys: {list(data.keys())}")
+        logger.error(
+            f"Missing required resize data: {e}. Available keys: {list(data.keys())}"
+        )
     except Exception as e:
         logger.error(f"Failed to resize terminal: {e}", exc_info=True)
 
@@ -250,7 +300,9 @@ def _start_idle_poller(user_id: int):
                 text=True,
             )
             if result.returncode != 0:
-                logger.warning(f"docker top failed for {container}: {result.stderr.strip()}")
+                logger.warning(
+                    f"docker top failed for {container}: {result.stderr.strip()}"
+                )
                 time.sleep(POLL_INTERVAL)
                 continue
 
@@ -341,22 +393,38 @@ def handle_connect(auth=None):
 
         if container_exists(container_name):
             if container_is_running(container_name):
-                logger.info(f"Found existing running container {container_name}, reusing it")
+                logger.info(
+                    f"Found existing running container {container_name}, reusing it"
+                )
                 # Add it to our tracking
-                user_containers[user_id] = {"container_name": container_name, "port_range": current_user.port_range}
+                user_containers[user_id] = {
+                    "container_name": container_name,
+                    "port_range": current_user.port_range,
+                }
             else:
-                logger.info(f"Found existing stopped container {container_name}, restarting it")
+                logger.info(
+                    f"Found existing stopped container {container_name}, restarting it"
+                )
                 try:
                     subprocess.run(["docker", "start", container_name], check=True)
-                    user_containers[user_id] = {"container_name": container_name, "port_range": current_user.port_range}
+                    user_containers[user_id] = {
+                        "container_name": container_name,
+                        "port_range": current_user.port_range,
+                    }
                     logger.info(f"Restarted container {container_name}")
                 except subprocess.CalledProcessError:
-                    logger.warning(f"Failed to restart container {container_name}, creating new one")
+                    logger.warning(
+                        f"Failed to restart container {container_name}, creating new one"
+                    )
                     # Only remove if restart failed
                     subprocess.run(["docker", "rm", "-f", container_name], check=False)
                     try:
                         spawn_container(
-                            user_id, None, container_name, current_user.port_range, getattr(current_user, "email", None)
+                            user_id,
+                            None,
+                            container_name,
+                            current_user.port_range,
+                            getattr(current_user, "email", None),
                         )
                         user_containers[user_id] = {
                             "container_name": container_name,
@@ -364,21 +432,40 @@ def handle_connect(auth=None):
                         }
                         logging.info(f"Spawned new container for user {user_id}")
                     except Exception as e:
-                        logger.error(f"Failed to spawn new container for user {user_id}: {e}")
+                        logger.error(
+                            f"Failed to spawn new container for user {user_id}: {e}"
+                        )
                         socketio.emit(
-                            "error", {"message": "Failed to create terminal session. Please try again."}, to=sid
+                            "error",
+                            {
+                                "message": "Failed to create terminal session. Please try again."
+                            },
+                            to=sid,
                         )
                         return
         else:
             # No existing container, create a new one
             port_range = current_user.port_range
             try:
-                spawn_container(user_id, None, container_name, port_range, getattr(current_user, "email", None))
-                user_containers[user_id] = {"container_name": container_name, "port_range": port_range}
+                spawn_container(
+                    user_id,
+                    None,
+                    container_name,
+                    port_range,
+                    getattr(current_user, "email", None),
+                )
+                user_containers[user_id] = {
+                    "container_name": container_name,
+                    "port_range": port_range,
+                }
                 logging.info(f"Spawned new container for user {user_id}")
             except Exception as e:
                 logger.error(f"Failed to spawn container for user {user_id}: {e}")
-                socketio.emit("error", {"message": "Failed to create terminal session. Please try again."}, to=sid)
+                socketio.emit(
+                    "error",
+                    {"message": "Failed to create terminal session. Please try again."},
+                    to=sid,
+                )
                 return
     else:
         # User has a container tracked, but check if it's actually running
@@ -389,21 +476,40 @@ def handle_connect(auth=None):
             user_containers[user_id]["port_range"] = current_user.port_range
 
         if not container_is_running(container_name):
-            logger.info(f"Container {container_name} exists but is not running, restarting it")
+            logger.info(
+                f"Container {container_name} exists but is not running, restarting it"
+            )
             try:
                 subprocess.run(["docker", "start", container_name], check=True)
                 logger.info(f"Restarted container {container_name}")
             except subprocess.CalledProcessError:
-                logger.warning(f"Failed to restart container {container_name}, creating new one")
+                logger.warning(
+                    f"Failed to restart container {container_name}, creating new one"
+                )
                 _cleanup_user_container(user_id, container_name)
                 try:
                     spawn_container(
-                        user_id, None, container_name, current_user.port_range, getattr(current_user, "email", None)
+                        user_id,
+                        None,
+                        container_name,
+                        current_user.port_range,
+                        getattr(current_user, "email", None),
                     )
-                    user_containers[user_id] = {"container_name": container_name, "port_range": current_user.port_range}
+                    user_containers[user_id] = {
+                        "container_name": container_name,
+                        "port_range": current_user.port_range,
+                    }
                 except Exception as e:
-                    logger.error(f"Failed to spawn new container for user {user_id}: {e}")
-                    socketio.emit("error", {"message": "Failed to create terminal session. Please try again."}, to=sid)
+                    logger.error(
+                        f"Failed to spawn new container for user {user_id}: {e}"
+                    )
+                    socketio.emit(
+                        "error",
+                        {
+                            "message": "Failed to create terminal session. Please try again."
+                        },
+                        to=sid,
+                    )
                     return
 
     session_map[sid] = {
@@ -439,13 +545,29 @@ def handle_disconnect():
 def new_window(data):
     container = user_containers[current_user.id]["container_name"]
     win = data["windowIndex"]
-    subprocess.run(["docker", "exec", container, "tmux", "new-window", "-t", f"3compute:{win}", "-n", win], check=False)
+    subprocess.run(
+        [
+            "docker",
+            "exec",
+            container,
+            "tmux",
+            "new-window",
+            "-t",
+            f"3compute:{win}",
+            "-n",
+            win,
+        ],
+        check=False,
+    )
 
 
 def select_window(data):
     container = user_containers[current_user.id]["container_name"]
     win = data["windowIndex"]
-    subprocess.run(["docker", "exec", container, "tmux", "select-window", "-t", f"3compute:{win}"], check=False)
+    subprocess.run(
+        ["docker", "exec", container, "tmux", "select-window", "-t", f"3compute:{win}"],
+        check=False,
+    )
 
 
 __all__ = ["init_terminal", "user_containers"]

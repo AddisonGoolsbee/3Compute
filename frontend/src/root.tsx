@@ -1,8 +1,8 @@
-import { ReactNode, useCallback, useEffect, useRef, useState } from 'react';
+import { ReactNode, useCallback, useEffect, useState } from 'react';
 import { Links, Meta, Outlet, Scripts, ScrollRestoration, useLoaderData } from 'react-router';
 import NavComponent from './components/Nav';
 import { default as HomeLayout } from './Layout';
-import { UserData, UserDataContext, clientLoader } from './util/UserData';
+import { UserData, UserDataContext, backendUrl, clientLoader } from './util/UserData';
 import { fetchFilesList, Files, FileType } from './util/Files';
 
 // eslint-disable-next-line react-refresh/only-export-components
@@ -18,46 +18,33 @@ export function Layout({ children }: { children: ReactNode }) {
   const [openFolders, setOpenFolders] = useState<string[]>([]);
   const [currentFile, setCurrentFile] = useState<FileType | undefined>();
   const [files, setFilesClientSide] = useState<Files | undefined>(loaderData?.files);
+  const [classroomSymlinks, setClassroomSymlinks] = useState(loaderData?.classroomSymlinks || {});
   const [isUserEditingName, setIsUserEditingName] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState<string | undefined>();
   const [dragOverLocation, setDragOverLocation] = useState<string | undefined>();
   const [contentVersion, setContentVersion] = useState<number>(0);
   const [contextMenu, setContextMenu] = useState<{ visible: boolean; x: number; y: number; targetLocation?: string }>({ visible: false, x: 0, y: 0 });
-  const isUserEditingNameRef = useRef(isUserEditingName);
 
   // Keep a live ref of editing state to guard against in-flight refreshes overwriting editor input
   useEffect(() => {
-    isUserEditingNameRef.current = isUserEditingName;
+    // isUserEditingNameRef.current = isUserEditingName; // This line is removed
   }, [isUserEditingName]);
 
   const refreshFiles = useCallback(async () => {
     // Skip starting a refresh while the user is typing a name
-    if (isUserEditingNameRef.current) return;
+    if (isUserEditingName) return;
     try {
-      const oldCurrent = currentFile;
-      const newFiles = await fetchFilesList();
+      const { files: newFiles, classroomSymlinks: newMap } = await fetchFilesList();
       // If user started editing while the request was in-flight, ignore this result
-      if (isUserEditingNameRef.current) return;
+      if (isUserEditingName) return;
       setFilesClientSide(newFiles);
-      // Preserve currently open file selection by object identity replacement
-      if (oldCurrent) {
-        const match = (function findMatch(items: Files): typeof oldCurrent | undefined {
-          for (const item of items) {
-            if ('files' in item) {
-              const found = findMatch(item.files);
-              if (found) return found as any;
-            } else if (item.location === oldCurrent.location) {
-              return item as any;
-            }
-          }
-          return undefined;
-        })(newFiles);
-        if (match) setCurrentFile(match);
-      }
+      setClassroomSymlinks(newMap);
+      // Note: We don't update currentFile here to avoid triggering re-renders in Editor
+      // The Editor depends on currentFile.location (string) not the object reference
     } catch (error) {
       console.error('Failed to refresh files:', error);
     }
-  }, [currentFile]);
+  }, [isUserEditingName]);
 
   // Global handler to enter renaming mode by location (used by right-click)
   useEffect(() => {
@@ -95,6 +82,7 @@ export function Layout({ children }: { children: ReactNode }) {
     setContentVersion,
     contextMenu,
     setContextMenu,
+    classroomSymlinks,
   };
 
   // Ensure only one item is in renaming mode at a time; invoked via right-click context action
@@ -148,8 +136,45 @@ export function Layout({ children }: { children: ReactNode }) {
     return () => window.clearInterval(intervalId);
   }, [loaderData?.userInfo, refreshFiles, isUserEditingName]);
 
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail as { location: string; action: 'rename' | 'archive' } | undefined;
+      if (!detail) return;
+      const { location, action } = detail;
+      const slug = location.split('/').filter(Boolean)[0];
+      const classroom = classroomSymlinks?.[slug];
+      if (!classroom) return;
+
+      if (action === 'rename') {
+        const newName = window.prompt('Rename classroom', classroom.name || slug);
+        if (!newName?.trim()) return;
+        fetch(`${backendUrl}/classrooms/${classroom.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ name: newName.trim() }),
+        })
+          .then((res) => { if (res.ok) refreshFiles(); })
+          .catch((err) => console.error('Rename classroom failed', err));
+      } else if (action === 'archive') {
+        if (!window.confirm('Archive this classroom? Students will no longer see it in their list.')) {
+          return;
+        }
+        fetch(`${backendUrl}/classrooms/${classroom.id}/archive`, {
+          method: 'POST',
+          credentials: 'include',
+        })
+          .then((res) => { if (res.ok) refreshFiles(); })
+          .catch((err) => console.error('Archive classroom failed', err));
+      }
+    };
+
+    window.addEventListener('3compute:classroom-action', handler as EventListener);
+    return () => window.removeEventListener('3compute:classroom-action', handler as EventListener);
+  }, [refreshFiles, classroomSymlinks]);
+
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />

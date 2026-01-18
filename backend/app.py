@@ -1,18 +1,20 @@
 #!/usr/bin/env python3
 import argparse
-from dotenv import load_dotenv
 import logging
 import os
 import signal
 import sys
+
+from dotenv import load_dotenv
+
 from .config.logging_config import configure_logging
 
 configure_logging()
 
 from flask import Flask
 from flask_cors import CORS
-from flask_socketio import SocketIO
 from flask_login import LoginManager
+from flask_socketio import SocketIO
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 # THIS BLOCK MUST STAY IN THIS ORDER. OTHERWISE AUTH BREAKS.
@@ -24,14 +26,13 @@ if os.getenv("FLASK_ENV") != "production":
     logging.getLogger("werkzeug").setLevel(logging.DEBUG)
 
 from .auth import auth_bp, load_user
+from .classrooms import classrooms_bp
+from .docker import CONTAINER_USER_GID, CONTAINER_USER_UID, setup_isolated_network
 
 ##### END BLOCK
 from .files import files_bp
-from .webhook import webhook_bp
 from .terminal import init_terminal, terminal_bp
-from .docker import setup_isolated_network, CONTAINER_USER_UID, CONTAINER_USER_GID
-from .classrooms import classrooms_bp
-
+from .webhook import webhook_bp
 
 logging.getLogger("werkzeug").setLevel(logging.ERROR)
 logger = logging.getLogger("app")

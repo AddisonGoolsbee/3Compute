@@ -1,15 +1,23 @@
-import os
 import json
 import logging
+import os
 import secrets
-import string
-import uuid
 import shutil
+import string
 import subprocess
+import uuid
+from datetime import datetime
+
 from flask import Blueprint, request
 from flask_login import current_user
-from datetime import datetime
-from .docker import CONTAINER_USER_UID, CONTAINER_USER_GID, spawn_container, container_is_running, container_exists
+
+from .auth import load_users_from_json
+from .docker import (
+    CONTAINER_USER_GID,
+    CONTAINER_USER_UID,
+    container_exists,
+    spawn_container,
+)
 from .terminal import user_containers
 
 logger = logging.getLogger("classrooms")
@@ -72,14 +80,39 @@ def _user_is_instructor(classroom: dict, user_id: str) -> bool:
     return user_id in classroom.get("instructors", [])
 
 
+def _find_user_by_email(email: str) -> tuple[str, dict] | None:
+    try:
+        users = load_users_from_json()
+        for uid, info in users.items():
+            if info.get("email", "").lower() == email.lower():
+                return str(uid), info
+    except Exception:
+        pass
+    return None
+
+
+def _get_classroom(data: dict, classroom_id: str) -> dict | None:
+    return data.get(classroom_id)
+
+
 @classrooms_bp.route("/classrooms", methods=["GET"])
 def list_classrooms():
     if not current_user.is_authenticated:
         return {"error": "Unauthorized"}, 401
     data = _load_classrooms()
-    # Only return classrooms where user is instructor
-    user_classrooms = [c for c in data.values() if current_user.id in c.get("instructors", [])]
-    return {"classrooms": user_classrooms}
+    user_id = str(current_user.id)
+    owner_all = [c for c in data.values() if user_id in c.get("instructors", [])]
+    joined_all = [c for c in data.values() if user_id in c.get("participants", [])]
+    owner = [c for c in owner_all if not c.get("archived")]
+    owner_archived = [c for c in owner_all if c.get("archived")]
+    joined = [c for c in joined_all if not c.get("archived")]
+    joined_archived = [c for c in joined_all if c.get("archived")]
+    return {
+        "owner": owner,
+        "owner_archived": owner_archived,
+        "joined": joined,
+        "joined_archived": joined_archived,
+    }
 
 
 @classrooms_bp.route("/classrooms", methods=["POST"])
@@ -97,7 +130,10 @@ def create_classroom():
 
         # Uniqueness check (case-insensitive) among instructor's own classrooms
         for c in data.values():
-            if current_user.id in c.get("instructors", []) and c.get("name", "").lower() == name.lower():
+            if (
+                current_user.id in c.get("instructors", [])
+                and c.get("name", "").lower() == name.lower()
+            ):
                 return {"error": "Name already used"}, 400
 
         classroom_id = _generate_classroom_id(data)
@@ -110,6 +146,7 @@ def create_classroom():
             "instructors": [current_user.id],
             "participants": [],
             "access_code": access_code,
+            "archived": False,
         }
 
         _save_classrooms(data)
@@ -132,14 +169,28 @@ def create_classroom():
             if user_id in user_containers:
                 user_containers.pop(user_id, None)
         try:
-            spawn_container(user_id, None, container_name, port_range, getattr(current_user, "email", None))
+            spawn_container(
+                user_id,
+                None,
+                container_name,
+                port_range,
+                getattr(current_user, "email", None),
+            )
             restarted = True
-            user_containers[user_id] = {"container_name": container_name, "port_range": port_range}
+            user_containers[user_id] = {
+                "container_name": container_name,
+                "port_range": port_range,
+            }
         except Exception as e:
             logger.error(f"Failed to spawn container after classroom creation: {e}")
 
         logger.info(f"Created classroom {classroom_id} by user {current_user.id}")
-        return {"id": classroom_id, "access_code": access_code, "name": name, "restarted": restarted}, 201
+        return {
+            "id": classroom_id,
+            "access_code": access_code,
+            "name": name,
+            "restarted": restarted,
+        }, 201
     except Exception as e:
         logger.error(f"Failed to create classroom: {e}")
         return {"error": "Internal server error"}, 500
@@ -173,9 +224,9 @@ def join_classroom():
             return {"error": "You already joined this classroom"}, 400
         # Add user as participant if not already instructor/participant
         changed = False
-        if user_id_str not in [str(u) for u in target.get("instructors", [])] and user_id_str not in [
-            str(u) for u in target.get("participants", [])
-        ]:
+        if user_id_str not in [
+            str(u) for u in target.get("instructors", [])
+        ] and user_id_str not in [str(u) for u in target.get("participants", [])]:
             target.setdefault("participants", []).append(user_id_str)
             data[target["id"]] = target
             _save_classrooms(data)
@@ -193,15 +244,29 @@ def join_classroom():
             if user_id in user_containers:
                 user_containers.pop(user_id, None)
         try:
-            spawn_container(user_id, None, container_name, port_range, getattr(current_user, "email", None))
+            spawn_container(
+                user_id,
+                None,
+                container_name,
+                port_range,
+                getattr(current_user, "email", None),
+            )
             restarted = True
-            user_containers[user_id] = {"container_name": container_name, "port_range": port_range}
+            user_containers[user_id] = {
+                "container_name": container_name,
+                "port_range": port_range,
+            }
         except Exception as e:
             logger.error(f"Failed to spawn container after classroom join: {e}")
         logger.info(
             f"JOIN: user {current_user.id} joined classroom {target['id']} (added_participant={changed}, restarted={restarted})"
         )
-        return {"joined": True, "classroom_id": target["id"], "name": target.get("name"), "restarted": restarted}, 200
+        return {
+            "joined": True,
+            "classroom_id": target["id"],
+            "name": target.get("name"),
+            "restarted": restarted,
+        }, 200
     except Exception as e:
         logger.error(f"Failed to join classroom: {e}")
         return {"error": "Internal server error"}, 500
@@ -224,3 +289,311 @@ def validate_classroom_code():
     except Exception as e:
         logger.error(f"Failed to validate classroom code: {e}")
         return {"valid": False}, 200
+
+
+@classrooms_bp.route("/classrooms/<classroom_id>/access-code", methods=["GET", "POST"])
+def access_code(classroom_id):
+    if not current_user.is_authenticated:
+        return {"error": "Unauthorized"}, 401
+    data = _load_classrooms()
+    c = _get_classroom(data, classroom_id)
+    if not c:
+        return {"error": "Not found"}, 404
+    if str(current_user.id) not in c.get("instructors", []):
+        return {"error": "Forbidden"}, 403
+    if request.method == "GET":
+        return {"access_code": c.get("access_code")}
+    # POST -> regenerate
+    new_code = _generate_access_code()
+    c["access_code"] = new_code
+    data[classroom_id] = c
+    _save_classrooms(data)
+    return {"access_code": new_code}
+
+
+@classrooms_bp.route("/classrooms/<classroom_id>", methods=["PATCH", "DELETE"])
+def update_or_delete_classroom(classroom_id):
+    if not current_user.is_authenticated:
+        return {"error": "Unauthorized"}, 401
+    data = _load_classrooms()
+    c = _get_classroom(data, classroom_id)
+    if not c:
+        return {"error": "Not found"}, 404
+    if str(current_user.id) not in c.get("instructors", []):
+        return {"error": "Forbidden"}, 403
+    if request.method == "DELETE":
+        # Remove classroom directories and entry
+        try:
+            base = os.path.join(CLASSROOMS_ROOT, classroom_id)
+            if os.path.isdir(base):
+                shutil.rmtree(base)
+        except Exception as e:
+            logger.warning(f"Failed removing classroom dir {classroom_id}: {e}")
+        data.pop(classroom_id, None)
+        _save_classrooms(data)
+        return {"deleted": True}
+    # PATCH -> rename
+    payload = request.get_json(silent=True) or {}
+    new_name = (payload.get("name") or "").strip()
+    if not new_name:
+        return {"error": "Name required"}, 400
+    c["name"] = new_name
+    data[classroom_id] = c
+    _save_classrooms(data)
+    return {"id": classroom_id, "name": new_name}
+
+
+@classrooms_bp.route("/classrooms/<classroom_id>/archive", methods=["POST"])
+def archive_classroom(classroom_id):
+    if not current_user.is_authenticated:
+        return {"error": "Unauthorized"}, 401
+    data = _load_classrooms()
+    c = _get_classroom(data, classroom_id)
+    if not c:
+        return {"error": "Not found"}, 404
+    if str(current_user.id) not in c.get("instructors", []):
+        return {"error": "Forbidden"}, 403
+    payload = request.get_json(silent=True) or {}
+    archived = bool(payload.get("archived", True))
+    c["archived"] = archived
+    data[classroom_id] = c
+    _save_classrooms(data)
+    return {"archived": archived}
+
+
+@classrooms_bp.route(
+    "/classrooms/<classroom_id>/participants", methods=["GET", "POST", "DELETE"]
+)
+def manage_participants(classroom_id):
+    if not current_user.is_authenticated:
+        return {"error": "Unauthorized"}, 401
+    data = _load_classrooms()
+    c = _get_classroom(data, classroom_id)
+    if not c:
+        return {"error": "Not found"}, 404
+    if str(current_user.id) not in c.get("instructors", []):
+        return {"error": "Forbidden"}, 403
+    if request.method == "GET":
+        return {"participants": c.get("participants", [])}
+    payload = request.get_json(silent=True) or {}
+    user_id = (payload.get("user_id") or "").strip()
+    if request.method == "POST":
+        if not user_id:
+            # allow email lookup
+            email = (payload.get("email") or "").strip()
+            if not email:
+                return {"error": "user_id or email required"}, 400
+            found = _find_user_by_email(email)
+            if not found:
+                return {"error": "User not found"}, 404
+            user_id = found[0]
+        if user_id in c.get("participants", []):
+            return {"error": "Already a participant"}, 400
+        if user_id in c.get("instructors", []):
+            return {"error": "User is an instructor"}, 400
+        c.setdefault("participants", []).append(user_id)
+        data[classroom_id] = c
+        _save_classrooms(data)
+        return {"added": True}
+    # DELETE
+    if not user_id:
+        return {"error": "user_id required"}, 400
+    if user_id in c.get("participants", []):
+        c["participants"] = [u for u in c.get("participants", []) if u != user_id]
+        data[classroom_id] = c
+        _save_classrooms(data)
+        return {"removed": True}
+    return {"error": "Not a participant"}, 404
+
+
+@classrooms_bp.route(
+    "/classrooms/<classroom_id>/instructors", methods=["GET", "POST", "DELETE"]
+)
+def manage_instructors(classroom_id):
+    if not current_user.is_authenticated:
+        return {"error": "Unauthorized"}, 401
+    data = _load_classrooms()
+    c = _get_classroom(data, classroom_id)
+    if not c:
+        return {"error": "Not found"}, 404
+    if str(current_user.id) not in c.get("instructors", []):
+        return {"error": "Forbidden"}, 403
+    if request.method == "GET":
+        return {"instructors": c.get("instructors", [])}
+    payload = request.get_json(silent=True) or {}
+    user_id = (payload.get("user_id") or "").strip()
+    if request.method == "POST":
+        if not user_id:
+            email = (payload.get("email") or "").strip()
+            if not email:
+                return {"error": "user_id or email required"}, 400
+            found = _find_user_by_email(email)
+            if not found:
+                return {"error": "User not found"}, 404
+            user_id = found[0]
+        if user_id in c.get("instructors", []):
+            return {"error": "Already an instructor"}, 400
+        c.setdefault("instructors", []).append(user_id)
+        # If they were a participant, remove that role
+        if user_id in c.get("participants", []):
+            c["participants"] = [u for u in c.get("participants", []) if u != user_id]
+        data[classroom_id] = c
+        _save_classrooms(data)
+        return {"added": True}
+    # DELETE
+    if not user_id:
+        return {"error": "user_id required"}, 400
+    if user_id in c.get("instructors", []):
+        # prevent removing last instructor
+        if len([u for u in c.get("instructors", []) if u != user_id]) == 0:
+            return {"error": "Cannot remove the last instructor"}, 400
+        c["instructors"] = [u for u in c.get("instructors", []) if u != user_id]
+        data[classroom_id] = c
+        _save_classrooms(data)
+        return {"removed": True}
+    return {"error": "Not an instructor"}, 404
+
+
+@classrooms_bp.route("/classrooms/templates", methods=["GET"])
+def list_classroom_templates():
+    """List all available classroom templates for the current user."""
+    if not current_user.is_authenticated:
+        return {"error": "Unauthorized"}, 401
+
+    user_id = str(current_user.id)
+    data = _load_classrooms()
+    result = []
+
+    # Find all classrooms where user is a participant or instructor
+    for classroom in data.values():
+        is_participant = user_id in classroom.get("participants", [])
+        is_instructor = user_id in classroom.get("instructors", [])
+
+        if not (is_participant or is_instructor):
+            continue
+
+        # Check if templates directory exists and has content
+        classroom_id = classroom.get("id")
+        templates_dir = os.path.join(CLASSROOMS_ROOT, classroom_id, "templates")
+
+        if not os.path.isdir(templates_dir):
+            continue
+
+        # List template folders
+        templates = []
+        try:
+            for entry in os.listdir(templates_dir):
+                template_path = os.path.join(templates_dir, entry)
+                if os.path.isdir(template_path):
+                    # List files in the template
+                    files = []
+                    for root, dirs, filenames in os.walk(template_path):
+                        for filename in filenames:
+                            rel_path = os.path.relpath(
+                                os.path.join(root, filename), template_path
+                            )
+                            files.append(rel_path)
+
+                    if files:  # Only include non-empty templates
+                        templates.append({"name": entry, "files": files})
+        except Exception as e:
+            logger.warning(
+                f"Failed to list templates for classroom {classroom_id}: {e}"
+            )
+            continue
+
+        # Only include classroom if it has templates
+        if templates:
+            result.append(
+                {
+                    "id": classroom_id,
+                    "name": classroom.get("name", classroom_id),
+                    "templates": templates,
+                }
+            )
+
+    return {"classrooms": result}, 200
+
+
+@classrooms_bp.route("/classrooms/<classroom_id>/templates/upload", methods=["POST"])
+def upload_classroom_template(classroom_id):
+    """Upload a template to a classroom's templates directory."""
+    if not current_user.is_authenticated:
+        return {"error": "Unauthorized"}, 401
+
+    data = _load_classrooms()
+    c = _get_classroom(data, classroom_id)
+    if not c:
+        return {"error": "Not found"}, 404
+
+    # Only instructors can upload templates
+    if str(current_user.id) not in c.get("instructors", []):
+        return {"error": "Forbidden"}, 403
+
+    try:
+        # Get the template files from the request
+        files = request.files.getlist("files")
+        if not files:
+            return {"error": "No files provided"}, 400
+
+        # Get the template name (optional, for organizing into subdirectories)
+        template_name = request.form.get("template_name", "").strip()
+
+        # Ensure classroom directories exist
+        classroom_base = os.path.join(CLASSROOMS_ROOT, classroom_id)
+        templates_dir = os.path.join(classroom_base, "templates")
+        os.makedirs(templates_dir, exist_ok=True)
+
+        # If template_name is provided, create a subdirectory
+        if template_name:
+            target_dir = os.path.join(templates_dir, template_name)
+            os.makedirs(target_dir, exist_ok=True)
+        else:
+            target_dir = templates_dir
+
+        # Save each file
+        saved_files = []
+        for file in files:
+            if file.filename:
+                # Clean the filename to prevent path traversal
+                filename = os.path.basename(file.filename)
+                # Handle nested paths within the template (e.g., "Template/file.py")
+                if "/" in file.filename:
+                    parts = file.filename.split("/")
+                    # Skip the first part if it matches template_name
+                    if template_name and parts[0] == template_name:
+                        parts = parts[1:]
+                    # Create nested directories
+                    nested_path = os.path.join(target_dir, *parts[:-1])
+                    if nested_path != target_dir:
+                        os.makedirs(nested_path, exist_ok=True)
+                    filepath = os.path.join(nested_path, parts[-1])
+                else:
+                    filepath = os.path.join(target_dir, filename)
+
+                file.save(filepath)
+                # Set proper ownership
+                try:
+                    os.chown(filepath, CONTAINER_USER_UID, CONTAINER_USER_GID)
+                    # Also ensure parent directories have correct permissions
+                    parent = os.path.dirname(filepath)
+                    while parent.startswith(templates_dir):
+                        os.chown(parent, CONTAINER_USER_UID, CONTAINER_USER_GID)
+                        os.chmod(parent, 0o775)
+                        if parent == templates_dir:
+                            break
+                        parent = os.path.dirname(parent)
+                except PermissionError as e:
+                    logger.warning(f"Failed to chown {filepath}: {e}")
+
+                saved_files.append(filename)
+
+        logger.info(
+            f"Uploaded {len(saved_files)} template files to classroom {classroom_id} "
+            f"by user {current_user.id}"
+        )
+        return {"uploaded": True, "files": saved_files, "count": len(saved_files)}, 200
+
+    except Exception as e:
+        logger.error(f"Failed to upload classroom template: {e}")
+        return {"error": "Internal server error"}, 500

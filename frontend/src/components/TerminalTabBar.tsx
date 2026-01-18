@@ -24,7 +24,7 @@ export const TerminalTabBar: FC<TabBarProps> = ({
   onClose,
 }) => {
   return (
-    <div className="flex items-center lum-bg-gray-950 border-x-0 border-t-0 p-1 pb-0 gap-1 overflow-x-scroll">
+    <div className="flex items-center lum-bg-gray-950 border-x-0 border-t-0 p-1 pb-0 gap-1 overflow-x-auto scrollbar-hide">
       {tabs.map((w) => (
         <div
           key={w}

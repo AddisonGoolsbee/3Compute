@@ -1,10 +1,11 @@
-import os
-import pty
-import subprocess
-import platform
-import logging
 import json
+import logging
+import os
+import platform
+import pty
 import re
+import shutil
+import subprocess
 
 import psutil
 
@@ -86,7 +87,17 @@ def setup_isolated_network(network_name="isolated_net"):
         # Add iptables rule to block communication with the host
         if os.getenv("CI") != "true":
             subprocess.run(
-                ["iptables", "-I", "DOCKER-USER", "-i", f"br-{network_id}", "-o", "docker0", "-j", "DROP"],
+                [
+                    "iptables",
+                    "-I",
+                    "DOCKER-USER",
+                    "-i",
+                    f"br-{network_id}",
+                    "-o",
+                    "docker0",
+                    "-j",
+                    "DROP",
+                ],
                 check=True,
             )
             logger.info(f"Blocked host communication for network {network_name}.")
@@ -100,7 +111,15 @@ def container_exists(container_name):
     """Check if a container exists (running or stopped)"""
     try:
         result = subprocess.run(
-            ["docker", "ps", "-a", "--filter", f"name={container_name}", "--format", "{{.Names}}"],
+            [
+                "docker",
+                "ps",
+                "-a",
+                "--filter",
+                f"name={container_name}",
+                "--format",
+                "{{.Names}}",
+            ],
             capture_output=True,
             text=True,
             check=True,
@@ -114,7 +133,14 @@ def container_is_running(container_name):
     """Check if a container is currently running"""
     try:
         result = subprocess.run(
-            ["docker", "ps", "--filter", f"name={container_name}", "--format", "{{.Names}}"],
+            [
+                "docker",
+                "ps",
+                "--filter",
+                f"name={container_name}",
+                "--format",
+                "{{.Names}}",
+            ],
             capture_output=True,
             text=True,
             check=True,
@@ -148,10 +174,14 @@ def _slugify(name: str) -> str:
     return name or "classroom"
 
 
-def spawn_container(user_id, slave_fd, container_name, port_range=None, user_email: str | None = None):
+def spawn_container(
+    user_id, slave_fd, container_name, port_range=None, user_email: str | None = None
+):
     # Only create a new container if one doesn't already exist
     if container_exists(container_name):
-        logger.warning(f"Container {container_name} already exists, not creating a new one")
+        logger.warning(
+            f"Container {container_name} already exists, not creating a new one"
+        )
         raise RuntimeError(f"Container {container_name} already exists")
 
     # Prepare host directory with correct ownership before mounting
@@ -184,6 +214,7 @@ def spawn_container(user_id, slave_fd, container_name, port_range=None, user_ema
     # Add classroom mounts for instructor + participant
     inst_classrooms, part_classrooms = _load_classrooms_for_user(str(user_id))
     slug_map = {}  # id -> slug (instructor) or participant variant
+    name_map = {}  # id -> human-readable classroom name
     participant_mode = {}  # id -> True if user is participant (not instructor)
     used_slugs = set()
     all_classrooms = inst_classrooms + part_classrooms
@@ -201,12 +232,15 @@ def spawn_container(user_id, slave_fd, container_name, port_range=None, user_ema
             slug = f"{base_slug}-{suffix}"
         used_slugs.add(slug)
         slug_map[class_id] = slug
+        name_map[class_id] = name
         participant_mode[class_id] = c not in inst_classrooms
         target_dir = f"/classrooms/{class_id}"
         cmd.extend(["-v", f"{host_path}:{target_dir}"])
 
     if port_range:
-        cmd.extend(["-p", f"{port_range[0]}-{port_range[1]}:{port_range[0]}-{port_range[1]}"])
+        cmd.extend(
+            ["-p", f"{port_range[0]}-{port_range[1]}:{port_range[0]}-{port_range[1]}"]
+        )
 
     # Environment variable with mapping (JSON) for optional in-container logic
     if slug_map:
@@ -218,7 +252,9 @@ def spawn_container(user_id, slave_fd, container_name, port_range=None, user_ema
 
     cmd.append("3compute")
 
-    logger.info(f"[{user_id}] Docker run building with {len(slug_map)} classroom mounts")
+    logger.info(
+        f"[{user_id}] Docker run building with {len(slug_map)} classroom mounts"
+    )
 
     try:
         subprocess.run(cmd, check=True)
@@ -230,13 +266,18 @@ def spawn_container(user_id, slave_fd, container_name, port_range=None, user_ema
     # Create symlinks: instructor -> /classrooms/<id>; participant -> /classrooms/<id>/participants/<email>
     if slug_map:
         sanitized_email = (user_email or "participant").replace("/", "_")
-        link_commands = ["chown root:root /classrooms || true", "chmod 555 /classrooms || true"]
+        link_commands = [
+            "chown root:root /classrooms || true",
+            "chmod 555 /classrooms || true",
+        ]
         for cid, slug in slug_map.items():
             link_commands.append(f"chown 999:995 /classrooms/{cid} || true")
-            link_commands.append(f"mkdir -p /classrooms/{cid}/templates /classrooms/{cid}/participants || true")
+            link_commands.append(
+                f"mkdir -p /classrooms/{cid}/templates /classrooms/{cid}/participants || true"
+            )
             # basic perms; keep participants dir traversable
-            link_commands.append(f"chmod 755 /classrooms/{cid}/templates || true")
-            link_commands.append(f"chmod 755 /classrooms/{cid}/participants || true")
+            link_commands.append(f"chmod 775 /classrooms/{cid}/templates || true")
+            link_commands.append(f"chmod 775 /classrooms/{cid}/participants || true")
             target_path = (
                 f"/classrooms/{cid}"
                 if not participant_mode.get(cid)
@@ -244,15 +285,95 @@ def spawn_container(user_id, slave_fd, container_name, port_range=None, user_ema
             )
             if participant_mode.get(cid):
                 # create personal participant folder
-                link_commands.append(f"mkdir -p /classrooms/{cid}/participants/{sanitized_email} || true")
-                link_commands.append(f"chown 999:995 /classrooms/{cid}/participants/{sanitized_email} || true")
-                link_commands.append(f"chmod 755 /classrooms/{cid}/participants/{sanitized_email} || true")
+                link_commands.append(
+                    f"mkdir -p /classrooms/{cid}/participants/{sanitized_email} || true"
+                )
+                link_commands.append(
+                    f"chown 999:995 /classrooms/{cid}/participants/{sanitized_email} || true"
+                )
+                link_commands.append(
+                    f"chmod 775 /classrooms/{cid}/participants/{sanitized_email} || true"
+                )
+                # create symlink to templates inside participant folder so students can access them
+                link_commands.append(
+                    f"rm -rf /classrooms/{cid}/participants/{sanitized_email}/classroom-templates || true"
+                )
+                link_commands.append(
+                    f"ln -s /classrooms/{cid}/templates /classrooms/{cid}/participants/{sanitized_email}/classroom-templates"
+                )
+            # Create symlink inside container for immediate access
             link_commands.append(f"rm -rf /app/{slug} || true")
             link_commands.append(f"ln -s {target_path} /app/{slug}")
-        link_commands.append("echo 'Symlinks + permissions (participant-aware) applied'")
+
+            # Also create symlink on HOST filesystem so backend can detect it
+            # Map container paths to host paths
+            if participant_mode.get(cid):
+                # Student: link to participant folder on host
+                host_source = f"/tmp/uploads/{user_id}/{slug}"
+                host_target = f"{CLASSROOMS_ROOT}/{cid}/participants/{sanitized_email}"
+            else:
+                # Instructor: link to classroom root on host
+                host_source = f"/tmp/uploads/{user_id}/{slug}"
+                host_target = f"{CLASSROOMS_ROOT}/{cid}"
+
+            try:
+                # Ensure base classroom directories exist on host
+                os.makedirs(host_target, exist_ok=True)
+
+                # For participants, mirror classroom-templates symlink on host
+                if participant_mode.get(cid):
+                    templates_target = os.path.join(CLASSROOMS_ROOT, cid, "templates")
+                    os.makedirs(templates_target, exist_ok=True)
+
+                    templates_link = os.path.join(host_target, "classroom-templates")
+                    if os.path.islink(templates_link) or os.path.exists(templates_link):
+                        if os.path.islink(templates_link):
+                            os.unlink(templates_link)
+                        elif os.path.isdir(templates_link):
+                            shutil.rmtree(templates_link)
+                        else:
+                            os.remove(templates_link)
+                    os.symlink(templates_target, templates_link)
+
+                # Remove existing symlink or file if any
+                if os.path.islink(host_source) or os.path.exists(host_source):
+                    if os.path.islink(host_source):
+                        os.unlink(host_source)
+                    elif os.path.isdir(host_source):
+                        shutil.rmtree(host_source)
+                    else:
+                        os.remove(host_source)
+
+                # Ensure parent directory exists for symlink
+                os.makedirs(os.path.dirname(host_source), exist_ok=True)
+
+                # Create the symlink on host
+                os.symlink(host_target, host_source)
+                logger.info(
+                    f"[{user_id}] Created host symlink: {host_source} -> {host_target}"
+                )
+            except Exception as e:
+                logger.error(
+                    f"[{user_id}] Failed to create host symlink {host_source}: {e}"
+                )
+        link_commands.append(
+            "echo 'Symlinks + permissions (participant-aware) applied'"
+        )
         try:
-            subprocess.run(["docker", "exec", container_name, "sh", "-lc", " && ".join(link_commands)], check=True)
-            logger.info(f"[{user_id}] Applied participant-aware symlinks (map: {slug_map})")
+            subprocess.run(
+                [
+                    "docker",
+                    "exec",
+                    container_name,
+                    "sh",
+                    "-lc",
+                    " && ".join(link_commands),
+                ],
+                check=True,
+            )
+            logger.info(
+                f"[{user_id}] Applied participant-aware symlinks (map: {slug_map})"
+            )
         except subprocess.CalledProcessError as e:
             logger.error(f"[{user_id}] Failed applying participant symlinks: {e}")
 
@@ -276,17 +397,18 @@ def spawn_container(user_id, slave_fd, container_name, port_range=None, user_ema
                     for cid, data in all_cls.items():
                         access_codes[cid] = data.get("access_code", "UNKNOWN")
             except Exception as e:
-                logger.warning(f"[{user_id}] Failed reloading classrooms for README access codes: {e}")
+                logger.warning(
+                    f"[{user_id}] Failed reloading classrooms for README access codes: {e}"
+                )
 
             # Build a single shell script that writes each README (quote-safe using cat EOF)
             write_cmds = []
             for cid, slug in slug_map.items():
                 access_code = access_codes.get(cid, "UNKNOWN")
+                class_name = name_map.get(cid, cid)
                 # Perform placeholder substitution server-side to avoid complicated shell escaping
                 content = (
-                    template_content.replace(
-                        "{{CLASSROOM_NAME}}", cid
-                    )  # Name not readily available here; could extend mapping if needed
+                    template_content.replace("{{CLASSROOM_NAME}}", class_name)
                     .replace("{{CLASSROOM_ID}}", cid)
                     .replace("{{ACCESS_CODE}}", access_code)
                     .replace("{{SLUG}}", slug)
@@ -298,21 +420,29 @@ def spawn_container(user_id, slave_fd, container_name, port_range=None, user_ema
                 )
             script = " ; ".join(write_cmds)
             try:
-                subprocess.run(["docker", "exec", container_name, "sh", "-lc", script], check=True)
+                subprocess.run(
+                    ["docker", "exec", container_name, "sh", "-lc", script], check=True
+                )
                 logger.info(f"[{user_id}] Classroom README files written from template")
             except subprocess.CalledProcessError as e:
-                logger.warning(f"[{user_id}] Failed writing README files from template: {e}")
+                logger.warning(
+                    f"[{user_id}] Failed writing README files from template: {e}"
+                )
 
 
 def attach_to_container(container_name, tab_id="1"):
     # Check if container is running
     if not container_is_running(container_name):
-        logger.error(f"Cannot attach to container '{container_name}' - it is not running")
+        logger.error(
+            f"Cannot attach to container '{container_name}' - it is not running"
+        )
         raise RuntimeError(f"Container {container_name} is not running")
 
     master_fd, slave_fd = pty.openpty()
     # Create unique tmux session for each tab
     session_name = f"3compute-tab{tab_id}"
+    tmux_conf = "/home/myuser/.tmux.conf"
+    # Source the config after attaching to ensure settings are applied even if server was already running
     cmd = [
         "docker",
         "exec",
@@ -320,11 +450,15 @@ def attach_to_container(container_name, tab_id="1"):
         container_name,
         "sh",
         "-lc",
-        f"tmux new-session -d -A -s {session_name}; tmux attach -t {session_name}",
+        f"tmux -f {tmux_conf} new-session -d -A -s {session_name}; tmux source-file {tmux_conf} 2>/dev/null; tmux attach -t {session_name}",
     ]
-    logger.info(f"Attaching to container '{container_name}' with tmux session '{session_name}'")
+    logger.info(
+        f"Attaching to container '{container_name}' with tmux session '{session_name}'"
+    )
     try:
-        proc = subprocess.Popen(cmd, stdin=slave_fd, stdout=slave_fd, stderr=slave_fd, close_fds=True)
+        proc = subprocess.Popen(
+            cmd, stdin=slave_fd, stdout=slave_fd, stderr=slave_fd, close_fds=True
+        )
         return proc, master_fd
     except Exception as e:
         logger.error(f"Failed to attach to container '{container_name}': {e}")
