@@ -2,11 +2,11 @@ import '@testing-library/jest-dom';
 import { beforeEach, vi } from 'vitest';
 
 // Mock ResizeObserver
-globalThis.ResizeObserver = vi.fn(() => ({
-  observe: vi.fn(),
-  unobserve: vi.fn(),
-  disconnect: vi.fn(),
-}));
+globalThis.ResizeObserver = class MockResizeObserver {
+  observe = vi.fn();
+  unobserve = vi.fn();
+  disconnect = vi.fn();
+} as unknown as typeof ResizeObserver;
 
 // Mock HTMLCanvasElement.getContext
 HTMLCanvasElement.prototype.getContext = vi.fn();
@@ -38,37 +38,38 @@ vi.mock('socket.io-client', () => ({
 
 // Mock xterm
 vi.mock('@xterm/xterm', () => ({
-  Terminal: vi.fn(() => ({
-    open: vi.fn(),
-    write: vi.fn(),
-    focus: vi.fn(),
-    dispose: vi.fn(),
-    onData: vi.fn(),
-    onResize: vi.fn(),
-    loadAddon: vi.fn(),
-    scrollToBottom: vi.fn(),
-    refresh: vi.fn(),
-    element: {
+  Terminal: class MockTerminal {
+    open = vi.fn();
+    write = vi.fn();
+    focus = vi.fn();
+    dispose = vi.fn();
+    onData = vi.fn();
+    onResize = vi.fn();
+    loadAddon = vi.fn();
+    scrollToBottom = vi.fn();
+    scrollLines = vi.fn();
+    refresh = vi.fn();
+    element = {
       clientWidth: 800,
       clientHeight: 600,
-    },
-    rows: 24,
-    cols: 80,
-  })),
+    };
+    rows = 24;
+    cols = 80;
+  },
 }));
 
 // Mock xterm addons
 vi.mock('@xterm/addon-fit', () => ({
-  FitAddon: vi.fn(() => ({
-    fit: vi.fn(),
-    proposeDimensions: vi.fn(() => ({ cols: 80, rows: 24 })),
-  })),
+  FitAddon: class MockFitAddon {
+    fit = vi.fn();
+    proposeDimensions = vi.fn(() => ({ cols: 80, rows: 24 }));
+  },
 }));
 
 vi.mock('@xterm/addon-web-links', () => ({
-  WebLinksAddon: vi.fn(),
+  WebLinksAddon: class MockWebLinksAddon {},
 }));
 
 vi.mock('@xterm/addon-search', () => ({
-  SearchAddon: vi.fn(),
+  SearchAddon: class MockSearchAddon {},
 }));
