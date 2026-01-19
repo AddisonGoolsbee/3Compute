@@ -219,6 +219,28 @@ def upload_folder():
         # Resolve classroom symlink destinations to host paths if needed
         classroom_target = _resolve_classroom_path(upload_dir, f.filename)
         dest_path = classroom_target if classroom_target else safe_path
+        
+        # Check if uploading to templates folder - only instructors can do this
+        if dest_path.startswith(CLASSROOMS_ROOT):
+            rel_to_classrooms = dest_path[len(CLASSROOMS_ROOT):].lstrip("/")
+            is_templates_path = "/templates/" in f"/{rel_to_classrooms}" or rel_to_classrooms.endswith("/templates")
+            if is_templates_path:
+                # Extract classroom ID and check instructor status
+                parts = rel_to_classrooms.split("/")
+                classroom_id = parts[0] if parts else None
+                is_instructor = False
+                if classroom_id:
+                    try:
+                        if os.path.exists(CLASSROOMS_JSON_FILE):
+                            with open(CLASSROOMS_JSON_FILE, "r") as cf:
+                                all_classrooms = json.load(cf)
+                            classroom = all_classrooms.get(classroom_id, {})
+                            is_instructor = str(user_id) in classroom.get("instructors", [])
+                    except Exception:
+                        pass
+                if not is_instructor:
+                    return {"error": "Templates folder is read-only for participants"}, 403
+        
         dir_path = os.path.dirname(dest_path)
         os.makedirs(dir_path, exist_ok=True)
         set_container_ownership(dir_path)
@@ -546,8 +568,7 @@ def handle_file(filename):
         if parts and parts[0] == "archive":
             return {"error": "The archive folder is read-only"}, 403
 
-    # Prevent writes to templates folders (read-only for participants)
-    # Templates can only be modified by instructors via the dedicated upload endpoint
+    # Prevent writes to templates folders (read-only for participants, writable for instructors)
     if request.method in ("POST", "PUT", "DELETE"):
         # Check if path is in a templates folder (either directly or via classroom-templates symlink)
         rel_to_classrooms = ""
@@ -560,7 +581,29 @@ def handle_file(filename):
             filename.startswith("classroom-templates/")
         )
         if is_templates_path:
-            return {"error": "Templates folder is read-only. Use 'Copy to Workspace' instead."}, 403
+            # Check if user is an instructor for this classroom
+            is_instructor = False
+            classroom_id = None
+            
+            # Extract classroom ID from path
+            if rel_to_classrooms:
+                # Path format: <classroom_id>/templates/...
+                parts = rel_to_classrooms.split("/")
+                if parts:
+                    classroom_id = parts[0]
+            
+            if classroom_id:
+                try:
+                    if os.path.exists(CLASSROOMS_JSON_FILE):
+                        with open(CLASSROOMS_JSON_FILE, "r") as f:
+                            all_classrooms = json.load(f)
+                        classroom = all_classrooms.get(classroom_id, {})
+                        is_instructor = str(current_user.id) in classroom.get("instructors", [])
+                except Exception as e:
+                    logging.getLogger("files").warning(f"Failed to check instructor status: {e}")
+            
+            if not is_instructor:
+                return {"error": "Templates folder is read-only. Use 'Copy to Workspace' instead."}, 403
 
     if request.method == "POST":
         # Create a new directory or file
