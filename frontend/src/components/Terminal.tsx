@@ -65,15 +65,8 @@ export function TerminalComponent({ tabId, isActive }: TerminalComponentProps) {
 
     term.open(terminalRef.current);
 
-    // Handle mouse wheel scrolling - intercept and scroll terminal buffer directly
-    const handleWheel = (e: WheelEvent) => {
-      // Only handle if terminal is ready (has dimensions)
-      if (!term.element || !term.cols || !term.rows) return;
-      e.preventDefault();
-      const scrollLines = Math.round(e.deltaY / 30); // Adjust sensitivity
-      term.scrollLines(scrollLines);
-    };
-    terminalRef.current.addEventListener('wheel', handleWheel, { passive: false });
+    // Mouse scrolling is handled by tmux (mouse mode enabled in tmux.conf)
+    // tmux receives scroll events and manages its own scrollback buffer
 
     const socket = io(backendUrl, {
       withCredentials: true,
@@ -145,10 +138,8 @@ export function TerminalComponent({ tabId, isActive }: TerminalComponentProps) {
     });
 
     resizeObserver.observe(terminalRef.current);
-    const currentRef = terminalRef.current;
 
     return () => {
-      currentRef.removeEventListener('wheel', handleWheel);
       resizeObserver.disconnect();
       socket.disconnect();
       term.dispose();

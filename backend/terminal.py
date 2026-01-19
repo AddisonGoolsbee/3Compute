@@ -158,18 +158,27 @@ def read_and_forward_pty_output(sid, is_authed):
         return
 
     max_read_bytes = 1024 * 20
-    fd = session_map[sid]["fd"]
     try:
         while True:
+            # Yield to event loop - required for Flask-SocketIO
             socketio.sleep(0.01)
-            if fd:
-                try:
-                    data_ready, _, _ = select.select([fd], [], [], 0)
-                    if data_ready:
-                        output = os.read(fd, max_read_bytes).decode(errors="ignore")
+
+            # Check if session still exists and has a valid fd
+            session = session_map.get(sid)
+            if not session:
+                break
+            fd = session.get("fd")
+            if not fd:
+                # Not attached yet, wait and retry
+                continue
+            try:
+                data_ready, _, _ = select.select([fd], [], [], 0)
+                if data_ready:
+                    output = os.read(fd, max_read_bytes).decode(errors="ignore")
+                    if output:
                         socketio.emit("pty-output", {"output": output}, to=sid)
-                except (OSError, ValueError):
-                    break
+            except (OSError, ValueError):
+                break
     finally:
         logger.info(f"Stopping read thread for {sid}")
 
@@ -246,7 +255,7 @@ def handle_resize(data):
             proc, fd = attach_to_container(container_name, session_info["tab_id"])
             session_info["fd"] = fd
             session_info["container_attached"] = True
-            socketio.start_background_task(read_and_forward_pty_output, sid, True)
+            # Reader is already started in handle_connect and will pick up the fd
             logger.info(
                 f"Attached to container for user {user_id} tab {session_info['tab_id']} in handle_resize()"
             )
