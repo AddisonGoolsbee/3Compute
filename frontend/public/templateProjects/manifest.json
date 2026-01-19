@@ -10,5 +10,11 @@
     "main.py",
     "README.md",
     "requirements.txt"
+  ],
+  "AI-Game": [
+    "main.py",
+    "test_game.py",
+    "README.md",
+    "requirements.txt"
   ]
 }
