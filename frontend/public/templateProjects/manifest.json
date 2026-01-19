@@ -11,7 +11,7 @@
     "README.md",
     "requirements.txt"
   ],
-  "AI-Game": [
+  "Tic-Tac-Toe": [
     "main.py",
     "test_game.py",
     "README.md",
