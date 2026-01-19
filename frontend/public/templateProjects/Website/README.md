@@ -122,3 +122,11 @@ Once you're comfortable with this template, see if you can:
 - Add animations with CSS
 - Add Google Analytics to see who visits your site
 - Add a browser icon to your website
+
+## For Instructors
+
+Want to share this template with your classroom?
+
+1. Copy this template folder into your classroom's `templates/` directory
+2. Customize it for your course (add starter code, modify instructions, etc.)
+3. Students can access it via **Templates → Classroom Templates** or browse `classroom-templates/` in their classroom folder

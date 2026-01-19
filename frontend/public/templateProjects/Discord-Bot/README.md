@@ -154,3 +154,11 @@ Once you're comfortable with this template, try these challenges:
 - Create a ticket system for support requests
 - Add a reaction role system
 - Create a poll/voting system
+
+## For Instructors
+
+Want to share this template with your classroom?
+
+1. Copy this template folder into your classroom's `templates/` directory
+2. Customize it for your course (pre-configure the .env, add starter commands, etc.)
+3. Students can access it via **Templates → Classroom Templates** or browse `classroom-templates/` in their classroom folder
