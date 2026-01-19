@@ -311,9 +311,9 @@ def test_get_best_move():
 
 def run_all_tests():
     """Run the complete test suite."""
-    print("\n" + "🧪" * 25)
-    print("     TIC-TAC-TOE AI TEST SUITE")
-    print("🧪" * 25)
+    print("\n" + "=" * 26)
+    print("  TIC-TAC-TOE TEST SUITE")
+    print("=" * 26)
     
     results = []
     
