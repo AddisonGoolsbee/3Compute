@@ -95,6 +95,12 @@ def _get_classroom(data: dict, classroom_id: str) -> dict | None:
     return data.get(classroom_id)
 
 
+def _is_archived_for_user(classroom: dict, user_id: str) -> bool:
+    """Check if a classroom is archived for a specific user (per-user setting)."""
+    archived_by = classroom.get("archived_by", [])
+    return user_id in archived_by
+
+
 @classrooms_bp.route("/classrooms", methods=["GET"])
 def list_classrooms():
     if not current_user.is_authenticated:
@@ -103,10 +109,14 @@ def list_classrooms():
     user_id = str(current_user.id)
     owner_all = [c for c in data.values() if user_id in c.get("instructors", [])]
     joined_all = [c for c in data.values() if user_id in c.get("participants", [])]
-    owner = [c for c in owner_all if not c.get("archived")]
-    owner_archived = [c for c in owner_all if c.get("archived")]
-    joined = [c for c in joined_all if not c.get("archived")]
-    joined_archived = [c for c in joined_all if c.get("archived")]
+
+    # Per-user archived state for both instructors and participants
+    owner = [c for c in owner_all if not _is_archived_for_user(c, user_id)]
+    owner_archived = [c for c in owner_all if _is_archived_for_user(c, user_id)]
+
+    joined = [c for c in joined_all if not _is_archived_for_user(c, user_id)]
+    joined_archived = [c for c in joined_all if _is_archived_for_user(c, user_id)]
+
     return {
         "owner": owner,
         "owner_archived": owner_archived,
@@ -343,22 +353,141 @@ def update_or_delete_classroom(classroom_id):
     return {"id": classroom_id, "name": new_name}
 
 
+def _restart_user_container(user_id, user_email=None, port_range=None):
+    """Restart a user's container to apply new mounts/symlinks."""
+    container_name = f"user-container-{user_id}"
+    restarted = False
+    if container_exists(container_name):
+        try:
+            subprocess.run(["docker", "rm", "-f", container_name], check=False)
+        except Exception as e:
+            logger.warning(f"Failed to remove container {container_name}: {e}")
+        if user_id in user_containers:
+            user_containers.pop(user_id, None)
+    try:
+        spawn_container(user_id, None, container_name, port_range, user_email)
+        restarted = True
+        user_containers[user_id] = {
+            "container_name": container_name,
+            "port_range": port_range,
+        }
+    except Exception as e:
+        logger.error(f"Failed to spawn container after operation: {e}")
+    return restarted
+
+
 @classrooms_bp.route("/classrooms/<classroom_id>/archive", methods=["POST"])
 def archive_classroom(classroom_id):
+    """Archive/unarchive a classroom for the current user.
+
+    This is a per-user setting - archiving just moves the classroom
+    to the user's archive folder. Other users are not affected.
+    """
     if not current_user.is_authenticated:
         return {"error": "Unauthorized"}, 401
     data = _load_classrooms()
     c = _get_classroom(data, classroom_id)
     if not c:
         return {"error": "Not found"}, 404
-    if str(current_user.id) not in c.get("instructors", []):
+
+    user_id = str(current_user.id)
+    is_instructor = user_id in c.get("instructors", [])
+    is_participant = user_id in c.get("participants", [])
+
+    if not is_instructor and not is_participant:
         return {"error": "Forbidden"}, 403
+
     payload = request.get_json(silent=True) or {}
     archived = bool(payload.get("archived", True))
-    c["archived"] = archived
+
+    # Per-user archive state - stored in archived_by list
+    archived_by = c.get("archived_by", [])
+    if archived:
+        if user_id not in archived_by:
+            archived_by.append(user_id)
+    else:
+        archived_by = [u for u in archived_by if u != user_id]
+    c["archived_by"] = archived_by
     data[classroom_id] = c
     _save_classrooms(data)
-    return {"archived": archived}
+
+    # Restart container to update symlinks
+    port_range = getattr(current_user, "port_range", None)
+    restarted = _restart_user_container(
+        current_user.id,
+        getattr(current_user, "email", None),
+        port_range,
+    )
+    return {"archived": archived, "restarted": restarted}
+
+
+@classrooms_bp.route("/classrooms/restore-by-slug", methods=["POST"])
+def restore_by_slug():
+    """Restore an archived classroom by its slugified name.
+
+    Used when restoring from the archive folder where we only have the slug.
+    """
+    if not current_user.is_authenticated:
+        return {"error": "Unauthorized"}, 401
+
+    payload = request.get_json(silent=True) or {}
+    slug = (payload.get("slug") or "").strip().lower()
+    if not slug:
+        return {"error": "Slug required"}, 400
+
+    user_id = str(current_user.id)
+    data = _load_classrooms()
+
+    # Find the classroom that matches this slug
+    target = None
+    for c in data.values():
+        is_instructor = user_id in c.get("instructors", [])
+        is_participant = user_id in c.get("participants", [])
+        if not is_instructor and not is_participant:
+            continue
+
+        # Check if classroom is archived for this user
+        archived_by = c.get("archived_by", [])
+        if user_id not in archived_by:
+            continue
+
+        # Check if the slug matches
+        name = c.get("name") or c.get("id")
+        classroom_slug = _slugify(name)
+        if classroom_slug == slug:
+            target = c
+            break
+
+    if not target:
+        return {"error": "Archived classroom not found"}, 404
+
+    classroom_id = target.get("id")
+
+    # Restore: remove user from archived_by list
+    archived_by = target.get("archived_by", [])
+    archived_by = [u for u in archived_by if u != user_id]
+    target["archived_by"] = archived_by
+    data[classroom_id] = target
+    _save_classrooms(data)
+
+    # Restart container
+    port_range = getattr(current_user, "port_range", None)
+    restarted = _restart_user_container(
+        current_user.id,
+        getattr(current_user, "email", None),
+        port_range,
+    )
+
+    logger.info(f"User {user_id} restored classroom {classroom_id} from archive")
+    return {"restored": True, "classroom_id": classroom_id, "restarted": restarted}
+
+
+def _slugify(name: str) -> str:
+    import re
+    name = name.lower()
+    name = re.sub(r"[^a-z0-9\s-]", "", name)
+    name = re.sub(r"[\s-]+", "-", name).strip("-")
+    return name or "classroom"
 
 
 @classrooms_bp.route(

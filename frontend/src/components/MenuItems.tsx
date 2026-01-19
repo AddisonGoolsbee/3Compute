@@ -30,6 +30,17 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
     return second === 'classroom-templates' || second === 'participants';
   };
 
+  const isArchiveFolder = (location?: string) => {
+    if (!location) return false;
+    const parts = location.split('/').filter(Boolean);
+    return parts[0] === 'archive';
+  };
+
+  const isArchiveRoot = (location?: string) => {
+    if (!location) return false;
+    return location === '/archive/' || location === '/archive';
+  };
+
   // Auto-hide context menu on any click outside
   useEffect(() => {
     const handler = () => {
@@ -185,17 +196,20 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
                 {'files' in file
                   ? (
                     openFolders.includes(file.location)
-                      ? <FolderOpen size={16} className="text-orange-400 min-w-4" />
-                      : <FolderClosed size={16} className="text-orange-300 min-w-4" />
+                      ? <FolderOpen size={16} className={isArchiveFolder(file.location) ? 'text-gray-500 min-w-4' : 'text-orange-400 min-w-4'} />
+                      : <FolderClosed size={16} className={isArchiveFolder(file.location) ? 'text-gray-500 min-w-4' : 'text-orange-300 min-w-4'} />
                   ) : (() => {
                     const Lang = Object.values(languageMap).find(languageMap =>
                       languageMap.extensions.includes(file.name.split('.').pop() || ''),
                     );
-                    if (Lang) return <Lang.icon size={16} className="text-blue-300 min-w-4" />;
-                    return <FileIcon size={16} className="text-blue-300 min-w-4" />;
+                    if (Lang) return <Lang.icon size={16} className={isArchiveFolder(file.location) ? 'text-gray-500 min-w-4' : 'text-blue-300 min-w-4'} />;
+                    return <FileIcon size={16} className={isArchiveFolder(file.location) ? 'text-gray-500 min-w-4' : 'text-blue-300 min-w-4'} />;
                   })()}
 
-                <span className="flex-1">
+                <span className={getClasses({
+                  'flex-1': true,
+                  'text-gray-500': isArchiveFolder(file.location),
+                })}>
                   {file.renaming ? (
                     <input
                       type="text"
@@ -361,11 +375,17 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
           onClick={() => {
             if (!contextMenu.targetLocation) return;
             if (isProtectedLocation(contextMenu.targetLocation)) return;
-            const isClassroomRoot = !contextMenu.targetLocation.includes('/', 1);
+            const parts = contextMenu.targetLocation.split('/').filter(Boolean);
+            const isClassroomRoot = parts.length === 1;
             if (isClassroomRoot) {
-              window.dispatchEvent(new CustomEvent('3compute:classroom-action', {
-                detail: { location: contextMenu.targetLocation, action: 'rename' },
-              }));
+              // Only instructors can rename classrooms
+              const slug = parts[0];
+              const classroom = slug ? classroomSymlinks?.[slug] : undefined;
+              if (classroom?.isInstructor) {
+                window.dispatchEvent(new CustomEvent('3compute:classroom-action', {
+                  detail: { location: contextMenu.targetLocation, action: 'rename' },
+                }));
+              }
             } else {
               document.dispatchEvent(new CustomEvent('3compute:rename', { detail: { location: contextMenu.targetLocation } }));
             }
@@ -373,11 +393,17 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
           disabled={(() => {
             if (!contextMenu.targetLocation) return true;
             if (isProtectedLocation(contextMenu.targetLocation)) return true;
-            const isClassroomRoot = !contextMenu.targetLocation.includes('/', 1);
+            // Archive folder and its contents cannot be renamed
+            if (isArchiveFolder(contextMenu.targetLocation)) return true;
+            const parts = contextMenu.targetLocation.split('/').filter(Boolean);
+            const isClassroomRoot = parts.length === 1;
             if (isClassroomRoot) {
-              const slug = contextMenu.targetLocation.split('/').filter(Boolean)[0];
+              const slug = parts[0];
               const classroom = slug ? classroomSymlinks?.[slug] : undefined;
-              return !classroom;
+              // Only instructors can rename classrooms; normal folders can be renamed
+              if (classroom) {
+                return !classroom.isInstructor;
+              }
             }
             return false;
           })()}
@@ -390,8 +416,24 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
           onClick={async () => {
             if (!contextMenu.targetLocation) return;
             if (isProtectedLocation(contextMenu.targetLocation)) return;
-            const isClassroomRoot = !contextMenu.targetLocation.includes('/', 1);
-            const slug = contextMenu.targetLocation.split('/').filter(Boolean)[0];
+
+            // Handle restore from archive folder
+            if (isArchiveFolder(contextMenu.targetLocation)) {
+              const parts = contextMenu.targetLocation.split('/').filter(Boolean);
+              if (parts.length === 2) {
+                // This is an archived classroom - dispatch restore action
+                // The slug is the classroom name inside archive
+                const archivedSlug = parts[1];
+                window.dispatchEvent(new CustomEvent('3compute:archive-restore', {
+                  detail: { slug: archivedSlug },
+                }));
+              }
+              return;
+            }
+
+            const parts = contextMenu.targetLocation.split('/').filter(Boolean);
+            const isClassroomRoot = parts.length === 1;
+            const slug = parts[0];
             const classroom = slug ? classroomSymlinks?.[slug] : undefined;
 
             // Handle classroom archive/restore - classroom roots can only be archived, not deleted
@@ -405,8 +447,8 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
               return;
             }
 
-            // Don't allow deletion of classroom roots at all
-            if (isClassroomRoot) {
+            // Don't allow deletion of classroom roots (only archive/restore)
+            if (isClassroomRoot && classroom) {
               return;
             }
 
@@ -446,14 +488,33 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
           disabled={(() => {
             if (!contextMenu.targetLocation) return true;
             if (isProtectedLocation(contextMenu.targetLocation)) return true;
+            // Archive root folder cannot be deleted
+            if (isArchiveRoot(contextMenu.targetLocation)) return true;
+            // Items inside archive folder - disable regular delete, except for restore action on classroom folders
+            if (isArchiveFolder(contextMenu.targetLocation)) {
+              // Only allow action on direct children of archive (archived classrooms)
+              const parts = contextMenu.targetLocation.split('/').filter(Boolean);
+              if (parts.length !== 2) return true; // Only archive/classroom-name can be restored
+              return false; // Enable for classroom folders in archive
+            }
             return false;
           })()}
         >
           <Trash size={16} className="inline mr-2" />
           {(() => {
             if (!contextMenu.targetLocation) return 'Delete';
-            const isClassroomRoot = !contextMenu.targetLocation.includes('/', 1);
-            const slug = contextMenu.targetLocation.split('/').filter(Boolean)[0];
+            // Archive folder items
+            if (isArchiveFolder(contextMenu.targetLocation)) {
+              const parts = contextMenu.targetLocation.split('/').filter(Boolean);
+              if (parts.length === 2) {
+                return 'Restore';
+              }
+              return 'Delete'; // Won't actually work since it's disabled
+            }
+            // Check if this is a top-level item (classroom root)
+            const parts = contextMenu.targetLocation.split('/').filter(Boolean);
+            const isClassroomRoot = parts.length === 1;
+            const slug = parts[0];
             const classroom = slug ? classroomSymlinks?.[slug] : undefined;
             if (isClassroomRoot && classroom) {
               return classroom.archived ? 'Restore' : 'Archive';

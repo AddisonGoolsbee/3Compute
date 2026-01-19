@@ -245,7 +245,7 @@ def upload_folder():
                 ],
                 check=True,
             )
-            # Then, send the cd command
+            # Then, send the cd command (quote the path for spaces)
             subprocess.run(
                 [
                     "docker",
@@ -255,7 +255,7 @@ def upload_folder():
                     "send-keys",
                     "-t",
                     "3compute",
-                    f"cd /app/{move_into}",
+                    f"cd '/app/{move_into}'",
                     "Enter",
                 ],
                 check=True,
@@ -283,7 +283,7 @@ def list_files():
     classroom_symlinks: dict[str, str] = {}
 
     logger = logging.getLogger("files")
-    logger.debug(f"[{user_id}] Listing files in {upload_dir}")
+    # logger.debug(f"[{user_id}] Listing files in {upload_dir}")
 
     top_level_symlinks: set[str] = set()
 
@@ -295,7 +295,7 @@ def list_files():
                 continue
 
             target = os.readlink(full_path)
-            logger.debug(f"[{user_id}] Found top-level symlink: {entry} -> {target}")
+            # logger.debug(f"[{user_id}] Found top-level symlink: {entry} -> {target}")
 
             tail = None
             if target.startswith(CLASSROOMS_ROOT):
@@ -323,9 +323,9 @@ def list_files():
             top_level_symlinks.add(entry)
 
             classroom_id = tail.split("/", 1)[0]
-            logger.debug(
-                f"[{user_id}] Recording classroom symlink: {entry} -> {classroom_id}"
-            )
+            # logger.debug(
+            #     f"[{user_id}] Recording classroom symlink: {entry} -> {classroom_id}"
+            # )
             classroom_symlinks[entry] = classroom_id
     except FileNotFoundError:
         pass
@@ -345,7 +345,7 @@ def list_files():
             # If this directory is a symlink to a classroom, expand its tree from the host path
             if os.path.islink(full_path):
                 target = os.readlink(full_path)
-                logger.debug(f"[{user_id}] Found symlink: {relative_path} -> {target}")
+                # logger.debug(f"[{user_id}] Found symlink: {relative_path} -> {target}")
                 if target.startswith("/classrooms/"):
                     tail = target[len("/classrooms/") :].lstrip("/")
                     host_base = os.path.join(CLASSROOMS_ROOT, tail)
@@ -353,9 +353,9 @@ def list_files():
                     expanded_symlinks.add(f"{relative_path}/")
                     if "/" not in relative_path:
                         classroom_id = tail.split("/", 1)[0]
-                        logger.debug(
-                            f"[{user_id}] Recording classroom symlink: {relative_path} -> {classroom_id}"
-                        )
+                        # logger.debug(
+                        #     f"[{user_id}] Recording classroom symlink: {relative_path} -> {classroom_id}"
+                        # )
                         classroom_symlinks[relative_path] = classroom_id
                     # Prevent os.walk from descending into this symlink path
                     dirs.remove(d)
@@ -380,7 +380,7 @@ def list_files():
         file_tree = [entry for entry in file_tree if entry not in expanded_symlinks]
 
     classroom_meta: dict[str, dict] = {}
-    logger.debug(f"[{user_id}] Found classroom_symlinks: {classroom_symlinks}")
+    # logger.debug(f"[{user_id}] Found classroom_symlinks: {classroom_symlinks}")
 
     if classroom_symlinks:
         all_classrooms = {}
@@ -388,9 +388,9 @@ def list_files():
             if os.path.exists(CLASSROOMS_JSON_FILE):
                 with open(CLASSROOMS_JSON_FILE, "r") as f:
                     all_classrooms = json.load(f)
-                logger.debug(
-                    f"[{user_id}] Loaded classrooms.json with {len(all_classrooms)} classrooms"
-                )
+                # logger.debug(
+                #     f"[{user_id}] Loaded classrooms.json with {len(all_classrooms)} classrooms"
+                # )
         except Exception as e:
             logger.warning(f"[{user_id}] Failed loading classrooms metadata: {e}")
 
@@ -398,16 +398,21 @@ def list_files():
             info = {}
             if isinstance(all_classrooms, dict):
                 info = all_classrooms.get(cid, {}) or {}
+
+            is_instructor = str(user_id) in info.get("instructors", [])
+
+            # Per-user archived state
+            archived_by = info.get("archived_by", [])
+            archived = str(user_id) in archived_by
+
             classroom_meta[slug] = {
                 "id": cid,
                 "name": info.get("name"),
-                "archived": info.get("archived", False),
+                "archived": archived,
+                "isInstructor": is_instructor,
             }
-            logger.debug(
-                f"[{user_id}] Added classroom_meta[{slug}] = {classroom_meta[slug]}"
-            )
 
-    logger.debug(f"[{user_id}] Returning classroom_meta: {classroom_meta}")
+    # logger.debug(f"[{user_id}] Returning classroom_meta: {classroom_meta}")
     return {"files": file_tree, "classroomMeta": classroom_meta}, 200
 
 
@@ -428,6 +433,19 @@ def move_file_or_folder():
 
     if not source_param or not destination_param:
         return "Invalid path", 400
+
+    # Prevent renaming to reserved names
+    dest_name = destination_param.rstrip("/").split("/")[-1]
+    if _is_reserved_name(dest_name):
+        return {"error": "The name 'archive' is reserved"}, 400
+
+    # Prevent moving/renaming the archive folder or its contents
+    src_parts = source_param.strip("/").split("/")
+    dst_parts = destination_param.strip("/").split("/")
+    if src_parts and src_parts[0] == "archive":
+        return {"error": "The archive folder is read-only"}, 403
+    if dst_parts and dst_parts[0] == "archive":
+        return {"error": "Cannot move items into the archive folder"}, 403
 
     user_id = current_user.id
     upload_dir = f"/tmp/uploads/{user_id}"
@@ -488,6 +506,11 @@ def move_file_or_folder():
     return "Moved successfully", 200
 
 
+def _is_reserved_name(name: str) -> bool:
+    """Check if a file/folder name is reserved."""
+    return name.lower() == "archive"
+
+
 @files_bp.route("/file/<path:filename>", methods=["GET", "PUT", "DELETE", "POST"])
 def handle_file(filename):
     if not current_user.is_authenticated:
@@ -509,6 +532,19 @@ def handle_file(filename):
             return "Invalid path", 400
     except ValueError:
         return "Invalid path", 400
+
+    # Prevent creating files/folders with reserved names
+    if request.method == "POST":
+        # Get the name being created (last segment of the path)
+        name = filename.rstrip("/").split("/")[-1]
+        if _is_reserved_name(name):
+            return {"error": "The name 'archive' is reserved"}, 400
+
+    # Protect the archive folder - it's read-only and managed by the system
+    if request.method in ("POST", "PUT", "DELETE"):
+        parts = filename.strip("/").split("/")
+        if parts and parts[0] == "archive":
+            return {"error": "The archive folder is read-only"}, 403
 
     # Prevent writes to templates folders (read-only for participants)
     # Templates can only be modified by instructors via the dedicated upload endpoint

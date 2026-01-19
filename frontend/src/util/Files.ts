@@ -15,11 +15,19 @@ export interface FolderType extends FileType {
 
 export type Files = (FolderType | FileType)[];
 
-function sortFilesRecursive(items: Files): void {
+function sortFilesRecursive(items: Files, isTopLevel: boolean = false): void {
   // Sort folders first, then files; both alphabetically (case-insensitive)
+  // Exception: archive folder always goes to the bottom at top level
   items.sort((a, b) => {
     const aIsFolder = 'files' in a;
     const bIsFolder = 'files' in b;
+
+    // Archive folder always at bottom (only at top level)
+    if (isTopLevel) {
+      if (a.name === 'archive') return 1;
+      if (b.name === 'archive') return -1;
+    }
+
     if (aIsFolder && !bIsFolder) return -1;
     if (!aIsFolder && bIsFolder) return 1;
     return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
@@ -28,14 +36,14 @@ function sortFilesRecursive(items: Files): void {
   // Recurse into folders
   for (const item of items) {
     if ('files' in item) {
-      sortFilesRecursive(item.files);
+      sortFilesRecursive(item.files, false);
     }
   }
 }
 
 export type FilesResponse = {
   files: Files;
-  classroomSymlinks: Record<string, { id: string; name?: string; archived?: boolean }>;
+  classroomSymlinks: Record<string, { id: string; name?: string; archived?: boolean; isInstructor?: boolean }>;
 };
 
 export async function fetchFilesList(): Promise<FilesResponse> {
@@ -46,7 +54,7 @@ export async function fetchFilesList(): Promise<FilesResponse> {
   if (!fileRes.ok) return { files: [], classroomSymlinks: {} };
   const filesData: {
     files: string[];
-    classroomMeta?: Record<string, { id: string; name?: string; archived?: boolean }>;
+    classroomMeta?: Record<string, { id: string; name?: string; archived?: boolean; isInstructor?: boolean }>;
   } = await fileRes.json();
   const classroomSymlinks = filesData.classroomMeta || {};
 
@@ -105,7 +113,7 @@ export async function fetchFilesList(): Promise<FilesResponse> {
   }
 
   // Ensure stable alphabetical ordering
-  sortFilesRecursive(files);
+  sortFilesRecursive(files, true);
 
   return { files, classroomSymlinks };
 }

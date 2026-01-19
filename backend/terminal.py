@@ -262,14 +262,14 @@ def handle_resize(data):
     fd = session_info["fd"]
     user_id = session_info["user_id"]
 
-    logger.debug(f"Resizing terminal for user {user_id}, session {sid}, fd {fd}")
-    logger.debug(
-        f"New dimensions: rows={data.get('rows', 'MISSING')}, cols={data.get('cols', 'MISSING')}"
-    )
+    # logger.debug(f"Resizing terminal for user {user_id}, session {sid}, fd {fd}")
+    # logger.debug(
+    #     f"New dimensions: rows={data.get('rows', 'MISSING')}, cols={data.get('cols', 'MISSING')}"
+    # )
 
     try:
         set_winsize(fd, data["rows"], data["cols"])
-        logger.debug(f"Successfully resized terminal to {data['rows']}x{data['cols']}")
+        # logger.debug(f"Successfully resized terminal to {data['rows']}x{data['cols']}")
     except KeyError as e:
         logger.error(
             f"Missing required resize data: {e}. Available keys: {list(data.keys())}"

@@ -150,21 +150,40 @@ def container_is_running(container_name):
         return False
 
 
-def _load_classrooms_for_user(user_id: str):
-    """Return tuple (instructor_classrooms, participant_classrooms)."""
+def _load_classrooms_for_user(user_id: str, include_archived: bool = False):
+    """Return tuple (instructor_classrooms, participant_classrooms).
+
+    Uses per-user archived_by list to determine if a classroom is archived.
+    If include_archived is True, returns ONLY archived classrooms for the user.
+    """
     inst, part = [], []
     try:
         if os.path.exists(CLASSROOMS_JSON_FILE):
             with open(CLASSROOMS_JSON_FILE, "r") as f:
                 data = json.load(f)
             for c in data.values():
+                archived_by = c.get("archived_by", [])
+                is_archived_for_user = user_id in archived_by
+
                 if user_id in c.get("instructors", []):
-                    inst.append(c)
+                    if include_archived:
+                        if is_archived_for_user:
+                            inst.append(c)
+                    else:
+                        if not is_archived_for_user:
+                            inst.append(c)
                 elif user_id in c.get("participants", []):
-                    part.append(c)
+                    if include_archived:
+                        if is_archived_for_user:
+                            part.append(c)
+                    else:
+                        if not is_archived_for_user:
+                            part.append(c)
     except Exception as e:
         logger.warning(f"Failed loading classrooms for mounts: {e}")
     return inst, part
+
+
 
 
 def _slugify(name: str) -> str:
@@ -186,6 +205,29 @@ def spawn_container(
 
     # Prepare host directory with correct ownership before mounting
     prepare_user_directory(user_id)
+
+    # Clean up all existing classroom symlinks in user's directory
+    # This ensures archived classrooms are properly removed
+    user_dir = f"/tmp/uploads/{user_id}"
+    archive_dir = os.path.join(user_dir, "archive")
+    try:
+        for entry in os.listdir(user_dir):
+            entry_path = os.path.join(user_dir, entry)
+            if entry == "archive":
+                # Remove old archive folder entirely
+                if os.path.isdir(entry_path):
+                    shutil.rmtree(entry_path)
+                elif os.path.islink(entry_path):
+                    os.unlink(entry_path)
+                logger.debug(f"[{user_id}] Removed old archive folder")
+            elif os.path.islink(entry_path):
+                target = os.readlink(entry_path)
+                # Check if it's a classroom symlink
+                if target.startswith(CLASSROOMS_ROOT) or target.startswith("/classrooms/"):
+                    os.unlink(entry_path)
+                    logger.debug(f"[{user_id}] Removed old classroom symlink: {entry}")
+    except Exception as e:
+        logger.warning(f"[{user_id}] Failed cleaning up old symlinks: {e}")
 
     mount_spec = f"/tmp/uploads/{user_id}:/app"
 
@@ -211,12 +253,29 @@ def spawn_container(
         mount_spec,
     ]
 
-    # Add classroom mounts for instructor + participant
+    # Add classroom mounts for instructor + participant (active + archived)
     inst_classrooms, part_classrooms = _load_classrooms_for_user(str(user_id))
+    archived_inst, archived_part = _load_classrooms_for_user(str(user_id), include_archived=True)
+
     slug_map = {}  # id -> slug (instructor) or participant variant
     name_map = {}  # id -> human-readable classroom name
     participant_mode = {}  # id -> True if user is participant (not instructor)
     used_slugs = set()
+    # Reserve "archive" slug
+    used_slugs.add("archive")
+
+    # Mount ALL classrooms (active + archived) so they can be accessed
+    all_classrooms_to_mount = set()
+    for c in inst_classrooms + part_classrooms + archived_inst + archived_part:
+        all_classrooms_to_mount.add(c.get("id"))
+
+    for class_id in all_classrooms_to_mount:
+        host_path = os.path.join(CLASSROOMS_ROOT, class_id)
+        if os.path.isdir(host_path):
+            target_dir = f"/classrooms/{class_id}"
+            cmd.extend(["-v", f"{host_path}:{target_dir}"])
+
+    # Only create symlinks for active (non-archived) classrooms
     all_classrooms = inst_classrooms + part_classrooms
     for c in all_classrooms:
         class_id = c.get("id")
@@ -225,6 +284,7 @@ def spawn_container(
         if not os.path.isdir(host_path):
             logger.warning(f"Expected classroom dir missing: {host_path}")
             continue
+        is_participant = c not in inst_classrooms
         slug = _slugify(name)
         base_slug = slug
         if slug in used_slugs:
@@ -233,9 +293,7 @@ def spawn_container(
         used_slugs.add(slug)
         slug_map[class_id] = slug
         name_map[class_id] = name
-        participant_mode[class_id] = c not in inst_classrooms
-        target_dir = f"/classrooms/{class_id}"
-        cmd.extend(["-v", f"{host_path}:{target_dir}"])
+        participant_mode[class_id] = is_participant
 
     if port_range:
         cmd.extend(
@@ -376,6 +434,58 @@ def spawn_container(
             )
         except subprocess.CalledProcessError as e:
             logger.error(f"[{user_id}] Failed applying participant symlinks: {e}")
+
+    # Create archive folder with symlinks to archived classrooms
+    archived_inst, archived_part = _load_classrooms_for_user(str(user_id), include_archived=True)
+    all_archived = archived_inst + archived_part
+    if all_archived:
+        archive_dir = f"/tmp/uploads/{user_id}/archive"
+        try:
+            os.makedirs(archive_dir, exist_ok=True)
+            os.chown(archive_dir, CONTAINER_USER_UID, CONTAINER_USER_GID)
+            os.chmod(archive_dir, 0o755)
+
+            archive_used_slugs = set()
+            for c in all_archived:
+                class_id = c.get("id")
+                class_name = c.get("name") or class_id
+                host_path = os.path.join(CLASSROOMS_ROOT, class_id)
+                if not os.path.isdir(host_path):
+                    continue
+
+                is_participant = c not in archived_inst
+                slug = _slugify(class_name)
+                base_slug = slug
+                if slug in archive_used_slugs:
+                    suffix = class_id.split("-")[0][:4]
+                    slug = f"{base_slug}-{suffix}"
+                archive_used_slugs.add(slug)
+
+                # Determine target path (same logic as active classrooms)
+                sanitized_email = (user_email or "participant").replace("/", "_")
+                if is_participant:
+                    host_target = f"{CLASSROOMS_ROOT}/{class_id}/participants/{sanitized_email}"
+                else:
+                    host_target = f"{CLASSROOMS_ROOT}/{class_id}"
+
+                # Ensure target exists
+                os.makedirs(host_target, exist_ok=True)
+
+                # Create symlink in archive folder
+                archive_link = os.path.join(archive_dir, slug)
+                if os.path.islink(archive_link) or os.path.exists(archive_link):
+                    if os.path.islink(archive_link):
+                        os.unlink(archive_link)
+                    elif os.path.isdir(archive_link):
+                        shutil.rmtree(archive_link)
+                    else:
+                        os.remove(archive_link)
+                os.symlink(host_target, archive_link)
+                logger.debug(f"[{user_id}] Created archive symlink: {archive_link} -> {host_target}")
+
+            logger.info(f"[{user_id}] Created archive folder with {len(all_archived)} archived classrooms")
+        except Exception as e:
+            logger.error(f"[{user_id}] Failed creating archive folder: {e}")
 
     # Template-based README generation for each classroom (overwrite each restart)
     if slug_map:

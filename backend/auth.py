@@ -298,7 +298,7 @@ def save_terminal_tabs():
         }
 
         save_users_to_json(users_data)
-        logger.info(f"Saved terminal tabs for user {user_id}: {data}")
+        # logger.info(f"Saved terminal tabs for user {user_id}: {data}")
 
         return {"success": True}
 

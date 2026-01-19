@@ -10,7 +10,7 @@ export interface UserInfo {
 export type UserData = {
   userInfo?: UserInfo;
   files?: Files;
-  classroomSymlinks?: Record<string, { id: string; name?: string; archived?: boolean }>;
+  classroomSymlinks?: Record<string, { id: string; name?: string; archived?: boolean; isInstructor?: boolean }>;
   setFilesClientSide: Dispatch<SetStateAction<Files | undefined>>;
   currentFile?: FileType;
   setCurrentFile: Dispatch<SetStateAction<FileType | undefined>>;
