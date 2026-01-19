@@ -287,9 +287,11 @@ def spawn_container(
         is_participant = c not in inst_classrooms
         slug = _slugify(name)
         base_slug = slug
-        if slug in used_slugs:
-            suffix = class_id.split("-")[0][:4]
-            slug = f"{base_slug}-{suffix}"
+        # Handle collisions by appending incrementing suffixes
+        counter = 1
+        while slug in used_slugs:
+            slug = f"{base_slug}-{counter}"
+            counter += 1
         used_slugs.add(slug)
         slug_map[class_id] = slug
         name_map[class_id] = name
@@ -456,9 +458,11 @@ def spawn_container(
                 is_participant = c not in archived_inst
                 slug = _slugify(class_name)
                 base_slug = slug
-                if slug in archive_used_slugs:
-                    suffix = class_id.split("-")[0][:4]
-                    slug = f"{base_slug}-{suffix}"
+                # Handle collisions by appending incrementing suffixes
+                counter = 1
+                while slug in archive_used_slugs:
+                    slug = f"{base_slug}-{counter}"
+                    counter += 1
                 archive_used_slugs.add(slug)
 
                 # Determine target path (same logic as active classrooms)

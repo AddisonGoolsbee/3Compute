@@ -137,14 +137,16 @@ def create_classroom():
             return {"error": "Name required"}, 400
 
         data = _load_classrooms()
+        new_slug = _slugify(name)
 
-        # Uniqueness check (case-insensitive) among instructor's own classrooms
+        # Uniqueness check using slugified name among user's classrooms (owned or joined)
+        # This prevents collisions like "Python 101" and "Python-101"
+        user_id = str(current_user.id)
         for c in data.values():
-            if (
-                current_user.id in c.get("instructors", [])
-                and c.get("name", "").lower() == name.lower()
-            ):
-                return {"error": "Name already used"}, 400
+            existing_slug = _slugify(c.get("name", ""))
+            is_user_member = user_id in c.get("instructors", []) or user_id in c.get("participants", [])
+            if is_user_member and existing_slug == new_slug:
+                return {"error": "A classroom with a similar name already exists"}, 400
 
         classroom_id = _generate_classroom_id(data)
         access_code = _generate_access_code()
@@ -232,6 +234,19 @@ def join_classroom():
         # If already a participant, block with distinct message
         if user_id_str in [str(u) for u in target.get("participants", [])]:
             return {"error": "You already joined this classroom"}, 400
+
+        # Check for slug collision with existing classrooms the user is part of
+        target_slug = _slugify(target.get("name", ""))
+        has_collision = False
+        for c in data.values():
+            if c.get("id") == target.get("id"):
+                continue
+            existing_slug = _slugify(c.get("name", ""))
+            is_user_member = user_id_str in c.get("instructors", []) or user_id_str in c.get("participants", [])
+            if is_user_member and existing_slug == target_slug:
+                has_collision = True
+                break
+
         # Add user as participant if not already instructor/participant
         changed = False
         if user_id_str not in [
@@ -271,12 +286,15 @@ def join_classroom():
         logger.info(
             f"JOIN: user {current_user.id} joined classroom {target['id']} (added_participant={changed}, restarted={restarted})"
         )
-        return {
+        response = {
             "joined": True,
             "classroom_id": target["id"],
             "name": target.get("name"),
             "restarted": restarted,
-        }, 200
+        }
+        if has_collision:
+            response["warning"] = "A classroom with a similar name already exists. A suffix was added to distinguish them."
+        return response, 200
     except Exception as e:
         logger.error(f"Failed to join classroom: {e}")
         return {"error": "Internal server error"}, 500
