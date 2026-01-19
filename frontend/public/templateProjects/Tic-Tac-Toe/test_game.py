@@ -11,7 +11,7 @@ Work through the functions in order - later tests depend on earlier ones!
 
 from main import (
     check_winner, is_board_full, minimax, get_best_move,
-    EMPTY, PLAYER_X, PLAYER_O, get_valid_moves, make_move
+    EMPTY
 )
 
 

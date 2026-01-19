@@ -20,20 +20,6 @@ By completing this project, you'll understand:
 
 ---
 
-## CSTA Standards Covered
-
-| Standard | Description | How This Project Addresses It |
-|----------|-------------|-------------------------------|
-| **3B-AP-08** | Describe how AI drives software and physical systems | README explains minimax; connect to chess engines, game AI |
-| **3B-AP-09** | Implement an AI algorithm to play a game | You implement minimax to create an unbeatable AI opponent |
-| **3B-AP-10** | Use and adapt classic algorithms | Minimax is a classic game theory algorithm from the 1920s |
-| **3B-AP-11** | Evaluate algorithms for efficiency, correctness, clarity | Analyze minimax's exhaustive search; discuss improvements |
-| **3B-AP-13** | Illustrate recursive algorithm flow | Minimax is inherently recursive; trace its execution |
-| **3B-AP-14** | Construct solutions using student-created components | Modular design: game logic, AI, display as separate functions |
-| **3B-AP-21** | Develop test cases to verify functionality | Test suite provided; verify each function works correctly |
-
----
-
 ## How the Minimax Algorithm Works
 
 Imagine you're playing a game and thinking ahead:

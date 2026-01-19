@@ -6,15 +6,6 @@ In this project, you'll implement an unbeatable Tic-Tac-Toe AI using the
 minimax algorithm. The AI will look ahead at all possible future game states
 to make the optimal move every time.
 
-STANDARDS COVERED:
-- 3B-AP-08: Describe how AI drives software systems
-- 3B-AP-09: Implement an AI algorithm to play a game
-- 3B-AP-10: Use classic algorithms (minimax)
-- 3B-AP-11: Evaluate algorithm efficiency
-- 3B-AP-13: Recursive algorithm flow
-- 3B-AP-14: Modular program design
-- 3B-AP-21: Test cases to verify functionality
-
 YOUR TASKS:
 1. Implement check_winner() - Detect if X or O has won
 2. Implement is_board_full() - Detect if the game is a draw
