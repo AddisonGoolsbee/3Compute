@@ -137,8 +137,8 @@ export function Layout({ children }: { children: ReactNode }) {
   }, [loaderData?.userInfo, refreshFiles, isUserEditingName]);
 
   useEffect(() => {
-    const handler = (e: Event) => {
-      const detail = (e as CustomEvent).detail as { location: string; action: 'rename' | 'archive' } | undefined;
+    const handler = async (e: Event) => {
+      const detail = (e as CustomEvent).detail as { location: string; action: 'rename' | 'archive' | 'restore' } | undefined;
       if (!detail) return;
       const { location, action } = detail;
       const slug = location.split('/').filter(Boolean)[0];
@@ -146,8 +146,13 @@ export function Layout({ children }: { children: ReactNode }) {
       if (!classroom) return;
 
       if (action === 'rename') {
+        // Only instructors can rename classrooms
         const newName = window.prompt('Rename classroom', classroom.name || slug);
         if (!newName?.trim()) return;
+        if (newName.toLowerCase() === 'archive') {
+          window.alert('The name \'archive\' is reserved.');
+          return;
+        }
         fetch(`${backendUrl}/classrooms/${classroom.id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
@@ -157,21 +162,100 @@ export function Layout({ children }: { children: ReactNode }) {
           .then((res) => { if (res.ok) refreshFiles(); })
           .catch((err) => console.error('Rename classroom failed', err));
       } else if (action === 'archive') {
-        if (!window.confirm('Archive this classroom? Students will no longer see it in their list.')) {
+        // const isInstructor = classroom.isInstructor ?? false;
+        // const confirmMsg = isInstructor
+        //   ? 'Archive this classroom? Students will no longer see it in their list.'
+        //   : 'Hide this classroom from your list?';
+        // if (!window.confirm(confirmMsg)) {
+        //   return;
+        // }
+        fetch(`${backendUrl}/classrooms/${classroom.id}/archive`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ archived: true }),
+        })
+          .then(async (res) => {
+            if (res.ok) {
+              // Container restart needed to remove symlink
+              window.dispatchEvent(
+                new CustomEvent('terminal-restart-required', {
+                  detail: { reason: 'classroom-archived' },
+                }),
+              );
+              await refreshFiles();
+            }
+          })
+          .catch((err) => console.error('Archive classroom failed', err));
+      } else if (action === 'restore') {
+        // Only instructors can restore/unarchive
+        const isInstructor = classroom.isInstructor ?? false;
+        if (!isInstructor) {
+          window.alert('Only the classroom owner can restore an archived classroom.');
           return;
         }
         fetch(`${backendUrl}/classrooms/${classroom.id}/archive`, {
           method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
+          body: JSON.stringify({ archived: false }),
         })
-          .then((res) => { if (res.ok) refreshFiles(); })
-          .catch((err) => console.error('Archive classroom failed', err));
+          .then(async (res) => {
+            if (res.ok) {
+              // Container restart needed to add symlink back
+              window.dispatchEvent(
+                new CustomEvent('terminal-restart-required', {
+                  detail: { reason: 'classroom-restored' },
+                }),
+              );
+              await refreshFiles();
+            }
+          })
+          .catch((err) => console.error('Restore classroom failed', err));
       }
     };
 
     window.addEventListener('3compute:classroom-action', handler as EventListener);
     return () => window.removeEventListener('3compute:classroom-action', handler as EventListener);
   }, [refreshFiles, classroomSymlinks]);
+
+  // Handler for restoring classrooms from the archive folder
+  useEffect(() => {
+    const handler = async (e: Event) => {
+      const detail = (e as CustomEvent).detail as { slug: string } | undefined;
+      if (!detail?.slug) return;
+
+      if (!window.confirm('Restore this classroom from the archive?')) {
+        return;
+      }
+
+      try {
+        const res = await fetch(`${backendUrl}/classrooms/restore-by-slug`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ slug: detail.slug }),
+        });
+
+        if (res.ok) {
+          window.dispatchEvent(
+            new CustomEvent('terminal-restart-required', {
+              detail: { reason: 'classroom-restored' },
+            }),
+          );
+          await refreshFiles();
+        } else {
+          const data = await res.json().catch(() => ({}));
+          window.alert(data.error || 'Failed to restore classroom');
+        }
+      } catch (err) {
+        console.error('Restore from archive failed', err);
+      }
+    };
+
+    window.addEventListener('3compute:archive-restore', handler as EventListener);
+    return () => window.removeEventListener('3compute:archive-restore', handler as EventListener);
+  }, [refreshFiles]);
 
   return (
     <html lang="en" suppressHydrationWarning>
