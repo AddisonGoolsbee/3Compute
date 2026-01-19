@@ -14,22 +14,16 @@ This project guides students through implementing an unbeatable Tic-Tac-Toe AI u
 
 ---
 
-## Important Note on Standards
+## CSTA Standards Addressed
 
-> **Disclaimer:** This curriculum has not been reviewed or approved by the CSTA Standards Review Team. The standards references below are provided as guidance to help instructors evaluate how this content may support their curriculum goals. Teachers should independently assess alignment with their local standards and curriculum requirements.
->
-> For official alignment verification, content must be submitted to CSTA for review. Learn more at [csteachers.org/standards](https://www.csteachers.org/page/standards-702C).
+This project is designed to address the following CSTA K-12 Computer Science Standards for Grades 11-12:
 
----
+> **Note:** This content has not been submitted for official CSTA alignment review. The crosswalk below shows which standards this project is designed to address.
 
-## Standards Crosswalk
+### Primary Standards (Direct Instruction)
 
-The following table maps project components to CSTA K-12 Computer Science Standards. This mapping is provided for informational purposes to assist instructors in their own curriculum planning.
-
-### Potentially Relevant CSTA Standards (Grades 11-12)
-
-| Standard | Description | How This Project May Address It |
-|----------|-------------|--------------------------------|
+| Standard | Description | How This Project Addresses It |
+|----------|-------------|-------------------------------|
 | **3B-AP-09** | Implement an artificial intelligence algorithm to play a game against a human opponent or solve a problem. | Students implement the minimax algorithm to create an AI that plays Tic-Tac-Toe optimally. |
 | **3B-AP-10** | Use and adapt classic algorithms to solve computational problems. | Minimax is a classic game theory algorithm (von Neumann, 1928). Students implement and may extend it with alpha-beta pruning. |
 | **3B-AP-11** | Evaluate algorithms in terms of their efficiency, correctness, and clarity. | Extension activities have students count recursive calls and discuss exponential growth; alpha-beta pruning demonstrates efficiency optimization. |
@@ -37,10 +31,10 @@ The following table maps project components to CSTA K-12 Computer Science Standa
 | **3B-AP-14** | Construct solutions to problems using student-created components, such as procedures, modules and/or objects. | Students implement modular functions (check_winner, minimax, get_best_move) that compose into a complete system. |
 | **3B-AP-21** | Develop and use a series of test cases to verify that a program performs according to its design specifications. | A test suite is provided; students run tests to verify each function before integration. |
 
-### Potentially Relevant Standards for Context/Discussion
+### Supporting Standards (Context & Discussion)
 
-| Standard | Description | How This Project May Support It |
-|----------|-------------|--------------------------------|
+| Standard | Description | How This Project Supports It |
+|----------|-------------|------------------------------|
 | **3B-AP-08** | Describe how artificial intelligence drives many software and physical systems. | README and discussion prompts connect minimax to chess engines, self-driving cars, and decision-making AI. |
 | **3B-AP-23** | Evaluate key qualities of a program through a process such as a code review. | Suggested code review activity; students evaluate correctness, efficiency, and clarity. |
 
@@ -427,7 +421,7 @@ Use these throughout the unit to deepen understanding:
 |------|---------|
 | `solution.py` | Complete reference implementation (instructor only) |
 | `lesson-plan.md` | This document |
-| (Student template in `/frontend/public/templateProjects/AI-Game/`) | |
+| Tic-Tac-Toe` student template | |
 | → `main.py` | Scaffolded code with TODOs |
 | → `test_game.py` | Test suite for verification |
 | → `README.md` | Student-facing instructions |
