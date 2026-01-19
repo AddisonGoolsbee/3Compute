@@ -260,34 +260,8 @@ Before submitting, verify:
 
 ## For Instructors
 
-### Suggested Pacing (5-7 class periods)
+Want to share this template with your classroom?
 
-| Day | Activity |
-|-----|----------|
-| 1 | Introduce game theory, play Tic-Tac-Toe, discuss "perfect play" |
-| 2 | Explain minimax with whiteboard examples, trace algorithm by hand |
-| 3 | Students implement `check_winner()` and `is_board_full()` |
-| 4 | Students implement `minimax()` with guidance |
-| 5 | Students implement `get_best_move()`, test complete AI |
-| 6 | Extension: Alpha-beta pruning or different game |
-| 7 | Reflection, code review, connect to real-world AI |
-
-### Discussion Prompts
-
-- "What makes Tic-Tac-Toe 'solvable'? Could we apply this to chess?"
-- "How is this AI different from ChatGPT or image recognition AI?"
-- "What ethical considerations exist for game-playing AI in casinos or competitive gaming?"
-
-### Assessment Ideas
-
-- **Code Review**: Students evaluate each other's implementations
-- **Trace Exercise**: Hand-trace minimax on a small game tree
-- **Extension Project**: Implement alpha-beta pruning, measure improvement
-- **Written Reflection**: Connect minimax to one real-world AI application
-
-### Customization
-
-Copy this template to your classroom's `templates/` directory to:
-- Pre-fill some functions for scaffolded learning
-- Add additional test cases
-- Modify the extension challenges for your class level
+1. Copy this template folder into your classroom's `templates/` directory
+2. Customize it for your course (pre-configure the .env, add starter commands, etc.)
+3. Students can access it via **Templates → Classroom Templates** or browse `classroom-templates/` in their classroom folder
