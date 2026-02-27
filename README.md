@@ -1,3 +1,5 @@
+*This is a mirror. See upstream: https://github.com/birdflop/3Compute*
+
 # 3Compute
 
 Birdflop service for free educational server usage, with templates such as discord bot and personal website.
