@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import shutil
 import subprocess
 
 from flask import Blueprint, request
@@ -64,17 +65,14 @@ def _resolve_classroom_path(upload_dir: str, rel_path: str) -> str | None:
         host_base = os.path.join(CLASSROOMS_ROOT, tail)
         candidate = os.path.join(host_base, remainder) if remainder else host_base
 
-        try:
-            resolved = os.path.realpath(candidate)
-        except OSError:
-            resolved = candidate
-
-        translated = _translate_container_path(resolved)
-        normalized = os.path.normpath(translated)
+        normalized = os.path.normpath(candidate)
 
         # Ensure the final path stays within the classrooms root
+        real_root = os.path.realpath(CLASSROOMS_ROOT)
+        real_norm = os.path.realpath(normalized)
         try:
-            if os.path.commonpath([CLASSROOMS_ROOT, normalized]) != CLASSROOMS_ROOT:
+            if (os.path.commonpath([CLASSROOMS_ROOT, normalized]) != CLASSROOMS_ROOT
+                    and os.path.commonpath([real_root, real_norm]) != real_root):
                 return None
         except ValueError:
             return None
@@ -448,13 +446,15 @@ def move_file_or_folder():
     if not current_user.is_authenticated:
         return "Unauthorized", 401
 
+    logger = logging.getLogger("files")
+
     data = request.get_json(silent=True) or {}
     source_param = (data.get("source") or "").lstrip("/")
     destination_param = (data.get("destination") or "").lstrip("/")
     overwrite = bool(data.get("overwrite"))
 
     if not source_param or not destination_param:
-        return "Invalid path", 400
+        return {"error": "Invalid path"}, 400
 
     # Prevent renaming to reserved names
     dest_name = destination_param.rstrip("/").split("/")[-1]
@@ -469,63 +469,68 @@ def move_file_or_folder():
     if dst_parts and dst_parts[0] == "archive":
         return {"error": "Cannot move items into the archive folder"}, 403
 
-    user_id = current_user.id
-    upload_dir = f"/tmp/uploads/{user_id}"
-
-    src_path = os.path.normpath(os.path.join(upload_dir, source_param))
-    dst_path = os.path.normpath(os.path.join(upload_dir, destination_param))
-
-    # Security: ensure resulting paths stay within the user's directory
-    if not src_path.startswith(upload_dir) or not dst_path.startswith(upload_dir):
-        return "Invalid path", 400
-
-    if not os.path.exists(src_path):
-        return "Source not found", 404
-
-    # Disallow moving a folder into itself or its descendants
     try:
-        src_rel = os.path.relpath(src_path, upload_dir)
-        dst_rel = os.path.relpath(dst_path, upload_dir)
-        if dst_rel == src_rel or dst_rel.startswith(src_rel + os.sep):
-            return {
-                "error": "Cannot move a folder into itself or its subdirectory"
-            }, 400
-    except ValueError:
-        # relpath can throw on different drives; unlikely in Linux containers, but guard anyway
-        pass
+        user_id = current_user.id
+        upload_dir = f"/tmp/uploads/{user_id}"
 
-    # Ensure destination parent exists
-    dst_parent = os.path.dirname(dst_path)
-    if dst_parent and not os.path.exists(dst_parent):
+        # Resolve classroom symlink paths to host filesystem paths
+        src_mapped = _resolve_classroom_path(upload_dir, source_param)
+        dst_mapped = _resolve_classroom_path(upload_dir, destination_param)
+
+        src_path = src_mapped if src_mapped else os.path.normpath(os.path.join(upload_dir, source_param))
+        dst_path = dst_mapped if dst_mapped else os.path.normpath(os.path.join(upload_dir, destination_param))
+
+        # Security: ensure resulting paths stay within the user's directory or classrooms root
+        allowed_roots = [upload_dir, CLASSROOMS_ROOT]
+        src_ok = False
+        dst_ok = False
+        for root in allowed_roots:
+            try:
+                if os.path.commonpath([root, src_path]) == root:
+                    src_ok = True
+                if os.path.commonpath([root, dst_path]) == root:
+                    dst_ok = True
+            except ValueError:
+                continue
+        if not src_ok or not dst_ok:
+            return {"error": "Invalid path"}, 400
+
+        if not os.path.exists(src_path):
+            return {"error": "Source not found"}, 404
+
+        # Disallow moving a folder into itself or its descendants
         try:
+            src_rel = os.path.relpath(src_path, upload_dir)
+            dst_rel = os.path.relpath(dst_path, upload_dir)
+            if dst_rel == src_rel or dst_rel.startswith(src_rel + os.sep):
+                return {
+                    "error": "Cannot move a folder into itself or its subdirectory"
+                }, 400
+        except ValueError:
+            pass
+
+        # Ensure destination parent exists
+        dst_parent = os.path.dirname(dst_path)
+        if dst_parent and not os.path.exists(dst_parent) and not os.path.islink(dst_parent):
             os.makedirs(dst_parent, exist_ok=True)
             set_container_ownership(dst_parent)
-        except NotADirectoryError:
-            return {"error": "A file exists in the destination path"}, 409
 
-    # Prevent overwriting existing files/folders unless overwrite flag is set
-    if os.path.exists(dst_path):
-        if not overwrite:
-            return {"error": "Destination already exists"}, 409
-        # If overwriting, remove existing destination first
-        try:
+        # Prevent overwriting existing files/folders unless overwrite flag is set
+        if os.path.exists(dst_path):
+            if not overwrite:
+                return {"error": "Destination already exists"}, 409
             if os.path.isdir(dst_path):
-                import shutil
-
                 shutil.rmtree(dst_path)
             else:
                 os.remove(dst_path)
-        except OSError as e:
-            return {"error": f"Failed to replace destination: {e}"}, 500
 
-    try:
-        os.rename(src_path, dst_path)
-        # Set ownership on the moved item (best-effort)
+        shutil.move(src_path, dst_path)
         set_container_ownership(dst_path)
-    except OSError as e:
-        return {"error": f"Failed to move: {e}"}, 500
 
-    return "Moved successfully", 200
+        return {"message": "Moved successfully"}, 200
+    except Exception as e:
+        logger.exception(f"[{current_user.id}] Move failed: {source_param} -> {destination_param}")
+        return {"error": f"Failed to move: {e}"}, 500
 
 
 def _is_reserved_name(name: str) -> bool:
@@ -606,38 +611,51 @@ def handle_file(filename):
                 return {"error": "Templates folder is read-only. Use 'Copy to Workspace' instead."}, 403
 
     if request.method == "POST":
-        # Create a new directory or file
+        # If path looks like a classroom folder but symlink wasn't resolved,
+        # try to resolve it by looking up the classroom directory directly
+        if not mapped:
+            parts = filename.strip("/").split("/")
+            if len(parts) >= 1:
+                top_abs = os.path.join(upload_dir, parts[0])
+                if os.path.islink(top_abs):
+                    resolved = _resolve_classroom_path(upload_dir, filename)
+                    if resolved:
+                        file_path = resolved
+
         if filename.endswith("/"):
-            # It's a directory
-            # Normalize: avoid trailing slash for existence checks
             normalized_path = file_path[:-1]
-            # If a file exists with the same name, return conflict
             if os.path.isfile(normalized_path):
                 return {"error": "A file with the same name already exists"}, 409
             try:
                 os.makedirs(file_path, exist_ok=True)
             except NotADirectoryError:
-                # One of the parents is a file; cannot create directory path
                 return {
                     "error": "A file exists in the path; cannot create directory"
                 }, 409
+            except PermissionError:
+                return {"error": "Permission denied"}, 403
             set_container_ownership(file_path)
             return "Directory created successfully", 200
         else:
-            # It's a file - check if the directory exists, if not, create it
             dir_path = os.path.dirname(file_path)
             if dir_path and dir_path != upload_dir:
-                os.makedirs(dir_path, exist_ok=True)
-                set_container_ownership(dir_path)
-        # create an empty file if it doesn't exist
-        # If a directory with the same name exists, return conflict
+                try:
+                    os.makedirs(dir_path, exist_ok=True)
+                    set_container_ownership(dir_path)
+                except PermissionError:
+                    return {"error": "Permission denied"}, 403
         if os.path.isdir(file_path):
             return {"error": "A folder with the same name already exists"}, 409
         if os.path.exists(file_path):
             return "File already exists", 400
-        with open(file_path, "w") as f:
-            f.write("")
+        try:
+            with open(file_path, "w") as f:
+                f.write("")
             set_container_ownership(file_path)
+        except PermissionError:
+            return {"error": "Permission denied"}, 403
+        except OSError as e:
+            return {"error": f"Failed to create file: {e}"}, 500
         return "File created successfully", 200
 
     elif not os.path.exists(file_path):
@@ -670,8 +688,6 @@ def handle_file(filename):
 
     elif request.method == "DELETE":
         if os.path.isdir(file_path):
-            import shutil
-
             shutil.rmtree(file_path)
         else:
             os.remove(file_path)
