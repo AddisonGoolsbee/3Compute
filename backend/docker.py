@@ -502,7 +502,6 @@ def spawn_container(
             logger.warning(f"[{user_id}] Could not read classroom README template: {e}")
 
         if template_content:
-            # Load full classrooms data again to fetch access codes (already small file)
             access_codes = {}
             try:
                 if os.path.exists(CLASSROOMS_JSON_FILE):
@@ -515,33 +514,31 @@ def spawn_container(
                     f"[{user_id}] Failed reloading classrooms for README access codes: {e}"
                 )
 
-            # Build a single shell script that writes each README (quote-safe using cat EOF)
-            write_cmds = []
             for cid, slug in slug_map.items():
                 access_code = access_codes.get(cid, "UNKNOWN")
                 class_name = name_map.get(cid, cid)
-                # Perform placeholder substitution server-side to avoid complicated shell escaping
                 content = (
                     template_content.replace("{{CLASSROOM_NAME}}", class_name)
                     .replace("{{CLASSROOM_ID}}", cid)
                     .replace("{{ACCESS_CODE}}", access_code)
                     .replace("{{SLUG}}", slug)
                 )
-                # Escape any EOF markers inside content (unlikely) by replacing literal EOF lines
-                safe_content = content.replace("EOF", "E0F")
-                write_cmds.append(
-                    f"if [ -d /classrooms/{cid} ]; then cat > /classrooms/{cid}/README.md <<'EOF'\n{safe_content}\nEOF\nfi"
-                )
-            script = " ; ".join(write_cmds)
-            try:
-                subprocess.run(
-                    ["docker", "exec", container_name, "sh", "-lc", script], check=True
-                )
-                logger.info(f"[{user_id}] Classroom README files written from template")
-            except subprocess.CalledProcessError as e:
-                logger.warning(
-                    f"[{user_id}] Failed writing README files from template: {e}"
-                )
+
+                # Write directly on host filesystem (primary method)
+                host_readme = os.path.join(CLASSROOMS_ROOT, cid, "README.md")
+                try:
+                    with open(host_readme, "w") as rf:
+                        rf.write(content)
+                    try:
+                        os.chown(host_readme, CONTAINER_USER_UID, CONTAINER_USER_GID)
+                        os.chmod(host_readme, 0o644)
+                    except OSError:
+                        pass
+                    logger.debug(f"[{user_id}] Wrote classroom README on host: {host_readme}")
+                except Exception as e:
+                    logger.warning(f"[{user_id}] Failed writing README on host for {cid}: {e}")
+
+            logger.info(f"[{user_id}] Classroom README files written from template")
 
 
 def attach_to_container(container_name, tab_id="1"):

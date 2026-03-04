@@ -4,7 +4,6 @@ import { backendUrl, defaultUserData, UserDataContext } from '../util/UserData';
 import UploadButton from './ExplorerButtons/UploadButton';
 import NewButton from './ExplorerButtons/NewButton';
 import MenuItems from './MenuItems';
-import TemplateButton from './ExplorerButtons/TemplateButton';
 import { getClasses } from '@luminescent/ui-react';
 import { StatusContext } from '../util/Files';
 
@@ -27,11 +26,6 @@ export default function Explorer() {
         <div className="grid grid-cols-2 gap-1">
           <UploadButton />
           <NewButton />
-          {/* temporary col span 2 till git is implemented */}
-          <div className="col-span-2">
-            <TemplateButton />
-          </div>
-          {/*<GitButton />*/}
         </div>
       </div>
       <div className={getClasses({
@@ -108,6 +102,12 @@ export default function Explorer() {
           } else {
             const text = await res.text().catch(() => '');
             console.error('Move to root failed', res.status, text);
+            try {
+              const errObj = JSON.parse(text);
+              alert(`Move failed: ${errObj.error || text}`);
+            } catch {
+              alert(`Move failed: ${text || res.statusText}`);
+            }
           }
         }}
       >

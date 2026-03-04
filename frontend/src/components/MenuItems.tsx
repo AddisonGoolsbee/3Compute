@@ -149,13 +149,18 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
                   });
                 }
                 if (res.ok) {
-                  // Bump content version to ensure editor fetches fresh content if the open file was replaced
                   setContentVersion?.((v) => (v ?? 0) + 1);
                   await refreshFiles();
                   setOpenFolders((prev) => prev.includes(file.location) ? prev : [...prev, file.location]);
                 } else {
                   const text = await res.text().catch(() => '');
                   console.error('Move failed', res.status, text);
+                  try {
+                    const errObj = JSON.parse(text);
+                    alert(`Move failed: ${errObj.error || text}`);
+                  } catch {
+                    alert(`Move failed: ${text || res.statusText}`);
+                  }
                 }
               }}
               onClick={() => {
@@ -262,7 +267,12 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
                               credentials: 'include',
                             });
                             if (!res.ok) {
-                              input.setCustomValidity('Unable to create. Try a different name.');
+                              let errMsg = 'Unable to create. Try a different name.';
+                              try {
+                                const errData = await res.json();
+                                if (errData.error) errMsg = errData.error;
+                              } catch { /* use default */ }
+                              input.setCustomValidity(errMsg);
                               input.reportValidity();
                               input.focus();
                               input.setSelectionRange(0, input.value.length);

@@ -1,29 +1,43 @@
-import { ChangeEvent, useCallback, useContext, useEffect, useState } from 'react';
-import CodeMirror from '@uiw/react-codemirror';
+import { ChangeEvent, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import MonacoEditor, { type OnMount } from '@monaco-editor/react';
 import { File, Save, Check, X } from 'lucide-react';
 import { backendUrl, UserDataContext } from '../util/UserData';
 import { getClasses, SelectMenuRaw } from '@luminescent/ui-react';
 import { languageMap } from '../util/languageMap';
 import { SiMarkdown } from '@icons-pack/react-simple-icons';
-import { tokyoNight } from '@uiw/codemirror-theme-tokyo-night';
-import { color } from '@uiw/codemirror-extensions-color';
-import { hyperLink } from '@uiw/codemirror-extensions-hyper-link';
-import { indentationMarkers } from '@replit/codemirror-indentation-markers';
 import Markdown from 'react-markdown';
 import { Files, FileType } from '../util/Files';
 
 function findDefaultFile(files: Files): FileType | undefined {
   const defaultFileNames = ['readme', 'index.'];
+
+  // First pass: only top-level personal files (skip classroom folders)
   for (const fileName of defaultFileNames) {
     for (const item of files) {
-      if (!('files' in item) && item.name.toLowerCase().startsWith(fileName.toLowerCase())) {
+      if (!('files' in item) && !item.classroomId && item.name.toLowerCase().startsWith(fileName.toLowerCase())) {
         return item;
       }
     }
   }
 
+  // Second pass: recurse into personal folders only
   for (const item of files) {
-    if ('files' in item && item.files) {
+    if ('files' in item && item.files && !item.classroomId) {
+      const foundFile = findDefaultFile(item.files);
+      if (foundFile) return foundFile;
+    }
+  }
+
+  // Third pass: fall back to classroom files if nothing else found
+  for (const fileName of defaultFileNames) {
+    for (const item of files) {
+      if (!('files' in item) && item.classroomId && item.name.toLowerCase().startsWith(fileName.toLowerCase())) {
+        return item;
+      }
+    }
+  }
+  for (const item of files) {
+    if ('files' in item && item.files && item.classroomId) {
       const foundFile = findDefaultFile(item.files);
       if (foundFile) return foundFile;
     }
@@ -44,22 +58,30 @@ export default function Editor() {
   const [currentLanguage, setCurrentLanguage] = useState<keyof typeof languageMap>('javascript');
   const [isImage, setIsImage] = useState<boolean>(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
-  const onChange = useCallback((val: string) => {
-    setValue(val);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [isClient, setIsClient] = useState(false);
+  const editorRef = useRef<any>(null);
+
+  useEffect(() => { setIsClient(true); }, []);
+
+  const onChange = useCallback((val: string | undefined) => {
+    setValue(val ?? '');
   }, []);
+
+  const handleEditorMount: OnMount = (editor) => {
+    editorRef.current = editor;
+  };
+
   const userData = useContext(UserDataContext);
 
-  // Track if we've already tried to find a default file
   const [initialFileSet, setInitialFileSet] = useState(false);
 
   useEffect(() => {
-    // Only run once to set initial file
     if (initialFileSet) return;
     if (userData.currentFile) {
       setInitialFileSet(true);
       return;
     }
-    // Find a default file to open
     if (userData.files && userData.files.length > 0) {
       const defaultFile = findDefaultFile(userData.files);
       if (defaultFile) {
@@ -68,7 +90,6 @@ export default function Editor() {
         return;
       }
     }
-    // No files available yet, show welcome message
     if (userData.files !== undefined) {
       setCurrentLanguage('markdown');
       fetch('/README.md')
@@ -91,12 +112,12 @@ export default function Editor() {
     (async () => {
       if (!currentFile) return;
 
-      // Check if the current file is an image
+      setLoadError(null);
+
       const isImageFileType = isImageFile(currentFile.name);
       setIsImage(isImageFileType);
       if (isImageFileType) return;
 
-      // Load the file content
       const fileres = await fetch(`${backendUrl}/file${currentFile.location}?t=${contentVersion ?? 0}`, {
         credentials: 'include',
         signal: controller.signal,
@@ -104,17 +125,17 @@ export default function Editor() {
 
       if (!fileres.ok) {
         console.error('Failed to load file:', currentFile.location);
-        // Don't reset currentFile to avoid infinite loop - just show empty content
-        setValue(`Failed to load file: ${currentFile.location}`);
+        setLoadError(`Could not load ${currentFile.location} (${fileres.status})`);
+        setValue('');
         return;
       }
 
       const file = await fileres.text();
-      if (currentLocation !== userData.currentFile?.location) return; // stale response
+      if (currentLocation !== userData.currentFile?.location) return;
 
+      setLoadError(null);
       setValue(file);
 
-      // Set the language based on the file extension
       const ext = currentFile.name.split('.').pop()?.toLowerCase();
       if (!ext) return;
 
@@ -125,8 +146,10 @@ export default function Editor() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userData.currentFile?.location, userData.contentVersion]);
 
+  const monacoLanguage = languageMap[currentLanguage as keyof typeof languageMap]?.language || 'plaintext';
+
   return (
-    <div className="relative transition-all flex flex-col rounded-lum max-w-3/4 bg-[#1A1B26] w-full border border-lum-border/20">
+    <div className="relative transition-all flex flex-col rounded-lum max-w-3/4 bg-[#1e1e1e] w-full border border-lum-border/20">
       {userData.currentFile && (
         <div className="flex items-center gap-2 pl-3 p-1 m-1 lum-bg-gray-900 rounded-lum-1">
           <span className="text-sm flex gap-2 items-center flex-1">
@@ -229,7 +252,20 @@ export default function Editor() {
           </div>
         </div>
       )}
-      {isImage ? (
+      {loadError ? (
+        <div className="flex-1 flex items-center justify-center p-4">
+          <div className="text-center text-gray-400">
+            <File size={48} className="mx-auto mb-3 opacity-40" />
+            <p className="text-sm">{loadError}</p>
+            <button
+              className="mt-3 text-xs lum-btn lum-bg-gray-800 hover:lum-bg-gray-700 rounded-lum-2 lum-btn-p-1"
+              onClick={() => userData.setContentVersion?.((v) => (v ?? 0) + 1)}
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      ) : isImage ? (
         <div className="flex-1 overflow-auto p-4 flex items-center justify-center">
           <img
             src={`${backendUrl}/file${userData.currentFile?.location}`}
@@ -246,12 +282,29 @@ export default function Editor() {
             </Markdown>
           </div>
         </div>
+      ) : isClient ? (
+        <MonacoEditor
+          height="100%"
+          language={monacoLanguage}
+          value={value}
+          onChange={onChange}
+          onMount={handleEditorMount}
+          theme="vs-dark"
+          options={{
+            minimap: { enabled: true },
+            fontSize: 14,
+            wordWrap: 'on',
+            scrollBeyondLastLine: false,
+            automaticLayout: true,
+            tabSize: 2,
+            renderWhitespace: 'selection',
+            bracketPairColorization: { enabled: true },
+            padding: { top: 8 },
+          }}
+        />
       ) : (
-        <div className="overflow-auto">
-          <CodeMirror value={value} theme={tokyoNight} onChange={onChange} className="w-full h-full" extensions={[
-            languageMap[currentLanguage as keyof typeof languageMap].parser(),
-            color, hyperLink, indentationMarkers({  }),
-          ]} />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="lum-loading w-6 h-6 border-2" />
         </div>
       )}
     </div>
