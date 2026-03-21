@@ -497,6 +497,8 @@ async def upload(
         target_dir = os.path.normpath(os.path.join(upload_dir, destination))
         if not target_dir.startswith(upload_dir):
             raise HTTPException(status_code=400, detail="Invalid destination")
+        if os.path.isfile(target_dir):
+            os.remove(target_dir)
         os.makedirs(target_dir, exist_ok=True)
     else:
         target_dir = upload_dir
