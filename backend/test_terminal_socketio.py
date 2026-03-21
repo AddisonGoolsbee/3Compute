@@ -69,11 +69,9 @@ class TestCookieSigning:
 class TestGetUserIdFromEnviron:
     """Test _get_user_id_from_environ with WSGI-style environ."""
 
-    @patch("backend.api.terminal.Settings")
-    def test_valid_cookie(self, mock_settings_cls):
-        mock_settings_cls.return_value.flask_secret = FLASK_SECRET
-        mock_settings_cls.return_value.database_url = "sqlite://"
-        mock_settings_cls.return_value.frontend_origin = "http://127.0.0.1:5173"
+    @patch("backend.api.terminal._settings")
+    def test_valid_cookie(self, mock_settings):
+        mock_settings.flask_secret = FLASK_SECRET
 
         from backend.api.terminal import _get_user_id_from_environ
 
@@ -83,9 +81,9 @@ class TestGetUserIdFromEnviron:
         result = _get_user_id_from_environ(environ)
         assert result == TEST_USER_ID, f"Expected {TEST_USER_ID}, got {result}"
 
-    @patch("backend.api.terminal.Settings")
-    def test_no_cookie_header(self, mock_settings_cls):
-        mock_settings_cls.return_value.flask_secret = FLASK_SECRET
+    @patch("backend.api.terminal._settings")
+    def test_no_cookie_header(self, mock_settings):
+        mock_settings.flask_secret = FLASK_SECRET
 
         from backend.api.terminal import _get_user_id_from_environ
 
@@ -93,9 +91,9 @@ class TestGetUserIdFromEnviron:
         result = _get_user_id_from_environ(environ)
         assert result is None
 
-    @patch("backend.api.terminal.Settings")
-    def test_no_session_cookie(self, mock_settings_cls):
-        mock_settings_cls.return_value.flask_secret = FLASK_SECRET
+    @patch("backend.api.terminal._settings")
+    def test_no_session_cookie(self, mock_settings):
+        mock_settings.flask_secret = FLASK_SECRET
 
         from backend.api.terminal import _get_user_id_from_environ
 
@@ -181,13 +179,11 @@ class TestFullConnectFlow:
     @pytest.mark.asyncio
     @patch("backend.api.terminal._ensure_container")
     @patch("backend.api.terminal._get_user")
-    @patch("backend.api.terminal.Settings")
+    @patch("backend.api.terminal._settings")
     async def test_connect_with_valid_cookie(
-        self, mock_settings_cls, mock_get_user, mock_ensure
+        self, mock_settings, mock_get_user, mock_ensure
     ):
-        mock_settings_cls.return_value.flask_secret = FLASK_SECRET
-        mock_settings_cls.return_value.database_url = "sqlite://"
-        mock_settings_cls.return_value.frontend_origin = "http://127.0.0.1:5173"
+        mock_settings.flask_secret = FLASK_SECRET
 
         mock_user = MagicMock()
         mock_user.port_start = 10000
