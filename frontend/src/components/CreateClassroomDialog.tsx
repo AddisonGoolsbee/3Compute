@@ -63,13 +63,11 @@ export default function CreateClassroomDialog({ open, onClose }: Props) {
       const data = await res.json();
       setCreatedCode(data.access_code || null);
       console.log('Created classroom', data);
-      if (data.restarted) {
-        window.dispatchEvent(
-          new CustomEvent('terminal-restart-required', {
-            detail: { reason: 'classroom-created', classroomId: data.id },
-          }),
-        );
-      }
+      window.dispatchEvent(
+        new CustomEvent('terminal-restart-required', {
+          detail: { reason: 'classroom-created', classroomId: data.id },
+        }),
+      );
       // Keep dialog open to show code and allow copying
       setCreating(false);
     } catch {
