@@ -500,6 +500,7 @@ async def upload(
         if os.path.isfile(target_dir):
             os.remove(target_dir)
         os.makedirs(target_dir, exist_ok=True)
+        os.chmod(target_dir, 0o777)
     else:
         target_dir = upload_dir
 
