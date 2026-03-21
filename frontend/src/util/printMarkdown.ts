@@ -29,5 +29,4 @@ export function printMarkdownElement(el: HTMLElement, title: string) {
   win.document.close();
   win.focus();
   win.print();
-  win.close();
 }
