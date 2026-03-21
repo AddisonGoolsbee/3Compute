@@ -3,8 +3,10 @@ import { fetchFilesList, Files, FileType } from './Files';
 
 export interface UserInfo {
   email: string;
+  role: string | null;
   port_start: number;
   port_end: number;
+  needs_onboarding: boolean;
 }
 
 export type UserData = {
@@ -44,9 +46,10 @@ export const backendUrl =
     ? import.meta.env.VITE_PROD_BACKEND_URL
     : import.meta.env.VITE_BACKEND_URL;
 
+export const apiUrl = `${backendUrl}/api`;
+
 export async function clientLoader() {
-  // Fetch user info to ensure the user is authenticated
-  const userRes = await fetch(`${backendUrl}/me`, { credentials: 'include' });
+  const userRes = await fetch(`${apiUrl}/auth/me`, { credentials: 'include' });
   if (!userRes.ok) return {};
   const userInfo: UserInfo = await userRes.json();
 

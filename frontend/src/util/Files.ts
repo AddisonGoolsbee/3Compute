@@ -1,5 +1,5 @@
 import { createContext } from 'react';
-import { backendUrl } from './UserData';
+import { apiUrl } from './UserData';
 
 export interface FileType {
   readonly name: string;
@@ -48,7 +48,7 @@ export type FilesResponse = {
 
 export async function fetchFilesList(): Promise<FilesResponse> {
   // Fetch the list of files
-  const fileRes = await fetch(`${backendUrl}/list-files`, {
+  const fileRes = await fetch(`${apiUrl}/files/list`, {
     credentials: 'include',
   });
   if (!fileRes.ok) return { files: [], classroomSymlinks: {} };

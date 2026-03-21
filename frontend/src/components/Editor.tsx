@@ -1,11 +1,12 @@
 import { ChangeEvent, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import MonacoEditor, { type OnMount } from '@monaco-editor/react';
-import { File, Save, Check, X } from 'lucide-react';
-import { backendUrl, UserDataContext } from '../util/UserData';
+import { File, Save, Check, X, Play } from 'lucide-react';
+import { apiUrl, UserDataContext } from '../util/UserData';
 import { getClasses, SelectMenuRaw } from '@luminescent/ui-react';
 import { languageMap } from '../util/languageMap';
 import { SiMarkdown } from '@icons-pack/react-simple-icons';
 import Markdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { Files, FileType } from '../util/Files';
 
 function findDefaultFile(files: Files): FileType | undefined {
@@ -45,6 +46,11 @@ function findDefaultFile(files: Files): FileType | undefined {
 
   return undefined;
 }
+
+const runCommandMap: Partial<Record<keyof typeof languageMap, (location: string) => string>> = {
+  python: (loc) => `python3 "/app${loc}"\n`,
+  javascript: (loc) => `node "/app${loc}"\n`,
+};
 
 function isImageFile(filename: string): boolean {
   const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg', 'ico'];
@@ -118,7 +124,7 @@ export default function Editor() {
       setIsImage(isImageFileType);
       if (isImageFileType) return;
 
-      const fileres = await fetch(`${backendUrl}/file${currentFile.location}?t=${contentVersion ?? 0}`, {
+      const fileres = await fetch(`${apiUrl}/files/file${currentFile.location}?t=${contentVersion ?? 0}`, {
         credentials: 'include',
         signal: controller.signal,
       });
@@ -149,7 +155,7 @@ export default function Editor() {
   const monacoLanguage = languageMap[currentLanguage as keyof typeof languageMap]?.language || 'plaintext';
 
   return (
-    <div className="relative transition-all flex flex-col rounded-lum max-w-3/4 bg-[#1e1e1e] w-full border border-lum-border/20">
+    <div className="relative transition-all flex flex-col rounded-lum h-full bg-[#1e1e1e] w-full border border-lum-border/20">
       {userData.currentFile && (
         <div className="flex items-center gap-2 pl-3 p-1 m-1 lum-bg-gray-900 rounded-lum-1">
           <span className="text-sm flex gap-2 items-center flex-1">
@@ -213,7 +219,7 @@ export default function Editor() {
                     setSaveStatus('saving');
 
                     try {
-                      const response = await fetch(`${backendUrl}/file${userData.currentFile.location}`, {
+                      const response = await fetch(`${apiUrl}/files/file${userData.currentFile.location}`, {
                         method: 'PUT',
                         body: value,
                         headers: {
@@ -247,6 +253,20 @@ export default function Editor() {
                   {saveStatus === 'error' && 'Error'}
                   {saveStatus === 'idle' && 'Save'}
                 </button>
+                {userData.currentFile?.location && runCommandMap[currentLanguage as keyof typeof languageMap] && (
+                  <button
+                    className="lum-btn rounded-lum-2 text-xs gap-1 w-full lum-btn-p-1 lum-bg-blue-700 hover:lum-bg-blue-600"
+                    onClick={() => {
+                      const buildCmd = runCommandMap[currentLanguage as keyof typeof languageMap];
+                      if (!buildCmd || !userData.currentFile?.location) return;
+                      const command = buildCmd(userData.currentFile.location);
+                      window.dispatchEvent(new CustomEvent('3compute:run-command', { detail: { command } }));
+                    }}
+                  >
+                    <Play size={16} />
+                    Run
+                  </button>
+                )}
               </>
             )}
           </div>
@@ -268,7 +288,7 @@ export default function Editor() {
       ) : isImage ? (
         <div className="flex-1 overflow-auto p-4 flex items-center justify-center">
           <img
-            src={`${backendUrl}/file${userData.currentFile?.location}`}
+            src={`${apiUrl}/files/file${userData.currentFile?.location}`}
             alt={userData.currentFile?.name}
             className="max-w-full max-h-full object-contain"
             style={{ imageRendering: 'auto' }}
@@ -277,7 +297,7 @@ export default function Editor() {
       ) : mdPreview && currentLanguage === 'markdown' ? (
         <div className="flex-1 overflow-auto p-4">
           <div className="markdown-content">
-            <Markdown>
+            <Markdown remarkPlugins={[remarkGfm]}>
               {value}
             </Markdown>
           </div>

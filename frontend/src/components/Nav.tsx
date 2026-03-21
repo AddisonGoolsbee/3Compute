@@ -1,8 +1,8 @@
 import { Nav, LogoBirdflop } from '@luminescent/ui-react';
-import { LogOut, Plus, LogIn } from 'lucide-react';
+import { LogOut, Plus, LogIn, BookOpen, School } from 'lucide-react';
 import { useContext, useState } from 'react';
 import { Link } from 'react-router';
-import { backendUrl, UserDataContext } from '../util/UserData';
+import { apiUrl, UserDataContext } from '../util/UserData';
 import CreateClassroomDialog from './CreateClassroomDialog';
 import JoinClassroomDialog from './JoinClassroomDialog';
 
@@ -11,20 +11,23 @@ export default function NavComponent() {
   const [joinOpen, setJoinOpen] = useState(false);
 
   const handleLogout = async () => {
-    await fetch(`${backendUrl}/logout`, {
+    await fetch(`${apiUrl}/auth/logout`, {
       credentials: 'include',
     });
     window.location.href = '/';
   };
 
   const userData = useContext(UserDataContext);
+  const isTeacher = userData?.userInfo?.role === 'teacher';
+  const isLoggedIn = !!userData?.userInfo;
+  const homeLink = isLoggedIn ? '/ide' : '/';
 
   return (
     <>
       <Nav
         start={
           <Link
-            to="/"
+            to={homeLink}
             className="lum-btn lum-bg-transparent hover:lum-bg-nav-bg"
           >
             <LogoBirdflop size={24} fillGradient={['#54daf4', '#545eb6']} />
@@ -33,6 +36,24 @@ export default function NavComponent() {
         }
         end={
           <>
+            {isTeacher && (
+              <Link
+                to="/lessons"
+                className="lum-btn lum-bg-transparent hover:lum-bg-nav-bg flex items-center gap-1 text-sm font-medium transition-colors px-3 py-2"
+              >
+                <BookOpen size={16} className="opacity-80" />
+                <span>Lesson Plans</span>
+              </Link>
+            )}
+            {isTeacher && (
+              <Link
+                to="/classrooms"
+                className="lum-btn lum-bg-transparent hover:lum-bg-nav-bg flex items-center gap-1 text-sm font-medium transition-colors px-3 py-2"
+              >
+                <School size={16} className="opacity-80" />
+                <span>My Classrooms</span>
+              </Link>
+            )}
             {userData?.userInfo && (
               <button
                 onClick={() => setJoinOpen(true)}

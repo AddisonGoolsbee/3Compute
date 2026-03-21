@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { backendUrl } from '../util/UserData';
+import { apiUrl } from '../util/UserData';
 
 interface Props {
   open: boolean;
@@ -27,7 +27,7 @@ export default function CreateClassroomDialog({ open, onClose }: Props) {
       setCreating(false);
       setCreatedCode(null);
       setCopiedId(null);
-      fetch(`${backendUrl}/classrooms`, { credentials: 'include' })
+      fetch(`${apiUrl}/classrooms`, { credentials: 'include' })
         .then((r) => r.json())
         .then((data) => {
           const owner = Array.isArray(data.owner) ? data.owner : [];
@@ -48,7 +48,7 @@ export default function CreateClassroomDialog({ open, onClose }: Props) {
     setCreating(true);
     setError(null);
     try {
-      const res = await fetch(`${backendUrl}/classrooms`, {
+      const res = await fetch(`${apiUrl}/classrooms`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -200,7 +200,7 @@ export default function CreateClassroomDialog({ open, onClose }: Props) {
                     }`}
                     onClick={async () => {
                       try {
-                        const r = await fetch(`${backendUrl}/classrooms/${c.id}/access-code`, {
+                        const r = await fetch(`${apiUrl}/classrooms/${c.id}/access-code`, {
                           credentials: 'include',
                         });
                         const j = await r.json();

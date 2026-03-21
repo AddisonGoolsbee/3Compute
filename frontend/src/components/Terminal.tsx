@@ -5,7 +5,7 @@ import { WebLinksAddon } from '@xterm/addon-web-links';
 import { SearchAddon } from '@xterm/addon-search';
 import { useEffect, useRef, useState, useCallback, useContext } from 'react';
 import { io, Socket } from 'socket.io-client';
-import { backendUrl, UserDataContext } from '../util/UserData';
+import { apiUrl, backendUrl, UserDataContext } from '../util/UserData';
 import { TerminalTabBar } from './TerminalTabBar';
 import { getClasses } from '@luminescent/ui-react';
 
@@ -123,6 +123,14 @@ export function TerminalComponent({ tabId, isActive }: TerminalComponentProps) {
       }
     });
 
+    // Listen for run-command events (fired by the editor Run button) — only active tab handles it
+    const runHandler = (e: Event) => {
+      if (!wasActiveRef.current) return;
+      const { command } = (e as CustomEvent<{ command: string }>).detail;
+      socket.emit('pty-input', { input: command });
+    };
+    window.addEventListener('3compute:run-command', runHandler);
+
     // Set up resize observer to handle container size changes
     const resizeObserver = new ResizeObserver(() => {
       if (fitAddonRef.current) {
@@ -140,6 +148,7 @@ export function TerminalComponent({ tabId, isActive }: TerminalComponentProps) {
     resizeObserver.observe(terminalRef.current);
 
     return () => {
+      window.removeEventListener('3compute:run-command', runHandler);
       resizeObserver.disconnect();
       socket.disconnect();
       term.dispose();
@@ -222,7 +231,7 @@ export default function TerminalTabs() {
       }); // Debug log
 
       try {
-        const response = await fetch(`${backendUrl}/tabs`, {
+        const response = await fetch(`${apiUrl}/tabs`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -259,7 +268,7 @@ export default function TerminalTabs() {
     }
 
     try {
-      const response = await fetch(`${backendUrl}/tabs`, {
+      const response = await fetch(`${apiUrl}/tabs`, {
         credentials: 'include',
       });
 
@@ -332,7 +341,7 @@ export default function TerminalTabs() {
       }
 
       // Request backend to kill all processes for this tab (tmux session)
-      fetch(`${backendUrl}/terminal/close-tab`, {
+      fetch(`${apiUrl}/terminal/close-tab`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -363,7 +372,7 @@ export default function TerminalTabs() {
 
   if (isLoading) {
     return (
-      <div className="w-full h-[40dvh] lum-bg-gray-950 border border-lum-border/40 rounded-lum flex flex-col overflow-hidden">
+      <div className="w-full h-full lum-bg-gray-950 border border-lum-border/40 rounded-lum flex flex-col overflow-hidden">
         <div className="flex-1 flex items-center justify-center">
           <div className="text-lum-text-secondary">Loading terminals...</div>
         </div>
@@ -372,7 +381,7 @@ export default function TerminalTabs() {
   }
 
   return (
-    <div className="w-full h-[40dvh] lum-bg-gray-950 border border-lum-border/40 rounded-lum flex flex-col overflow-hidden">
+    <div className="w-full h-full lum-bg-gray-950 border border-lum-border/40 rounded-lum flex flex-col overflow-hidden">
       <TerminalTabBar
         tabs={tabs}
         active={activeTab}

@@ -153,34 +153,39 @@ def container_is_running(container_name):
 def _load_classrooms_for_user(user_id: str, include_archived: bool = False):
     """Return tuple (instructor_classrooms, participant_classrooms).
 
-    Uses per-user archived_by list to determine if a classroom is archived.
-    If include_archived is True, returns ONLY archived classrooms for the user.
+    Reads from SQLite database. If include_archived is True, returns ONLY
+    archived classrooms for the user.
     """
     inst, part = [], []
     try:
-        if os.path.exists(CLASSROOMS_JSON_FILE):
-            with open(CLASSROOMS_JSON_FILE, "r") as f:
-                data = json.load(f)
-            for c in data.values():
-                archived_by = c.get("archived_by", [])
-                is_archived_for_user = user_id in archived_by
+        from backend.api.database import Classroom, ClassroomMember, get_engine
+        from sqlmodel import Session, select
 
-                if user_id in c.get("instructors", []):
-                    if include_archived:
-                        if is_archived_for_user:
-                            inst.append(c)
-                    else:
-                        if not is_archived_for_user:
-                            inst.append(c)
-                elif user_id in c.get("participants", []):
-                    if include_archived:
-                        if is_archived_for_user:
-                            part.append(c)
-                    else:
-                        if not is_archived_for_user:
-                            part.append(c)
+        engine = get_engine()
+        with Session(engine) as db:
+            memberships = db.exec(
+                select(ClassroomMember).where(ClassroomMember.user_id == user_id)
+            ).all()
+            for membership in memberships:
+                is_archived = membership.archived
+                if include_archived and not is_archived:
+                    continue
+                if not include_archived and is_archived:
+                    continue
+                classroom = db.get(Classroom, membership.classroom_id)
+                if not classroom:
+                    continue
+                c = {
+                    "id": classroom.id,
+                    "name": classroom.name,
+                    "access_code": classroom.access_code,
+                }
+                if membership.role == "instructor":
+                    inst.append(c)
+                else:
+                    part.append(c)
     except Exception as e:
-        logger.warning(f"Failed loading classrooms for mounts: {e}")
+        logger.warning(f"Failed loading classrooms from SQLite for mounts: {e}")
     return inst, part
 
 
@@ -504,11 +509,14 @@ def spawn_container(
         if template_content:
             access_codes = {}
             try:
-                if os.path.exists(CLASSROOMS_JSON_FILE):
-                    with open(CLASSROOMS_JSON_FILE, "r") as f:
-                        all_cls = json.load(f)
-                    for cid, data in all_cls.items():
-                        access_codes[cid] = data.get("access_code", "UNKNOWN")
+                from backend.api.database import Classroom, get_engine
+                from sqlmodel import Session, select
+
+                engine = get_engine()
+                with Session(engine) as db:
+                    classrooms = db.exec(select(Classroom)).all()
+                    for cls in classrooms:
+                        access_codes[cls.id] = cls.access_code
             except Exception as e:
                 logger.warning(
                     f"[{user_id}] Failed reloading classrooms for README access codes: {e}"

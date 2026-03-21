@@ -1,7 +1,7 @@
 import { Files, Folder, Upload } from 'lucide-react';
 import { useRef, useContext, useState } from 'react';
 import { SelectMenuRaw } from '@luminescent/ui-react';
-import { backendUrl, UserDataContext } from '../../util/UserData';
+import { apiUrl, UserDataContext } from '../../util/UserData';
 import { StatusContext } from '../../util/Files';
 
 export default function UploadButton() {
@@ -27,8 +27,8 @@ export default function UploadButton() {
     });
 
     const endpoint = isFolder
-      ? `${backendUrl}/upload-folder`
-      : `${backendUrl}/upload`;
+      ? `${apiUrl}/files/upload-folder`
+      : `${apiUrl}/files/upload`;
 
     // Add a timeout so we don't hang forever on network/proxy issues
     const controller = new AbortController();

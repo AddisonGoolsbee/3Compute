@@ -1,8 +1,10 @@
 import { FileIcon, FolderClosed, FolderOpen, MoreHorizontal, Pencil, Trash, X } from 'lucide-react';
 import { getClasses } from '@luminescent/ui-react';
 import { useContext, Fragment, useEffect } from 'react';
-import { backendUrl, UserData, UserDataContext } from '../util/UserData';
+import { apiUrl, UserData, UserDataContext } from '../util/UserData';
 import { languageMap } from '../util/languageMap';
+import { uploadLocalFiles } from './Explorer';
+import { StatusContext } from '../util/Files';
 
 export default function MenuItems({ files, count = 0 }: { files: UserData['files'], count?: number }) {
   const {
@@ -21,6 +23,7 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
     setContextMenu,
     classroomSymlinks,
   } = useContext(UserDataContext);
+  const { setStatus } = useContext(StatusContext);
 
   const isProtectedLocation = (location?: string) => {
     if (!location) return false;
@@ -83,7 +86,7 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
                 // Always prevent default so drop can fire; we validate in onDrop
                 e.preventDefault();
                 if ('files' in file && !file.renaming) {
-                  e.dataTransfer.dropEffect = 'move';
+                  e.dataTransfer.dropEffect = e.dataTransfer.types.includes('Files') ? 'copy' : 'move';
                 } else {
                   e.dataTransfer.dropEffect = 'none';
                 }
@@ -108,6 +111,12 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
                 if (!('files' in file)) return; // only drop into folders
                 e.preventDefault();
                 setDragOverLocation?.(undefined);
+                // Handle OS file drops into this folder
+                if (e.dataTransfer.files.length > 0) {
+                  await uploadLocalFiles(e.dataTransfer.files, file.location, apiUrl, setStatus, refreshFiles);
+                  setOpenFolders((prev) => prev.includes(file.location) ? prev : [...prev, file.location]);
+                  return;
+                }
                 let source = e.dataTransfer.getData('text/x-3compute-source');
                 if (!source) {
                   source = e.dataTransfer.getData('text/plain');
@@ -130,7 +139,7 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
                     setCurrentFile({ name: currentFile.name, location: newLoc });
                   }
                 }
-                let res = await fetch(`${backendUrl}/move`, {
+                let res = await fetch(`${apiUrl}/files/move`, {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   credentials: 'include',
@@ -141,7 +150,7 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
                   const name = srcName;
                   const confirmed = window.confirm(`A file or folder named "${name}" already exists here. Replace it? This cannot be undone.`);
                   if (!confirmed) return;
-                  res = await fetch(`${backendUrl}/move`, {
+                  res = await fetch(`${apiUrl}/files/move`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     credentials: 'include',
@@ -192,7 +201,7 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
                   }
                 }}
                 className={getClasses({
-                  'flex flex-1 lum-btn-p-1 rounded-lum-1 rounded-r-none items-center gap-2 w-full text-left lum-bg-transparent': true,
+                  'flex flex-1 lum-btn-p-1 rounded-lum-1 rounded-r-none items-center gap-2 w-full min-w-0 text-left lum-bg-transparent': true,
                   'cursor-pointer': !('files' in file),
                   'ring-1 ring-blue-400/40': dragOverLocation === file.location && 'files' in file,
                 })}
@@ -212,7 +221,7 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
                   })()}
 
                 <span className={getClasses({
-                  'flex-1': true,
+                  'flex-1 truncate min-w-0': true,
                   'text-gray-500': isArchiveFolder(file.location),
                 })}>
                   {file.renaming ? (
@@ -261,7 +270,7 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
                               // Empty or unchanged name on placeholder: keep default
                               // newLocation already accounts for default name
                             }
-                            const res = await fetch(`${backendUrl}/file${newLocation}`, {
+                            const res = await fetch(`${apiUrl}/files/file${newLocation}`, {
                               method: 'POST',
                               headers: { 'Content-Type': 'application/json' },
                               credentials: 'include',
@@ -281,7 +290,7 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
                             await refreshFiles();
                           } else if (name && name !== originalName) {
                             // Rename existing by moving to new path
-                            const moveRes = await fetch(`${backendUrl}/move`, {
+                            const moveRes = await fetch(`${apiUrl}/files/move`, {
                               method: 'POST',
                               headers: { 'Content-Type': 'application/json' },
                               credentials: 'include',
@@ -468,7 +477,7 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
             }
 
             try {
-              const res = await fetch(`${backendUrl}/file${contextMenu.targetLocation}`, {
+              const res = await fetch(`${apiUrl}/files/file${contextMenu.targetLocation}`, {
                 method: 'DELETE',
                 credentials: 'include',
               });

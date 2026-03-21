@@ -128,16 +128,20 @@ def mock_flask_dependencies():
 @pytest.fixture(autouse=True)
 def reset_module_state():
     """Reset module state between tests"""
-    # Clear session and container maps
-    import backend.terminal as terminal
-
-    terminal.session_map.clear()
-    terminal.user_containers.clear()
-    terminal._cleanup_timers.clear()
+    try:
+        import backend.api.terminal as terminal
+        terminal.session_map.clear()
+        terminal.user_containers.clear()
+        terminal._cleanup_timers.clear()
+    except Exception:
+        pass
 
     yield
 
-    # Clean up after test
-    terminal.session_map.clear()
-    terminal.user_containers.clear()
-    terminal._cleanup_timers.clear()
+    try:
+        import backend.api.terminal as terminal
+        terminal.session_map.clear()
+        terminal.user_containers.clear()
+        terminal._cleanup_timers.clear()
+    except Exception:
+        pass

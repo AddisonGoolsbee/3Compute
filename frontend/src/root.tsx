@@ -2,7 +2,7 @@ import { ReactNode, useCallback, useEffect, useState } from 'react';
 import { Links, Meta, Outlet, Scripts, ScrollRestoration, useLoaderData } from 'react-router';
 import NavComponent from './components/Nav';
 import { default as HomeLayout } from './Layout';
-import { UserData, UserDataContext, backendUrl, clientLoader } from './util/UserData';
+import { UserData, UserDataContext, apiUrl, clientLoader } from './util/UserData';
 import { fetchFilesList, Files, FileType } from './util/Files';
 
 // eslint-disable-next-line react-refresh/only-export-components
@@ -153,7 +153,7 @@ export function Layout({ children }: { children: ReactNode }) {
           window.alert('The name \'archive\' is reserved.');
           return;
         }
-        fetch(`${backendUrl}/classrooms/${classroom.id}`, {
+        fetch(`${apiUrl}/classrooms/${classroom.id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
@@ -169,7 +169,7 @@ export function Layout({ children }: { children: ReactNode }) {
         // if (!window.confirm(confirmMsg)) {
         //   return;
         // }
-        fetch(`${backendUrl}/classrooms/${classroom.id}/archive`, {
+        fetch(`${apiUrl}/classrooms/${classroom.id}/archive`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
@@ -194,7 +194,7 @@ export function Layout({ children }: { children: ReactNode }) {
           window.alert('Only the classroom owner can restore an archived classroom.');
           return;
         }
-        fetch(`${backendUrl}/classrooms/${classroom.id}/archive`, {
+        fetch(`${apiUrl}/classrooms/${classroom.id}/archive`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
@@ -230,7 +230,7 @@ export function Layout({ children }: { children: ReactNode }) {
       }
 
       try {
-        const res = await fetch(`${backendUrl}/classrooms/restore-by-slug`, {
+        const res = await fetch(`${apiUrl}/classrooms/restore-by-slug`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',

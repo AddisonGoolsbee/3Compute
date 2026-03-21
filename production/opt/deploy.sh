@@ -21,6 +21,10 @@ pip3 install -r backend/requirements.txt
 echo "Rebuilding backend image"
 docker build -t 3compute:latest backend
 
+echo "Updating systemd service"
+cp /var/www/3compute/production/etc/systemd/system/3compute.service /etc/systemd/system/3compute.service
+systemctl daemon-reload
+
 echo "Restarting backend service"
 systemctl restart 3compute
 

@@ -1,18 +1,35 @@
 import { useContext, useState } from 'react';
 import { FolderIcon } from 'lucide-react';
-import { backendUrl, defaultUserData, UserDataContext } from '../util/UserData';
+import { apiUrl, defaultUserData, UserDataContext } from '../util/UserData';
 import UploadButton from './ExplorerButtons/UploadButton';
 import NewButton from './ExplorerButtons/NewButton';
 import MenuItems from './MenuItems';
 import { getClasses } from '@luminescent/ui-react';
 import { StatusContext } from '../util/Files';
 
+export async function uploadLocalFiles(files: FileList | File[], destination: string, apiUrl: string, setStatus: (s: string | null) => void, refreshFiles: () => Promise<void>) {
+  if (!files || (files as FileList).length === 0) return;
+  setStatus('Uploading...');
+  const formData = new FormData();
+  Array.from(files).forEach((file) => formData.append('files', file, file.name));
+  if (destination && destination !== '/') formData.append('destination', destination.replace(/^\/|\/$/g, ''));
+  try {
+    const res = await fetch(`${apiUrl}/files/upload`, { method: 'POST', body: formData, credentials: 'include' });
+    setStatus(res.ok ? 'Upload successful' : 'Upload failed');
+    if (res.ok) await refreshFiles();
+  } catch {
+    setStatus('Upload failed: network error');
+  } finally {
+    setTimeout(() => setStatus(null), 1500);
+  }
+}
+
 export default function Explorer() {
   const userData = useContext(UserDataContext);
   const [status, setStatus] = useState<string | null>(null);
 
   return <StatusContext value={{ status, setStatus }}>
-    <div className="flex max-w-1/4 flex-1 flex-col lum-card gap-1 p-1 lum-bg-gray-950 border-lum-border/30">
+    <div className="flex h-full w-full flex-col lum-card gap-1 p-1 lum-bg-gray-950 border-lum-border/30">
       <div className={getClasses({
         'transition-all duration-500 flex flex-col gap-1 p-1 lum-bg-gray-900 rounded-lum-1': true,
         'rounded-b-sm': !!status,
@@ -38,7 +55,7 @@ export default function Explorer() {
         </span>
       </div>
       <div
-        className="flex-1 overflow-auto"
+        className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide"
         onClick={(e) => {
           // Deselect when clicking blank space within the list area
           if ((e.target as HTMLElement).closest('[data-explorer-item]')) return;
@@ -48,7 +65,7 @@ export default function Explorer() {
           // Allow dropping to root only when hovering blank space (not over an item)
           if ((e.target as HTMLElement).closest('[data-explorer-item]')) return;
           e.preventDefault();
-          e.dataTransfer.dropEffect = 'move';
+          e.dataTransfer.dropEffect = e.dataTransfer.types.includes('Files') ? 'copy' : 'move';
           (e.currentTarget as HTMLElement).classList.add('ring-1', 'ring-blue-400/30');
         }}
         onDragLeave={(e) => {
@@ -62,6 +79,11 @@ export default function Explorer() {
           if ((e.target as HTMLElement).closest('[data-explorer-item]')) return;
           e.preventDefault();
           (e.currentTarget as HTMLElement).classList.remove('ring-1', 'ring-blue-400/30');
+          // Handle OS file drops
+          if (e.dataTransfer.files.length > 0) {
+            await uploadLocalFiles(e.dataTransfer.files, '/', apiUrl, setStatus, userData.refreshFiles);
+            return;
+          }
           let source = e.dataTransfer.getData('text/x-3compute-source');
           if (!source) source = e.dataTransfer.getData('text/plain');
           if (!source) return;
@@ -80,7 +102,7 @@ export default function Explorer() {
               userData.setCurrentFile({ name: userData.currentFile.name, location: newLoc });
             }
           }
-          let res = await fetch(`${backendUrl}/move`, {
+          let res = await fetch(`${apiUrl}/files/move`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
@@ -89,7 +111,7 @@ export default function Explorer() {
           if (res.status === 409) {
             const confirmed = window.confirm(`A file or folder named "${srcName}" already exists at root. Replace it? This cannot be undone.`);
             if (!confirmed) return;
-            res = await fetch(`${backendUrl}/move`, {
+            res = await fetch(`${apiUrl}/files/move`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               credentials: 'include',

@@ -1,7 +1,7 @@
 import { useEffect, useState, useContext, ChangeEvent } from 'react';
 import { SelectMenuRaw } from '@luminescent/ui-react';
 import { LayoutTemplate } from 'lucide-react';
-import { backendUrl, UserDataContext } from '../../util/UserData';
+import { apiUrl, UserDataContext } from '../../util/UserData';
 import { StatusContext } from '../../util/Files';
 
 type Manifest = Record<string, string[]>;
@@ -41,7 +41,7 @@ export default function TemplateButton() {
   useEffect(() => {
     if (!userData?.userInfo || !userData?.classroomSymlinks) return;
 
-    fetch(`${backendUrl}/classrooms/templates`, { credentials: 'include' })
+    fetch(`${apiUrl}/classrooms/templates`, { credentials: 'include' })
       .then((res) => res.json())
       .then((data) => {
         const classroomsWithTemplates = Array.isArray(data.classrooms) ? data.classrooms : [];
@@ -111,7 +111,7 @@ export default function TemplateButton() {
       formData.append('move-into', templateName);
 
       // POST to your existing endpoint
-      const res = await fetch(`${backendUrl}/upload-folder`, {
+      const res = await fetch(`${apiUrl}/files/upload-folder`, {
         method: 'POST',
         body: formData,
         credentials: 'include',
@@ -181,7 +181,7 @@ export default function TemplateButton() {
           : ['classroom-templates', 'templates'];
 
         for (const base of baseCandidates) {
-          const url = `${backendUrl}/file/${classroomSlug}/${base}/${templateName}/${filename}`;
+          const url = `${apiUrl}/files/file/${classroomSlug}/${base}/${templateName}/${filename}`;
           const res = await fetch(url, { credentials: 'include' });
           if (res.ok) {
             if (!resolvedBase) {
@@ -225,7 +225,7 @@ export default function TemplateButton() {
       formData.append('move-into', moveInto);
 
       // POST to personal workspace upload
-      const res = await fetch(`${backendUrl}/upload-folder`, {
+      const res = await fetch(`${apiUrl}/files/upload-folder`, {
         method: 'POST',
         body: formData,
         credentials: 'include',

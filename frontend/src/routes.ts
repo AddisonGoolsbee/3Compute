@@ -4,6 +4,8 @@ import {
 } from '@react-router/dev/routes';
 
 export default [
-  // * matches all URLs, the ? makes it optional so it will match / as well
+  route('/', 'pages/landing.tsx'),
+  route('/lessons', 'pages/lessons.tsx'),
+  route('/classrooms', 'pages/classrooms.tsx'),
   route('*?', 'main.tsx'),
 ] satisfies RouteConfig;

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { backendUrl } from '../util/UserData';
+import { apiUrl } from '../util/UserData';
 
 interface Props {
   open: boolean;
@@ -28,7 +28,7 @@ export default function JoinClassroomDialog({ open, onClose }: Props) {
     // Wait 0.5 seconds before checking
     await new Promise((r) => setTimeout(r, 500));
     try {
-      const res = await fetch(`${backendUrl}/classrooms/join`, {
+      const res = await fetch(`${apiUrl}/classrooms/join`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',

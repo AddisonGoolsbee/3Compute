@@ -71,23 +71,23 @@ body {
 }
 
 .markdown-content h1 {
-  @apply text-3xl font-bold mb-4 mt-6 text-white;
+  @apply text-3xl font-bold mb-2 mt-4 text-white;
 }
 
 .markdown-content h2 {
-  @apply text-2xl font-bold mb-3 mt-5 text-white;
+  @apply text-2xl font-bold mb-2 mt-4 text-white;
 }
 
 .markdown-content h3 {
-  @apply text-xl font-bold mb-3 mt-4 text-white;
+  @apply text-xl font-bold mb-1 mt-3 text-white;
 }
 
 .markdown-content h4 {
-  @apply text-lg font-bold mb-2 mt-3 text-white;
+  @apply text-lg font-bold mb-1 mt-2 text-white;
 }
 
 .markdown-content p {
-  @apply mb-4 leading-relaxed;
+  @apply mb-2 leading-relaxed;
 }
 
 .markdown-content ol {

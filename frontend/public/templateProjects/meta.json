@@ -1,0 +1,78 @@
+{
+  "Website": {
+    "files": ["main.py", "index.html", "style.css", "README.md", "requirements.txt"],
+    "description": "Build a personal website with Flask",
+    "createdBy": "3Compute",
+    "standards": [
+      {
+        "id": "3A-AP-13",
+        "description": "Create prototypes that use algorithms to solve computational problems by leveraging prior student knowledge and personal interests."
+      },
+      {
+        "id": "3A-AP-14",
+        "description": "Use lists to simplify solutions, generalizing computational problems instead of repeatedly using simple variables."
+      },
+      {
+        "id": "3A-AP-22",
+        "description": "Design and develop computational artifacts working in team roles using collaborative tools."
+      }
+    ]
+  },
+  "Discord-Bot": {
+    "files": ["main.py", "README.md", "requirements.txt"],
+    "description": "Create a Discord bot with discord.py",
+    "createdBy": "3Compute",
+    "standards": [
+      {
+        "id": "3A-AP-13",
+        "description": "Create prototypes that use algorithms to solve computational problems by leveraging prior student knowledge and personal interests."
+      },
+      {
+        "id": "3A-AP-17",
+        "description": "Decompose problems into smaller components through systematic analysis, using constructs such as procedures, modules, and/or objects."
+      },
+      {
+        "id": "3A-AP-18",
+        "description": "Create artifacts by using procedures within a program, combinations of data and procedures, or independent but interrelated programs."
+      },
+      {
+        "id": "3B-AP-14",
+        "description": "Construct solutions to problems using student-created components, such as procedures, modules and/or objects."
+      }
+    ]
+  },
+  "Tic-Tac-Toe": {
+    "files": ["main.py", "test_game.py", "README.md", "requirements.txt"],
+    "description": "Build an unbeatable Tic-Tac-Toe AI with minimax",
+    "createdBy": "3Compute",
+    "duration": "5-7 class periods",
+    "lessonPlanDoc": "/docs/tic-tac-toe/lesson-plan.md",
+    "solutionDoc": "/docs/tic-tac-toe/solution.py",
+    "standards": [
+      {
+        "id": "3B-AP-09",
+        "description": "Implement an artificial intelligence algorithm to play a game against a human opponent or solve a problem."
+      },
+      {
+        "id": "3B-AP-10",
+        "description": "Use and adapt classic algorithms to solve computational problems."
+      },
+      {
+        "id": "3B-AP-11",
+        "description": "Evaluate algorithms in terms of their efficiency, correctness, and clarity."
+      },
+      {
+        "id": "3B-AP-13",
+        "description": "Illustrate the flow of execution of a recursive algorithm."
+      },
+      {
+        "id": "3B-AP-14",
+        "description": "Construct solutions to problems using student-created components, such as procedures, modules and/or objects."
+      },
+      {
+        "id": "3B-AP-21",
+        "description": "Develop and use a series of test cases to verify that a program performs according to its design specifications."
+      }
+    ]
+  }
+}

@@ -1,6 +1,6 @@
 import { SiGoogle } from '@icons-pack/react-simple-icons';
 import { LogoBirdflop } from '@luminescent/ui-react';
-import { backendUrl } from '../util/UserData';
+import { apiUrl } from '../util/UserData';
 
 export default function Login() {
   return (
@@ -15,7 +15,7 @@ export default function Login() {
           </p>
           <a
             className="lum-btn lum-btn-p-3 lum-bg-blue-800 hover:lum-bg-blue-700 justify-center"
-            href={`${backendUrl}/login`}
+            href={`${apiUrl}/auth/login`}
           >
             <SiGoogle size={20} />
             Sign in with Google

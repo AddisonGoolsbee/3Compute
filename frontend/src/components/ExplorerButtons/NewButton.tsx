@@ -1,7 +1,7 @@
 import { File, Folder, LayoutTemplate, Plus } from 'lucide-react';
 import { useContext, useEffect, useState } from 'react';
 import { SelectMenuRaw } from '@luminescent/ui-react';
-import { backendUrl, UserDataContext } from '../../util/UserData';
+import { apiUrl, UserDataContext } from '../../util/UserData';
 import { StatusContext } from '../../util/Files';
 
 type Manifest = Record<string, string[]>;
@@ -38,7 +38,7 @@ export default function NewButton() {
   useEffect(() => {
     if (!userData?.userInfo || !userData?.classroomSymlinks) return;
 
-    fetch(`${backendUrl}/classrooms/templates`, { credentials: 'include' })
+    fetch(`${apiUrl}/classrooms/templates`, { credentials: 'include' })
       .then((res) => res.json())
       .then((data) => {
         const classroomsWithTemplates = Array.isArray(data.classrooms) ? data.classrooms : [];
@@ -169,7 +169,7 @@ export default function NewButton() {
 
       formData.append('move-into', templateName);
 
-      const res = await fetch(`${backendUrl}/upload-folder`, {
+      const res = await fetch(`${apiUrl}/files/upload-folder`, {
         method: 'POST',
         body: formData,
         credentials: 'include',
@@ -229,7 +229,7 @@ export default function NewButton() {
           : ['classroom-templates', 'templates'];
 
         for (const base of baseCandidates) {
-          const url = `${backendUrl}/file/${classroomSlug}/${base}/${templateName}/${filename}`;
+          const url = `${apiUrl}/files/file/${classroomSlug}/${base}/${templateName}/${filename}`;
           const res = await fetch(url, { credentials: 'include' });
           if (res.ok) {
             if (!resolvedBase) resolvedBase = base;
@@ -263,7 +263,7 @@ export default function NewButton() {
         : `${classroomSlug}/${templateName}`;
       formData.append('move-into', moveInto);
 
-      const res = await fetch(`${backendUrl}/upload-folder`, {
+      const res = await fetch(`${apiUrl}/files/upload-folder`, {
         method: 'POST',
         body: formData,
         credentials: 'include',
