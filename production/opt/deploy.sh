@@ -25,6 +25,10 @@ echo "Updating systemd service"
 cp /var/www/3compute/production/etc/systemd/system/3compute.service /etc/systemd/system/3compute.service
 systemctl daemon-reload
 
+echo "Ensuring runtime directories"
+mkdir -p /tmp/classrooms
+chown www-data:www-data /tmp/classrooms
+
 echo "Restarting backend service"
 systemctl restart 3compute
 

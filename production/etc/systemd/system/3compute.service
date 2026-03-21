@@ -6,6 +6,8 @@ After=network.target
 Type=simple
 WorkingDirectory=/var/www/3compute
 Environment=PYTHONUNBUFFERED=1
+ExecStartPre=/bin/mkdir -p /tmp/classrooms
+ExecStartPre=/bin/chown www-data:www-data /tmp/classrooms
 ExecStart=/var/www/3compute/.venv/bin/python3 -m backend.api
 Restart=always
 RestartSec=5
