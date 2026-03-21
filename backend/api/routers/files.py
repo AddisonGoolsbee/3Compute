@@ -3,7 +3,7 @@ import os
 import shutil
 import subprocess
 
-from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, PlainTextResponse
 from pydantic import BaseModel
 from sqlmodel import Session, select
@@ -480,8 +480,8 @@ async def move_file_or_folder(
 
 @router.post("/upload")
 async def upload(
-    request: Request,
     files: list[UploadFile] = File(...),
+    destination: str = Form(default=""),
     user: User = Depends(get_current_user),
 ):
     upload_dir = f"/tmp/uploads/{user.id}"
@@ -491,8 +491,7 @@ async def upload(
     if not files:
         raise HTTPException(status_code=400, detail="No files provided")
 
-    form = await request.form()
-    destination = str(form.get("destination", "")).strip("/")
+    destination = destination.strip("/")
 
     if destination:
         target_dir = os.path.normpath(os.path.join(upload_dir, destination))
