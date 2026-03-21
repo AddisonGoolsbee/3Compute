@@ -90,6 +90,7 @@ export default function LessonsPage() {
   const allStandards: Standard[] = [];
   const seenIds = new Set<string>();
   for (const lesson of Object.values(meta)) {
+    if (!lesson.lessonPlanDoc) continue;
     for (const s of lesson.standards ?? []) {
       if (!seenIds.has(s.id)) {
         seenIds.add(s.id);
