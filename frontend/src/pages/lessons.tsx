@@ -1,4 +1,4 @@
-import { useEffect, useState, useContext } from 'react';
+import { useEffect, useState, useContext, useRef } from 'react';
 import { Link } from 'react-router';
 import { LogoBirdflop } from '@luminescent/ui-react';
 import ReactMarkdown from 'react-markdown';
@@ -16,8 +16,10 @@ import {
   ChevronDown,
   ChevronUp,
   Code,
+  Printer,
 } from 'lucide-react';
 import { apiUrl, UserDataContext } from '../util/UserData';
+import { printMarkdownElement } from '../util/printMarkdown';
 
 interface Standard {
   id: string;
@@ -51,6 +53,7 @@ export default function LessonsPage() {
   const [activeLessonPlan, setActiveLessonPlan] = useState<string | null>(null);
   const [lessonPlanContent, setLessonPlanContent] = useState('');
   const [loadingPlan, setLoadingPlan] = useState(false);
+  const lessonPlanRef = useRef<HTMLDivElement>(null);
 
   const [showImportDialog, setShowImportDialog] = useState<string | null>(null);
   const [classrooms, setClassrooms] = useState<Classroom[]>([]);
@@ -313,6 +316,13 @@ export default function LessonsPage() {
               </div>
               <div className="flex items-center gap-2">
                 <button
+                  onClick={() => { if (lessonPlanRef.current) printMarkdownElement(lessonPlanRef.current, activeLessonPlan.replace(/[-_]/g, ' ')); }}
+                  className="p-2 rounded-lg hover:bg-gray-800 transition-colors text-gray-400 hover:text-white"
+                  title="Print lesson plan"
+                >
+                  <Printer size={18} />
+                </button>
+                <button
                   onClick={() => openImportDialog(activeLessonPlan)}
                   className="lum-btn lum-pad-sm rounded-lg bg-[#54daf4] hover:bg-[#3cc8e2] text-gray-950 font-medium text-xs inline-flex items-center gap-1.5 transition-colors"
                 >
@@ -331,7 +341,7 @@ export default function LessonsPage() {
               {loadingPlan ? (
                 <div className="text-center text-gray-500 py-12">Loading...</div>
               ) : (
-                <div className="markdown-content">
+                <div className="markdown-content" ref={lessonPlanRef}>
                   <ReactMarkdown remarkPlugins={[remarkGfm]}>{lessonPlanContent}</ReactMarkdown>
                 </div>
               )}

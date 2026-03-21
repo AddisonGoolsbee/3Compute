@@ -1,6 +1,7 @@
 import { ChangeEvent, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import MonacoEditor, { type OnMount } from '@monaco-editor/react';
-import { File, Save, Check, X, Play } from 'lucide-react';
+import { File, Save, Check, X, Play, Printer } from 'lucide-react';
+import { printMarkdownElement } from '../util/printMarkdown';
 import { apiUrl, UserDataContext } from '../util/UserData';
 import { getClasses, SelectMenuRaw } from '@luminescent/ui-react';
 import { languageMap } from '../util/languageMap';
@@ -67,6 +68,7 @@ export default function Editor() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [isClient, setIsClient] = useState(false);
   const editorRef = useRef<any>(null);
+  const markdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => { setIsClient(true); }, []);
 
@@ -162,14 +164,25 @@ export default function Editor() {
             <File size={16} />
             {userData?.currentFile?.location}
             {currentLanguage === 'markdown' && !isImage && (
-              <button className={getClasses({
-                'lum-btn p-1 rounded-lum-2 gap-1 lum-bg-transparent hover:lum-bg-gray-800': true,
-                'text-blue-500': mdPreview,
-              })}
-              onClick={() => setMdPreview(!mdPreview)}
-              >
-                <SiMarkdown size={16} />
-              </button>
+              <>
+                <button className={getClasses({
+                  'lum-btn p-1 rounded-lum-2 gap-1 lum-bg-transparent hover:lum-bg-gray-800': true,
+                  'text-blue-500': mdPreview,
+                })}
+                onClick={() => setMdPreview(!mdPreview)}
+                >
+                  <SiMarkdown size={16} />
+                </button>
+                {mdPreview && (
+                  <button
+                    className="lum-btn p-1 rounded-lum-2 lum-bg-transparent hover:lum-bg-gray-800 text-gray-400 hover:text-white"
+                    title="Print"
+                    onClick={() => { if (markdownRef.current) printMarkdownElement(markdownRef.current, userData.currentFile?.name ?? 'Document'); }}
+                  >
+                    <Printer size={16} />
+                  </button>
+                )}
+              </>
             )}
           </span>
           <div className="flex items-center gap-1">
@@ -296,7 +309,7 @@ export default function Editor() {
         </div>
       ) : mdPreview && currentLanguage === 'markdown' ? (
         <div className="flex-1 overflow-auto p-4">
-          <div className="markdown-content">
+          <div className="markdown-content" ref={markdownRef}>
             <Markdown remarkPlugins={[remarkGfm]}>
               {value}
             </Markdown>
