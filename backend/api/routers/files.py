@@ -498,7 +498,6 @@ async def upload(
         if not target_dir.startswith(upload_dir):
             raise HTTPException(status_code=400, detail="Invalid destination")
         os.makedirs(target_dir, exist_ok=True)
-        set_container_ownership(target_dir)
     else:
         target_dir = upload_dir
 
@@ -508,6 +507,9 @@ async def upload(
         with open(file_path, "wb") as fh:
             fh.write(content)
         set_container_ownership(file_path)
+
+    if destination:
+        set_container_ownership(target_dir)
 
     return PlainTextResponse("File uploaded successfully")
 
