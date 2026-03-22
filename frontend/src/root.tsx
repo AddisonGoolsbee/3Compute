@@ -10,7 +10,7 @@ export { clientLoader };
 
 // HydrateFallback is rendered while the client loader is running
 export function HydrateFallback() {
-  return <HomeLayout />;
+  return null;
 }
 
 export function Layout({ children }: { children: ReactNode }) {

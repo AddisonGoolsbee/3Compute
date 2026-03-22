@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<!-- ==========================================================================
+     SECTION 1: WELCOME BANNER
+========================================================================== -->
+<section id="home" class="hero">
+    <div class="hero-content">
+        <h1 class="hero-title">Hi, I'm <span class="accent">Alex Rivera</span></h1>
+        <p class="hero-subtitle">Student. Builder. Future computer scientist.</p>
+        <div class="hero-buttons">
+            <a href="#projects" class="btn btn-primary">See My Work</a>
+            <a href="#about" class="btn btn-outline">About Me</a>
+        </div>
+    </div>
+    <div class="hero-bg">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+    </div>
+</section>
+
+
+<!-- ==========================================================================
+     SECTION 2: ABOUT ME
+========================================================================== -->
+<section id="about" class="about-section section">
+    <div class="container">
+        <h2 class="section-title">About Me</h2>
+        <div class="about-grid">
+            <div class="about-avatar">
+                <div class="avatar-circle">AR</div>
+            </div>
+            <div class="about-text">
+                <p>
+                    Hi! I'm a junior at Westview High School interested in computer science,
+                    math, and making things that actually work. I started learning Python in
+                    my sophomore year and haven't stopped since.
+                </p>
+                <p>
+                    Outside of CS, I play guitar and follow Formula 1. I'm currently learning
+                    how databases work, and I'm hoping to study software engineering in college.
+                </p>
+                <div class="about-tags">
+                    <span class="tag">Python</span>
+                    <span class="tag">Web Dev</span>
+                    <span class="tag">Formula 1</span>
+                    <span class="tag">Guitar</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+
+<!-- ==========================================================================
+     SECTION 3: MY PROJECTS
+========================================================================== -->
+<section id="projects" class="projects-section section">
+    <div class="container">
+        <h2 class="section-title">My Projects</h2>
+        <div class="projects-grid">
+
+            <div class="project-card">
+                <div class="project-card-header">
+                    <span class="project-icon">🎮</span>
+                    <h3>Tic-Tac-Toe AI</h3>
+                </div>
+                <p>An unbeatable Tic-Tac-Toe opponent powered by the minimax algorithm.
+                   It explores every possible future move to guarantee optimal play.
+                   No matter what you do, the best you can get is a draw.</p>
+                <div class="project-links">
+                    <a href="#" class="project-link">View Project</a>
+                </div>
+            </div>
+
+            <div class="project-card">
+                <div class="project-card-header">
+                    <span class="project-icon">🌐</span>
+                    <h3>This Portfolio</h3>
+                </div>
+                <p>The site you're on right now. Built with Flask (Python backend),
+                   HTML/CSS for layout and styling, and JavaScript for interactive
+                   features like the clock, skills bars, and dark mode.</p>
+                <div class="project-links">
+                    <a href="#" class="project-link">View Project</a>
+                </div>
+            </div>
+
+            <div class="project-card">
+                <div class="project-card-header">
+                    <span class="project-icon">📊</span>
+                    <h3>Grade Calculator</h3>
+                </div>
+                <p>A Python command-line tool that reads a CSV of assignment scores,
+                   calculates weighted averages by category, and outputs a
+                   projected final grade. Built for my own use first.</p>
+                <div class="project-links">
+                    <a href="#" class="project-link">View Project</a>
+                </div>
+            </div>
+
+            <div class="project-card">
+                <div class="project-card-header">
+                    <span class="project-icon">🔢</span>
+                    <h3>Number Guessing Game</h3>
+                </div>
+                <p>A classic number guessing game with a twist: the computer also
+                   plays, using binary search to guess in the minimum possible
+                   number of tries. Shows why binary search is so efficient.</p>
+                <div class="project-links">
+                    <a href="#" class="project-link">View Project</a>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+
+<!-- ==========================================================================
+     SECTION 4: SKILLS PROGRESS BARS
+========================================================================== -->
+<section id="skills" class="skills-section section">
+    <div class="container">
+        <h2 class="section-title">My Skills</h2>
+        <p class="section-subtitle">Fetched live from the server</p>
+        <div id="skills-container">
+            <p class="loading-text">Loading skills...</p>
+        </div>
+    </div>
+</section>
+
+
+<!-- ==========================================================================
+     SECTION 5: QUOTE OF THE DAY
+========================================================================== -->
+<section id="quote" class="quote-section section">
+    <div class="container">
+        <h2 class="section-title">Quote of the Day</h2>
+        <div class="quote-card">
+            <blockquote id="quote-text">Loading quote...</blockquote>
+            <p id="quote-author" class="quote-author"></p>
+            <button id="new-quote-btn" class="btn btn-primary">New Quote</button>
+        </div>
+    </div>
+</section>
+
+
+<!-- ==========================================================================
+     SECTION 6: LIVE CLOCK
+========================================================================== -->
+<section id="clock" class="clock-section section">
+    <div class="container">
+        <h2 class="section-title">Live Clock</h2>
+        <div class="clock-display">
+            <span id="clock-time">--:--:--</span>
+            <span id="clock-date" class="clock-date"></span>
+        </div>
+        <div id="countdown-container" class="countdown"></div>
+    </div>
+</section>
+
+
+<!-- ==========================================================================
+     SECTION 7: VISITOR COUNTER
+========================================================================== -->
+<section id="visitors" class="visitors-section section">
+    <div class="container">
+        <div class="visitor-card">
+            <p id="visitor-count" class="visitor-text">Counting visitors...</p>
+        </div>
+    </div>
+</section>
+
+{% endblock %}

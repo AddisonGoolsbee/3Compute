@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!--
+        YOUR TURN: Change this title to your name.
+        This shows up in the browser tab.
+    -->
+    <title>Your Name | Portfolio</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+</head>
+<body>
+
+    <!-- =====================================================================
+         NAV BAR
+         This navigation bar appears on every page. It links to each section
+         of your site. Update the name and links as you build each section.
+    ====================================================================== -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <!-- YOUR TURN: Replace "Your Name" with your actual name -->
+            <a href="#home" class="nav-brand">Your Name</a>
+            <ul class="nav-links">
+                <li><a href="#about">About</a></li>
+                <li><a href="#projects">Projects</a></li>
+                <li><a href="#skills">Skills</a></li>
+                <li><a href="#clock">Clock</a></li>
+                <!-- Dark mode toggle button (Section 8) -->
+                <li>
+                    <button id="dark-mode-toggle" class="dark-toggle" aria-label="Toggle dark mode">
+                        ☀
+                    </button>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- =====================================================================
+         MAIN CONTENT
+         Each page's unique content goes here.
+    ====================================================================== -->
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- =====================================================================
+         FOOTER
+         YOUR TURN: Replace "Your Name" with your actual name.
+    ====================================================================== -->
+    <footer class="footer">
+        <div class="footer-container">
+            <p>Built by <strong>Your Name</strong> using Python + Flask</p>
+            <p class="footer-sub">Hosted on 3Compute</p>
+        </div>
+    </footer>
+
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>

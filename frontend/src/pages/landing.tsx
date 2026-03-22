@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Link } from 'react-router';
 import { LogoBirdflop } from '@luminescent/ui-react';
 import {
@@ -13,8 +13,393 @@ import {
   Laptop,
   Send,
   GraduationCap,
+  Play,
+  Globe,
+  Zap,
 } from 'lucide-react';
 import { apiUrl } from '../util/UserData';
+
+// ---------------------------------------------------------------------------
+// Terminal demo data
+// ---------------------------------------------------------------------------
+
+interface DemoProgram {
+  label: string;
+  filename: string;
+  code: string[];
+  runCommand: string;
+  output: string[];
+}
+
+const DEMO_PROGRAMS: DemoProgram[] = [
+  {
+    label: 'Simple Web API',
+    filename: 'api.py',
+    code: [
+      'from flask import Flask, jsonify',
+      '',
+      'app = Flask(__name__)',
+      '',
+      'todos = [',
+      '    {"id": 1, "task": "Learn Python"},',
+      '    {"id": 2, "task": "Build something cool"},',
+      ']',
+      '',
+      '@app.route("/todos")',
+      'def get_todos():',
+      '    return jsonify(todos)',
+      '',
+      'app.run(host="0.0.0.0", port=3000)',
+    ],
+    runCommand: '$ python api.py',
+    output: [
+      ' * Running on http://0.0.0.0:3000',
+      ' * Your app is live at:',
+      '   https://abc123.3compute.io/todos',
+    ],
+  },
+  {
+    label: 'Number Guessing Game',
+    filename: 'guess.py',
+    code: [
+      'import random',
+      '',
+      'def play():',
+      '    secret = random.randint(1, 100)',
+      '    attempts = 0',
+      '    print("Guess a number between 1 and 100!")',
+      '    while True:',
+      '        guess = int(input("> "))',
+      '        attempts += 1',
+      '        if guess < secret:',
+      '            print("Too low!")',
+      '        elif guess > secret:',
+      '            print("Too high!")',
+      '        else:',
+      '            print(f"Correct in {attempts} tries!")',
+      '            break',
+      '',
+      'play()',
+    ],
+    runCommand: '$ python guess.py',
+    output: [
+      'Guess a number between 1 and 100!',
+      '> 50',
+      'Too low!',
+      '> 75',
+      'Too high!',
+      '> 63',
+      'Correct in 3 tries!',
+    ],
+  },
+  {
+    label: 'Bubble Sort',
+    filename: 'sort.py',
+    code: [
+      'def bubble_sort(arr):',
+      '    n = len(arr)',
+      '    for i in range(n):',
+      '        for j in range(n - i - 1):',
+      '            if arr[j] > arr[j + 1]:',
+      '                arr[j], arr[j + 1] = arr[j + 1], arr[j]',
+      '    return arr',
+      '',
+      'data = [64, 34, 25, 12, 22, 11, 90]',
+      'print("Before:", data)',
+      'print("After: ", bubble_sort(data))',
+    ],
+    runCommand: '$ python sort.py',
+    output: [
+      'Before: [64, 34, 25, 12, 22, 11, 90]',
+      'After:  [11, 12, 22, 25, 34, 64, 90]',
+    ],
+  },
+];
+
+// Syntax highlight a single line of Python source
+function highlightLine(line: string): React.ReactNode {
+  if (line === '') return <br />;
+
+  // Very simple token-level coloriser (no regex backtracking issues)
+  const keywords = new Set([
+    'import', 'from', 'def', 'return', 'while', 'for', 'if', 'elif',
+    'else', 'in', 'range', 'True', 'False', 'None', 'break', 'int',
+  ]);
+
+  // Tokenise: strings, comments, identifiers, numbers, operators, whitespace
+  const tokens: { type: string; value: string }[] = [];
+  let i = 0;
+  while (i < line.length) {
+    // String literals
+    if (line[i] === '"' || line[i] === '\'') {
+      const quote = line[i];
+      let j = i + 1;
+      while (j < line.length && line[j] !== quote) j++;
+      tokens.push({ type: 'string', value: line.slice(i, j + 1) });
+      i = j + 1;
+      continue;
+    }
+    // f-string prefix
+    if ((line[i] === 'f' || line[i] === 'F') && (line[i + 1] === '"' || line[i + 1] === '\'')) {
+      const quote = line[i + 1];
+      let j = i + 2;
+      while (j < line.length && line[j] !== quote) j++;
+      tokens.push({ type: 'string', value: line.slice(i, j + 1) });
+      i = j + 1;
+      continue;
+    }
+    // Comment
+    if (line[i] === '#') {
+      tokens.push({ type: 'comment', value: line.slice(i) });
+      break;
+    }
+    // Number
+    if (/\d/.test(line[i])) {
+      let j = i;
+      while (j < line.length && /[\d.]/.test(line[j])) j++;
+      tokens.push({ type: 'number', value: line.slice(i, j) });
+      i = j;
+      continue;
+    }
+    // Identifier or keyword
+    if (/[a-zA-Z_]/.test(line[i])) {
+      let j = i;
+      while (j < line.length && /\w/.test(line[j])) j++;
+      const word = line.slice(i, j);
+      tokens.push({ type: keywords.has(word) ? 'keyword' : 'ident', value: word });
+      i = j;
+      continue;
+    }
+    // Decorator
+    if (line[i] === '@') {
+      let j = i + 1;
+      while (j < line.length && /\w/.test(line[j])) j++;
+      tokens.push({ type: 'decorator', value: line.slice(i, j) });
+      i = j;
+      continue;
+    }
+    // Everything else (operators, punctuation, spaces)
+    tokens.push({ type: 'other', value: line[i] });
+    i++;
+  }
+
+  const colorMap: Record<string, string> = {
+    keyword: '#c792ea',
+    string: '#c3e88d',
+    number: '#f78c6c',
+    comment: '#546e7a',
+    decorator: '#82aaff',
+    ident: '#e0e0e0',
+    other: '#89ddff',
+  };
+
+  return (
+    <>
+      {tokens.map((tok, idx) => (
+        <span key={idx} style={{ color: colorMap[tok.type] }}>
+          {tok.value}
+        </span>
+      ))}
+    </>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// TerminalDemo component
+// ---------------------------------------------------------------------------
+
+type Phase = 'typing-code' | 'ready' | 'typing-run' | 'typing-output' | 'done';
+
+function TerminalDemo() {
+  const [programIndex, setProgramIndex] = useState(0);
+  const [phase, setPhase] = useState<Phase>('typing-code');
+  const [visibleCodeLines, setVisibleCodeLines] = useState(0);
+  const [runCommandChars, setRunCommandChars] = useState(0);
+  const [visibleOutputLines, setVisibleOutputLines] = useState(0);
+  const timeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  const program = DEMO_PROGRAMS[programIndex];
+
+  function clearAllTimeouts() {
+    timeoutsRef.current.forEach(clearTimeout);
+    timeoutsRef.current = [];
+  }
+
+  function schedule(fn: () => void, delay: number) {
+    const id = setTimeout(fn, delay);
+    timeoutsRef.current.push(id);
+  }
+
+  function startSequence(idx: number) {
+    clearAllTimeouts();
+    const prog = DEMO_PROGRAMS[idx];
+    setVisibleCodeLines(0);
+    setRunCommandChars(0);
+    setVisibleOutputLines(0);
+    setPhase('typing-code');
+
+    const LINE_DELAY = 80;
+    prog.code.forEach((_, lineIdx) => {
+      schedule(() => {
+        setVisibleCodeLines(lineIdx + 1);
+        if (lineIdx === prog.code.length - 1) setPhase('ready');
+      }, LINE_DELAY * (lineIdx + 1));
+    });
+  }
+
+  // Start on mount and when programIndex changes
+  useEffect(() => {
+    startSequence(programIndex);
+    return clearAllTimeouts;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [programIndex]);
+
+  function handleRun() {
+    if (phase !== 'ready') return;
+    setPhase('typing-run');
+    setRunCommandChars(0);
+
+    const cmd = program.runCommand;
+    const CHAR_DELAY = 35;
+    cmd.split('').forEach((_, charIdx) => {
+      schedule(() => setRunCommandChars(charIdx + 1), CHAR_DELAY * (charIdx + 1));
+    });
+
+    const cmdDuration = CHAR_DELAY * cmd.length + 150;
+    schedule(() => {
+      setPhase('typing-output');
+      const OUT_DELAY = 180;
+      program.output.forEach((_, i) => {
+        schedule(() => {
+          setVisibleOutputLines(i + 1);
+          if (i === program.output.length - 1) {
+            setPhase('done');
+          }
+        }, OUT_DELAY * (i + 1));
+      });
+    }, cmdDuration);
+  }
+
+  function handleNext() {
+    const next = (programIndex + 1) % DEMO_PROGRAMS.length;
+    setProgramIndex(next);
+  }
+
+  return (
+    <div
+      className="rounded-xl overflow-hidden border border-gray-700 shadow-2xl shadow-black/60 w-full max-w-lg mx-auto lg:mx-0"
+      aria-label="Interactive terminal demo showing a student's 3Compute coding session"
+      role="region"
+    >
+      {/* Title bar */}
+      <div className="flex items-center justify-between bg-gray-900 border-b border-gray-700 px-4 py-2.5">
+        <div className="flex items-center gap-2">
+          <span className="w-3 h-3 rounded-full bg-red-500/70" />
+          <span className="w-3 h-3 rounded-full bg-yellow-500/70" />
+          <span className="w-3 h-3 rounded-full bg-green-500/70" />
+        </div>
+        <span className="text-xs text-gray-400 font-mono">{program.filename}</span>
+        <div className="flex items-center gap-2">
+          {/* Program selector */}
+          {DEMO_PROGRAMS.map((p, i) => (
+            <button
+              key={i}
+              onClick={() => setProgramIndex(i)}
+              className={`text-xs px-2 py-0.5 rounded transition-colors ${
+                i === programIndex
+                  ? 'bg-[#54daf4]/20 text-[#54daf4]'
+                  : 'text-gray-500 hover:text-gray-300'
+              }`}
+              aria-label={`Switch to ${p.label} demo`}
+            >
+              {i + 1}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Code pane */}
+      <div className="bg-[#0d1117] px-5 pt-4 pb-3 font-mono text-sm leading-6">
+        {program.code.map((line, i) => (
+          <div key={i} className={`flex gap-4 transition-opacity duration-75 ${i < visibleCodeLines ? 'opacity-100' : 'opacity-0'}`}>
+            <span className="select-none text-gray-600 text-xs leading-6 w-4 text-right flex-shrink-0">
+              {i + 1}
+            </span>
+            <span className="whitespace-pre">
+              {line === '' ? <span>&nbsp;</span> : highlightLine(line)}
+            </span>
+          </div>
+        ))}
+      </div>
+
+      {/* Terminal pane */}
+      <div className="bg-[#0a0e13] border-t border-gray-800 px-5 py-3 font-mono text-sm min-h-[100px]">
+        {/* Idle $ prompt */}
+        {(phase === 'typing-code' || phase === 'ready') && (
+          <div className="text-gray-500 flex items-center gap-1">
+            $<span className="inline-block w-2 h-[14px] bg-gray-500 animate-pulse" />
+          </div>
+        )}
+        {/* Run command typed char-by-char */}
+        {runCommandChars > 0 && (
+          <div className="text-gray-400 flex items-center">
+            <span>{program.runCommand.slice(0, runCommandChars)}</span>
+            {phase === 'typing-run' && (
+              <span className="inline-block w-2 h-[14px] bg-gray-400 animate-pulse ml-0.5" />
+            )}
+          </div>
+        )}
+        {/* Output lines, cursor trails the last visible one */}
+        {program.output.slice(0, visibleOutputLines).map((line, i) => (
+          <div key={i} className="text-[#54daf4] flex items-center">
+            <span>{line}</span>
+            {phase === 'typing-output' && i === visibleOutputLines - 1 && (
+              <span className="inline-block w-2 h-[14px] bg-[#54daf4] animate-pulse ml-0.5" />
+            )}
+          </div>
+        ))}
+        {/* New $ prompt after run completes */}
+        {phase === 'done' && (
+          <div className="text-gray-500 flex items-center gap-1 mt-1">
+            $<span className="inline-block w-2 h-[14px] bg-gray-500 animate-pulse" />
+          </div>
+        )}
+      </div>
+
+      {/* Controls */}
+      <div className="bg-gray-900 border-t border-gray-700 px-4 py-2.5 flex items-center justify-between">
+        <span className="text-xs text-gray-500">{program.label}</span>
+        <div className="flex items-center gap-2">
+          {phase === 'done' && (
+            <button
+              onClick={handleNext}
+              className="text-xs text-gray-400 hover:text-white transition-colors px-3 py-1 rounded border border-gray-700 hover:border-gray-500"
+            >
+              Next example
+            </button>
+          )}
+          <button
+            onClick={handleRun}
+            disabled={phase !== 'ready'}
+            className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded transition-colors ${
+              phase === 'ready'
+                ? 'bg-[#2a9bb8] hover:bg-[#238da8] text-white cursor-pointer'
+                : 'bg-gray-700 text-gray-500 cursor-not-allowed'
+            }`}
+            aria-label="Run the code"
+          >
+            <Play size={12} />
+            Run
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Page
+// ---------------------------------------------------------------------------
 
 export default function LandingPage() {
   useEffect(() => {
@@ -27,10 +412,10 @@ export default function LandingPage() {
   return (
     <div className="-mt-20 text-white">
       {/* Hero */}
-      <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(84,218,244,0.12)_0%,_rgba(84,94,182,0.06)_40%,_transparent_70%)]" />
+      <section className="relative min-h-screen flex items-center">
+        <div className="absolute inset-x-0 -top-20 bottom-0 bg-[radial-gradient(ellipse_at_top,_rgba(84,218,244,0.12)_0%,_rgba(84,94,182,0.06)_40%,_transparent_70%)]" />
         <div
-          className="absolute inset-0"
+          className="absolute inset-x-0 -top-20 bottom-0"
           style={{
             backgroundImage:
               'radial-gradient(rgba(84, 218, 244, 0.05) 1px, transparent 1px)',
@@ -38,51 +423,53 @@ export default function LandingPage() {
           }}
         />
 
-        <div className="relative z-10 flex flex-col items-center text-center px-6 max-w-3xl mx-auto">
-          <div className="mb-6 relative">
-            <div className="absolute -inset-4 bg-[#54daf4]/5 rounded-full blur-2xl" />
-            <LogoBirdflop
-              size={110}
-              fillGradient={['#54daf4', '#545eb6']}
-              className="relative"
-            />
-          </div>
-          <h1 className="text-5xl sm:text-6xl font-bold tracking-tight mb-4">
-            3Compute
-          </h1>
-          <p className="text-lg sm:text-xl text-gray-300 max-w-2xl mb-3 leading-relaxed">
-            A free coding classroom for teachers and students.
-            <br />
-            No setup required. Built by Birdflop, a 501(c)(3) nonprofit.
-          </p>
+        <div className="relative z-10 w-full max-w-6xl mx-auto px-6 py-28 lg:py-32">
+          <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-16">
+            {/* Left: headline + CTAs */}
+            <div className="flex-1 text-center lg:text-left">
+              <h1 className="text-4xl sm:text-5xl lg:text-5xl xl:text-6xl font-bold tracking-tight mb-5 leading-tight">
+                The coding classroom{' '}
+                <span className="text-[#54daf4]">that stays with students</span>
+              </h1>
+              <p className="text-base sm:text-lg text-gray-300 max-w-xl mx-auto lg:mx-0 mb-8 leading-relaxed">
+                Free coding environment for teachers and students. Import lessons, run real Python
+                in the browser, and let students build projects they keep.
+              </p>
 
-          <div className="flex flex-wrap gap-4 justify-center mt-6">
-            <a
-              href={`${apiUrl}/auth/login`}
-              className="lum-btn lum-pad-md text-lg rounded-lg bg-[#2a9bb8] hover:bg-[#238da8] text-white font-semibold inline-flex items-center gap-2 transition-colors shadow-lg shadow-[#2a9bb8]/20"
-            >
-              Sign in with Google
-              <ArrowRight size={20} />
-            </a>
-            <a
-              href="#how-it-works"
-              className="lum-btn lum-pad-md text-lg rounded-lg border border-gray-600 hover:border-gray-400 font-semibold inline-flex items-center gap-2 transition-colors"
-              onClick={(e) => {
-                e.preventDefault();
-                document
-                  .getElementById('how-it-works')
-                  ?.scrollIntoView({ behavior: 'smooth' });
-              }}
-            >
-              How it works
-            </a>
-            <Link
-              to="/lessons"
-              className="lum-btn lum-pad-md text-lg rounded-lg border border-gray-600 hover:border-gray-400 font-semibold inline-flex items-center gap-2 transition-colors"
-            >
-              Browse Lessons
-              <LayoutTemplate size={18} />
-            </Link>
+              <div className="flex flex-wrap gap-3 justify-center lg:justify-start">
+                <a
+                  href={`${apiUrl}/auth/login`}
+                  className="lum-btn lum-pad-md text-base rounded-lg bg-[#2a9bb8] hover:bg-[#238da8] text-white font-semibold inline-flex items-center gap-2 transition-colors shadow-lg shadow-[#2a9bb8]/20"
+                >
+                  Sign in with Google
+                  <ArrowRight size={18} />
+                </a>
+                <a
+                  href="#how-it-works"
+                  className="lum-btn lum-pad-md text-base rounded-lg border border-gray-600 hover:border-gray-400 font-semibold inline-flex items-center gap-2 transition-colors"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    document
+                      .getElementById('how-it-works')
+                      ?.scrollIntoView({ behavior: 'smooth' });
+                  }}
+                >
+                  How it works
+                </a>
+                <Link
+                  to="/lessons"
+                  className="lum-btn lum-pad-md text-base rounded-lg border border-gray-600 hover:border-gray-400 font-semibold inline-flex items-center gap-2 transition-colors"
+                >
+                  Browse Lessons
+                  <LayoutTemplate size={16} />
+                </Link>
+              </div>
+            </div>
+
+            {/* Right: terminal demo */}
+            <div className="flex-1 w-full lg:max-w-[480px]">
+              <TerminalDemo />
+            </div>
           </div>
         </div>
       </section>
@@ -90,10 +477,7 @@ export default function LandingPage() {
       {/* Features */}
       <section className="py-20 px-6 border-t border-gray-700/50">
         <div className="max-w-5xl mx-auto">
-          <h2 className="text-3xl font-bold text-center mb-12">
-            What you get
-          </h2>
-
+          <h2 className="text-3xl font-bold text-center mb-12">What you get</h2>
           <div className="grid md:grid-cols-3 gap-6">
             <FeatureCard
               icon={<Terminal size={28} />}
@@ -114,12 +498,44 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Student Ownership */}
+      <section className="py-20 px-6 border-t border-gray-700/50">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold mb-4">
+              Students own their projects
+            </h2>
+            <p className="text-gray-400 max-w-xl mx-auto">
+              Class ends, but the code keeps running. Every student project lives on Birdflop's
+              servers and stays online for free, long after the lesson is over.
+            </p>
+          </div>
+
+          <div className="grid sm:grid-cols-3 gap-5 mb-12">
+            <OwnershipCard
+              icon={<Globe size={22} />}
+              title="Host websites"
+              description="Serve a real site at a public URL. Flask, FastAPI, or anything that binds to a port."
+            />
+            <OwnershipCard
+              icon={<Zap size={22} />}
+              title="Build REST APIs"
+              description="Expose endpoints other apps can call. A real server, not a temporary notebook cell."
+            />
+            <OwnershipCard
+              icon={<Code size={22} />}
+              title="Any Python app"
+              description="If it runs on a Linux server, it runs on 3Compute. Scripts, scrapers, games, automation, anything."
+            />
+          </div>
+
+        </div>
+      </section>
+
       {/* How It Works */}
       <section id="how-it-works" className="py-20 px-6 border-t border-gray-700/50">
         <div className="max-w-5xl mx-auto">
-          <h2 className="text-3xl font-bold text-center mb-12">
-            How it works
-          </h2>
+          <h2 className="text-3xl font-bold text-center mb-12">How it works</h2>
 
           <div className="grid md:grid-cols-2 gap-12 lg:gap-20">
             <div>
@@ -130,9 +546,9 @@ export default function LandingPage() {
                 <h3 className="text-xl font-semibold">For Teachers</h3>
               </div>
               <div className="space-y-5">
-                <Step number={1} icon={<Code size={18} />} text="Create a classroom" />
-                <Step number={2} icon={<Share2 size={18} />} text="Import a lesson or start from scratch" />
-                <Step number={3} icon={<Send size={18} />} text="Share the access code with students" />
+                <Step number={1} icon={<Code size={18} />} text="Create a classroom and import a lesson" />
+                <Step number={2} icon={<Share2 size={18} />} text="Share the access code with students" />
+                <Step number={3} icon={<Users size={18} />} text="Watch progress update as students work" />
               </div>
             </div>
 
@@ -146,7 +562,7 @@ export default function LandingPage() {
               <div className="space-y-5">
                 <Step number={1} icon={<UserPlus size={18} />} text="Join with the code your teacher gave you" />
                 <Step number={2} icon={<Laptop size={18} />} text="Open your personal coding environment" />
-                <Step number={3} icon={<Send size={18} />} text="Write, run, and submit your code" />
+                <Step number={3} icon={<Send size={18} />} text="Write, run, and keep your projects forever" />
               </div>
             </div>
           </div>
@@ -187,6 +603,10 @@ export default function LandingPage() {
   );
 }
 
+// ---------------------------------------------------------------------------
+// Helper components
+// ---------------------------------------------------------------------------
+
 function FeatureCard({
   icon,
   title,
@@ -203,6 +623,26 @@ function FeatureCard({
       </div>
       <h3 className="text-base font-semibold mb-2">{title}</h3>
       <p className="text-gray-400 text-sm leading-relaxed">{description}</p>
+    </div>
+  );
+}
+
+function OwnershipCard({
+  icon,
+  title,
+  description,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+}) {
+  return (
+    <div className="rounded-xl p-5 border border-gray-700 hover:border-[#54daf4]/30 transition-colors bg-gray-900/30">
+      <div className="w-10 h-10 rounded-lg bg-[#54daf4]/10 flex items-center justify-center text-[#54daf4] mb-3">
+        {icon}
+      </div>
+      <h3 className="text-base font-semibold mb-2">{title}</h3>
+      <p className="text-gray-400 text-base leading-relaxed">{description}</p>
     </div>
   );
 }

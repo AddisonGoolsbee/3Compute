@@ -1,0 +1,259 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<!-- ==========================================================================
+     SECTION 1: WELCOME BANNER (PROVIDED)
+     This section is fully built. It shows how Flask serves templates and how
+     CSS variables control the color scheme.
+
+     YOUR TURN: Change the heading and subtitle to say something about you.
+     Then open style.css and change the --primary color to something you like.
+========================================================================== -->
+<section id="home" class="hero">
+    <div class="hero-content">
+        <h1 class="hero-title">Hi, I'm <span class="accent">Your Name</span></h1>
+        <p class="hero-subtitle">Student. Builder. Future computer scientist.</p>
+        <div class="hero-buttons">
+            <a href="#projects" class="btn btn-primary">See My Work</a>
+            <a href="#about" class="btn btn-outline">About Me</a>
+        </div>
+    </div>
+    <!-- Decorative background shapes -->
+    <div class="hero-bg">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+    </div>
+</section>
+
+
+<!-- ==========================================================================
+     TODO SECTION 2: ABOUT ME
+     Add a section that tells visitors who you are.
+
+     STEPS:
+     1. Uncomment the HTML below (select all of it, then use Ctrl+/ or Cmd+/)
+     2. Replace the placeholder text with YOUR real bio
+     3. Change your initials in the avatar circle
+     4. In style.css, scroll to "SECTION 2" and add styles for this section
+        (or customize the ones provided in the solution)
+
+     WHAT TO WRITE:
+     - Where you go to school
+     - What you're interested in (inside and outside of CS)
+     - One thing you're proud of
+     - What you want to do or learn next
+
+     Keep it real. This is YOUR page.
+========================================================================== -->
+<!--
+<section id="about" class="about-section section">
+    <div class="container">
+        <h2 class="section-title">About Me</h2>
+        <div class="about-grid">
+            <div class="about-avatar">
+                <div class="avatar-circle">
+                    YOUR INITIALS HERE
+                </div>
+            </div>
+            <div class="about-text">
+                <p>
+                    Hi! I'm a student at [Your School] interested in [your interests].
+                    I started learning to code [when/how], and since then I've built
+                    [something you made].
+                </p>
+                <p>
+                    Outside of CS, I [hobby / sport / interest]. I'm currently learning
+                    [something new] and hoping to [future goal].
+                </p>
+                <div class="about-tags">
+                    <span class="tag">Python</span>
+                    <span class="tag">Web Dev</span>
+                    <span class="tag">Add your own</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+-->
+
+
+<!-- ==========================================================================
+     TODO SECTION 3: MY PROJECTS
+     Add a grid of cards showing projects you've built.
+
+     STEPS:
+     1. Uncomment the HTML below
+     2. Replace the placeholder cards with YOUR real projects
+        - Use assignments from this class
+        - Use personal projects you've worked on
+        - If a link isn't ready, use href="#" as a placeholder
+     3. Add at least 3 cards (more is better)
+
+     WHAT MAKES A GOOD PROJECT CARD:
+     - Clear title
+     - 1-2 sentence description (what does it do? what did you learn?)
+     - A link (even if it just goes to "#" for now)
+========================================================================== -->
+<!--
+<section id="projects" class="projects-section section">
+    <div class="container">
+        <h2 class="section-title">My Projects</h2>
+        <div class="projects-grid">
+
+            <div class="project-card">
+                <div class="project-card-header">
+                    <span class="project-icon">🎮</span>
+                    <h3>Tic-Tac-Toe AI</h3>
+                </div>
+                <p>An unbeatable Tic-Tac-Toe opponent powered by the minimax algorithm.
+                   It explores every possible future move to make the perfect play.</p>
+                <div class="project-links">
+                    <a href="#" class="project-link">View Project</a>
+                </div>
+            </div>
+
+            <div class="project-card">
+                <div class="project-card-header">
+                    <span class="project-icon">🌐</span>
+                    <h3>This Portfolio</h3>
+                </div>
+                <p>The website you're looking at right now. Built with Flask on the
+                   backend and HTML/CSS/JavaScript on the frontend.</p>
+                <div class="project-links">
+                    <a href="#" class="project-link">View Project</a>
+                </div>
+            </div>
+
+            <div class="project-card">
+                <div class="project-card-header">
+                    <span class="project-icon">✏️</span>
+                    <h3>Your Project Title</h3>
+                </div>
+                <p>Describe what this project does and what you learned from building it.
+                   Keep it short. One or two sentences is perfect.</p>
+                <div class="project-links">
+                    <a href="#" class="project-link">View Project</a>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+-->
+
+
+<!-- ==========================================================================
+     TODO SECTION 4: SKILLS PROGRESS BARS
+     Show your skills as animated progress bars loaded from your Flask API.
+
+     STEPS:
+     1. Open app.py and uncomment + complete the /api/skills route (Section 4)
+     2. Uncomment the HTML below
+     3. Open app.js and uncomment + complete the Section 4 JavaScript
+        (it uses fetch() to call your /api/skills route and build the bars)
+
+     HOW IT WORKS:
+     - Your Flask route returns a JSON list: [{"skill": "Python", "level": 80}, ...]
+     - JavaScript fetches that list and creates <div> elements for each skill
+     - CSS animates the bars when they load
+     - YOU decide the skills and levels. Make them honest!
+========================================================================== -->
+<!--
+<section id="skills" class="skills-section section">
+    <div class="container">
+        <h2 class="section-title">My Skills</h2>
+        <p class="section-subtitle">Fetched live from the server</p>
+        <div id="skills-container">
+            <p class="loading-text">Loading skills...</p>
+        </div>
+    </div>
+</section>
+-->
+
+
+<!-- ==========================================================================
+     TODO SECTION 5: QUOTE OF THE DAY
+     Show a random inspirational quote, with a button to load a new one.
+
+     STEPS:
+     1. Open app.py and uncomment + complete the /quote route (Section 5)
+     2. Uncomment the HTML below
+     3. Open app.js and uncomment + complete the Section 5 JavaScript
+
+     HOW IT WORKS:
+     - Your Flask route calls an external quote API (dummyjson.com)
+     - It returns the quote as JSON to the browser
+     - JavaScript displays the quote and wires up the "New Quote" button
+     - The backend acts as a middleman. This is a common real-world pattern.
+========================================================================== -->
+<!--
+<section id="quote" class="quote-section section">
+    <div class="container">
+        <h2 class="section-title">Quote of the Day</h2>
+        <div class="quote-card">
+            <blockquote id="quote-text">Loading quote...</blockquote>
+            <p id="quote-author" class="quote-author"></p>
+            <button id="new-quote-btn" class="btn btn-primary">New Quote</button>
+        </div>
+    </div>
+</section>
+-->
+
+
+<!-- ==========================================================================
+     TODO SECTION 6: LIVE CLOCK
+     A live digital clock that updates every second. Pure JavaScript, no backend.
+
+     STEPS:
+     1. Uncomment the HTML below
+     2. Open app.js and uncomment + complete the Section 6 JavaScript
+        (use setInterval to update the clock every 1000ms)
+
+     OPTIONAL EXTENSION:
+     Add a countdown timer to a date you care about: graduation, a birthday,
+     a concert, summer break. Calculate the time difference in JavaScript
+     and display it below the clock.
+========================================================================== -->
+<!--
+<section id="clock" class="clock-section section">
+    <div class="container">
+        <h2 class="section-title">Live Clock</h2>
+        <div class="clock-display">
+            <span id="clock-time">--:--:--</span>
+            <span id="clock-date" class="clock-date"></span>
+        </div>
+        <div id="countdown-container" class="countdown">
+            </div>
+    </div>
+</section>
+-->
+
+
+<!-- ==========================================================================
+     TODO SECTION 7: VISITOR COUNTER
+     Track how many times the page has been visited and display the count.
+
+     STEPS:
+     1. Open app.py and uncomment + complete the /api/visitors routes (Section 7)
+     2. Uncomment the HTML below
+     3. Open app.js and uncomment + complete the Section 7 JavaScript
+        (POST on page load to increment, then display the returned count)
+
+     HOW IT WORKS:
+     - When the page loads, JavaScript POSTs to /api/visitors (incrementing the count)
+     - The server reads counter.txt, adds 1, saves it, and returns the new count
+     - JavaScript displays "You are visitor #N"
+     - counter.txt persists the count even if the server restarts
+========================================================================== -->
+<!--
+<section id="visitors" class="visitors-section section">
+    <div class="container">
+        <div class="visitor-card">
+            <p id="visitor-count" class="visitor-text">Counting visitors...</p>
+        </div>
+    </div>
+</section>
+-->
+
+{% endblock %}

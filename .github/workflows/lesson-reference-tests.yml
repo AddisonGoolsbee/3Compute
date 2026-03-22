@@ -1,0 +1,45 @@
+# Reference solutions under frontend/public/docs must pass each lesson's
+# student test suite (frontend/public/templateProjects/*/test_*.py).
+
+name: Lesson reference solutions
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "frontend/public/templateProjects/**"
+      - "frontend/public/docs/**"
+      - "tools/verify_lesson_reference_tests.py"
+      - ".github/workflows/lesson-reference-tests.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "frontend/public/templateProjects/**"
+      - "frontend/public/docs/**"
+      - "tools/verify_lesson_reference_tests.py"
+      - ".github/workflows/lesson-reference-tests.yml"
+  workflow_dispatch:
+
+jobs:
+  verify-lesson-solutions:
+    runs-on: ubuntu-22.04
+    name: Reference solutions vs student tests
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Python deps for lessons that need them
+        run: |
+          python -m venv .venv-lessons
+          .venv-lessons/bin/pip install --upgrade pip
+          .venv-lessons/bin/pip install -r frontend/public/templateProjects/My-Website/requirements.txt
+          .venv-lessons/bin/pip install -r frontend/public/templateProjects/Weather-App/requirements.txt
+
+      - name: Run lesson reference verification
+        env:
+          VERIFY_LESSONS_NO_PIP: "1"
+        run: .venv-lessons/bin/python tools/verify_lesson_reference_tests.py

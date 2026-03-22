@@ -6,7 +6,17 @@ import tseslint from 'typescript-eslint'
 import { globalIgnores } from 'eslint/config'
 
 export default tseslint.config(
-  globalIgnores(['node_modules/*', 'dist/*', 'build/*', 'server/*', 'tmp/*', '.react-router/*']),
+  globalIgnores([
+    'node_modules/*',
+    'dist/*',
+    'build/*',
+    'server/*',
+    'tmp/*',
+    '.react-router/*',
+    // Lesson solutions and template starter JS are static assets, not app source
+    'public/docs/**',
+    'public/templateProjects/**',
+  ]),
   js.configs.recommended,
   tseslint.configs.recommended,
   reactHooks.configs.flat['recommended-latest'],

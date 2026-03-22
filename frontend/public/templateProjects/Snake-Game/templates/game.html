@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Snake</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div id="game-container">
+    <div id="header">
+      <h1>Snake</h1>
+      <div id="score-display">Score: <span id="score">0</span></div>
+    </div>
+    <div id="canvas-wrapper">
+      <canvas id="gameCanvas" width="600" height="600"></canvas>
+      <div id="game-over-overlay" class="hidden">
+        <h2>Game Over</h2>
+        <p>Score: <span id="final-score">0</span></p>
+        <div id="score-form">
+          <input type="text" id="player-name" placeholder="Your name" maxlength="20">
+          <button id="submit-score-btn">Save Score</button>
+        </div>
+        <button id="restart-btn">Play Again</button>
+      </div>
+    </div>
+    <div id="leaderboard">
+      <h3>Top Scores</h3>
+      <ol id="leaderboard-list"></ol>
+    </div>
+  </div>
+  <script src="/static/game.js"></script>
+</body>
+</html>

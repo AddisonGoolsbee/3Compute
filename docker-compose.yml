@@ -41,6 +41,7 @@ services:
     image: alpine:3
     command: sh -c "mkdir -p /data/uploads /data/classrooms && chown -R 33:33 /data"
     volumes:
+      - 3compute-base:/data
       - 3compute-uploads:/data/uploads
       - 3compute-classrooms:/data/classrooms
 
@@ -63,6 +64,7 @@ services:
     volumes:
       - .:/var/www/3compute
       - backend-logs:/var/www/3compute/logs
+      - 3compute-base:/var/lib/3compute
       - 3compute-uploads:/var/lib/3compute/uploads
       - 3compute-classrooms:/var/lib/3compute/classrooms
     working_dir: /var/www/3compute
@@ -82,6 +84,7 @@ services:
   # Frontend Vite dev server
   frontend:
     image: node:22-alpine
+    restart: unless-stopped
     working_dir: /app
     environment:
       PNPM_HOME: /pnpm
@@ -100,6 +103,7 @@ networks:
 
 volumes:
   dind-storage:
+  3compute-base:
   3compute-uploads:
   3compute-classrooms:
   frontend-node-modules:

@@ -1,0 +1,655 @@
+/* =============================================================================
+   MY WEBSITE: STYLESHEET
+   =============================================================================
+
+   HOW COLORS WORK HERE:
+   The --primary, --background, and other variables at the top control the
+   entire color scheme. Change those four values and the whole site updates.
+
+   YOUR TURN (Section 1 / Day 1):
+   1. Pick a primary color you like (search "color picker" in your browser)
+   2. Replace the value of --primary with your chosen hex code
+   3. If you want a dark look from the start, swap --background and --card-bg
+      for darker values
+
+   CSS CUSTOM PROPERTIES (variables) reference:
+   https://developer.mozilla.org/en-US/docs/Web/CSS/Using_CSS_custom_properties
+============================================================================= */
+
+/* =============================================================================
+   DESIGN TOKENS (change these to retheme the whole site)
+============================================================================= */
+:root {
+    /* YOUR TURN: Pick your own primary color */
+    --primary:        #6C63FF;    /* purple-ish default, change this */
+    --primary-dark:   #554fcc;
+    --primary-light:  #a99ffd;
+
+    --background:     #f8f9fc;
+    --surface:        #ffffff;
+    --card-bg:        #ffffff;
+    --card-border:    #e8eaf0;
+
+    --text:           #1a1b2e;
+    --text-muted:     #6b7280;
+    --text-light:     #9ca3af;
+
+    --nav-bg:         #ffffff;
+    --footer-bg:      #1a1b2e;
+
+    --radius:         12px;
+    --radius-sm:      8px;
+    --shadow:         0 4px 24px rgba(0, 0, 0, 0.08);
+    --shadow-hover:   0 8px 32px rgba(0, 0, 0, 0.14);
+    --transition:     0.25s ease;
+
+    --max-width:      1100px;
+    --section-gap:    5rem;
+}
+
+/* Dark mode (Section 8 adds this class to <body>) */
+body.dark-mode {
+    --background:     #0f1117;
+    --surface:        #1a1d2e;
+    --card-bg:        #1e2235;
+    --card-border:    #2d3148;
+    --text:           #e8eaf0;
+    --text-muted:     #9ca3af;
+    --nav-bg:         #13151f;
+    --footer-bg:      #0a0b12;
+}
+
+
+/* =============================================================================
+   RESET & BASE
+============================================================================= */
+*, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html {
+    scroll-behavior: smooth;
+    font-size: 16px;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
+                 Ubuntu, sans-serif;
+    background-color: var(--background);
+    color: var(--text);
+    line-height: 1.6;
+    transition: background-color var(--transition), color var(--transition);
+}
+
+a {
+    color: var(--primary);
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+img {
+    max-width: 100%;
+    display: block;
+}
+
+/* Utility container */
+.container {
+    max-width: var(--max-width);
+    margin: 0 auto;
+    padding: 0 1.5rem;
+}
+
+/* Shared section spacing */
+.section {
+    padding: var(--section-gap) 0;
+}
+
+.section-title {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    color: var(--text);
+}
+
+.section-subtitle {
+    color: var(--text-muted);
+    margin-bottom: 2.5rem;
+    font-size: 0.95rem;
+}
+
+.accent {
+    color: var(--primary);
+}
+
+.loading-text {
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+
+/* =============================================================================
+   BUTTONS
+============================================================================= */
+.btn {
+    display: inline-block;
+    padding: 0.65rem 1.5rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: all var(--transition);
+    text-decoration: none;
+}
+
+.btn-primary {
+    background-color: var(--primary);
+    color: #ffffff;
+    border-color: var(--primary);
+}
+
+.btn-primary:hover {
+    background-color: var(--primary-dark);
+    border-color: var(--primary-dark);
+    text-decoration: none;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(108, 99, 255, 0.35);
+}
+
+.btn-outline {
+    background-color: transparent;
+    color: var(--primary);
+    border-color: var(--primary);
+}
+
+.btn-outline:hover {
+    background-color: var(--primary);
+    color: #ffffff;
+    text-decoration: none;
+    transform: translateY(-1px);
+}
+
+
+/* =============================================================================
+   NAVIGATION
+============================================================================= */
+.navbar {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background-color: var(--nav-bg);
+    border-bottom: 1px solid var(--card-border);
+    box-shadow: 0 1px 8px rgba(0,0,0,0.06);
+    transition: background-color var(--transition);
+}
+
+.nav-container {
+    max-width: var(--max-width);
+    margin: 0 auto;
+    padding: 0 1.5rem;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.nav-brand {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--text);
+    text-decoration: none;
+}
+
+.nav-brand:hover {
+    color: var(--primary);
+    text-decoration: none;
+}
+
+.nav-links {
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.nav-links a {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    font-weight: 500;
+    padding: 0.4rem 0.75rem;
+    border-radius: var(--radius-sm);
+    transition: color var(--transition), background-color var(--transition);
+    text-decoration: none;
+}
+
+.nav-links a:hover {
+    color: var(--primary);
+    background-color: color-mix(in srgb, var(--primary) 10%, transparent);
+    text-decoration: none;
+}
+
+/* Dark mode toggle button */
+.dark-toggle {
+    background: none;
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius-sm);
+    padding: 0.35rem 0.6rem;
+    cursor: pointer;
+    font-size: 1rem;
+    color: var(--text-muted);
+    transition: all var(--transition);
+}
+
+.dark-toggle:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+
+/* =============================================================================
+   SECTION 1: HERO BANNER (PROVIDED)
+============================================================================= */
+.hero {
+    position: relative;
+    overflow: hidden;
+    min-height: calc(100vh - 60px);
+    display: flex;
+    align-items: center;
+    background: linear-gradient(135deg,
+        color-mix(in srgb, var(--primary) 8%, var(--background)),
+        var(--background));
+}
+
+.hero-content {
+    position: relative;
+    z-index: 2;
+    max-width: var(--max-width);
+    margin: 0 auto;
+    padding: 4rem 1.5rem;
+}
+
+.hero-title {
+    font-size: clamp(2.5rem, 6vw, 4.5rem);
+    font-weight: 800;
+    line-height: 1.1;
+    margin-bottom: 1rem;
+    color: var(--text);
+}
+
+.hero-subtitle {
+    font-size: clamp(1.05rem, 2.5vw, 1.35rem);
+    color: var(--text-muted);
+    margin-bottom: 2rem;
+    max-width: 520px;
+}
+
+.hero-buttons {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+/* Decorative blobs */
+.hero-bg {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+.blob {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(80px);
+    opacity: 0.18;
+    background: var(--primary);
+}
+
+.blob-1 {
+    width: 500px;
+    height: 500px;
+    right: -100px;
+    top: -100px;
+}
+
+.blob-2 {
+    width: 300px;
+    height: 300px;
+    right: 200px;
+    bottom: -50px;
+    background: var(--primary-light);
+    opacity: 0.12;
+}
+
+
+/* =============================================================================
+   SECTION 2: ABOUT ME
+   YOUR TURN: Uncomment and customize these styles after you add the HTML
+============================================================================= */
+.about-section {
+    background-color: var(--surface);
+}
+
+.about-grid {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 3rem;
+    align-items: start;
+}
+
+@media (max-width: 640px) {
+    .about-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.avatar-circle {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary), var(--primary-light));
+    color: #ffffff;
+    font-size: 2rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 8px 24px color-mix(in srgb, var(--primary) 40%, transparent);
+}
+
+.about-text p {
+    color: var(--text-muted);
+    margin-bottom: 1rem;
+    font-size: 1.05rem;
+    line-height: 1.75;
+}
+
+.about-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 1.25rem;
+}
+
+.tag {
+    background: color-mix(in srgb, var(--primary) 12%, transparent);
+    color: var(--primary);
+    border: 1px solid color-mix(in srgb, var(--primary) 25%, transparent);
+    padding: 0.3rem 0.8rem;
+    border-radius: 999px;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+
+/* =============================================================================
+   SECTION 3: PROJECTS GRID
+============================================================================= */
+.projects-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.5rem;
+    margin-top: 2rem;
+}
+
+.project-card {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    box-shadow: var(--shadow);
+    transition: transform var(--transition), box-shadow var(--transition),
+                border-color var(--transition);
+}
+
+/* YOUR TURN: This is the hover effect. Try changing the scale or adding
+   a colored border. Experiment! */
+.project-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-hover);
+    border-color: var(--primary-light);
+}
+
+.project-card-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.project-icon {
+    font-size: 1.75rem;
+    line-height: 1;
+}
+
+.project-card h3 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text);
+}
+
+.project-card p {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    line-height: 1.6;
+    flex: 1;
+}
+
+.project-links {
+    margin-top: 0.25rem;
+}
+
+.project-link {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--primary);
+}
+
+.project-link:hover {
+    color: var(--primary-dark);
+}
+
+
+/* =============================================================================
+   SECTION 4: SKILLS PROGRESS BARS
+============================================================================= */
+.skills-section {
+    background-color: var(--surface);
+}
+
+#skills-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    max-width: 600px;
+    margin-top: 2rem;
+}
+
+.skill-row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.skill-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.skill-label span:last-child {
+    color: var(--text-muted);
+    font-weight: 400;
+}
+
+.skill-track {
+    height: 10px;
+    background: var(--card-border);
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.skill-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary), var(--primary-light));
+    border-radius: 999px;
+    width: 0%;
+    transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+
+/* =============================================================================
+   SECTION 5: QUOTE CARD
+============================================================================= */
+.quote-section {
+    background: linear-gradient(135deg,
+        color-mix(in srgb, var(--primary) 6%, var(--background)),
+        var(--background));
+}
+
+.quote-card {
+    max-width: 680px;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-left: 4px solid var(--primary);
+    border-radius: var(--radius);
+    padding: 2rem 2.5rem;
+    box-shadow: var(--shadow);
+    margin-top: 2rem;
+}
+
+#quote-text {
+    font-size: 1.2rem;
+    font-style: italic;
+    color: var(--text);
+    line-height: 1.7;
+    margin-bottom: 1rem;
+    quotes: "\201C" "\201D";
+}
+
+#quote-text::before {
+    content: open-quote;
+    color: var(--primary);
+    font-size: 2rem;
+    line-height: 0;
+    vertical-align: -0.4em;
+    margin-right: 0.1em;
+}
+
+.quote-author {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: 1.5rem;
+}
+
+.quote-author::before {
+    content: "— ";
+}
+
+
+/* =============================================================================
+   SECTION 6: LIVE CLOCK
+============================================================================= */
+.clock-section {
+    background-color: var(--surface);
+    text-align: center;
+}
+
+.clock-display {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 2rem;
+}
+
+/* YOUR TURN: Make the clock bigger, change the font, add a glow, go wild */
+#clock-time {
+    font-size: clamp(3rem, 10vw, 6rem);
+    font-weight: 800;
+    color: var(--primary);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.05em;
+    text-shadow: 0 0 40px color-mix(in srgb, var(--primary) 30%, transparent);
+}
+
+.clock-date {
+    font-size: 1.1rem;
+    color: var(--text-muted);
+}
+
+.countdown {
+    margin-top: 1.5rem;
+    font-size: 1rem;
+    color: var(--text-muted);
+}
+
+
+/* =============================================================================
+   SECTION 7: VISITOR COUNTER
+============================================================================= */
+.visitors-section {
+    padding: 3rem 0;
+}
+
+.visitor-card {
+    max-width: 400px;
+    margin: 0 auto;
+    text-align: center;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius);
+    padding: 2rem;
+    box-shadow: var(--shadow);
+}
+
+.visitor-text {
+    font-size: 1.1rem;
+    color: var(--text-muted);
+}
+
+.visitor-text strong {
+    color: var(--primary);
+    font-size: 1.5rem;
+}
+
+
+/* =============================================================================
+   FOOTER
+============================================================================= */
+.footer {
+    background-color: var(--footer-bg);
+    color: #9ca3af;
+    padding: 2.5rem 0;
+    text-align: center;
+    transition: background-color var(--transition);
+}
+
+.footer-container {
+    max-width: var(--max-width);
+    margin: 0 auto;
+    padding: 0 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.footer strong {
+    color: #ffffff;
+}
+
+.footer-sub {
+    font-size: 0.85rem;
+    opacity: 0.6;
+}
