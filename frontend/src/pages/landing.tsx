@@ -404,24 +404,31 @@ function TerminalDemo() {
 export default function LandingPage() {
   useEffect(() => {
     document.documentElement.style.overflowY = 'auto';
+    // Remove the nav's bottom border so it blends flush into the hero gradient
+    const style = document.createElement('style');
+    style.id = 'landing-nav-border';
+    style.textContent = 'nav > div { border-bottom: none !important; }';
+    document.head.appendChild(style);
     return () => {
       document.documentElement.style.overflowY = 'hidden';
+      document.getElementById('landing-nav-border')?.remove();
     };
   }, []);
 
   return (
     <div className="-mt-20 text-white">
+      {/* Hero gradient — fixed so it's always flush with the viewport top */}
+      <div className="fixed inset-x-0 top-0 h-screen pointer-events-none bg-[radial-gradient(ellipse_at_top,_rgba(84,218,244,0.12)_0%,_rgba(84,94,182,0.06)_40%,_transparent_70%)]" />
+      {/* Dot grid — covers entire page */}
+      <div
+        className="fixed inset-0 pointer-events-none"
+        style={{
+          backgroundImage: 'radial-gradient(rgba(84, 218, 244, 0.05) 1px, transparent 1px)',
+          backgroundSize: '32px 32px',
+        }}
+      />
       {/* Hero */}
       <section className="relative min-h-screen flex items-center">
-        <div className="absolute inset-x-0 -top-20 bottom-0 bg-[radial-gradient(ellipse_at_top,_rgba(84,218,244,0.12)_0%,_rgba(84,94,182,0.06)_40%,_transparent_70%)]" />
-        <div
-          className="absolute inset-x-0 -top-20 bottom-0"
-          style={{
-            backgroundImage:
-              'radial-gradient(rgba(84, 218, 244, 0.05) 1px, transparent 1px)',
-            backgroundSize: '32px 32px',
-          }}
-        />
 
         <div className="relative z-10 w-full max-w-6xl mx-auto px-6 py-28 lg:py-32">
           <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-16">
@@ -475,7 +482,7 @@ export default function LandingPage() {
       </section>
 
       {/* Features */}
-      <section className="py-20 px-6 border-t border-gray-700/50">
+      <section className="py-20 px-6">
         <div className="max-w-5xl mx-auto">
           <h2 className="text-3xl font-bold text-center mb-12">What you get</h2>
           <div className="grid md:grid-cols-3 gap-6">
@@ -499,7 +506,7 @@ export default function LandingPage() {
       </section>
 
       {/* Student Ownership */}
-      <section className="py-20 px-6 border-t border-gray-700/50">
+      <section className="py-20 px-6">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold mb-4">
@@ -533,7 +540,7 @@ export default function LandingPage() {
       </section>
 
       {/* How It Works */}
-      <section id="how-it-works" className="py-20 px-6 border-t border-gray-700/50">
+      <section id="how-it-works" className="py-20 px-6">
         <div className="max-w-5xl mx-auto">
           <h2 className="text-3xl font-bold text-center mb-12">How it works</h2>
 
@@ -570,7 +577,7 @@ export default function LandingPage() {
       </section>
 
       {/* CTA */}
-      <section className="py-16 px-6 border-t border-gray-700/50">
+      <section className="py-16 px-6">
         <div className="max-w-xl mx-auto text-center">
           <GraduationCap size={32} className="mx-auto mb-4 text-[#54daf4]" />
           <h2 className="text-2xl font-bold mb-3">Free for everyone</h2>

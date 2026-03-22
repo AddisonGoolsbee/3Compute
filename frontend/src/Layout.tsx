@@ -3,7 +3,8 @@ import { useContext, useState, useEffect, ReactNode } from 'react';
 import { UserDataContext } from './util/UserData';
 import Explorer from './components/Explorer';
 import { getClasses } from '@luminescent/ui-react';
-import { Panel, Group as PanelGroup, Separator as PanelResizeHandle } from 'react-resizable-panels';
+import pkg from 'react-resizable-panels';
+const { Panel, Group: PanelGroup, Separator: PanelResizeHandle } = pkg as any;
 
 export default function Layout({ children }: { children?: ReactNode }) {
   const userData = useContext(UserDataContext);

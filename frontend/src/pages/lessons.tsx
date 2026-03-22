@@ -29,7 +29,6 @@ interface Standard {
 interface LessonMeta {
   files: string[];
   description: string;
-  createdBy: string;
   duration?: string;
   lessonPlanDoc?: string;
   solutionDoc?: string;
@@ -458,9 +457,6 @@ function LessonCard({
               </span>
             )}
           </div>
-
-          {/* Author */}
-          <p className="text-xs text-gray-500 mb-3">by {lesson.createdBy}</p>
 
           {/* Description */}
           <p className="text-gray-300 text-sm mb-4">{lesson.description}</p>

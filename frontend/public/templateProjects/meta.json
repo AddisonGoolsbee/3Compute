@@ -7,9 +7,7 @@
       "README.md",
       "requirements.txt"
     ],
-    "description": "Build a personal website with Flask",
-    "createdBy": "3Compute",
-    "standards": [
+    "description": "Build a personal website with Flask",    "standards": [
       {
         "id": "3A-AP-13",
         "description": "Create prototypes that use algorithms to solve computational problems by leveraging prior student knowledge and personal interests."
@@ -30,9 +28,7 @@
       "README.md",
       "requirements.txt"
     ],
-    "description": "Create a Discord bot with discord.py",
-    "createdBy": "3Compute",
-    "standards": [
+    "description": "Create a Discord bot with discord.py",    "standards": [
       {
         "id": "3A-AP-13",
         "description": "Create prototypes that use algorithms to solve computational problems by leveraging prior student knowledge and personal interests."
@@ -58,9 +54,7 @@
       "README.md",
       "requirements.txt"
     ],
-    "description": "Build an unbeatable Tic-Tac-Toe AI with minimax",
-    "createdBy": "3Compute",
-    "duration": "5-7 class periods",
+    "description": "Build an unbeatable Tic-Tac-Toe AI with minimax",    "duration": "5-7 class periods",
     "lessonPlanDoc": "/docs/tic-tac-toe/lesson-plan.md",
     "solutionDoc": "/docs/tic-tac-toe/solution.py",
     "standards": [
@@ -97,9 +91,7 @@
       "README.md",
       "requirements.txt"
     ],
-    "description": "Implement and compare sorting and searching algorithms",
-    "createdBy": "3Compute",
-    "duration": "4-5 class periods",
+    "description": "Implement and compare sorting and searching algorithms",    "duration": "4-5 class periods",
     "lessonPlanDoc": "/docs/sorting-algorithms/lesson-plan.md",
     "solutionDoc": "/docs/sorting-algorithms/solution.py",
     "standards": [
@@ -124,9 +116,7 @@
       "README.md",
       "requirements.txt"
     ],
-    "description": "Build stacks, queues, and linked lists from scratch",
-    "createdBy": "3Compute",
-    "duration": "4-5 class periods",
+    "description": "Build stacks, queues, and linked lists from scratch",    "duration": "4-5 class periods",
     "lessonPlanDoc": "/docs/data-structures/lesson-plan.md",
     "solutionDoc": "/docs/data-structures/solution.py",
     "standards": [
@@ -151,9 +141,7 @@
       "README.md",
       "requirements.txt"
     ],
-    "description": "Model a predator-prey ecosystem and analyze population trends",
-    "createdBy": "3Compute",
-    "duration": "4-5 class periods",
+    "description": "Model a predator-prey ecosystem and analyze population trends",    "duration": "4-5 class periods",
     "lessonPlanDoc": "/docs/ecosystem-simulation/lesson-plan.md",
     "solutionDoc": "/docs/ecosystem-simulation/solution.py",
     "standards": [
@@ -179,9 +167,7 @@
       "requirements.txt",
       "student_survey.csv"
     ],
-    "description": "Analyze survey data with statistics and ASCII charts",
-    "createdBy": "3Compute",
-    "duration": "5 class periods",
+    "description": "Analyze survey data with statistics and ASCII charts",    "duration": "5 class periods",
     "lessonPlanDoc": "/docs/data-analysis/lesson-plan.md",
     "solutionDoc": "/docs/data-analysis/solution.py",
     "standards": [
@@ -210,9 +196,7 @@
       "README.md",
       "requirements.txt"
     ],
-    "description": "Encode and decode data in binary, hex, ASCII, and RGB",
-    "createdBy": "3Compute",
-    "duration": "3-4 class periods",
+    "description": "Encode and decode data in binary, hex, ASCII, and RGB",    "duration": "3-4 class periods",
     "lessonPlanDoc": "/docs/data-encoding/lesson-plan.md",
     "solutionDoc": "/docs/data-encoding/solution.py",
     "standards": [
@@ -230,9 +214,7 @@
       "README.md",
       "requirements.txt"
     ],
-    "description": "Implement hashing, salting, and password strength analysis",
-    "createdBy": "3Compute",
-    "duration": "5 class periods",
+    "description": "Implement hashing, salting, and password strength analysis",    "duration": "5 class periods",
     "lessonPlanDoc": "/docs/password-security/lesson-plan.md",
     "solutionDoc": "/docs/password-security/solution.py",
     "standards": [
@@ -271,9 +253,7 @@
       "README.md",
       "requirements.txt"
     ],
-    "description": "Fetch live weather data from an API and display forecasts",
-    "createdBy": "3Compute",
-    "duration": "4-5 class periods",
+    "description": "Fetch live weather data from an API and display forecasts",    "duration": "4-5 class periods",
     "lessonPlanDoc": "/docs/weather-app/lesson-plan.md",
     "solutionDoc": "/docs/weather-app/solution/weather_api.py",
     "standards": [
@@ -307,9 +287,7 @@
       "README.md",
       "requirements.txt"
     ],
-    "description": "Find and fix five intentional bugs using systematic debugging",
-    "createdBy": "3Compute",
-    "duration": "3-4 class periods",
+    "description": "Find and fix five intentional bugs using systematic debugging",    "duration": "3-4 class periods",
     "lessonPlanDoc": "/docs/debugging-workshop/lesson-plan.md",
     "solutionDoc": "/docs/debugging-workshop/solution.py",
     "standards": [
@@ -343,9 +321,7 @@
       "README.md",
       "requirements.txt"
     ],
-    "description": "Build a mini file system to explore how operating systems work",
-    "createdBy": "3Compute",
-    "duration": "4-5 class periods",
+    "description": "Build a mini file system to explore how operating systems work",    "duration": "4-5 class periods",
     "lessonPlanDoc": "/docs/computing-layers/lesson-plan.md",
     "solutionDoc": "/docs/computing-layers/solution.py",
     "standards": [
@@ -376,9 +352,7 @@
       "README.md",
       "requirements.txt"
     ],
-    "description": "Build a browser-based Snake game with Flask and JavaScript",
-    "createdBy": "3Compute",
-    "duration": "6-8 class periods",
+    "description": "Build a browser-based Snake game with Flask and JavaScript",    "duration": "6-8 class periods",
     "lessonPlanDoc": "/docs/snake-game/lesson-plan.md",
     "solutionDoc": "/docs/snake-game/solution/game.js",
     "standards": [
@@ -431,9 +405,7 @@
       "README.md",
       "requirements.txt"
     ],
-    "description": "Build and host your own personal portfolio website with Flask",
-    "createdBy": "3Compute",
-    "duration": "7-8 class periods",
+    "description": "Build and host your own personal portfolio website with Flask",    "duration": "7-8 class periods",
     "lessonPlanDoc": "/docs/my-website/lesson-plan.md",
     "solutionDoc": "/docs/my-website/solution/app.py",
     "standards": [
