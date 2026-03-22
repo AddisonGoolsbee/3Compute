@@ -30,7 +30,12 @@ def prepare_user_directory(user_id):
     """Ensure user directory exists with correct ownership before container creation"""
     user_dir = f"{UPLOADS_ROOT}/{user_id}"
     os.makedirs(user_dir, exist_ok=True)
-    os.chmod(user_dir, 0o777)
+    try:
+        # Chown to ourselves first (CAP_CHOWN lets www-data do this) so chmod succeeds
+        os.chown(user_dir, os.getuid(), os.getgid())
+        os.chmod(user_dir, 0o777)
+    except OSError as e:
+        logger.warning("[%s] Could not set permissions on user dir: %s", user_id, e)
 
 
 def volume_exists(volume_name: str) -> bool:  # legacy placeholder (unused now)

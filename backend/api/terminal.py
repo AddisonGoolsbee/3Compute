@@ -413,6 +413,9 @@ def _start_idle_poller(user_id: str):
                 user_procs.append(cmd_str)
 
             if not user_procs:
+                # Re-check stop_event — user may have reconnected while we were polling
+                if stop_event.is_set():
+                    break
                 logger.info(
                     "No user processes left in %s, removing it", container
                 )
@@ -464,6 +467,7 @@ async def read_and_forward_pty_output(sid: str):
                 if output:
                     await sio.emit("pty-output", {"output": output}, to=sid)
             except (OSError, ValueError):
+                await sio.emit("terminal-restart-required", {}, to=sid)
                 break
     except asyncio.CancelledError:
         pass

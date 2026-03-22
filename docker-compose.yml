@@ -36,11 +36,22 @@ services:
     networks:
       - dev-net
 
+  # Mirrors ExecStartPre=+/bin/chown -R www-data:www-data /var/lib/3compute in systemd
+  data-init:
+    image: alpine:3
+    command: sh -c "mkdir -p /data/uploads /data/classrooms && chown -R 33:33 /data"
+    volumes:
+      - 3compute-uploads:/data/uploads
+      - 3compute-classrooms:/data/classrooms
+
   # FastAPI backend with hot-reload
   backend:
     build:
       context: .
       dockerfile: Dockerfile.dev
+    user: "33:33"  # www-data, mirrors prod
+    cap_add:
+      - CHOWN  # mirrors AmbientCapabilities=CAP_CHOWN in systemd service
     environment:
       DOCKER_HOST: tcp://dind:2375
       UPLOADS_ROOT: /var/lib/3compute/uploads
@@ -62,6 +73,8 @@ services:
       dind:
         condition: service_healthy
       image-builder:
+        condition: service_completed_successfully
+      data-init:
         condition: service_completed_successfully
     networks:
       - dev-net
