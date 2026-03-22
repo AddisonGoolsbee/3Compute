@@ -231,7 +231,7 @@ export default function TerminalTabs() {
       }); // Debug log
 
       try {
-        const response = await fetch(`${apiUrl}/tabs`, {
+        const response = await fetch(`${apiUrl}/tabs/`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -268,7 +268,7 @@ export default function TerminalTabs() {
     }
 
     try {
-      const response = await fetch(`${apiUrl}/tabs`, {
+      const response = await fetch(`${apiUrl}/tabs/`, {
         credentials: 'include',
       });
 

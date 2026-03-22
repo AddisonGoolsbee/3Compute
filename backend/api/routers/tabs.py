@@ -11,7 +11,7 @@ from ..dependencies import get_current_user
 logger = logging.getLogger("tabs")
 router = APIRouter()
 
-USERS_JSON_FILE = "backend/users.json"
+USERS_JSON_FILE = os.environ.get("USERS_JSON_FILE", "backend/users.json")
 
 
 class TabState(BaseModel):

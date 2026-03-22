@@ -6,6 +6,7 @@ After=network.target
 Type=simple
 WorkingDirectory=/var/www/3compute
 Environment=PYTHONUNBUFFERED=1
+Environment=USERS_JSON_FILE=/var/lib/3compute/users.json
 ExecStartPre=+/bin/mkdir -p /var/lib/3compute/uploads /var/lib/3compute/classrooms
 ExecStartPre=+/bin/chown -R www-data:www-data /var/lib/3compute
 ExecStart=/var/www/3compute/.venv/bin/python3 -m backend.api

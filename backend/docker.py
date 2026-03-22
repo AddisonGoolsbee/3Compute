@@ -360,11 +360,11 @@ def spawn_container(
                     f"rm -rf /classrooms/{cid}/participants/{sanitized_email}/classroom-templates || true"
                 )
                 link_commands.append(
-                    f"ln -s /classrooms/{cid}/templates /classrooms/{cid}/participants/{sanitized_email}/classroom-templates"
+                    f"ln -s /classrooms/{cid}/templates /classrooms/{cid}/participants/{sanitized_email}/classroom-templates || true"
                 )
             # Create symlink inside container for immediate access
             link_commands.append(f"rm -rf /app/{slug} || true")
-            link_commands.append(f"ln -s {target_path} /app/{slug}")
+            link_commands.append(f"ln -s {target_path} /app/{slug} || true")
 
             # Also create symlink on HOST filesystem so backend can detect it
             # Map container paths to host paths
