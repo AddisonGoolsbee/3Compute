@@ -8,7 +8,7 @@ from fastapi.responses import FileResponse, PlainTextResponse
 from pydantic import BaseModel
 from sqlmodel import Session, select
 
-from backend.docker import CLASSROOMS_ROOT, CONTAINER_USER_UID, CONTAINER_USER_GID
+from backend.docker import CLASSROOMS_ROOT, UPLOADS_ROOT, CONTAINER_USER_UID, CONTAINER_USER_GID
 
 from ..database import Classroom, ClassroomMember, User
 from ..dependencies import get_current_user, get_db
@@ -259,7 +259,7 @@ async def list_files(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    upload_dir = f"/tmp/uploads/{user.id}"
+    upload_dir = f"{UPLOADS_ROOT}/{user.id}"
 
     if not os.path.exists(upload_dir):
         return {"files": [], "classroomMeta": {}}
@@ -304,7 +304,7 @@ async def list_files(
     except FileNotFoundError:
         pass
 
-    # Walk user files under /tmp/uploads/<id>
+    # Walk user files under UPLOADS_ROOT/<id>
     for root, dirs, files_in_dir in os.walk(upload_dir):
         for d in list(dirs):
             full_path = os.path.join(root, d)
@@ -403,7 +403,7 @@ async def move_file_or_folder(
         )
 
     try:
-        upload_dir = f"/tmp/uploads/{user.id}"
+        upload_dir = f"{UPLOADS_ROOT}/{user.id}"
 
         src_mapped = _resolve_classroom_path(upload_dir, source_param)
         dst_mapped = _resolve_classroom_path(upload_dir, destination_param)
@@ -484,7 +484,7 @@ async def upload(
     destination: str = Form(default=""),
     user: User = Depends(get_current_user),
 ):
-    upload_dir = f"/tmp/uploads/{user.id}"
+    upload_dir = f"{UPLOADS_ROOT}/{user.id}"
     os.makedirs(upload_dir, exist_ok=True)
     set_container_ownership(upload_dir)
 
@@ -524,7 +524,7 @@ async def upload_folder(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    upload_dir = f"/tmp/uploads/{user.id}"
+    upload_dir = f"{UPLOADS_ROOT}/{user.id}"
     os.makedirs(upload_dir, exist_ok=True)
     set_container_ownership(upload_dir)
 
@@ -617,7 +617,7 @@ async def read_file(
     file_path: str,
     user: User = Depends(get_current_user),
 ):
-    upload_dir = f"/tmp/uploads/{user.id}"
+    upload_dir = f"{UPLOADS_ROOT}/{user.id}"
     abs_path = _resolve_abs_path(upload_dir, file_path)
     _validate_path_within_roots(abs_path, upload_dir)
 
@@ -645,7 +645,7 @@ async def update_file(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    upload_dir = f"/tmp/uploads/{user.id}"
+    upload_dir = f"{UPLOADS_ROOT}/{user.id}"
     abs_path = _resolve_abs_path(upload_dir, file_path)
     _validate_path_within_roots(abs_path, upload_dir)
 
@@ -674,7 +674,7 @@ async def delete_file(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    upload_dir = f"/tmp/uploads/{user.id}"
+    upload_dir = f"{UPLOADS_ROOT}/{user.id}"
     abs_path = _resolve_abs_path(upload_dir, file_path)
     _validate_path_within_roots(abs_path, upload_dir)
 
@@ -702,7 +702,7 @@ async def create_file(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    upload_dir = f"/tmp/uploads/{user.id}"
+    upload_dir = f"{UPLOADS_ROOT}/{user.id}"
     mapped = _resolve_classroom_path(upload_dir, file_path)
     abs_path = os.path.normpath(
         mapped if mapped else os.path.join(upload_dir, file_path)

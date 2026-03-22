@@ -299,7 +299,7 @@ async def create_classroom(
         try:
             _ensure_classroom_dirs(classroom.id)
         except Exception as e:
-            logger.warning(f"Failed to ensure classroom dirs for {classroom.id}: {e}")
+            logger.error(f"Failed to ensure classroom dirs for {classroom.id}: {e}")
 
         port_range = _get_user_port_range(user)
         restarted = _restart_user_container(user.id, user.email, port_range)

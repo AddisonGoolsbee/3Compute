@@ -26,8 +26,8 @@ cp /var/www/3compute/production/etc/systemd/system/3compute.service /etc/systemd
 systemctl daemon-reload
 
 echo "Ensuring runtime directories"
-mkdir -p /tmp/classrooms
-chown www-data:www-data /tmp/classrooms
+mkdir -p /var/lib/3compute/uploads /var/lib/3compute/classrooms
+chown www-data:www-data /var/lib/3compute /var/lib/3compute/uploads /var/lib/3compute/classrooms
 
 echo "Restarting backend service"
 systemctl restart 3compute

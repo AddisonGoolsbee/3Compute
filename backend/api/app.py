@@ -36,18 +36,17 @@ async def lifespan(app: FastAPI):
     from backend.docker import (
         CONTAINER_USER_UID,
         CONTAINER_USER_GID,
+        UPLOADS_ROOT,
+        CLASSROOMS_ROOT,
         setup_isolated_network,
     )
 
     setup_isolated_network()
 
-    uploads_dir = "/tmp/uploads"
-    os.makedirs(uploads_dir, exist_ok=True)
-    try:
-        os.chown(uploads_dir, CONTAINER_USER_UID, CONTAINER_USER_GID)
-        os.chmod(uploads_dir, 0o755)
-    except OSError as e:
-        logger.warning(f"Failed to set ownership for /tmp/uploads: {e}")
+    for d in (UPLOADS_ROOT, CLASSROOMS_ROOT):
+        os.makedirs(d, exist_ok=True)
+        os.chown(d, CONTAINER_USER_UID, CONTAINER_USER_GID)
+        os.chmod(d, 0o755)
 
     from .terminal import discover_existing_containers, start_pollers_for_orphaned
 

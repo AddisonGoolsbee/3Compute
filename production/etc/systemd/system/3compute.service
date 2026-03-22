@@ -6,13 +6,15 @@ After=network.target
 Type=simple
 WorkingDirectory=/var/www/3compute
 Environment=PYTHONUNBUFFERED=1
-ExecStartPre=/bin/mkdir -p /tmp/classrooms
-ExecStartPre=/bin/chown www-data:www-data /tmp/classrooms
+ExecStartPre=/bin/mkdir -p /var/lib/3compute/uploads /var/lib/3compute/classrooms
+ExecStartPre=/bin/chown -R www-data:www-data /var/lib/3compute
 ExecStart=/var/www/3compute/.venv/bin/python3 -m backend.api
 Restart=always
 RestartSec=5
 User=www-data
 Group=www-data
+AmbientCapabilities=CAP_CHOWN
+CapabilityBoundingSet=CAP_CHOWN
 
 [Install]
 WantedBy=multi-user.target

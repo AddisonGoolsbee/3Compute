@@ -22,12 +22,13 @@ CONTAINER_USER_UID = 999
 CONTAINER_USER_GID = 995
 
 CLASSROOMS_JSON_FILE = "backend/classrooms.json"
-CLASSROOMS_ROOT = "/tmp/classrooms"
+UPLOADS_ROOT = "/var/lib/3compute/uploads"
+CLASSROOMS_ROOT = "/var/lib/3compute/classrooms"
 
 
 def prepare_user_directory(user_id):
     """Ensure user directory exists with correct ownership before container creation"""
-    user_dir = f"/tmp/uploads/{user_id}"
+    user_dir = f"{UPLOADS_ROOT}/{user_id}"
     os.makedirs(user_dir, exist_ok=True)
     # Removed placeholder classrooms dir creation (not needed now)
     try:
@@ -213,7 +214,7 @@ def spawn_container(
 
     # Clean up all existing classroom symlinks in user's directory
     # This ensures archived classrooms are properly removed
-    user_dir = f"/tmp/uploads/{user_id}"
+    user_dir = f"{UPLOADS_ROOT}/{user_id}"
     archive_dir = os.path.join(user_dir, "archive")
     try:
         for entry in os.listdir(user_dir):
@@ -374,11 +375,11 @@ def spawn_container(
             # Map container paths to host paths
             if participant_mode.get(cid):
                 # Student: link to participant folder on host
-                host_source = f"/tmp/uploads/{user_id}/{slug}"
+                host_source = f"{UPLOADS_ROOT}/{user_id}/{slug}"
                 host_target = f"{CLASSROOMS_ROOT}/{cid}/participants/{sanitized_email}"
             else:
                 # Instructor: link to classroom root on host
-                host_source = f"/tmp/uploads/{user_id}/{slug}"
+                host_source = f"{UPLOADS_ROOT}/{user_id}/{slug}"
                 host_target = f"{CLASSROOMS_ROOT}/{cid}"
 
             try:
