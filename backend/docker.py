@@ -68,7 +68,9 @@ def setup_isolated_network(network_name="isolated_net"):
         )
         logger.info(f"Network {network_name} created successfully.")
 
-    if platform.system() != "Linux":
+    # iptables must run on the same host as the Docker daemon.
+    # Skip when using a remote daemon (e.g. DinD in docker compose dev) or non-Linux.
+    if platform.system() != "Linux" or os.getenv("DOCKER_HOST"):
         return
 
     try:

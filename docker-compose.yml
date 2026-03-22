@@ -1,0 +1,94 @@
+services:
+
+  # Docker-in-Docker daemon — user terminal containers are spawned here.
+  # Both dind and backend mount the same named volumes at identical paths so
+  # that volume specs passed to "docker run" by the backend resolve correctly
+  # inside DinD's daemon.
+  dind:
+    image: docker:27-dind
+    privileged: true
+    environment:
+      DOCKER_TLS_CERTDIR: ""
+    healthcheck:
+      test: ["CMD", "docker", "info"]
+      interval: 5s
+      timeout: 10s
+      retries: 12
+    volumes:
+      - dind-storage:/var/lib/docker
+      - 3compute-uploads:/var/lib/3compute/uploads
+      - 3compute-classrooms:/var/lib/3compute/classrooms
+    networks:
+      - dev-net
+
+  # One-shot: builds the 3compute terminal image into DinD on every compose up.
+  image-builder:
+    image: docker:27-cli
+    environment:
+      DOCKER_HOST: tcp://dind:2375
+    volumes:
+      - ./backend:/workspace
+    working_dir: /workspace
+    command: docker build -t 3compute:latest .
+    depends_on:
+      dind:
+        condition: service_healthy
+    networks:
+      - dev-net
+
+  # FastAPI backend with hot-reload
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    environment:
+      DOCKER_HOST: tcp://dind:2375
+      UPLOADS_ROOT: /var/lib/3compute/uploads
+      CLASSROOMS_ROOT: /var/lib/3compute/classrooms
+      USERS_JSON_FILE: /var/lib/3compute/users.json
+    env_file:
+      - path: backend/.env
+        required: false
+    volumes:
+      - .:/var/www/3compute
+      - backend-logs:/var/www/3compute/logs
+      - 3compute-uploads:/var/lib/3compute/uploads
+      - 3compute-classrooms:/var/lib/3compute/classrooms
+    working_dir: /var/www/3compute
+    command: python -m backend.api --host 0.0.0.0 --port 5555 --reload
+    ports:
+      - "5555:5555"
+    depends_on:
+      dind:
+        condition: service_healthy
+      image-builder:
+        condition: service_completed_successfully
+    networks:
+      - dev-net
+
+  # Frontend Vite dev server
+  frontend:
+    image: node:22-alpine
+    working_dir: /app
+    environment:
+      PNPM_HOME: /pnpm
+    volumes:
+      - ./frontend:/app
+      - frontend-node-modules:/app/node_modules
+      - pnpm-store:/pnpm
+    command: sh -c "npm install -g pnpm@latest --silent && pnpm install && pnpm dev"
+    ports:
+      - "5173:5173"
+    networks:
+      - dev-net
+
+networks:
+  dev-net:
+
+volumes:
+  dind-storage:
+  3compute-uploads:
+  3compute-classrooms:
+  frontend-node-modules:
+  pnpm-store:
+  backend-logs:
