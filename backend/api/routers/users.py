@@ -1,6 +1,6 @@
 import json
 import logging
-import os
+from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
@@ -13,7 +13,8 @@ from ..dependencies import get_db, get_current_user
 logger = logging.getLogger("users")
 router = APIRouter()
 
-ALLOWLIST_FILE = os.path.join(os.path.dirname(__file__), "../../../allowlist.json")
+# users.py is backend/api/routers/ — allowlist lives in backend/
+_ALLOWLIST_PATH = Path(__file__).resolve().parent.parent.parent / "allowlist.json"
 
 
 def _get_allowed_roles(email: str) -> list[str]:
@@ -22,7 +23,7 @@ def _get_allowed_roles(email: str) -> list[str]:
         return ["teacher", "student"]
 
     try:
-        with open(ALLOWLIST_FILE) as f:
+        with _ALLOWLIST_PATH.open() as f:
             allowlist = json.load(f)
     except Exception as e:
         logger.error("Failed to load allowlist: %s", e)
