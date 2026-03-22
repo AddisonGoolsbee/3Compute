@@ -16,6 +16,7 @@ import {
   Play,
   Globe,
   Zap,
+  Server,
 } from 'lucide-react';
 import { apiUrl } from '../util/UserData';
 
@@ -489,7 +490,7 @@ export default function LandingPage() {
             <FeatureCard
               icon={<Terminal size={28} />}
               title="Python in the browser"
-              description="Students get a full coding environment with no installation. Open a browser and start writing code."
+              description="A full coding environment with no installation. Open a browser and start writing code."
             />
             <FeatureCard
               icon={<Users size={28} />}
@@ -499,43 +500,100 @@ export default function LandingPage() {
             <FeatureCard
               icon={<LayoutTemplate size={28} />}
               title="Ready-to-use lessons"
-              description="Import pre-built projects directly into your classroom. Each comes with a lesson plan and student-facing README."
+              description="Import pre-built projects into your classroom. Each comes with a lesson plan and student-facing README."
             />
           </div>
         </div>
       </section>
 
-      {/* Student Ownership */}
+      {/* Student ownership */}
       <section className="py-20 px-6">
         <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-4">
-              Students own their projects
-            </h2>
-            <p className="text-gray-400 max-w-xl mx-auto">
-              Class ends, but the code keeps running. Every student project lives on our
-              servers and stays online for free, long after the lesson is over.
-            </p>
-          </div>
+          <div className="rounded-2xl border border-[#54daf4]/20 bg-[#54daf4]/5 px-10 py-12 lg:px-16 lg:py-14">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl font-bold mb-3">Students own their projects</h2>
+              <p className="text-gray-400 max-w-xl mx-auto">
+                Class ends, but the code keeps running. Every student project stays online for free, long after the lesson is over.
+              </p>
+            </div>
 
-          <div className="grid sm:grid-cols-3 gap-5 mb-12">
-            <OwnershipCard
-              icon={<Globe size={22} />}
-              title="Host websites"
-              description="Serve a custom website at a public URL. Flask, FastAPI, or anything that binds to a port."
-            />
-            <OwnershipCard
-              icon={<Zap size={22} />}
-              title="Build REST APIs"
-              description="Expose endpoints other apps can call. Hosted on infrastructure that stays online for free."
-            />
-            <OwnershipCard
-              icon={<Code size={22} />}
-              title="Any Python app"
-              description="If it runs on a Linux server, it runs on 3Compute. Scripts, scrapers, games, automation, anything."
-            />
-          </div>
+            {/* Deploy flow diagram */}
+            <div className="flex flex-col items-center">
+              {/* Source node */}
+              <div className="flex items-center gap-3 bg-gray-800/80 border border-gray-600 rounded-xl px-6 py-4 shadow-lg">
+                <Terminal size={20} className="text-[#54daf4]" />
+                <div>
+                  <div className="text-sm font-semibold">Your Python code</div>
+                  <div className="text-xs text-gray-500 font-mono">app.py · api.py · script.py</div>
+                </div>
+              </div>
 
+              {/* Arrow down to deploy */}
+              <div className="flex flex-col items-center py-1">
+                <div className="w-px h-4 bg-[#54daf4]/40" />
+                <svg width="12" height="8" viewBox="0 0 12 8" fill="none">
+                  <path d="M6 8L0 0H12L6 8Z" fill="rgba(84,218,244,0.4)" />
+                </svg>
+              </div>
+
+              {/* Deploy node */}
+              <div className="flex items-center gap-3 bg-[#54daf4]/10 border border-[#54daf4]/40 rounded-xl px-6 py-4 shadow-lg shadow-[#54daf4]/10">
+                <Server size={20} className="text-[#54daf4]" />
+                <div>
+                  <div className="text-sm font-semibold text-[#54daf4]">Deploy to 3Compute</div>
+                  <div className="text-xs text-gray-400">one command · stays running · free</div>
+                </div>
+              </div>
+
+              {/* Branching SVG */}
+              <div className="w-full max-w-2xl mt-1">
+                <svg viewBox="0 0 600 60" className="w-full overflow-visible" style={{ height: 60 }}>
+                  <defs>
+                    <marker id="arr" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
+                      <path d="M0,0 L0,8 L8,4 z" fill="rgba(84,218,244,0.5)" />
+                    </marker>
+                  </defs>
+                  <line x1="300" y1="0" x2="300" y2="20" stroke="rgba(84,218,244,0.4)" strokeWidth="1.5" strokeDasharray="4 3">
+                    <animate attributeName="stroke-dashoffset" from="0" to="-14" dur="1s" repeatCount="indefinite" />
+                  </line>
+                  <path d="M300,20 Q300,40 110,55" stroke="rgba(84,218,244,0.4)" strokeWidth="1.5" fill="none" strokeDasharray="4 3" markerEnd="url(#arr)">
+                    <animate attributeName="stroke-dashoffset" from="0" to="-14" dur="1s" repeatCount="indefinite" />
+                  </path>
+                  <line x1="300" y1="20" x2="300" y2="55" stroke="rgba(84,218,244,0.4)" strokeWidth="1.5" strokeDasharray="4 3" markerEnd="url(#arr)">
+                    <animate attributeName="stroke-dashoffset" from="0" to="-14" dur="1s" repeatCount="indefinite" />
+                  </path>
+                  <path d="M300,20 Q300,40 490,55" stroke="rgba(84,218,244,0.4)" strokeWidth="1.5" fill="none" strokeDasharray="4 3" markerEnd="url(#arr)">
+                    <animate attributeName="stroke-dashoffset" from="0" to="-14" dur="1s" repeatCount="indefinite" />
+                  </path>
+                </svg>
+
+                <div className="grid grid-cols-3 gap-4 -mt-1">
+                  <div className="rounded-xl border border-gray-700 bg-gray-900/70 p-4 text-center">
+                    <div className="w-10 h-10 rounded-lg bg-[#54daf4]/15 flex items-center justify-center text-[#54daf4] mx-auto mb-3">
+                      <Globe size={22} />
+                    </div>
+                    <h3 className="font-semibold text-sm mb-1">Host websites</h3>
+                    <p className="text-gray-400 text-xs leading-relaxed">Serve a custom website at a public URL. Flask, FastAPI, or anything that binds to a port.</p>
+                  </div>
+                  <div className="rounded-xl border border-gray-700 bg-gray-900/70 p-4 text-center">
+                    <div className="w-10 h-10 rounded-lg bg-[#54daf4]/15 flex items-center justify-center text-[#54daf4] mx-auto mb-3">
+                      <Zap size={22} />
+                    </div>
+                    <h3 className="font-semibold text-sm mb-1">Build REST APIs</h3>
+                    <p className="text-gray-400 text-xs leading-relaxed">Expose endpoints other apps can call. Hosted on infrastructure that stays online for free.</p>
+                  </div>
+                  <div className="rounded-xl border border-gray-700 bg-gray-900/70 p-4 text-center">
+                    <div className="w-10 h-10 rounded-lg bg-[#54daf4]/15 flex items-center justify-center text-[#54daf4] mx-auto mb-3">
+                      <Code size={22} />
+                    </div>
+                    <h3 className="font-semibold text-sm mb-1">Any Python app</h3>
+                    <p className="text-gray-400 text-xs leading-relaxed">If it runs on a Linux server, it runs on 3Compute. Scripts, scrapers, games, automation, anything.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
         </div>
       </section>
 
@@ -630,26 +688,6 @@ function FeatureCard({
       </div>
       <h3 className="text-base font-semibold mb-2">{title}</h3>
       <p className="text-gray-400 text-sm leading-relaxed">{description}</p>
-    </div>
-  );
-}
-
-function OwnershipCard({
-  icon,
-  title,
-  description,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  description: string;
-}) {
-  return (
-    <div className="rounded-xl p-5 border border-gray-700 hover:border-[#54daf4]/30 transition-colors bg-gray-900/30">
-      <div className="w-10 h-10 rounded-lg bg-[#54daf4]/10 flex items-center justify-center text-[#54daf4] mb-3">
-        {icon}
-      </div>
-      <h3 className="text-base font-semibold mb-2">{title}</h3>
-      <p className="text-gray-400 text-base leading-relaxed">{description}</p>
     </div>
   );
 }
