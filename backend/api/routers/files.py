@@ -580,12 +580,15 @@ async def upload_folder(
             dest_path = safe_path
 
         dir_path = os.path.dirname(dest_path)
-        # Ensure existing parent dirs inside CLASSROOMS_ROOT are writable by www-data
+        # Ensure existing parent dirs inside CLASSROOMS_ROOT are writable by www-data.
+        # Must chown before chmod — www-data can't chmod dirs owned by container user 999.
         if dest_path.startswith(CLASSROOMS_ROOT):
+            uid, gid = os.getuid(), os.getgid()
             p = dir_path
             while p.startswith(CLASSROOMS_ROOT) and p != CLASSROOMS_ROOT:
                 if os.path.exists(p):
                     try:
+                        os.chown(p, uid, gid)
                         os.chmod(p, 0o777)
                     except OSError:
                         pass
