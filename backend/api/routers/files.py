@@ -24,12 +24,17 @@ router = APIRouter()
 
 
 def set_container_ownership(path: str) -> None:
-    """Set ownership of a file/directory to match the container user."""
+    """Set ownership/permissions so both www-data and container user 999:995 can access.
+
+    Directories stay owned by www-data with mode 777 (world-writable) so both
+    principals can traverse and create files without needing CAP_CHOWN.
+    Files are chowned to 999:995 so the container user owns what it creates.
+    """
     try:
-        os.chown(path, CONTAINER_USER_UID, CONTAINER_USER_GID)
         if os.path.isdir(path):
-            os.chmod(path, 0o755)
+            os.chmod(path, 0o777)
         else:
+            os.chown(path, CONTAINER_USER_UID, CONTAINER_USER_GID)
             os.chmod(path, 0o644)
     except OSError as e:
         logger.warning(f"Failed to set ownership for {path}: {e}")
@@ -580,15 +585,13 @@ async def upload_folder(
             dest_path = safe_path
 
         dir_path = os.path.dirname(dest_path)
-        # Ensure existing parent dirs inside CLASSROOMS_ROOT are writable by www-data.
-        # Must chown before chmod — www-data can't chmod dirs owned by container user 999.
+        # Ensure existing parent dirs inside CLASSROOMS_ROOT are writable.
+        # Dirs are always kept www-data 777 so chown is not needed here.
         if dest_path.startswith(CLASSROOMS_ROOT):
-            uid, gid = os.getuid(), os.getgid()
             p = dir_path
             while p.startswith(CLASSROOMS_ROOT) and p != CLASSROOMS_ROOT:
                 if os.path.exists(p):
                     try:
-                        os.chown(p, uid, gid)
                         os.chmod(p, 0o777)
                     except OSError:
                         pass
