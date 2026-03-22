@@ -30,12 +30,7 @@ def prepare_user_directory(user_id):
     """Ensure user directory exists with correct ownership before container creation"""
     user_dir = f"{UPLOADS_ROOT}/{user_id}"
     os.makedirs(user_dir, exist_ok=True)
-    # Removed placeholder classrooms dir creation (not needed now)
-    try:
-        os.chown(user_dir, CONTAINER_USER_UID, CONTAINER_USER_GID)
-        os.chmod(user_dir, 0o755)
-    except OSError as e:
-        logger.warning(f"Failed to set ownership for {user_dir}: {e}")
+    os.chmod(user_dir, 0o777)
 
 
 def volume_exists(volume_name: str) -> bool:  # legacy placeholder (unused now)
@@ -447,11 +442,10 @@ def spawn_container(
     archived_inst, archived_part = _load_classrooms_for_user(str(user_id), include_archived=True)
     all_archived = archived_inst + archived_part
     if all_archived:
-        archive_dir = f"/tmp/uploads/{user_id}/archive"
+        archive_dir = f"{UPLOADS_ROOT}/{user_id}/archive"
         try:
             os.makedirs(archive_dir, exist_ok=True)
-            os.chown(archive_dir, CONTAINER_USER_UID, CONTAINER_USER_GID)
-            os.chmod(archive_dir, 0o755)
+            os.chmod(archive_dir, 0o777)
 
             archive_used_slugs = set()
             for c in all_archived:
