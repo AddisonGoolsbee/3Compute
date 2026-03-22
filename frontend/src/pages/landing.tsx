@@ -561,7 +561,7 @@ export default function LandingPage() {
                   </path>
                   <line x1="300" y1="20" x2="300" y2="55" stroke="rgba(84,218,244,0.4)" strokeWidth="1.5" strokeDasharray="4 3" markerEnd="url(#arr)">
                     <animate attributeName="stroke-dashoffset" from="0" to="-14" dur="1s" repeatCount="indefinite" />
-                  </path>
+                  </line>
                   <path d="M300,20 Q300,40 490,55" stroke="rgba(84,218,244,0.4)" strokeWidth="1.5" fill="none" strokeDasharray="4 3" markerEnd="url(#arr)">
                     <animate attributeName="stroke-dashoffset" from="0" to="-14" dur="1s" repeatCount="indefinite" />
                   </path>
