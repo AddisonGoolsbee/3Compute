@@ -1,7 +1,6 @@
 import { ReactNode, useCallback, useEffect, useState } from 'react';
 import { Links, Meta, Outlet, Scripts, ScrollRestoration, useLoaderData } from 'react-router';
 import NavComponent from './components/Nav';
-import { default as HomeLayout } from './Layout';
 import { UserData, UserDataContext, apiUrl, clientLoader } from './util/UserData';
 import { fetchFilesList, Files, FileType } from './util/Files';
 
