@@ -22,8 +22,8 @@ CONTAINER_USER_UID = 999
 CONTAINER_USER_GID = 995
 
 CLASSROOMS_JSON_FILE = "backend/classrooms.json"
-UPLOADS_ROOT = "/var/lib/3compute/uploads"
-CLASSROOMS_ROOT = "/var/lib/3compute/classrooms"
+UPLOADS_ROOT = os.environ.get("UPLOADS_ROOT", "/var/lib/3compute/uploads")
+CLASSROOMS_ROOT = os.environ.get("CLASSROOMS_ROOT", "/var/lib/3compute/classrooms")
 
 
 def prepare_user_directory(user_id):

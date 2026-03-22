@@ -62,6 +62,19 @@ def mock_docker():
 
 
 @pytest.fixture(autouse=True)
+def tmp_data_dirs(tmp_path, monkeypatch):
+    """Point UPLOADS_ROOT and CLASSROOMS_ROOT at a temp dir so tests don't need /var/lib."""
+    uploads = tmp_path / "uploads"
+    classrooms = tmp_path / "classrooms"
+    uploads.mkdir()
+    classrooms.mkdir()
+    monkeypatch.setenv("UPLOADS_ROOT", str(uploads))
+    monkeypatch.setenv("CLASSROOMS_ROOT", str(classrooms))
+    monkeypatch.setattr("backend.docker.UPLOADS_ROOT", str(uploads))
+    monkeypatch.setattr("backend.docker.CLASSROOMS_ROOT", str(classrooms))
+
+
+@pytest.fixture(autouse=True)
 def reset_module_state():
     """Reset module state between tests"""
     try:
