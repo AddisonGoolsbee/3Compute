@@ -2,6 +2,14 @@ import logging
 import os
 from datetime import datetime, timezone
 
+_SUPPRESS_PATHS = {"/api/files/list", "/api/classrooms/templates"}
+
+
+class _SuppressPollingPaths(logging.Filter):
+    def filter(self, record: logging.LogRecord) -> bool:
+        msg = record.getMessage()
+        return not any(p in msg for p in _SUPPRESS_PATHS)
+
 
 def configure_logging():
     logname = f"logs/{datetime.now(timezone.utc).strftime('%Y-%m-%d')}.log"
@@ -17,6 +25,9 @@ def configure_logging():
         root_logger.setLevel(logging.INFO)
     else:
         root_logger.setLevel(logging.DEBUG)
+
+    # Suppress high-frequency polling endpoints from access logs
+    logging.getLogger("uvicorn.access").addFilter(_SuppressPollingPaths())
 
     # Silence noisy OAuth and requests debug messages
     logging.getLogger("requests_oauthlib").setLevel(logging.WARNING)

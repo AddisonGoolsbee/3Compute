@@ -54,6 +54,7 @@ def _ensure_classroom_dirs(classroom_id: str) -> str:
     participants_dir = os.path.join(base, "participants")
     os.makedirs(templates_dir, exist_ok=True)
     os.makedirs(participants_dir, exist_ok=True)
+    os.chmod(base, 0o777)
     try:
         for root, dirs, files in os.walk(base):
             os.chown(root, CONTAINER_USER_UID, CONTAINER_USER_GID)
