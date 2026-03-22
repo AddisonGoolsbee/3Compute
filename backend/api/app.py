@@ -45,11 +45,6 @@ async def lifespan(app: FastAPI):
 
     for d in (UPLOADS_ROOT, CLASSROOMS_ROOT):
         os.makedirs(d, exist_ok=True)
-        try:
-            os.chown(d, CONTAINER_USER_UID, CONTAINER_USER_GID)
-            os.chmod(d, 0o755)
-        except OSError as e:
-            logger.warning(f"Failed to set ownership for {d}: {e}")
 
     from .terminal import discover_existing_containers, start_pollers_for_orphaned
 

@@ -48,7 +48,7 @@ export default function CreateClassroomDialog({ open, onClose }: Props) {
     setCreating(true);
     setError(null);
     try {
-      const res = await fetch(`${apiUrl}/classrooms`, {
+      const res = await fetch(`${apiUrl}/classrooms/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
