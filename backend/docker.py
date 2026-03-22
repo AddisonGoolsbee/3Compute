@@ -230,7 +230,7 @@ def spawn_container(
     except Exception as e:
         logger.warning(f"[{user_id}] Failed cleaning up old symlinks: {e}")
 
-    mount_spec = f"/tmp/uploads/{user_id}:/app"
+    mount_spec = f"{UPLOADS_ROOT}/{user_id}:/app"
 
     cmd = [
         "docker",
