@@ -52,6 +52,8 @@ user_containers: dict[str, dict] = {}
 session_map: dict[str, dict] = {}
 POLL_INTERVAL = 4
 _cleanup_timers: dict[str, threading.Event] = {}
+# per-user lock to prevent simultaneous container spawns from multiple tabs
+_spawn_locks: dict[str, threading.Lock] = {}
 _engine = None
 
 
@@ -183,6 +185,16 @@ def _ensure_container(
 ) -> str | None:
     """Guarantee a running container for *user_id*.  Returns container name or
     ``None`` on unrecoverable failure."""
+    lock = _spawn_locks.setdefault(user_id, threading.Lock())
+    with lock:
+        return _ensure_container_locked(user_id, port_range, email)
+
+
+def _ensure_container_locked(
+    user_id: str,
+    port_range: tuple | None,
+    email: str | None,
+) -> str | None:
     container_name = f"user-container-{user_id}"
 
     if user_id not in user_containers:

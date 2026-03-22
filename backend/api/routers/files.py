@@ -594,10 +594,10 @@ async def upload_folder(
                         pass
                 p = os.path.dirname(p)
         os.makedirs(dir_path, exist_ok=True)
-        set_container_ownership(dir_path)
         content = await f.read()
         with open(dest_path, "wb") as fh:
             fh.write(content)
+        set_container_ownership(dir_path)
         set_container_ownership(dest_path)
 
     move_into = form.get("move-into")
