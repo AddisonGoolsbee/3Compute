@@ -1,4 +1,4 @@
-import { FileIcon, FolderClosed, FolderOpen, MoreHorizontal, Pencil, Trash, X } from 'lucide-react';
+import { Download, FileIcon, FolderClosed, FolderOpen, MoreHorizontal, Pencil, Trash, X } from 'lucide-react';
 import { getClasses } from '@luminescent/ui-react';
 import { useContext, Fragment, useEffect } from 'react';
 import { apiUrl, UserData, UserDataContext } from '../util/UserData';
@@ -389,6 +389,21 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
         style={{ left: contextMenu.x, top: contextMenu.y }}
         onClick={(e) => e.stopPropagation()}
       >
+        <button
+          className="lum-btn lum-btn-p-1 rounded-lum-1 gap-0.5 w-full text-left lum-bg-transparent"
+          onClick={() => {
+            if (!contextMenu.targetLocation) return;
+            const a = document.createElement('a');
+            a.href = `${apiUrl}/files/download${contextMenu.targetLocation}`;
+            a.download = '';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+          }}
+        >
+          <Download size={16} className="inline mr-2" />
+          Download
+        </button>
         <button
           className="lum-btn lum-btn-p-1 rounded-lum-1 gap-0.5 w-full text-left lum-bg-transparent"
           onClick={() => {

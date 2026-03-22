@@ -439,7 +439,7 @@ export default function LandingPage() {
                 <span className="text-[#54daf4]">that stays with students</span>
               </h1>
               <p className="text-base sm:text-lg text-gray-300 max-w-xl mx-auto lg:mx-0 mb-8 leading-relaxed">
-                Free coding environment for teachers and students. Import lessons, run real Python
+                Free coding environment for teachers and students. Import lessons, run Python
                 in the browser, and let students build projects they keep.
               </p>
 
@@ -513,7 +513,7 @@ export default function LandingPage() {
               Students own their projects
             </h2>
             <p className="text-gray-400 max-w-xl mx-auto">
-              Class ends, but the code keeps running. Every student project lives on Birdflop's
+              Class ends, but the code keeps running. Every student project lives on our
               servers and stays online for free, long after the lesson is over.
             </p>
           </div>
@@ -522,12 +522,12 @@ export default function LandingPage() {
             <OwnershipCard
               icon={<Globe size={22} />}
               title="Host websites"
-              description="Serve a real site at a public URL. Flask, FastAPI, or anything that binds to a port."
+              description="Serve a custom website at a public URL. Flask, FastAPI, or anything that binds to a port."
             />
             <OwnershipCard
               icon={<Zap size={22} />}
               title="Build REST APIs"
-              description="Expose endpoints other apps can call. A real server, not a temporary notebook cell."
+              description="Expose endpoints other apps can call. Hosted on infrastructure that stays online for free."
             />
             <OwnershipCard
               icon={<Code size={22} />}

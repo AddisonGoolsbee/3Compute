@@ -44,7 +44,10 @@ async def lifespan(app: FastAPI):
     setup_isolated_network()
 
     for d in (UPLOADS_ROOT, CLASSROOMS_ROOT):
-        os.makedirs(d, exist_ok=True)
+        try:
+            os.makedirs(d, exist_ok=True)
+        except PermissionError:
+            logger.warning("Could not create %s: permission denied (CI environment?)", d)
 
     from .terminal import discover_existing_containers, start_pollers_for_orphaned
 

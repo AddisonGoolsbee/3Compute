@@ -1,10 +1,12 @@
+import io
 import logging
 import os
 import shutil
 import subprocess
+import zipfile
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
-from fastapi.responses import FileResponse, PlainTextResponse
+from fastapi.responses import FileResponse, PlainTextResponse, StreamingResponse
 from pydantic import BaseModel
 from sqlmodel import Session, select
 
@@ -652,6 +654,42 @@ async def read_file(
         return PlainTextResponse(content)
     except UnicodeDecodeError:
         return FileResponse(abs_path)
+
+
+@router.get("/download/{file_path:path}")
+async def download_file(
+    file_path: str,
+    user: User = Depends(get_current_user),
+):
+    upload_dir = f"{UPLOADS_ROOT}/{user.id}"
+    abs_path = _resolve_abs_path(upload_dir, file_path)
+    _validate_path_within_roots(abs_path, upload_dir)
+
+    if not os.path.exists(abs_path):
+        raise HTTPException(status_code=404, detail="Not found")
+
+    if os.path.isfile(abs_path):
+        filename = os.path.basename(abs_path)
+        return FileResponse(
+            abs_path,
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        )
+
+    # Folder — zip it in memory and stream back
+    folder_name = os.path.basename(abs_path.rstrip("/")) or "download"
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        for root, _dirs, files_in_dir in os.walk(abs_path):
+            for name in files_in_dir:
+                full = os.path.join(root, name)
+                arcname = os.path.join(folder_name, os.path.relpath(full, abs_path))
+                zf.write(full, arcname)
+    buf.seek(0)
+    return StreamingResponse(
+        iter([buf.read()]),
+        media_type="application/zip",
+        headers={"Content-Disposition": f'attachment; filename="{folder_name}.zip"'},
+    )
 
 
 @router.put("/file/{file_path:path}")
