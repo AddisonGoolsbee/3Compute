@@ -4,7 +4,6 @@ import { LogoBirdflop } from '@luminescent/ui-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import {
-  ArrowLeft,
   BookOpen,
   Download,
   X,
@@ -197,13 +196,6 @@ export default function LessonsPage() {
     <div className="-mt-20 text-white min-h-screen flex flex-col">
       <header className="pt-24 pb-6 px-6">
         <div className="max-w-5xl mx-auto">
-          <Link
-            to="/ide"
-            className="inline-flex items-center gap-2 text-gray-400 hover:text-white transition-colors mb-6"
-          >
-            <ArrowLeft size={18} />
-            Back to IDE
-          </Link>
           <h1 className="text-3xl font-bold mb-1">Lesson Plans</h1>
           <p className="text-gray-400">
             Browse and import ready-to-use projects into your classrooms.

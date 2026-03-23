@@ -1,5 +1,5 @@
 import { Nav, LogoBirdflop } from '@luminescent/ui-react';
-import { LogOut, Plus, LogIn, BookOpen, School } from 'lucide-react';
+import { LogOut, Plus, LogIn, BookOpen, School, Terminal } from 'lucide-react';
 import { useContext, useState } from 'react';
 import { Link } from 'react-router';
 import { apiUrl, UserDataContext } from '../util/UserData';
@@ -20,14 +20,13 @@ export default function NavComponent() {
   const userData = useContext(UserDataContext);
   const isTeacher = userData?.userInfo?.role === 'teacher';
   const isLoggedIn = !!userData?.userInfo;
-  const homeLink = isLoggedIn ? '/ide' : '/';
 
   return (
     <>
       <Nav
         start={
           <Link
-            to={homeLink}
+            to="/"
             className="lum-btn lum-bg-transparent hover:lum-bg-nav-bg"
           >
             <LogoBirdflop size={24} fillGradient={['#54daf4', '#545eb6']} />
@@ -36,6 +35,15 @@ export default function NavComponent() {
         }
         end={
           <>
+            {isLoggedIn && (
+              <Link
+                to="/ide"
+                className="lum-btn lum-bg-transparent hover:lum-bg-nav-bg flex items-center gap-1 text-sm font-medium transition-colors px-3 py-2"
+              >
+                <Terminal size={16} className="opacity-80" />
+                <span>IDE</span>
+              </Link>
+            )}
             {isTeacher && (
               <Link
                 to="/lessons"

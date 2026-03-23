@@ -685,6 +685,9 @@ export default function LandingPage() {
           <p className="text-gray-600 text-xs">
             &copy; 2025&ndash;2026 Birdflop. All rights reserved. Birdflop is a registered 501(c)(3) nonprofit organization (EIN: 93-2401009).
           </p>
+          <Link to="/terms" className="text-gray-600 hover:text-gray-400 text-xs transition-colors">
+            Terms of Service &amp; Privacy Policy
+          </Link>
         </div>
       </footer>
     </div>
