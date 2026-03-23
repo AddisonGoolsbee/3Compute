@@ -158,12 +158,14 @@ def ensure_app_server() -> None:
     """Idempotently create the *.app.3compute.org server block in Caddy."""
     try:
         with httpx.Client(timeout=10.0) as client:
+            # Always ensure TLS policy exists (it may have been skipped
+            # on a previous run if CF_API_TOKEN was missing).
+            _ensure_tls_policy(client)
+
             resp = client.get(f"{CADDY_ADMIN}/config/apps/http/servers/{APP_SERVER}")
             if resp.status_code == 200:
                 logger.info("Caddy app server already initialised")
                 return
-
-            _ensure_tls_policy(client)
 
             server_config = {
                 "listen": [":443"],
