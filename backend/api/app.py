@@ -9,7 +9,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from .config import Settings
 from .database import get_engine, create_db_and_tables
-from .routers import auth, users, files, classrooms, templates, webhook, tabs, subdomains
+from .routers import auth, users, files, classrooms, templates, webhook, tabs, subdomains, lessons
 
 logging.basicConfig(level=logging.DEBUG)
 logging.getLogger("engineio").setLevel(logging.WARNING)
@@ -91,6 +91,7 @@ def create_app():
     app.include_router(webhook.router, prefix="/api", tags=["webhook"])
     app.include_router(tabs.router, prefix="/api/tabs", tags=["tabs"])
     app.include_router(subdomains.router, prefix="/api/subdomains", tags=["subdomains"])
+    app.include_router(lessons.router, prefix="/api/lessons", tags=["lessons"])
 
     from .routers.terminal import router as terminal_router
 

@@ -1,442 +1,456 @@
 {
-  "Website": {
-    "files": [
-      "main.py",
-      "index.html",
-      "style.css",
-      "README.md",
-      "requirements.txt"
-    ],
-    "description": "Build a personal website with Flask",    "standards": [
-      {
-        "id": "3A-AP-13",
-        "description": "Create prototypes that use algorithms to solve computational problems by leveraging prior student knowledge and personal interests."
-      },
-      {
-        "id": "3A-AP-14",
-        "description": "Use lists to simplify solutions, generalizing computational problems instead of repeatedly using simple variables."
-      },
-      {
-        "id": "3A-AP-22",
-        "description": "Design and develop computational artifacts working in team roles using collaborative tools."
-      }
-    ]
-  },
-  "Discord-Bot": {
-    "files": [
-      "main.py",
-      "README.md",
-      "requirements.txt"
-    ],
-    "description": "Create a Discord bot with discord.py",    "standards": [
-      {
-        "id": "3A-AP-13",
-        "description": "Create prototypes that use algorithms to solve computational problems by leveraging prior student knowledge and personal interests."
-      },
-      {
-        "id": "3A-AP-17",
-        "description": "Decompose problems into smaller components through systematic analysis, using constructs such as procedures, modules, and/or objects."
-      },
-      {
-        "id": "3A-AP-18",
-        "description": "Create artifacts by using procedures within a program, combinations of data and procedures, or independent but interrelated programs."
-      },
-      {
-        "id": "3B-AP-14",
-        "description": "Construct solutions to problems using student-created components, such as procedures, modules and/or objects."
-      }
-    ]
-  },
-  "Tic-Tac-Toe": {
-    "files": [
-      "main.py",
-      "test_game.py",
-      "README.md",
-      "requirements.txt"
-    ],
-    "description": "Build an unbeatable Tic-Tac-Toe AI with minimax",    "duration": "5-7 class periods",
-    "lessonPlanDoc": "/docs/tic-tac-toe/lesson-plan.md",
-    "solutionDoc": "/docs/tic-tac-toe/solution.py",
-    "standards": [
-      {
-        "id": "3B-AP-09",
-        "description": "Implement an artificial intelligence algorithm to play a game against a human opponent or solve a problem."
-      },
-      {
-        "id": "3B-AP-10",
-        "description": "Use and adapt classic algorithms to solve computational problems."
-      },
-      {
-        "id": "3B-AP-11",
-        "description": "Evaluate algorithms in terms of their efficiency, correctness, and clarity."
-      },
-      {
-        "id": "3B-AP-13",
-        "description": "Illustrate the flow of execution of a recursive algorithm."
-      },
-      {
-        "id": "3B-AP-14",
-        "description": "Construct solutions to problems using student-created components, such as procedures, modules and/or objects."
-      },
-      {
-        "id": "3B-AP-21",
-        "description": "Develop and use a series of test cases to verify that a program performs according to its design specifications."
-      }
-    ]
-  },
-  "Sorting-Algorithms": {
-    "files": [
-      "main.py",
-      "test_sorting.py",
-      "README.md",
-      "requirements.txt"
-    ],
-    "description": "Implement and compare sorting and searching algorithms",    "duration": "4-5 class periods",
-    "lessonPlanDoc": "/docs/sorting-algorithms/lesson-plan.md",
-    "solutionDoc": "/docs/sorting-algorithms/solution.py",
-    "standards": [
-      {
-        "id": "3B-AP-10",
-        "description": "Use and adapt classic algorithms to solve computational problems."
-      },
-      {
-        "id": "3B-AP-11",
-        "description": "Evaluate algorithms in terms of their efficiency, correctness, and clarity."
-      },
-      {
-        "id": "3A-AP-15",
-        "description": "Justify the selection of specific control structures when tradeoffs involve implementation, readability, and program performance."
-      }
-    ]
-  },
-  "Data-Structures": {
-    "files": [
-      "main.py",
-      "test_structures.py",
-      "README.md",
-      "requirements.txt"
-    ],
-    "description": "Build stacks, queues, and linked lists from scratch",    "duration": "4-5 class periods",
-    "lessonPlanDoc": "/docs/data-structures/lesson-plan.md",
-    "solutionDoc": "/docs/data-structures/solution.py",
-    "standards": [
-      {
-        "id": "3B-AP-12",
-        "description": "Compare and contrast fundamental data structures and their uses."
-      },
-      {
-        "id": "3A-AP-14",
-        "description": "Use lists to simplify solutions, generalizing computational problems instead of repeatedly using simple variables."
-      },
-      {
-        "id": "3A-AP-17",
-        "description": "Decompose problems into smaller components through systematic analysis, using constructs such as procedures, modules, and/or objects."
-      }
-    ]
-  },
-  "Ecosystem-Simulation": {
-    "files": [
-      "main.py",
-      "test_simulation.py",
-      "README.md",
-      "requirements.txt"
-    ],
-    "description": "Model a predator-prey ecosystem and analyze population trends",    "duration": "4-5 class periods",
-    "lessonPlanDoc": "/docs/ecosystem-simulation/lesson-plan.md",
-    "solutionDoc": "/docs/ecosystem-simulation/solution.py",
-    "standards": [
-      {
-        "id": "3A-DA-12",
-        "description": "Create computational models that represent the relationships among different elements of data collected from a phenomenon or process."
-      },
-      {
-        "id": "3B-DA-07",
-        "description": "Evaluate the ability of models and simulations to test and validate computational artifacts."
-      },
-      {
-        "id": "3A-IC-26",
-        "description": "Demonstrate ways a given algorithm applies to problems across disciplines."
-      }
-    ]
-  },
-  "Data-Analysis": {
-    "files": [
-      "main.py",
-      "test_analysis.py",
-      "README.md",
-      "requirements.txt",
-      "student_survey.csv"
-    ],
-    "description": "Analyze survey data with statistics and ASCII charts",    "duration": "5 class periods",
-    "lessonPlanDoc": "/docs/data-analysis/lesson-plan.md",
-    "solutionDoc": "/docs/data-analysis/solution.py",
-    "standards": [
-      {
-        "id": "3B-DA-05",
-        "description": "Use data analysis tools and techniques to identify patterns in data representing complex systems."
-      },
-      {
-        "id": "3B-DA-06",
-        "description": "Select data collection tools and techniques to generate data sets that support a claim or communicate information."
-      },
-      {
-        "id": "3A-DA-11",
-        "description": "Create interactive data visualizations using software tools to help others better understand real-world phenomena."
-      },
-      {
-        "id": "3A-IC-25",
-        "description": "Test and refine computational artifacts to reduce bias and equity deficits."
-      }
-    ]
-  },
-  "Data-Encoding": {
-    "files": [
-      "main.py",
-      "test_encoding.py",
-      "README.md",
-      "requirements.txt"
-    ],
-    "description": "Encode and decode data in binary, hex, ASCII, and RGB",    "duration": "3-4 class periods",
-    "lessonPlanDoc": "/docs/data-encoding/lesson-plan.md",
-    "solutionDoc": "/docs/data-encoding/solution.py",
-    "standards": [
-      {
-        "id": "3A-DA-09",
-        "description": "Translate between different bit representations of real-world phenomena, such as characters, numbers, and images."
-      }
-    ]
-  },
-  "Password-Security": {
-    "files": [
-      "main.py",
-      "test_security.py",
-      "common_passwords.txt",
-      "README.md",
-      "requirements.txt"
-    ],
-    "description": "Implement hashing, salting, and password strength analysis",    "duration": "5 class periods",
-    "lessonPlanDoc": "/docs/password-security/lesson-plan.md",
-    "solutionDoc": "/docs/password-security/solution.py",
-    "standards": [
-      {
-        "id": "3A-NI-05",
-        "description": "Give examples to illustrate how sensitive data can be affected by malicious attacks."
-      },
-      {
-        "id": "3A-NI-06",
-        "description": "Recommend security measures to address various scenarios based on factors such as efficiency, feasibility, and ethical impacts."
-      },
-      {
-        "id": "3A-NI-07",
-        "description": "Compare various security measures, considering tradeoffs between the usability and security of a computing system."
-      },
-      {
-        "id": "3A-NI-08",
-        "description": "Explain tradeoffs when selecting and implementing cybersecurity recommendations."
-      },
-      {
-        "id": "3B-NI-04",
-        "description": "Compare ways software developers protect devices and information from unauthorized access."
-      },
-      {
-        "id": "3B-AP-18",
-        "description": "Explain security issues that might lead to compromised computer programs."
-      }
-    ]
-  },
-  "Weather-App": {
-    "files": [
-      "main.py",
-      "weather_api.py",
-      "display.py",
-      "test_weather.py",
-      "README.md",
-      "requirements.txt"
-    ],
-    "description": "Fetch live weather data from an API and display forecasts",    "duration": "4-5 class periods",
-    "lessonPlanDoc": "/docs/weather-app/lesson-plan.md",
-    "solutionDoc": "/docs/weather-app/solution/weather_api.py",
-    "standards": [
-      {
-        "id": "3B-AP-16",
-        "description": "Demonstrate code reuse by creating programming solutions using libraries and APIs."
-      },
-      {
-        "id": "3B-AP-15",
-        "description": "Analyze a large-scale computational problem and identify generalizable patterns that can be applied to a solution."
-      },
-      {
-        "id": "3A-AP-17",
-        "description": "Decompose problems into smaller components through systematic analysis, using constructs such as procedures, modules, and/or objects."
-      },
-      {
-        "id": "3A-AP-18",
-        "description": "Create artifacts by using procedures within a program, combinations of data and procedures, or independent but interrelated programs."
-      },
-      {
-        "id": "3A-AP-13",
-        "description": "Create prototypes that use algorithms to solve computational problems by leveraging prior student knowledge and personal interests."
-      }
-    ]
-  },
-  "Debugging-Workshop": {
-    "files": [
-      "buggy_programs.py",
-      "test_programs.py",
-      "debugging_notes.md",
-      "README.md",
-      "requirements.txt"
-    ],
-    "description": "Find and fix five intentional bugs using systematic debugging",    "duration": "3-4 class periods",
-    "lessonPlanDoc": "/docs/debugging-workshop/lesson-plan.md",
-    "solutionDoc": "/docs/debugging-workshop/solution.py",
-    "standards": [
-      {
-        "id": "3A-CS-03",
-        "description": "Develop guidelines that convey systematic troubleshooting strategies that others can use to identify and fix errors."
-      },
-      {
-        "id": "3A-AP-21",
-        "description": "Evaluate and refine computational artifacts to make them more usable and accessible."
-      },
-      {
-        "id": "3B-AP-21",
-        "description": "Develop and use a series of test cases to verify that a program performs according to its design specifications."
-      },
-      {
-        "id": "3B-AP-22",
-        "description": "Modify an existing program to add additional functionality and discuss intended and unintended implications."
-      },
-      {
-        "id": "3B-AP-23",
-        "description": "Evaluate key qualities of a program through a process such as a code review."
-      }
-    ]
-  },
-  "Computing-Layers": {
-    "files": [
-      "file_system.py",
-      "main.py",
-      "test_filesystem.py",
-      "README.md",
-      "requirements.txt"
-    ],
-    "description": "Build a mini file system to explore how operating systems work",    "duration": "4-5 class periods",
-    "lessonPlanDoc": "/docs/computing-layers/lesson-plan.md",
-    "solutionDoc": "/docs/computing-layers/solution.py",
-    "standards": [
-      {
-        "id": "3A-CS-01",
-        "description": "Explain how abstractions hide the underlying implementation details of computing systems embedded in everyday objects."
-      },
-      {
-        "id": "3A-CS-02",
-        "description": "Compare levels of abstraction, analogy, and paradigm for the interactions between application software, system software, and hardware."
-      },
-      {
-        "id": "3B-CS-01",
-        "description": "Categorize the roles of operating system software."
-      },
-      {
-        "id": "3A-DA-10",
-        "description": "Evaluate the tradeoffs in how data elements are organized and where data is stored."
-      }
-    ]
-  },
-  "Snake-Game": {
-    "files": [
-      "app.py",
-      "templates/game.html",
-      "static/game.js",
-      "static/style.css",
-      "README.md",
-      "requirements.txt"
-    ],
-    "description": "Build a browser-based Snake game with Flask and JavaScript",    "duration": "6-8 class periods",
-    "lessonPlanDoc": "/docs/snake-game/lesson-plan.md",
-    "solutionDoc": "/docs/snake-game/solution/game.js",
-    "standards": [
-      {
-        "id": "3A-AP-13",
-        "description": "Create prototypes that use algorithms to solve computational problems by leveraging prior student knowledge and personal interests."
-      },
-      {
-        "id": "3A-AP-15",
-        "description": "Justify the selection of specific control structures when tradeoffs involve implementation, readability, and program performance."
-      },
-      {
-        "id": "3A-AP-16",
-        "description": "Design and iteratively develop computational artifacts for practical intent, personal expression, or to address a societal need while evaluating intended and unintended consequences."
-      },
-      {
-        "id": "3A-AP-17",
-        "description": "Decompose problems into smaller components through systematic analysis, using constructs such as procedures, modules, and/or objects."
-      },
-      {
-        "id": "3A-AP-18",
-        "description": "Create artifacts by using procedures within a program, combinations of data and procedures, or independent but interrelated programs."
-      },
-      {
-        "id": "3B-AP-09",
-        "description": "Implement an artificial intelligence algorithm to play a game against a human opponent or solve a problem."
-      },
-      {
-        "id": "3B-AP-10",
-        "description": "Use and adapt classic algorithms to solve computational problems."
-      },
-      {
-        "id": "3B-AP-16",
-        "description": "Demonstrate code reuse by creating programming solutions using libraries and APIs."
-      },
-      {
-        "id": "3B-AP-19",
-        "description": "Develop programs for multiple computing platforms."
-      }
-    ]
-  },
-  "My-Website": {
-    "files": [
-      "app.py",
-      "templates/base.html",
-      "templates/index.html",
-      "static/style.css",
-      "static/app.js",
-      "test_website.py",
-      "README.md",
-      "requirements.txt"
-    ],
-    "description": "Build and host your own personal portfolio website with Flask",    "duration": "7-8 class periods",
-    "lessonPlanDoc": "/docs/my-website/lesson-plan.md",
-    "solutionDoc": "/docs/my-website/solution/app.py",
-    "standards": [
-      {
-        "id": "3A-AP-13",
-        "description": "Create prototypes that use algorithms to solve computational problems by leveraging prior student knowledge and personal interests."
-      },
-      {
-        "id": "3A-AP-16",
-        "description": "Design and iteratively develop computational artifacts for practical intent, personal expression, or to address a societal need while evaluating intended and unintended consequences."
-      },
-      {
-        "id": "3A-AP-17",
-        "description": "Decompose problems into smaller components through systematic analysis, using constructs such as procedures, modules, and/or objects."
-      },
-      {
-        "id": "3A-AP-18",
-        "description": "Create artifacts by using procedures within a program, combinations of data and procedures, or independent but interrelated programs."
-      },
-      {
-        "id": "3A-AP-19",
-        "description": "Systematically design and develop programs for broad audiences by incorporating feedback from users."
-      },
-      {
-        "id": "3B-AP-16",
-        "description": "Demonstrate code reuse by creating programming solutions using libraries and APIs."
-      },
-      {
-        "id": "3B-AP-19",
-        "description": "Develop programs for multiple computing platforms."
-      }
-    ]
-  }
+    "Website": {
+        "files": [
+            "main.py",
+            "index.html",
+            "style.css",
+            "README.md",
+            "requirements.txt"
+        ],
+        "description": "Build a personal website with Flask",
+        "standards": [
+            {
+                "id": "3A-AP-13",
+                "description": "Create prototypes that use algorithms to solve computational problems by leveraging prior student knowledge and personal interests."
+            },
+            {
+                "id": "3A-AP-14",
+                "description": "Use lists to simplify solutions, generalizing computational problems instead of repeatedly using simple variables."
+            },
+            {
+                "id": "3A-AP-22",
+                "description": "Design and develop computational artifacts working in team roles using collaborative tools."
+            }
+        ]
+    },
+    "Discord-Bot": {
+        "files": [
+            "main.py",
+            "README.md",
+            "requirements.txt"
+        ],
+        "description": "Create a Discord bot with discord.py",
+        "standards": [
+            {
+                "id": "3A-AP-13",
+                "description": "Create prototypes that use algorithms to solve computational problems by leveraging prior student knowledge and personal interests."
+            },
+            {
+                "id": "3A-AP-17",
+                "description": "Decompose problems into smaller components through systematic analysis, using constructs such as procedures, modules, and/or objects."
+            },
+            {
+                "id": "3A-AP-18",
+                "description": "Create artifacts by using procedures within a program, combinations of data and procedures, or independent but interrelated programs."
+            },
+            {
+                "id": "3B-AP-14",
+                "description": "Construct solutions to problems using student-created components, such as procedures, modules and/or objects."
+            }
+        ]
+    },
+    "Tic-Tac-Toe": {
+        "files": [
+            "main.py",
+            "test_game.py",
+            "README.md",
+            "requirements.txt"
+        ],
+        "description": "Build an unbeatable Tic-Tac-Toe AI with minimax",
+        "duration": "5-7 class periods",
+        "lessonPlanDoc": "/docs/tic-tac-toe/lesson-plan.md",
+        "solutionDoc": "/api/lessons/solution/tic-tac-toe/solution.py",
+        "standards": [
+            {
+                "id": "3B-AP-09",
+                "description": "Implement an artificial intelligence algorithm to play a game against a human opponent or solve a problem."
+            },
+            {
+                "id": "3B-AP-10",
+                "description": "Use and adapt classic algorithms to solve computational problems."
+            },
+            {
+                "id": "3B-AP-11",
+                "description": "Evaluate algorithms in terms of their efficiency, correctness, and clarity."
+            },
+            {
+                "id": "3B-AP-13",
+                "description": "Illustrate the flow of execution of a recursive algorithm."
+            },
+            {
+                "id": "3B-AP-14",
+                "description": "Construct solutions to problems using student-created components, such as procedures, modules and/or objects."
+            },
+            {
+                "id": "3B-AP-21",
+                "description": "Develop and use a series of test cases to verify that a program performs according to its design specifications."
+            }
+        ]
+    },
+    "Sorting-Algorithms": {
+        "files": [
+            "main.py",
+            "test_sorting.py",
+            "README.md",
+            "requirements.txt"
+        ],
+        "description": "Implement and compare sorting and searching algorithms",
+        "duration": "4-5 class periods",
+        "lessonPlanDoc": "/docs/sorting-algorithms/lesson-plan.md",
+        "solutionDoc": "/api/lessons/solution/sorting-algorithms/solution.py",
+        "standards": [
+            {
+                "id": "3B-AP-10",
+                "description": "Use and adapt classic algorithms to solve computational problems."
+            },
+            {
+                "id": "3B-AP-11",
+                "description": "Evaluate algorithms in terms of their efficiency, correctness, and clarity."
+            },
+            {
+                "id": "3A-AP-15",
+                "description": "Justify the selection of specific control structures when tradeoffs involve implementation, readability, and program performance."
+            }
+        ]
+    },
+    "Data-Structures": {
+        "files": [
+            "main.py",
+            "test_structures.py",
+            "README.md",
+            "requirements.txt"
+        ],
+        "description": "Build stacks, queues, and linked lists from scratch",
+        "duration": "4-5 class periods",
+        "lessonPlanDoc": "/docs/data-structures/lesson-plan.md",
+        "solutionDoc": "/api/lessons/solution/data-structures/solution.py",
+        "standards": [
+            {
+                "id": "3B-AP-12",
+                "description": "Compare and contrast fundamental data structures and their uses."
+            },
+            {
+                "id": "3A-AP-14",
+                "description": "Use lists to simplify solutions, generalizing computational problems instead of repeatedly using simple variables."
+            },
+            {
+                "id": "3A-AP-17",
+                "description": "Decompose problems into smaller components through systematic analysis, using constructs such as procedures, modules, and/or objects."
+            }
+        ]
+    },
+    "Ecosystem-Simulation": {
+        "files": [
+            "main.py",
+            "test_simulation.py",
+            "README.md",
+            "requirements.txt"
+        ],
+        "description": "Model a predator-prey ecosystem and analyze population trends",
+        "duration": "4-5 class periods",
+        "lessonPlanDoc": "/docs/ecosystem-simulation/lesson-plan.md",
+        "solutionDoc": "/api/lessons/solution/ecosystem-simulation/solution.py",
+        "standards": [
+            {
+                "id": "3A-DA-12",
+                "description": "Create computational models that represent the relationships among different elements of data collected from a phenomenon or process."
+            },
+            {
+                "id": "3B-DA-07",
+                "description": "Evaluate the ability of models and simulations to test and validate computational artifacts."
+            },
+            {
+                "id": "3A-IC-26",
+                "description": "Demonstrate ways a given algorithm applies to problems across disciplines."
+            }
+        ]
+    },
+    "Data-Analysis": {
+        "files": [
+            "main.py",
+            "test_analysis.py",
+            "README.md",
+            "requirements.txt",
+            "student_survey.csv"
+        ],
+        "description": "Analyze survey data with statistics and ASCII charts",
+        "duration": "5 class periods",
+        "lessonPlanDoc": "/docs/data-analysis/lesson-plan.md",
+        "solutionDoc": "/api/lessons/solution/data-analysis/solution.py",
+        "standards": [
+            {
+                "id": "3B-DA-05",
+                "description": "Use data analysis tools and techniques to identify patterns in data representing complex systems."
+            },
+            {
+                "id": "3B-DA-06",
+                "description": "Select data collection tools and techniques to generate data sets that support a claim or communicate information."
+            },
+            {
+                "id": "3A-DA-11",
+                "description": "Create interactive data visualizations using software tools to help others better understand real-world phenomena."
+            },
+            {
+                "id": "3A-IC-25",
+                "description": "Test and refine computational artifacts to reduce bias and equity deficits."
+            }
+        ]
+    },
+    "Data-Encoding": {
+        "files": [
+            "main.py",
+            "test_encoding.py",
+            "README.md",
+            "requirements.txt"
+        ],
+        "description": "Encode and decode data in binary, hex, ASCII, and RGB",
+        "duration": "3-4 class periods",
+        "lessonPlanDoc": "/docs/data-encoding/lesson-plan.md",
+        "solutionDoc": "/api/lessons/solution/data-encoding/solution.py",
+        "standards": [
+            {
+                "id": "3A-DA-09",
+                "description": "Translate between different bit representations of real-world phenomena, such as characters, numbers, and images."
+            }
+        ]
+    },
+    "Password-Security": {
+        "files": [
+            "main.py",
+            "test_security.py",
+            "common_passwords.txt",
+            "README.md",
+            "requirements.txt"
+        ],
+        "description": "Implement hashing, salting, and password strength analysis",
+        "duration": "5 class periods",
+        "lessonPlanDoc": "/docs/password-security/lesson-plan.md",
+        "solutionDoc": "/api/lessons/solution/password-security/solution.py",
+        "standards": [
+            {
+                "id": "3A-NI-05",
+                "description": "Give examples to illustrate how sensitive data can be affected by malicious attacks."
+            },
+            {
+                "id": "3A-NI-06",
+                "description": "Recommend security measures to address various scenarios based on factors such as efficiency, feasibility, and ethical impacts."
+            },
+            {
+                "id": "3A-NI-07",
+                "description": "Compare various security measures, considering tradeoffs between the usability and security of a computing system."
+            },
+            {
+                "id": "3A-NI-08",
+                "description": "Explain tradeoffs when selecting and implementing cybersecurity recommendations."
+            },
+            {
+                "id": "3B-NI-04",
+                "description": "Compare ways software developers protect devices and information from unauthorized access."
+            },
+            {
+                "id": "3B-AP-18",
+                "description": "Explain security issues that might lead to compromised computer programs."
+            }
+        ]
+    },
+    "Weather-App": {
+        "files": [
+            "main.py",
+            "weather_api.py",
+            "display.py",
+            "test_weather.py",
+            "README.md",
+            "requirements.txt"
+        ],
+        "description": "Fetch live weather data from an API and display forecasts",
+        "duration": "4-5 class periods",
+        "lessonPlanDoc": "/docs/weather-app/lesson-plan.md",
+        "solutionDoc": "/api/lessons/solution/weather-app/solution/weather_api.py",
+        "standards": [
+            {
+                "id": "3B-AP-16",
+                "description": "Demonstrate code reuse by creating programming solutions using libraries and APIs."
+            },
+            {
+                "id": "3B-AP-15",
+                "description": "Analyze a large-scale computational problem and identify generalizable patterns that can be applied to a solution."
+            },
+            {
+                "id": "3A-AP-17",
+                "description": "Decompose problems into smaller components through systematic analysis, using constructs such as procedures, modules, and/or objects."
+            },
+            {
+                "id": "3A-AP-18",
+                "description": "Create artifacts by using procedures within a program, combinations of data and procedures, or independent but interrelated programs."
+            },
+            {
+                "id": "3A-AP-13",
+                "description": "Create prototypes that use algorithms to solve computational problems by leveraging prior student knowledge and personal interests."
+            }
+        ]
+    },
+    "Debugging-Workshop": {
+        "files": [
+            "buggy_programs.py",
+            "test_programs.py",
+            "debugging_notes.md",
+            "README.md",
+            "requirements.txt"
+        ],
+        "description": "Find and fix five intentional bugs using systematic debugging",
+        "duration": "3-4 class periods",
+        "lessonPlanDoc": "/docs/debugging-workshop/lesson-plan.md",
+        "solutionDoc": "/api/lessons/solution/debugging-workshop/solution.py",
+        "standards": [
+            {
+                "id": "3A-CS-03",
+                "description": "Develop guidelines that convey systematic troubleshooting strategies that others can use to identify and fix errors."
+            },
+            {
+                "id": "3A-AP-21",
+                "description": "Evaluate and refine computational artifacts to make them more usable and accessible."
+            },
+            {
+                "id": "3B-AP-21",
+                "description": "Develop and use a series of test cases to verify that a program performs according to its design specifications."
+            },
+            {
+                "id": "3B-AP-22",
+                "description": "Modify an existing program to add additional functionality and discuss intended and unintended implications."
+            },
+            {
+                "id": "3B-AP-23",
+                "description": "Evaluate key qualities of a program through a process such as a code review."
+            }
+        ]
+    },
+    "Computing-Layers": {
+        "files": [
+            "file_system.py",
+            "main.py",
+            "test_filesystem.py",
+            "README.md",
+            "requirements.txt"
+        ],
+        "description": "Build a mini file system to explore how operating systems work",
+        "duration": "4-5 class periods",
+        "lessonPlanDoc": "/docs/computing-layers/lesson-plan.md",
+        "solutionDoc": "/api/lessons/solution/computing-layers/solution.py",
+        "standards": [
+            {
+                "id": "3A-CS-01",
+                "description": "Explain how abstractions hide the underlying implementation details of computing systems embedded in everyday objects."
+            },
+            {
+                "id": "3A-CS-02",
+                "description": "Compare levels of abstraction, analogy, and paradigm for the interactions between application software, system software, and hardware."
+            },
+            {
+                "id": "3B-CS-01",
+                "description": "Categorize the roles of operating system software."
+            },
+            {
+                "id": "3A-DA-10",
+                "description": "Evaluate the tradeoffs in how data elements are organized and where data is stored."
+            }
+        ]
+    },
+    "Snake-Game": {
+        "files": [
+            "app.py",
+            "templates/game.html",
+            "static/game.js",
+            "static/style.css",
+            "README.md",
+            "requirements.txt"
+        ],
+        "description": "Build a browser-based Snake game with Flask and JavaScript",
+        "duration": "6-8 class periods",
+        "lessonPlanDoc": "/docs/snake-game/lesson-plan.md",
+        "solutionDoc": "/api/lessons/solution/snake-game/solution/game.js",
+        "standards": [
+            {
+                "id": "3A-AP-13",
+                "description": "Create prototypes that use algorithms to solve computational problems by leveraging prior student knowledge and personal interests."
+            },
+            {
+                "id": "3A-AP-15",
+                "description": "Justify the selection of specific control structures when tradeoffs involve implementation, readability, and program performance."
+            },
+            {
+                "id": "3A-AP-16",
+                "description": "Design and iteratively develop computational artifacts for practical intent, personal expression, or to address a societal need while evaluating intended and unintended consequences."
+            },
+            {
+                "id": "3A-AP-17",
+                "description": "Decompose problems into smaller components through systematic analysis, using constructs such as procedures, modules, and/or objects."
+            },
+            {
+                "id": "3A-AP-18",
+                "description": "Create artifacts by using procedures within a program, combinations of data and procedures, or independent but interrelated programs."
+            },
+            {
+                "id": "3B-AP-09",
+                "description": "Implement an artificial intelligence algorithm to play a game against a human opponent or solve a problem."
+            },
+            {
+                "id": "3B-AP-10",
+                "description": "Use and adapt classic algorithms to solve computational problems."
+            },
+            {
+                "id": "3B-AP-16",
+                "description": "Demonstrate code reuse by creating programming solutions using libraries and APIs."
+            },
+            {
+                "id": "3B-AP-19",
+                "description": "Develop programs for multiple computing platforms."
+            }
+        ]
+    },
+    "My-Website": {
+        "files": [
+            "app.py",
+            "templates/base.html",
+            "templates/index.html",
+            "static/style.css",
+            "static/app.js",
+            "test_website.py",
+            "README.md",
+            "requirements.txt"
+        ],
+        "description": "Build and host your own personal portfolio website with Flask",
+        "duration": "7-8 class periods",
+        "lessonPlanDoc": "/docs/my-website/lesson-plan.md",
+        "solutionDoc": "/api/lessons/solution/my-website/solution/app.py",
+        "standards": [
+            {
+                "id": "3A-AP-13",
+                "description": "Create prototypes that use algorithms to solve computational problems by leveraging prior student knowledge and personal interests."
+            },
+            {
+                "id": "3A-AP-16",
+                "description": "Design and iteratively develop computational artifacts for practical intent, personal expression, or to address a societal need while evaluating intended and unintended consequences."
+            },
+            {
+                "id": "3A-AP-17",
+                "description": "Decompose problems into smaller components through systematic analysis, using constructs such as procedures, modules, and/or objects."
+            },
+            {
+                "id": "3A-AP-18",
+                "description": "Create artifacts by using procedures within a program, combinations of data and procedures, or independent but interrelated programs."
+            },
+            {
+                "id": "3A-AP-19",
+                "description": "Systematically design and develop programs for broad audiences by incorporating feedback from users."
+            },
+            {
+                "id": "3B-AP-16",
+                "description": "Demonstrate code reuse by creating programming solutions using libraries and APIs."
+            },
+            {
+                "id": "3B-AP-19",
+                "description": "Develop programs for multiple computing platforms."
+            }
+        ]
+    }
 }
