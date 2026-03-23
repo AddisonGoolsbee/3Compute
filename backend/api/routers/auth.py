@@ -1,6 +1,7 @@
 import logging
 from datetime import datetime
 
+from authlib.integrations.base_client.errors import MismatchingStateError, OAuthError
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import RedirectResponse
 from authlib.integrations.starlette_client import OAuth
@@ -34,6 +35,7 @@ def setup_oauth(settings):
 async def login(request: Request):
     settings = request.app.state.settings
     setup_oauth(settings)
+    request.session.clear()
     redirect_uri = settings.redirect_uri
     return await oauth.google.authorize_redirect(request, redirect_uri)
 
@@ -42,7 +44,10 @@ async def login(request: Request):
 async def callback(request: Request, db: Session = Depends(get_db)):
     settings = request.app.state.settings
     setup_oauth(settings)
-    token = await oauth.google.authorize_access_token(request)
+    try:
+        token = await oauth.google.authorize_access_token(request)
+    except (MismatchingStateError, OAuthError):
+        return RedirectResponse(url=f"{request.app.state.settings.frontend_origin}/api/auth/login")
     user_info = token.get("userinfo")
     if not user_info:
         return RedirectResponse(url=settings.frontend_origin)
