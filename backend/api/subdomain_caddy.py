@@ -17,6 +17,7 @@ logger = logging.getLogger("subdomain_caddy")
 _settings = Settings()
 CADDY_ADMIN = _settings.caddy_admin_url
 APP_DOMAIN = _settings.app_domain
+CF_API_TOKEN = _settings.cf_api_token
 APP_SERVER = "srv0"  # Caddy server block that owns :443 (created by Caddyfile)
 
 RESERVED = frozenset({
@@ -77,6 +78,55 @@ def _catchall_route() -> dict:
 
 
 # ---------------------------------------------------------------------------
+# TLS automation
+# ---------------------------------------------------------------------------
+
+def _ensure_tls_policy(client: httpx.Client) -> None:
+    """Add a DNS-01 wildcard TLS policy for APP_DOMAIN if not already present."""
+    if not CF_API_TOKEN:
+        logger.warning("CF_API_TOKEN not set — wildcard TLS automation skipped")
+        return
+
+    wildcard = f"*.{APP_DOMAIN}"
+    policy = {
+        "subjects": [wildcard],
+        "issuers": [{
+            "module": "acme",
+            "challenges": {
+                "dns": {
+                    "provider": {
+                        "name": "cloudflare",
+                        "api_token": CF_API_TOKEN,
+                    }
+                }
+            },
+        }],
+    }
+
+    resp = client.get(f"{CADDY_ADMIN}/config/apps/tls/automation/policies")
+    if resp.is_success and resp.text.strip() not in ("null", ""):
+        policies = resp.json()
+        if isinstance(policies, list):
+            if any(wildcard in p.get("subjects", []) for p in policies):
+                return  # already configured
+            client.post(
+                f"{CADDY_ADMIN}/config/apps/tls/automation/policies",
+                json=policy,
+            )
+        else:
+            client.put(
+                f"{CADDY_ADMIN}/config/apps/tls/automation",
+                json={"policies": [policy]},
+            )
+    else:
+        client.put(
+            f"{CADDY_ADMIN}/config/apps/tls/automation",
+            json={"policies": [policy]},
+        )
+    logger.info("Configured wildcard TLS automation for %s via Cloudflare DNS", wildcard)
+
+
+# ---------------------------------------------------------------------------
 # Route array helpers (GET then PUT to preserve ordering)
 # ---------------------------------------------------------------------------
 
@@ -115,6 +165,7 @@ def ensure_app_server() -> None:
     """
     try:
         with httpx.Client(timeout=10.0) as client:
+            _ensure_tls_policy(client)
             routes = _get_routes(client)
             if any(r.get("@id") == "app-catchall" for r in routes):
                 logger.info("Caddy app server already initialised")
