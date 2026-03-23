@@ -17,8 +17,7 @@ logger = logging.getLogger("subdomain_caddy")
 _settings = Settings()
 CADDY_ADMIN = _settings.caddy_admin_url
 APP_DOMAIN = _settings.app_domain
-CF_API_TOKEN = _settings.cf_api_token
-APP_SERVER = "apps"  # name of the Caddy server block we own
+APP_SERVER = "srv0"  # Caddy server block that owns :443 (created by Caddyfile)
 
 RESERVED = frozenset({
     "www", "api", "app", "admin", "mail", "ftp", "ssh",
@@ -103,87 +102,27 @@ def _put_routes(client: httpx.Client, routes: list) -> None:
     resp.raise_for_status()
 
 
-# ---------------------------------------------------------------------------
-# TLS automation
-# ---------------------------------------------------------------------------
-
-def _ensure_tls_policy(client: httpx.Client) -> None:
-    """Add a DNS-01 wildcard TLS policy for APP_DOMAIN if not already present."""
-    if not CF_API_TOKEN:
-        logger.warning("CF_API_TOKEN not set — wildcard TLS automation skipped")
-        return
-
-    wildcard = f"*.{APP_DOMAIN}"
-    policy = {
-        "subjects": [wildcard],
-        "issuers": [{
-            "module": "acme",
-            "challenges": {
-                "dns": {
-                    "provider": {
-                        "name": "cloudflare",
-                        "api_token": CF_API_TOKEN,
-                    }
-                }
-            },
-        }],
-    }
-
-    resp = client.get(f"{CADDY_ADMIN}/config/apps/tls/automation/policies")
-    if resp.is_success and resp.text.strip() not in ("null", ""):
-        policies = resp.json()
-        if isinstance(policies, list):
-            if any(wildcard in p.get("subjects", []) for p in policies):
-                return  # already configured
-            add_resp = client.post(
-                f"{CADDY_ADMIN}/config/apps/tls/automation/policies",
-                json=policy,
-            )
-        else:
-            add_resp = client.put(
-                f"{CADDY_ADMIN}/config/apps/tls/automation",
-                json={"policies": [policy]},
-            )
-    else:
-        add_resp = client.put(
-            f"{CADDY_ADMIN}/config/apps/tls/automation",
-            json={"policies": [policy]},
-        )
-
-    if add_resp.is_success:
-        logger.info("Configured wildcard TLS automation for %s via Cloudflare DNS", wildcard)
-    else:
-        logger.warning("Failed to add TLS policy: %s", add_resp.text)
-
 
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
 
 def ensure_app_server() -> None:
-    """Idempotently create the *.app.3compute.org server block in Caddy."""
+    """Ensure the catchall route exists in the Caddy server that owns :443.
+
+    The server itself (srv0) and its TLS config are managed by the Caddyfile.
+    This function only ensures the *.app.3compute.org catchall route is present.
+    """
     try:
         with httpx.Client(timeout=10.0) as client:
-            # Always ensure TLS policy exists (it may have been skipped
-            # on a previous run if CF_API_TOKEN was missing).
-            _ensure_tls_policy(client)
-
-            resp = client.get(f"{CADDY_ADMIN}/config/apps/http/servers/{APP_SERVER}")
-            if resp.status_code == 200:
+            routes = _get_routes(client)
+            if any(r.get("@id") == "app-catchall" for r in routes):
                 logger.info("Caddy app server already initialised")
                 return
-
-            server_config = {
-                "listen": [":443"],
-                "tls_connection_policies": [{}],
-                "routes": [_catchall_route()],
-            }
-            resp = client.put(
-                f"{CADDY_ADMIN}/config/apps/http/servers/{APP_SERVER}",
-                json=server_config,
-            )
-            resp.raise_for_status()
-            logger.info("Created Caddy app server for %s", APP_DOMAIN)
+            routes = [r for r in routes if r.get("@id") != "app-catchall"]
+            routes.append(_catchall_route())
+            _put_routes(client, routes)
+            logger.info("Added catchall route for %s to Caddy", APP_DOMAIN)
     except Exception as exc:
         logger.warning("Could not initialise Caddy app server (Caddy running?): %s", exc)
 
