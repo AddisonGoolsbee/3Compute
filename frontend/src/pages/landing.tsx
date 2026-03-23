@@ -17,6 +17,7 @@ import {
   Globe,
   Zap,
   Server,
+  Heart,
 } from 'lucide-react';
 import { apiUrl } from '../util/UserData';
 
@@ -482,6 +483,65 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Mission */}
+      <section className="py-20 px-6">
+        <div className="max-w-3xl mx-auto text-center">
+          <h2 className="text-3xl font-bold mb-5">Built to spark curiosity</h2>
+          <p className="text-gray-300 text-lg leading-relaxed mb-6">
+            3Compute is a project by Birdflop, a 501(c)(3) nonprofit dedicated to
+            igniting and nurturing a passion for technology and computer science.
+            We believe accessible tools are the best catalyst for that curiosity.
+            Everything on 3Compute is free: no strings attached.
+          </p>
+          <a
+            href="https://www.paypal.com/US/fundraiser/charity/5036975"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg border border-[#54daf4]/40 hover:border-[#54daf4] text-[#54daf4] hover:bg-[#54daf4]/10 transition-colors text-sm font-semibold"
+          >
+            <Heart size={15} />
+            Donate Today
+          </a>
+        </div>
+      </section>
+
+      {/* How It Works */}
+      <section id="how-it-works" className="py-20 px-6">
+        <div className="max-w-5xl mx-auto">
+          <h2 className="text-3xl font-bold text-center mb-12">How it works</h2>
+
+          <div className="grid md:grid-cols-2 gap-12 lg:gap-20">
+            <div>
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 rounded-lg bg-[#54daf4]/10 flex items-center justify-center">
+                  <BookOpen size={20} className="text-[#54daf4]" />
+                </div>
+                <h3 className="text-xl font-semibold">For Teachers</h3>
+              </div>
+              <div className="space-y-5">
+                <Step number={1} icon={<Code size={18} />} text="Create a classroom and import a lesson" />
+                <Step number={2} icon={<Share2 size={18} />} text="Share the access code with students" />
+                <Step number={3} icon={<Users size={18} />} text="Watch progress update as students work" />
+              </div>
+            </div>
+
+            <div>
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 rounded-lg bg-[#54daf4]/10 flex items-center justify-center">
+                  <UserPlus size={20} className="text-[#54daf4]" />
+                </div>
+                <h3 className="text-xl font-semibold">For Students</h3>
+              </div>
+              <div className="space-y-5">
+                <Step number={1} icon={<UserPlus size={18} />} text="Join with the code your teacher gave you" />
+                <Step number={2} icon={<Laptop size={18} />} text="Open your personal coding environment" />
+                <Step number={3} icon={<Send size={18} />} text="Write, run, and keep your projects forever" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Features */}
       <section className="py-20 px-6">
         <div className="max-w-5xl mx-auto">
@@ -593,43 +653,6 @@ export default function LandingPage() {
               </div>
             </div>
 
-          </div>
-        </div>
-      </section>
-
-      {/* How It Works */}
-      <section id="how-it-works" className="py-20 px-6">
-        <div className="max-w-5xl mx-auto">
-          <h2 className="text-3xl font-bold text-center mb-12">How it works</h2>
-
-          <div className="grid md:grid-cols-2 gap-12 lg:gap-20">
-            <div>
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 rounded-lg bg-[#54daf4]/10 flex items-center justify-center">
-                  <BookOpen size={20} className="text-[#54daf4]" />
-                </div>
-                <h3 className="text-xl font-semibold">For Teachers</h3>
-              </div>
-              <div className="space-y-5">
-                <Step number={1} icon={<Code size={18} />} text="Create a classroom and import a lesson" />
-                <Step number={2} icon={<Share2 size={18} />} text="Share the access code with students" />
-                <Step number={3} icon={<Users size={18} />} text="Watch progress update as students work" />
-              </div>
-            </div>
-
-            <div>
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 rounded-lg bg-[#54daf4]/10 flex items-center justify-center">
-                  <UserPlus size={20} className="text-[#54daf4]" />
-                </div>
-                <h3 className="text-xl font-semibold">For Students</h3>
-              </div>
-              <div className="space-y-5">
-                <Step number={1} icon={<UserPlus size={18} />} text="Join with the code your teacher gave you" />
-                <Step number={2} icon={<Laptop size={18} />} text="Open your personal coding environment" />
-                <Step number={3} icon={<Send size={18} />} text="Write, run, and keep your projects forever" />
-              </div>
-            </div>
           </div>
         </div>
       </section>

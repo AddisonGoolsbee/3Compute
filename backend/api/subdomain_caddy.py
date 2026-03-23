@@ -23,7 +23,7 @@ APP_SERVER = "srv0"  # Caddy server block that owns :443 (created by Caddyfile)
 RESERVED = frozenset({
     "www", "api", "app", "admin", "mail", "ftp", "ssh",
     "test", "dev", "staging", "static", "cdn", "assets",
-    "jdoe",
+    "jdoe", "my-app"
 })
 
 _SUBDOMAIN_RE = re.compile(r"^[a-z0-9][a-z0-9\-]{1,30}[a-z0-9]$")
