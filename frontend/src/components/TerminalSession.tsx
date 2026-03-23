@@ -130,6 +130,10 @@ export function TerminalSession({ tabId, isActive }: TerminalSessionProps) {
       }
     });
 
+    socket.on('files-changed', () => {
+      window.dispatchEvent(new CustomEvent('3compute:files-changed'));
+    });
+
     const runHandler = (e: Event) => {
       if (!wasActiveRef.current) return;
       const { command } = (e as CustomEvent<{ command: string }>).detail;

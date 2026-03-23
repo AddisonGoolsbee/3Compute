@@ -14,6 +14,7 @@ from backend.docker import CLASSROOMS_ROOT, UPLOADS_ROOT, CONTAINER_USER_UID, CO
 
 from ..database import Classroom, ClassroomMember, User
 from ..dependencies import get_current_user, get_db
+from ..terminal import notify_files_changed
 
 logger = logging.getLogger("files")
 
@@ -100,6 +101,22 @@ def _resolve_classroom_path(upload_dir: str, rel_path: str) -> str | None:
 def _is_reserved_name(name: str) -> bool:
     """Check if a file/folder name is reserved."""
     return name.lower() == "archive"
+
+
+# Directories that are always hidden from the file explorer.
+_HIDDEN_DIRS = frozenset({"__pycache__", ".git", "node_modules"})
+
+
+def _is_hidden(name: str) -> bool:
+    """Return True if *name* should be hidden from the file explorer.
+
+    Hidden = starts with '.' (except .env*) or is in _HIDDEN_DIRS.
+    """
+    if name in _HIDDEN_DIRS:
+        return True
+    if name.startswith(".") and not name.startswith(".env") and not name.startswith(".git"):
+        return True
+    return False
 
 
 def _append_classroom_tree_entries(
@@ -314,6 +331,11 @@ async def list_files(
     # Walk user files under UPLOADS_ROOT/<id>
     for root, dirs, files_in_dir in os.walk(upload_dir):
         for d in list(dirs):
+            # Skip hidden directories (dotfiles except .env*, __pycache__, etc.)
+            if _is_hidden(d):
+                dirs.remove(d)
+                continue
+
             full_path = os.path.join(root, d)
             relative_path = os.path.relpath(full_path, upload_dir)
 
@@ -338,6 +360,10 @@ async def list_files(
             file_tree.append(f"{relative_path}/")
 
         for name in files_in_dir:
+            # Skip hidden files (dotfiles except .env*, .pyc, etc.)
+            if _is_hidden(name) or name.endswith(".pyc"):
+                continue
+
             full_path = os.path.join(root, name)
             relative_path = os.path.relpath(full_path, upload_dir)
             if os.path.islink(full_path):
@@ -475,6 +501,7 @@ async def move_file_or_folder(
         shutil.move(src_path, dst_path)
         set_container_ownership(dst_path)
 
+        await notify_files_changed(str(user.id))
         return {"message": "Moved successfully"}
     except HTTPException:
         raise
@@ -521,6 +548,7 @@ async def upload(
     if destination:
         set_container_ownership(target_dir)
 
+    await notify_files_changed(str(user.id))
     return PlainTextResponse("File uploaded successfully")
 
 
@@ -627,6 +655,7 @@ async def upload_folder(
         except subprocess.CalledProcessError:
             pass
 
+    await notify_files_changed(str(user.id))
     return PlainTextResponse("Folder uploaded successfully")
 
 
@@ -747,6 +776,7 @@ async def delete_file(
         shutil.rmtree(abs_path)
     else:
         os.remove(abs_path)
+    await notify_files_changed(str(user.id))
     return PlainTextResponse("File deleted successfully")
 
 
@@ -829,4 +859,5 @@ async def create_file(
     except OSError as e:
         raise HTTPException(status_code=500, detail=f"Failed to create file: {e}")
 
+    await notify_files_changed(str(user.id))
     return PlainTextResponse("File created successfully")

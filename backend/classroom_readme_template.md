@@ -34,6 +34,17 @@ When you join this classroom, you can access instructor-provided templates:
    - Browse the `classroom-templates/` folder in your classroom directory
    - Copy files you need to your personal workspace through the terminal
 
+## Publishing a Web App (Custom Subdomain)
+
+If your project runs a web server (Flask, FastAPI, etc.) on a port, you can make it publicly accessible:
+
+1. Start your app on any port in your assigned range (shown in the Ports panel).
+2. Click the **Globe** icon in the terminal tab bar to open the **Ports** panel.
+3. Enter a subdomain name (e.g. `myapp`) and the port your app is listening on.
+4. Your app will be live at `https://myapp.app.3compute.org`.
+
+Subdomains must be 3–32 lowercase letters, numbers, or hyphens. Some names (e.g. `api`, `admin`, `www`) are reserved.
+
 ## Archiving This Classroom
 
 If you no longer need this classroom visible in your file explorer:

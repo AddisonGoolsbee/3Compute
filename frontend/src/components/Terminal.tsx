@@ -209,8 +209,8 @@ export default function TerminalTabs() {
           />
         </div>
         {/* Select hint */}
-        <span className="flex-shrink-0 text-[10px] text-gray-600 px-2 hidden sm:inline select-none" title={`${navigator.platform?.includes('Mac') ? 'Option' : 'Shift'}+drag to select, ${navigator.platform?.includes('Mac') ? 'Cmd' : 'Ctrl+Shift'}+C to copy`}>
-          {navigator.platform?.includes('Mac') ? '⌥' : 'Shift'}+drag to select
+        <span className="flex-shrink-0 text-[11px] text-gray-500 px-2 hidden sm:inline select-none" title={`${navigator.platform?.includes('Mac') ? 'Option' : 'Shift'}+drag to select, ${navigator.platform?.includes('Mac') ? 'Cmd' : 'Ctrl+Shift'}+C to copy`}>
+          {navigator.platform?.includes('Mac') ? '⌥' : 'Shift'}+drag to select · {navigator.platform?.includes('Mac') ? '⌘' : 'Ctrl+Shift+'}C to copy
         </span>
         {/* Ports button */}
         <div className="relative flex-shrink-0 pr-1">

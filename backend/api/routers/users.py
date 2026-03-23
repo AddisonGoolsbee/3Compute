@@ -1,3 +1,4 @@
+import fnmatch
 import json
 import logging
 from pathlib import Path
@@ -17,6 +18,16 @@ router = APIRouter()
 _ALLOWLIST_PATH = Path(__file__).resolve().parent.parent.parent / "allowlist.json"
 
 
+def _email_matches(email: str, pattern: str) -> bool:
+    """Check if an email matches a pattern. Supports exact match, '*' wildcard,
+    and glob patterns like '*@school.edu'."""
+    if pattern == "*":
+        return True
+    if "*" in pattern or "?" in pattern or "[" in pattern:
+        return fnmatch.fnmatch(email.lower(), pattern.lower())
+    return email.lower() == pattern.lower()
+
+
 def _get_allowed_roles(email: str) -> list[str]:
     settings = Settings()
     if settings.flask_env == "development":
@@ -32,7 +43,9 @@ def _get_allowed_roles(email: str) -> list[str]:
     roles = []
     for role in ("teacher", "student"):
         allowed = allowlist.get(role, [])
-        if allowed == "*" or (isinstance(allowed, list) and ("*" in allowed or email in allowed)):
+        if allowed == "*":
+            roles.append(role)
+        elif isinstance(allowed, list) and any(_email_matches(email, p) for p in allowed):
             roles.append(role)
     return roles
 

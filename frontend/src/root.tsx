@@ -120,17 +120,26 @@ export function Layout({ children }: { children: ReactNode }) {
     }
   }, [loaderData?.files, files]);
 
-  // Periodically refresh files to reflect changes made via CLI inside the container
+  // Listen for real-time file change notifications from the backend via Socket.IO
+  useEffect(() => {
+    if (!loaderData?.userInfo) return;
+
+    const handler = () => {
+      if (!isUserEditingName) refreshFiles();
+    };
+    window.addEventListener('3compute:files-changed', handler);
+    return () => window.removeEventListener('3compute:files-changed', handler);
+  }, [loaderData?.userInfo, refreshFiles, isUserEditingName]);
+
+  // Fallback poll to catch CLI changes inside the container (e.g. touch, rm)
   useEffect(() => {
     if (!loaderData?.userInfo) return;
 
     const intervalId = window.setInterval(() => {
-      // Skip refresh when the tab is hidden to reduce load
       if (document.hidden) return;
-      // Pause refresh while the user is actively typing a name to avoid losing placeholders
       if (isUserEditingName) return;
       refreshFiles();
-    }, 300);
+    }, 30_000);
 
     return () => window.clearInterval(intervalId);
   }, [loaderData?.userInfo, refreshFiles, isUserEditingName]);

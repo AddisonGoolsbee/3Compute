@@ -21,6 +21,7 @@ APP_SERVER = "apps"  # name of the Caddy server block we own
 RESERVED = frozenset({
     "www", "api", "app", "admin", "mail", "ftp", "ssh",
     "test", "dev", "staging", "static", "cdn", "assets",
+    "jdoe",
 })
 
 _SUBDOMAIN_RE = re.compile(r"^[a-z0-9][a-z0-9\-]{1,30}[a-z0-9]$")

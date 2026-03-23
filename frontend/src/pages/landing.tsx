@@ -320,7 +320,7 @@ function TerminalDemo() {
       </div>
 
       {/* Code pane */}
-      <div className="bg-[#0d1117] px-5 pt-4 pb-3 font-mono text-sm leading-6">
+      <div className="bg-[#0d1117] px-5 pt-4 pb-3 font-mono text-sm leading-6 overflow-x-auto">
         {program.code.map((line, i) => (
           <div key={i} className={`flex gap-4 transition-opacity duration-75 ${i < visibleCodeLines ? 'opacity-100' : 'opacity-0'}`}>
             <span className="select-none text-gray-600 text-xs leading-6 w-4 text-right flex-shrink-0">
@@ -334,7 +334,7 @@ function TerminalDemo() {
       </div>
 
       {/* Terminal pane */}
-      <div className="bg-[#0a0e13] border-t border-gray-800 px-5 py-3 font-mono text-sm min-h-[100px]">
+      <div className="bg-[#0a0e13] border-t border-gray-800 px-5 py-3 font-mono text-sm min-h-[100px] overflow-x-auto">
         {/* Idle $ prompt */}
         {(phase === 'typing-code' || phase === 'ready') && (
           <div className="text-gray-500 flex items-center gap-1">

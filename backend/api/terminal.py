@@ -686,6 +686,13 @@ async def close_tab(user_id: str, tab_id: str) -> tuple[str, int]:
     return "Terminated", 200
 
 
+async def notify_files_changed(user_id: str) -> None:
+    """Emit a ``files-changed`` event to every socket session owned by *user_id*."""
+    for sid, session in session_map.items():
+        if session.get("user_id") == user_id:
+            await sio.emit("files-changed", {}, to=sid)
+
+
 _register_handlers()
 
 __all__ = [
@@ -694,4 +701,5 @@ __all__ = [
     "discover_existing_containers",
     "start_pollers_for_orphaned",
     "close_tab",
+    "notify_files_changed",
 ]
