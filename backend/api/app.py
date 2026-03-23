@@ -9,7 +9,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from .config import Settings
 from .database import get_engine, create_db_and_tables
-from .routers import auth, users, files, classrooms, templates, webhook, tabs
+from .routers import auth, users, files, classrooms, templates, webhook, tabs, subdomains
 
 logging.basicConfig(level=logging.DEBUG)
 logging.getLogger("engineio").setLevel(logging.WARNING)
@@ -54,6 +54,9 @@ async def lifespan(app: FastAPI):
     discover_existing_containers()
     start_pollers_for_orphaned()
 
+    from .subdomain_caddy import ensure_app_server
+    ensure_app_server()
+
     logger.info("3Compute API started")
     yield
     logger.info("Shutting down")
@@ -87,6 +90,7 @@ def create_app():
     app.include_router(templates.router, prefix="/api/templates", tags=["templates"])
     app.include_router(webhook.router, prefix="/api", tags=["webhook"])
     app.include_router(tabs.router, prefix="/api/tabs", tags=["tabs"])
+    app.include_router(subdomains.router, prefix="/api/subdomains", tags=["subdomains"])
 
     from .routers.terminal import router as terminal_router
 

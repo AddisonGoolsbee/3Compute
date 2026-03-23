@@ -660,7 +660,7 @@ export default function LandingPage() {
             <span className="text-gray-400 text-sm">3Compute by Birdflop</span>
           </div>
           <p className="text-gray-600 text-xs">
-            &copy; 2025&ndash;2026 Birdflop. All rights reserved.
+            &copy; 2025&ndash;2026 Birdflop. All rights reserved. Birdflop is a registered 501(c)(3) nonprofit organization (EIN: 93-2401009).
           </p>
         </div>
       </footer>

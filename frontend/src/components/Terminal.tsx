@@ -8,6 +8,8 @@ import { io, Socket } from 'socket.io-client';
 import { apiUrl, backendUrl, UserDataContext } from '../util/UserData';
 import { TerminalTabBar } from './TerminalTabBar';
 import { getClasses } from '@luminescent/ui-react';
+import { Globe } from 'lucide-react';
+import PortsPanel from './PortsPanel';
 
 interface TerminalComponentProps {
   tabId: string;
@@ -197,6 +199,7 @@ export default function TerminalTabs() {
   const [activeTab, setActiveTab] = useState<string>('1');
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [restartToken, setRestartToken] = useState<number>(0); // bump to remount terminals
+  const [showPorts, setShowPorts] = useState(false);
 
   // Listen for restart event
   useEffect(() => {
@@ -382,13 +385,33 @@ export default function TerminalTabs() {
 
   return (
     <div className="w-full h-full lum-bg-gray-950 border border-lum-border/40 rounded-lum flex flex-col overflow-hidden">
-      <TerminalTabBar
-        tabs={tabs}
-        active={activeTab}
-        onNew={handleNewTab}
-        onSelect={handleSelectTab}
-        onClose={handleCloseTab}
-      />
+      <div className="flex items-center">
+        <div className="flex-1 min-w-0">
+          <TerminalTabBar
+            tabs={tabs}
+            active={activeTab}
+            onNew={handleNewTab}
+            onSelect={handleSelectTab}
+            onClose={handleCloseTab}
+          />
+        </div>
+        {/* Ports button */}
+        <div className="relative flex-shrink-0 pr-1">
+          <button
+            onClick={() => setShowPorts((v) => !v)}
+            title="Public URLs"
+            className={getClasses({
+              'flex items-center gap-1 px-2 py-1 rounded text-xs transition-colors cursor-pointer': true,
+              'text-[#54daf4] bg-[#54daf4]/10': showPorts,
+              'text-gray-500 hover:text-gray-300': !showPorts,
+            })}
+          >
+            <Globe size={14} />
+            <span className="hidden sm:inline">Ports</span>
+          </button>
+          {showPorts && <PortsPanel onClose={() => setShowPorts(false)} />}
+        </div>
+      </div>
       <div className="flex-1 relative">
         {tabs.map((tabId) => (
           <TerminalComponent

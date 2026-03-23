@@ -47,6 +47,15 @@ class Template(SQLModel, table=True):
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 
+class PortSubdomain(SQLModel, table=True):
+    __tablename__ = "port_subdomain"
+    id: Optional[int] = Field(default=None, primary_key=True)
+    subdomain: str = Field(unique=True, index=True)
+    port: int = Field(unique=True, index=True)
+    user_id: str = Field(foreign_key="user.id", index=True)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
 def get_engine(database_url: str = "sqlite:///backend/3compute.db"):
     return create_engine(database_url, echo=False)
 
