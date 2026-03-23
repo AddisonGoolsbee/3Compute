@@ -37,26 +37,38 @@ vi.mock('socket.io-client', () => ({
 ;(globalThis as any).mockIo = mockIo;
 
 // Mock xterm
-vi.mock('@xterm/xterm', () => ({
-  Terminal: class MockTerminal {
+vi.mock('@xterm/xterm', () => {
+  const instances: any[] = [];
+  class MockTerminal {
+    constructor() {
+      instances.push(this);
+    }
     open = vi.fn();
     write = vi.fn();
     focus = vi.fn();
     dispose = vi.fn();
     onData = vi.fn();
     onResize = vi.fn();
+    onSelectionChange = vi.fn();
     loadAddon = vi.fn();
     scrollToBottom = vi.fn();
     scrollLines = vi.fn();
     refresh = vi.fn();
+    getSelection = vi.fn(() => '');
+    select = vi.fn();
+    clearSelection = vi.fn();
+    textarea = document.createElement('textarea');
+    attachCustomKeyEventHandler = vi.fn();
     element = {
       clientWidth: 800,
       clientHeight: 600,
     };
     rows = 24;
     cols = 80;
-  },
-}));
+  }
+  (globalThis as any).mockTerminalInstances = instances;
+  return { Terminal: MockTerminal };
+});
 
 // Mock xterm addons
 vi.mock('@xterm/addon-fit', () => ({

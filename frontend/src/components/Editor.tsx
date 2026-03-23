@@ -59,11 +59,24 @@ function isImageFile(filename: string): boolean {
   return ext ? imageExtensions.includes(ext) : false;
 }
 
+function isBinaryFile(filename: string): boolean {
+  const binaryExtensions = [
+    'pyc', 'pyo', 'pyd', 'so', 'o', 'a', 'lib', 'dll', 'exe', 'bin',
+    'pdf', 'zip', 'tar', 'gz', 'bz2', '7z', 'rar', 'xz', 'zst',
+    'db', 'sqlite', 'sqlite3', 'whl', 'egg', 'class', 'jar', 'war',
+    'dat', 'pkl', 'pickle', 'npy', 'npz', 'h5', 'hdf5',
+    'mp3', 'mp4', 'wav', 'ogg', 'flac', 'avi', 'mov', 'mkv',
+  ];
+  const ext = filename.split('.').pop()?.toLowerCase();
+  return ext ? binaryExtensions.includes(ext) : false;
+}
+
 export default function Editor() {
   const [value, setValue] = useState('');
   const [mdPreview, setMdPreview] = useState<boolean>(true);
   const [currentLanguage, setCurrentLanguage] = useState<keyof typeof languageMap>('javascript');
   const [isImage, setIsImage] = useState<boolean>(false);
+  const [isBinary, setIsBinary] = useState<boolean>(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [loadError, setLoadError] = useState<string | null>(null);
   const [isClient, setIsClient] = useState(false);
@@ -121,10 +134,17 @@ export default function Editor() {
       if (!currentFile) return;
 
       setLoadError(null);
+      setIsBinary(false);
 
       const isImageFileType = isImageFile(currentFile.name);
       setIsImage(isImageFileType);
       if (isImageFileType) return;
+
+      if (isBinaryFile(currentFile.name)) {
+        setIsBinary(true);
+        setValue('');
+        return;
+      }
 
       const fileres = await fetch(`${apiUrl}/files/file${currentFile.location}?t=${contentVersion ?? 0}`, {
         credentials: 'include',
@@ -140,6 +160,13 @@ export default function Editor() {
 
       const file = await fileres.text();
       if (currentLocation !== userData.currentFile?.location) return;
+
+      // Detect binary content by null bytes
+      if (file.includes('\0')) {
+        setIsBinary(true);
+        setValue('');
+        return;
+      }
 
       setLoadError(null);
       setValue(file);
@@ -285,7 +312,14 @@ export default function Editor() {
           </div>
         </div>
       )}
-      {loadError ? (
+      {isBinary ? (
+        <div className="flex-1 flex items-center justify-center p-4">
+          <div className="text-center text-gray-400">
+            <File size={48} className="mx-auto mb-3 opacity-40" />
+            <p className="text-sm">This file cannot be displayed in the editor.</p>
+          </div>
+        </div>
+      ) : loadError ? (
         <div className="flex-1 flex items-center justify-center p-4">
           <div className="text-center text-gray-400">
             <File size={48} className="mx-auto mb-3 opacity-40" />

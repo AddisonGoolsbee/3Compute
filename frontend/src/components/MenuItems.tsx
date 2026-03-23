@@ -3,7 +3,7 @@ import { getClasses } from '@luminescent/ui-react';
 import { useContext, Fragment, useEffect } from 'react';
 import { apiUrl, UserData, UserDataContext } from '../util/UserData';
 import { languageMap } from '../util/languageMap';
-import { uploadLocalFiles } from './Explorer';
+import { uploadLocalFiles } from '../util/uploadLocalFiles';
 import { StatusContext } from '../util/Files';
 
 export default function MenuItems({ files, count = 0 }: { files: UserData['files'], count?: number }) {

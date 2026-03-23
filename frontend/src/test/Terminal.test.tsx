@@ -2,7 +2,8 @@ import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import TerminalTabs, { TerminalComponent } from '../components/Terminal';
+import TerminalTabs from '../components/Terminal';
+import { TerminalSession } from '../components/TerminalSession';
 import { UserDataContext } from '../util/UserData';
 
 // Get the mock io function
@@ -32,14 +33,14 @@ const renderWithContext = (component: React.ReactElement) => {
   );
 };
 
-describe('TerminalComponent', () => {
+describe('TerminalSession', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   it('renders terminal component', () => {
     renderWithContext(
-      <TerminalComponent tabId="1" isActive={true} />,
+      <TerminalSession tabId="1" isActive={true} />,
     );
 
     // Should render the terminal container
@@ -48,7 +49,7 @@ describe('TerminalComponent', () => {
 
   it('handles active state correctly', () => {
     const { rerender } = renderWithContext(
-      <TerminalComponent tabId="1" isActive={false} />,
+      <TerminalSession tabId="1" isActive={false} />,
     );
 
     // Get terminal container
@@ -58,7 +59,7 @@ describe('TerminalComponent', () => {
     // Rerender with active state
     rerender(
       <UserDataContext value={mockUserData}>
-        <TerminalComponent tabId="1" isActive={true} />
+        <TerminalSession tabId="1" isActive={true} />
       </UserDataContext>,
     );
 
@@ -67,7 +68,7 @@ describe('TerminalComponent', () => {
 
   it('sends correct tab ID in socket query', () => {
     renderWithContext(
-      <TerminalComponent tabId="5" isActive={true} />,
+      <TerminalSession tabId="5" isActive={true} />,
     );
 
     // Verify socket.io was called with correct tab ID

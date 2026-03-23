@@ -98,6 +98,9 @@ export default function PortsPanel({ onClose }: Props) {
   const portNum = parseInt(port);
   const portValid = userInfo && !isNaN(portNum) && portNum >= userInfo.port_start && portNum <= userInfo.port_end;
   const canClaim = portValid && subdomain.length >= 3 && availability?.available && !saving;
+  const subdomainIndicatorClass = checking
+    ? 'text-gray-500'
+    : availability?.available ? 'text-green-400' : 'text-red-400';
 
   return (
     <div className="fixed inset-0 z-50 flex">
@@ -197,10 +200,7 @@ export default function PortsPanel({ onClose }: Props) {
                     className="w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:border-[#54daf4]/60"
                   />
                   {subdomain.length >= 3 && (
-                    <span className={`absolute right-3 top-1/2 -translate-y-1/2 text-xs ${
-                      checking ? 'text-gray-500' :
-                      availability?.available ? 'text-green-400' : 'text-red-400'
-                    }`}>
+                    <span className={`absolute right-3 top-1/2 -translate-y-1/2 text-xs ${subdomainIndicatorClass}`}>
                       {checking ? '…' : availability?.available ? '✓' : '✗'}
                     </span>
                   )}

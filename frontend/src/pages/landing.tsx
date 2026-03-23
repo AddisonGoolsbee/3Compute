@@ -56,7 +56,7 @@ const DEMO_PROGRAMS: DemoProgram[] = [
     output: [
       ' * Running on http://0.0.0.0:3000',
       ' * Your app is live at:',
-      '   https://abc123.3compute.io/todos',
+      '   https://jdoe.app.3compute.org/todos',
     ],
   },
   {

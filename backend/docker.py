@@ -257,6 +257,7 @@ def spawn_container(
         "--tmpfs", "/tmp:exec,size=256m",
         "--tmpfs", "/run:size=10m",
         "-e", "HOME=/app",
+        "-e", "HISTFILE=/tmp/.ash_history",
         "--cpus",
         str(cpu_per_user),
         "--memory",
