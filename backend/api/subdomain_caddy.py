@@ -90,10 +90,16 @@ def _get_routes(client: httpx.Client) -> list:
 
 
 def _put_routes(client: httpx.Client, routes: list) -> None:
-    resp = client.put(
+    resp = client.patch(
         f"{CADDY_ADMIN}/config/apps/http/servers/{APP_SERVER}/routes",
         json=routes,
     )
+    if resp.status_code == 404:
+        # Routes key doesn't exist yet — use PUT to create it
+        resp = client.put(
+            f"{CADDY_ADMIN}/config/apps/http/servers/{APP_SERVER}/routes",
+            json=routes,
+        )
     resp.raise_for_status()
 
 
