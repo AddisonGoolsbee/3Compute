@@ -6,16 +6,18 @@ Caddy's ACME client using the Cloudflare DNS-01 challenge.
 """
 
 import logging
-import os
 import re
 
 import httpx
 
+from .config import Settings
+
 logger = logging.getLogger("subdomain_caddy")
 
-CADDY_ADMIN = os.environ.get("CADDY_ADMIN_URL", "http://localhost:2019")
-APP_DOMAIN = os.environ.get("APP_DOMAIN", "app.3compute.org")
-CF_API_TOKEN = os.environ.get("CF_API_TOKEN", "")
+_settings = Settings()
+CADDY_ADMIN = _settings.caddy_admin_url
+APP_DOMAIN = _settings.app_domain
+CF_API_TOKEN = _settings.cf_api_token
 APP_SERVER = "apps"  # name of the Caddy server block we own
 
 RESERVED = frozenset({

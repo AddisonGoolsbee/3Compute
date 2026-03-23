@@ -18,6 +18,9 @@ class Settings(BaseSettings):
     database_url: str = "sqlite:///backend/3compute.db"
     max_users: int = 20
     memory_mb: int = 16384
+    cf_api_token: str = ""
+    caddy_admin_url: str = "http://localhost:2019"
+    app_domain: str = "app.3compute.org"
 
     @property
     def is_production(self) -> bool:
