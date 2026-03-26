@@ -65,10 +65,28 @@ pytest backend/test_docker.py::test_name  # Single test
 SQLite via SQLModel, no migrations framework — schema auto-created at startup from models. To add a column, add it to the model class; tables are created but existing columns won't be added automatically (manual `ALTER TABLE` needed on existing DBs).
 
 ### Caddy integration
-`ensure_app_server()` runs at backend startup to create the `apps` Caddy server block (`:443`) if it doesn't exist. Routes use `@id: "app-{subdomain}"` for stable addressing. The Caddy Admin API requires `PATCH` (not `PUT`) to update an existing `routes` array.
+Dynamic subdomain routes live in `srv0` — the Caddyfile-managed `:443` server. Do NOT create a separate API server for `:443`; two servers cannot share the same port.
+
+`ensure_app_server()` (called at backend startup) adds a catchall route and ensures the wildcard TLS automation policy for `*.app.3compute.org` exists via the Caddy Admin API. Routes use `@id: "app-{subdomain}"` for stable addressing. The Caddy Admin API requires `PATCH` (not `PUT`) to update an existing `routes` array.
 
 ## Production
-- Backend runs as systemd service `3compute`
+- Backend runs as systemd service `3compute` (user `www-data`)
 - Caddy manages TLS with wildcard cert `*.app.3compute.org` via Cloudflare DNS-01 challenge
 - Requires `caddy-dns/cloudflare` plugin built into Caddy binary (see the patched build using `ogerman/cloudflare` fork that supports `cfat_` tokens)
 - Uploads: `/var/lib/3compute/uploads/`, classrooms: `/var/lib/3compute/classrooms/`
+- Deploy: GitHub webhook triggers `production/opt/deploy.sh` — rebuilds frontend, pip deps, Docker image, restarts service
+
+### One-time server setup (run once on a fresh host, not part of deploy script)
+```bash
+# Allow www-data (backend) to write files owned by the container group
+usermod -a -G 3compute-container www-data
+
+# Fix permissions on any existing uploads (new files get correct perms from the code)
+find /var/lib/3compute/uploads -type f -exec chmod g+w {} \;
+```
+
+### File permission model
+- Container user: UID 999 / GID 995 (`3compute-container`)
+- Backend service: `www-data`, added to `3compute-container` group
+- Files written by the backend are created with mode `0o664` (group-writable) so both can write
+- Files created inside the container via terminal inherit the container's umask (`002`, set in `backend/Dockerfile`) so they are also group-writable
