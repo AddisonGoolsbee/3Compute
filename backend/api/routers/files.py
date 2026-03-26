@@ -29,16 +29,25 @@ router = APIRouter()
 def set_container_ownership(path: str) -> None:
     """Set ownership/permissions so both www-data and container user 999:995 can access.
 
-    Directories stay owned by www-data with mode 777 (world-writable) so both
-    principals can traverse and create files without needing CAP_CHOWN.
-    Files are chowned to 999:995 so the container user owns what it creates.
+    Directories are mode 777 so both principals can traverse and create files.
+    Files are set to 664 (group-writable) so the backend (www-data, which is a
+    member of the 3compute-container group) and the container user can both write.
+    Full chown to 999:995 requires root; if unavailable we fall back to chgrp only.
     """
     try:
         if os.path.isdir(path):
             os.chmod(path, 0o777)
         else:
-            os.chown(path, CONTAINER_USER_UID, CONTAINER_USER_GID)
-            os.chmod(path, 0o644)
+            try:
+                os.chown(path, CONTAINER_USER_UID, CONTAINER_USER_GID)
+            except OSError:
+                # Not running as root — try group-only chown so www-data
+                # (a member of the container group) retains write access.
+                try:
+                    os.chown(path, -1, CONTAINER_USER_GID)
+                except OSError:
+                    pass
+            os.chmod(path, 0o664)
     except OSError as e:
         logger.warning(f"Failed to set ownership for {path}: {e}")
 
