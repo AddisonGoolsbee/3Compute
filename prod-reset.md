@@ -66,10 +66,10 @@ Each user's subdomain routes are registered dynamically in Caddy. You can wipe t
 curl -s http://localhost:2019/config/apps/http/servers/srv0/routes \
   | python3 -c "import sys,json; routes=json.load(sys.stdin); [print(r.get('@id','(no id)')) for r in routes]"
 
-# Remove all app-* routes (user subdomain routes)
-# This removes them one by one — run the loop:
+# Remove all app-* subdomain routes EXCEPT app-catchall (it's recreated on backend startup anyway,
+# but skipping it avoids confusion if you run this before restarting the service).
 for id in $(curl -s http://localhost:2019/config/apps/http/servers/srv0/routes \
-  | python3 -c "import sys,json; routes=json.load(sys.stdin); [print(r['@id']) for r in routes if r.get('@id','').startswith('app-')]"); do
+  | python3 -c "import sys,json; routes=json.load(sys.stdin); [print(r['@id']) for r in routes if r.get('@id','').startswith('app-') and r.get('@id') != 'app-catchall']"); do
   curl -s -X DELETE "http://localhost:2019/id/$id"
   echo "Removed $id"
 done

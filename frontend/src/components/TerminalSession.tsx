@@ -20,33 +20,6 @@ export function TerminalSession({ tabId, isActive }: TerminalSessionProps) {
   const fitAddonRef = useRef<FitAddon>(null);
   const wasActiveRef = useRef<boolean>(isActive);
 
-  const emitResize = (fit: FitAddon, socket: Socket) => {
-    const dims = fit.proposeDimensions();
-    if (dims && Number.isFinite(dims.cols) && Number.isFinite(dims.rows) && dims.cols > 0 && dims.rows > 0) {
-      socket.emit('resize', { cols: dims.cols, rows: dims.rows });
-    }
-  };
-
-  const waitForFitReady = (
-    term: Terminal,
-    fit: FitAddon,
-    socket: Socket,
-    callback: () => void,
-  ) => {
-    const check = () => {
-      const width = term.element?.clientWidth ?? 0;
-      const height = term.element?.clientHeight ?? 0;
-      if (width > 0 && height > 0) {
-        fit.fit();
-        emitResize(fit, socket);
-        callback();
-      } else {
-        requestAnimationFrame(check);
-      }
-    };
-    check();
-  };
-
   useEffect(() => {
     if (!terminalRef.current) return;
 
@@ -72,24 +45,36 @@ export function TerminalSession({ tabId, isActive }: TerminalSessionProps) {
 
     const socket = io(backendUrl, {
       withCredentials: true,
-      query: {
-        tabId: tabId,
-      },
+      query: { tabId },
     });
     socketRef.current = socket;
 
-    waitForFitReady(term, fitAddon, socket, () => {
-      term.focus();
-      term.scrollToBottom();
+    // term.onResize is the single source of truth for sending resize to the backend.
+    // It fires with the actual applied dimensions whenever terminal.resize() is called
+    // (which fit.fit() does internally). This avoids double-emits that occurred when
+    // emitResize() was called explicitly alongside fit.fit().
+    term.onResize(({ cols, rows }) => {
+      socket.emit('resize', { cols, rows });
     });
 
-    // Re-fit after layout settles (react-resizable-panels CSS transitions can
-    // take up to ~300 ms, so we wait a bit longer than that)
-    const deferredFit = setTimeout(() => {
-      if (fitAddonRef.current && socketRef.current) {
-        fitAddonRef.current.fit();
-        emitResize(fitAddonRef.current, socketRef.current);
+    // Poll until the container has real dimensions, then fit and focus.
+    const waitForFitReady = () => {
+      const width = term.element?.clientWidth ?? 0;
+      const height = term.element?.clientHeight ?? 0;
+      if (width > 0 && height > 0) {
+        fitAddon.fit();
+        term.focus();
+        term.scrollToBottom();
+      } else {
+        requestAnimationFrame(waitForFitReady);
       }
+    };
+    waitForFitReady();
+
+    // Re-fit after layout settles (react-resizable-panels CSS transitions can
+    // take up to ~300 ms, so we wait a bit longer than that).
+    const deferredFit = setTimeout(() => {
+      fitAddonRef.current?.fit();
     }, 400);
 
     term.onData((data) => {
@@ -141,15 +126,14 @@ export function TerminalSession({ tabId, isActive }: TerminalSessionProps) {
     });
 
     socket.on('connect', () => {
-      // Refresh file explorer on (re)connect in case files changed while the socket was disconnected
-      // (e.g. lesson imported from the /lessons page which has no active socket)
+      // Refresh file explorer on (re)connect in case files changed while disconnected.
       window.dispatchEvent(new CustomEvent('3compute:files-changed'));
-      // Re-emit resize so the backend knows the current terminal dimensions after
-      // a reconnect.  The backend now eagerly attaches the PTY on connect, but it
-      // doesn't know the dimensions until we tell it.
-      if (fitAddonRef.current && socketRef.current) {
-        fitAddonRef.current.fit();
-        emitResize(fitAddonRef.current, socketRef.current);
+      // Re-send the current terminal dimensions so the backend PTY stays in sync.
+      // We use term.cols/rows (already applied) rather than calling fit.fit() again,
+      // which avoids a redundant resize that can shift terminal content.
+      if (terminalInstanceRef.current && socketRef.current) {
+        const { cols, rows } = terminalInstanceRef.current;
+        socketRef.current.emit('resize', { cols, rows });
       }
     });
 
@@ -165,12 +149,8 @@ export function TerminalSession({ tabId, isActive }: TerminalSessionProps) {
     window.addEventListener('3compute:run-command', runHandler);
 
     const resizeObserver = new ResizeObserver(() => {
-      if (fitAddonRef.current && socketRef.current) {
-        fitAddonRef.current.fit();
-        emitResize(fitAddonRef.current, socketRef.current);
-      }
+      fitAddonRef.current?.fit();
     });
-
     resizeObserver.observe(terminalRef.current);
 
     return () => {
@@ -185,12 +165,8 @@ export function TerminalSession({ tabId, isActive }: TerminalSessionProps) {
   useEffect(() => {
     if (isActive && !wasActiveRef.current) {
       // Defer by one frame so the browser paints the visibility change before we fit.
-      // Fitting synchronously leaves the canvas at the wrong size for one frame, showing dots.
       requestAnimationFrame(() => {
         fitAddonRef.current?.fit();
-        if (fitAddonRef.current && socketRef.current) {
-          emitResize(fitAddonRef.current, socketRef.current);
-        }
         terminalInstanceRef.current?.focus();
       });
     }
