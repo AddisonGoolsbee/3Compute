@@ -63,6 +63,7 @@ export default function CreateClassroomDialog({ open, onClose }: Props) {
       const data = await res.json();
       setCreatedCode(data.access_code || null);
       console.log('Created classroom', data);
+      window.dispatchEvent(new CustomEvent('3compute:files-changed'));
       window.dispatchEvent(
         new CustomEvent('terminal-restart-required', {
           detail: { reason: 'classroom-created', classroomId: data.id },
