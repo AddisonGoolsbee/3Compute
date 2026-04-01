@@ -23,19 +23,6 @@ body {
   display: none;
 }
 
-/* xterm.js base styling — black background on the outer container so nothing
-   shows through before the canvas paints or while fit() hasn't run yet.
-   Do NOT set background on .xterm-screen: it sits directly behind the canvas
-   layers and an opaque CSS background there causes ghost rows when scrolling
-   (stale canvas pixels composite against it instead of being cleared). */
-.xterm,
-.xterm-helper-textarea {
-  background: black;
-}
-.xterm {
-  outline: none; /* suppress browser's dotted focus ring on the tabIndex div */
-}
-
 /* xterm.js scrollbar styling */
 .xterm-viewport {
   background-color: black !important;
