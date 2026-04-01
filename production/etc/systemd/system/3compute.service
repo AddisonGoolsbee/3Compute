@@ -8,8 +8,8 @@ WorkingDirectory=/var/www/3compute
 Environment=PYTHONUNBUFFERED=1
 Environment=USERS_JSON_FILE=/var/lib/3compute/users.json
 ExecStartPre=+/bin/mkdir -p /var/lib/3compute/uploads /var/lib/3compute/classrooms
-ExecStartPre=+/bin/chown -R www-data:www-data /var/lib/3compute
-ExecStartPre=+/bin/find /var/lib/3compute/classrooms -type d -exec /bin/chmod 777 {} +
+ExecStartPre=+/bin/chown www-data:www-data /var/lib/3compute /var/lib/3compute/uploads /var/lib/3compute/classrooms
+ExecStartPre=+/bin/find /var/lib/3compute/classrooms -type d -exec /bin/chmod 775 {} +
 ExecStart=/var/www/3compute/.venv/bin/python3 -m backend.api
 Restart=always
 RestartSec=5

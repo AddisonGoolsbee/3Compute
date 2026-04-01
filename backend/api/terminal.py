@@ -523,7 +523,7 @@ async def handle_connect(sid, environ, auth=None):
         )
         return False
 
-    session_map[sid] = {
+    session_info = {
         "fd": None,
         "user_id": user_id,
         "container_attached": False,
@@ -532,6 +532,22 @@ async def handle_connect(sid, environ, auth=None):
         "port_range": port_range,
         "email": email,
     }
+    session_map[sid] = session_info
+
+    # Attach the PTY eagerly so input/output works immediately without waiting
+    # for the first resize event.  This also fixes the post-reconnect freeze:
+    # when Socket.IO silently drops and reconnects, handle_connect fires again
+    # with a fresh session (container_attached=False), but the frontend doesn't
+    # re-emit a resize, so the lazy path in handle_resize was never triggered.
+    success = await asyncio.to_thread(_attach_container, session_info)
+    if not success:
+        session_map.pop(sid, None)
+        await sio.emit(
+            "error",
+            {"message": "Failed to connect to terminal. Please try again."},
+            to=sid,
+        )
+        return False
 
     sio.start_background_task(read_and_forward_pty_output, sid)
 

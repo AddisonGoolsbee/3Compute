@@ -147,6 +147,13 @@ export function TerminalSession({ tabId, isActive }: TerminalSessionProps) {
       // Refresh file explorer on (re)connect in case files changed while the socket was disconnected
       // (e.g. lesson imported from the /lessons page which has no active socket)
       window.dispatchEvent(new CustomEvent('3compute:files-changed'));
+      // Re-emit resize so the backend knows the current terminal dimensions after
+      // a reconnect.  The backend now eagerly attaches the PTY on connect, but it
+      // doesn't know the dimensions until we tell it.
+      if (fitAddonRef.current && socketRef.current) {
+        fitAddonRef.current.fit();
+        emitResize(fitAddonRef.current, socketRef.current);
+      }
     });
 
     socket.on('files-changed', () => {

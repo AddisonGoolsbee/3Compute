@@ -413,6 +413,8 @@ function gameStep(gameState) {
   let gameState = null;
   let loopInterval = null;
   let autoPlay = false;
+  // Buffer of pending direction changes. At most one is consumed per game step
+  let directionQueue = [];
 
   function buildInitialState() {
     const snake = initSnake();
@@ -442,6 +444,11 @@ function gameStep(gameState) {
     gameState = state;
 
     loopInterval = setInterval(function () {
+      // Apply the next buffered direction (one per tick) before stepping
+      if (!autoPlay && directionQueue.length > 0) {
+        gameState = { ...gameState, direction: directionQueue.shift() };
+      }
+
       // If auto-play is active, override the direction with the AI's choice
       if (autoPlay && typeof autoPlayStep === "function") {
         gameState = { ...gameState, direction: autoPlayStep(gameState) };
@@ -461,6 +468,7 @@ function gameStep(gameState) {
 
   function restartGame() {
     autoPlay = false;
+    directionQueue = [];
     const btn = document.getElementById("autoplay-btn");
     if (btn) btn.classList.remove("active");
 
@@ -488,15 +496,22 @@ function gameStep(gameState) {
     }, 200);
   }
 
-  // Keyboard input
+  // Keyboard input — push to queue so rapid presses don't cause instant reversals.
+  // We check the reversal against the last *queued* direction, not the game state,
+  // so that e.g. LEFT→UP queued while going DOWN is still valid.
   document.addEventListener("keydown", function (event) {
     if (!gameState || !gameState.running) return;
     // Prevent arrow keys from scrolling the page
     if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.code)) {
       event.preventDefault();
     }
-    const newDirection = handleKeyPress(event, gameState.direction);
-    gameState = { ...gameState, direction: newDirection };
+    const currentDir = directionQueue.length > 0
+      ? directionQueue[directionQueue.length - 1]
+      : gameState.direction;
+    const newDirection = handleKeyPress(event, currentDir);
+    if (newDirection !== currentDir && directionQueue.length < 2) {
+      directionQueue.push(newDirection);
+    }
   });
 
   // Restart button

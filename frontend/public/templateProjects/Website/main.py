@@ -9,12 +9,14 @@ def root():
 
 
 if __name__ == "__main__":
+    import os
     from waitress import serve
 
     host = "0.0.0.0"
-    port = 8000
+    port = int(os.environ.get("PORT", 8000))
 
     print(f"Website is running on port {port}.")
-    print(f"To share it: click the Ports button (top right of the terminal), assign a subdomain to port {port},")
-    print("then your public URL will be https://yoursubdomain.app.3compute.org")
+    print("Open the Ports button (top right of the terminal) to see your available ports.")
+    print(f"If {port} is not in your range, run:  PORT=<your_port> python main.py")
+    print("Then assign a subdomain to that port to get your public URL.")
     serve(app, host=host, port=port)

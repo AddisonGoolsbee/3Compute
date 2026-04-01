@@ -155,11 +155,11 @@ def index():
 # =============================================================================
 
 if __name__ == "__main__":
-    port = 8000
+    port = int(os.environ.get("PORT", 8000))
     print("=" * 50)
     print(f"  Your website is running on port {port}.")
-    print("  To share it: click the Ports button (top right of the terminal),")
-    print(f"  assign a subdomain to port {port},")
-    print("  then share https://yoursubdomain.app.3compute.org")
+    print("  Open the Ports button (top right of the terminal) to see your available ports.")
+    print(f"  If {port} is not in your range, run:  PORT=<your_port> python app.py")
+    print("  Then assign a subdomain to that port to get your public URL.")
     print("=" * 50)
     app.run(host="0.0.0.0", port=port, debug=True)

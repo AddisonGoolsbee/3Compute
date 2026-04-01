@@ -3,7 +3,7 @@ Snake Game - Flask Backend
 ==========================
 
 This file does two things:
-  1. Serves the game at port 8000 (use the Ports button to get a public URL)
+  1. Serves the game on a port you choose (see the Ports button for available ports)
   2. Provides a leaderboard API so players can save and view high scores.
 
 YOUR TASKS:
@@ -11,7 +11,7 @@ YOUR TASKS:
   TODO #9: Implement get_leaderboard() - GET /api/leaderboard
 
 Run the game: python app.py
-Then open the URL printed in the terminal.
+Then assign a subdomain to the port via the Ports button (top right of the terminal).
 """
 
 import json
@@ -60,7 +60,7 @@ def save_score():
           case where scores.json doesn't exist yet.
     """
     # TODO: Implement this route
-    pass
+    return jsonify({"ok": False, "error": "Not implemented yet"}), 501
 
 
 # =============================================================================
@@ -84,7 +84,7 @@ def get_leaderboard():
     HINT: list.sort(key=lambda x: x["score"], reverse=True)
     """
     # TODO: Implement this route
-    pass
+    return jsonify([])
 
 
 # =============================================================================
@@ -94,6 +94,8 @@ def get_leaderboard():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8000))
     print(f"Snake is running on port {port}.")
-    print(f"To share it: click the Ports button (top right of the terminal), assign a subdomain to port {port},")
-    print("then your public URL will be https://yoursubdomain.app.3compute.org")
+    print("Open the Ports button (top right of the terminal) to see your available ports.")
+    print(f"If {port} is not in your range, set PORT=<your_port> before running, e.g.:")
+    print(f"  PORT=10000 python app.py")
+    print(f"Then assign a subdomain to that port to get your public URL.")
     serve(app, host="0.0.0.0", port=port)
