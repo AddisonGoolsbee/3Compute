@@ -177,6 +177,7 @@ You should see:
 Once all tests pass, run the benchmark:
 
 ```bash
+pip install -r requirements.txt
 python main.py
 ```
 

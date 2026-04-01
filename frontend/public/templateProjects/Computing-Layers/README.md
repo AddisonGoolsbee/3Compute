@@ -210,6 +210,7 @@ later tests sometimes depend on earlier functions working correctly.
 Once all tests pass, try the interactive shell:
 
 ```
+pip install -r requirements.txt
 python main.py
 ```
 

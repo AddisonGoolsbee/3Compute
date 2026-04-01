@@ -860,6 +860,7 @@ async def remove_instructor(
     return {"removed": True}
 
 
+
 @router.post("/{classroom_id}/templates/upload")
 async def upload_classroom_template(
     classroom_id: str,
@@ -926,6 +927,7 @@ async def upload_classroom_template(
             f"Uploaded {len(saved_files)} template files to classroom "
             f"{classroom_id} by user {user.id}"
         )
+
         return {
             "uploaded": True,
             "files": saved_files,

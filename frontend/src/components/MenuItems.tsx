@@ -241,6 +241,8 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
                       }}
                       onBlur={async (e) => {
                         const input = e.currentTarget;
+                        // Guard: React unmounting the input fires a second blur — ignore it
+                        if (input.dataset.submitted) return;
                         const name = input.value.trim();
 
                         // Validate: name must be unique among siblings (case-insensitive)
@@ -266,16 +268,14 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
                         try {
                           if ((file as any).placeholder) {
                             // Create brand-new file/folder at newLocation
-                            if (!name) {
-                              // Empty or unchanged name on placeholder: keep default
-                              // newLocation already accounts for default name
-                            }
+                            input.dataset.submitted = 'true'; // Prevent double-submit on unmount blur
                             const res = await fetch(`${apiUrl}/files/file${newLocation}`, {
                               method: 'POST',
                               headers: { 'Content-Type': 'application/json' },
                               credentials: 'include',
                             });
                             if (!res.ok) {
+                              delete input.dataset.submitted; // Allow retry
                               let errMsg = 'Unable to create. Try a different name.';
                               try {
                                 const errData = await res.json();

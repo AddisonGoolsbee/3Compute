@@ -17,7 +17,7 @@ import {
   Code,
   Printer,
 } from 'lucide-react';
-import { apiUrl, UserDataContext } from '../util/UserData';
+import { apiUrl, backendUrl, UserDataContext } from '../util/UserData';
 import { printMarkdownElement } from '../util/printMarkdown';
 
 interface Standard {
@@ -502,7 +502,7 @@ function LessonCard({
           )}
           {isTeacher && lesson.solutionDoc && (
             <a
-              href={lesson.solutionDoc}
+              href={backendUrl + lesson.solutionDoc}
               download
               className="lum-btn lum-pad-sm rounded-lg border border-gray-600 hover:border-purple-500/50 hover:bg-purple-500/5 text-sm inline-flex items-center gap-1.5 transition-colors whitespace-nowrap"
             >

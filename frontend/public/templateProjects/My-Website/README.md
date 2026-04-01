@@ -7,6 +7,7 @@ Your site runs on 3Compute's servers. Once it's running, anyone with the link ca
 ## How to Run
 
 ```bash
+pip install -r requirements.txt
 python app.py
 ```
 

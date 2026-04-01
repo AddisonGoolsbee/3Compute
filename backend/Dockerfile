@@ -21,7 +21,8 @@ RUN addgroup -g 995 3compute-container \
 COPY tmux.conf /home/myuser/.tmux.conf
 RUN chown 999:995 /home/myuser/.tmux.conf
 
-RUN echo 'umask 002' >> /home/myuser/.profile
+RUN echo 'umask 002' >> /home/myuser/.profile \
+ && echo 'export PATH="$HOME/.local/bin:$PATH"' >> /home/myuser/.profile
 
 USER myuser
 WORKDIR /app

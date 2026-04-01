@@ -561,6 +561,79 @@ async def upload(
     return PlainTextResponse("File uploaded successfully")
 
 
+def _collision_safe_copy(src_dir: str, dest_parent: str, name: str) -> None:
+    """Copy src_dir into dest_parent as *name*, appending (1), (2), … on collision."""
+    candidate = os.path.join(dest_parent, name)
+    if os.path.exists(candidate):
+        i = 1
+        while os.path.exists(os.path.join(dest_parent, f"{name} ({i})")):
+            i += 1
+        candidate = os.path.join(dest_parent, f"{name} ({i})")
+    shutil.copytree(src_dir, candidate)
+    for root, dirs, fnames in os.walk(candidate):
+        try:
+            os.chmod(root, 0o775)
+            os.chown(root, CONTAINER_USER_UID, CONTAINER_USER_GID)
+        except OSError:
+            pass
+        for fn in fnames:
+            fp = os.path.join(root, fn)
+            try:
+                os.chown(fp, CONTAINER_USER_UID, CONTAINER_USER_GID)
+                os.chmod(fp, 0o664)
+            except OSError:
+                pass
+
+
+async def _push_template_to_participants(
+    cid: str,
+    template_name: str,
+    src: str,
+    db: Session,
+) -> None:
+    """Copy *src* directory into every participant's workspace as *template_name*."""
+    if not os.path.isdir(src):
+        logger.warning("Template source not found, skipping push: %s", src)
+        return
+
+    participants = db.exec(
+        select(ClassroomMember).where(
+            ClassroomMember.classroom_id == cid,
+            ClassroomMember.role == "participant",
+        )
+    ).all()
+    if not participants:
+        return
+
+    participant_users = db.exec(
+        select(User).where(User.id.in_([p.user_id for p in participants]))
+    ).all()
+
+    for participant in participant_users:
+        sanitized_email = (participant.email or "participant").replace("/", "_")
+        classroom_participant_dir = os.path.join(CLASSROOMS_ROOT, cid, "participants", sanitized_email)
+        if not os.path.isdir(classroom_participant_dir):
+            continue
+        try:
+            _collision_safe_copy(src, classroom_participant_dir, template_name)
+            await notify_files_changed(str(participant.id))
+        except Exception as e:
+            logger.warning(
+                "Failed to push template %s to participant %s: %s",
+                template_name, participant.id, e,
+            )
+
+
+async def _push_classroom_templates_to_participants(
+    templates_written: set[tuple[str, str]],
+    db: Session,
+) -> None:
+    """For each (classroom_id, template_name) push classroom-templates/{template_name}."""
+    for cid, template_name in templates_written:
+        src = os.path.join(CLASSROOMS_ROOT, cid, "classroom-templates", template_name)
+        await _push_template_to_participants(cid, template_name, src, db)
+
+
 @router.post("/upload-folder")
 async def upload_folder(
     request: Request,
@@ -595,6 +668,9 @@ async def upload_folder(
         os.makedirs(target_base, exist_ok=True)
         set_container_ownership(target_base)
 
+    # Track (classroom_id, template_name) pairs written to classroom-templates
+    classroom_templates_written: set[tuple[str, str]] = set()
+
     for f in files:
         safe_path = os.path.normpath(os.path.join(target_base, f.filename))
         if not safe_path.startswith(target_base):
@@ -620,6 +696,11 @@ async def upload_folder(
                             status_code=403,
                             detail="Templates folder is read-only for participants",
                         )
+
+                # Track writes to classroom-templates/{template_name}/
+                parts = rel_to_classrooms.split("/")
+                if len(parts) >= 3 and parts[1] == "classroom-templates":
+                    classroom_templates_written.add((parts[0], parts[2]))
         else:
             dest_path = safe_path
 
@@ -663,6 +744,15 @@ async def upload_folder(
             )
         except subprocess.CalledProcessError:
             pass
+
+    # Push to student workspaces if files landed in classroom-templates (teacher drag-drop)
+    await _push_classroom_templates_to_participants(classroom_templates_written, db)
+
+    # Push to student workspaces for lesson imports (classroom_id + move-into provided)
+    move_into_str = str(move_into) if move_into else ""
+    if classroom_id and move_into_str:
+        src = os.path.join(CLASSROOMS_ROOT, str(classroom_id), "templates", move_into_str)
+        await _push_template_to_participants(str(classroom_id), move_into_str, src, db)
 
     await notify_files_changed(str(user.id))
     return PlainTextResponse("Folder uploaded successfully")

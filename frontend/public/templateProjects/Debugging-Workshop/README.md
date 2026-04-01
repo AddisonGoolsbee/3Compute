@@ -10,7 +10,12 @@ what it is supposed to do.
 ## Quick Start
 
 1. **Read the code:** Open `buggy_programs.py` and read each function and its docstring
-2. **Run the tests:** `python test_programs.py`
+2. **Run the tests:**
+
+```bash
+pip install -r requirements.txt
+python test_programs.py
+```
 3. **Pick a failing function:** Read the test output to understand what went wrong
 4. **Debug it:** Use the process below
 5. **Document it:** Fill in `debugging_notes.md` as you go

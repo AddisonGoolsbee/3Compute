@@ -16,7 +16,12 @@ By completing this project, you'll understand:
 1. **Open `main.py`** and read through the code structure
 2. **Complete the TODOs** in order (1 through 4)
 3. **Test your work:** `python test_game.py`
-4. **Play the game:** `python main.py`
+4. **Play the game:**
+
+```bash
+pip install -r requirements.txt
+python main.py
+```
 
 ---
 

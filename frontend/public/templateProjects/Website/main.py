@@ -14,5 +14,7 @@ if __name__ == "__main__":
     host = "0.0.0.0"
     port = 8000
 
-    print(f"🚀 Website is up! Listening on http://app.3compute.org:{port}")
+    print(f"Website is running on port {port}.")
+    print(f"To share it: click the Ports button (top right of the terminal), assign a subdomain to port {port},")
+    print("then your public URL will be https://yoursubdomain.app.3compute.org")
     serve(app, host=host, port=port)

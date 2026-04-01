@@ -17,7 +17,12 @@ By completing this project, you'll be able to:
 1. **Open `main.py`** and read through the provided `main()` function to understand what the analysis does
 2. **Complete the TODOs** in order (1 through 5)
 3. **Test your work:** `python test_analysis.py`
-4. **Run the full analysis:** `python main.py`
+4. **Run the full analysis:**
+
+```bash
+pip install -r requirements.txt
+python main.py
+```
 
 No extra packages are needed. This project uses only Python's standard library.
 

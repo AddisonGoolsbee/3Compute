@@ -23,8 +23,11 @@ body {
   display: none;
 }
 
-/* xterm.js base styling */
-.xterm {
+/* xterm.js base styling — black background everywhere so there's nothing to show
+   through before the canvas paints or while fit() hasn't run yet */
+.xterm,
+.xterm-screen,
+.xterm-helper-textarea {
   background: black;
   outline: none; /* suppress browser's dotted focus ring on the tabIndex div */
 }

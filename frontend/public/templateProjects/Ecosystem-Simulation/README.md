@@ -27,7 +27,12 @@ you can observe in real ecosystems and in your ASCII chart.
 1. Open `main.py` and read through the structure
 2. Complete the TODOs in order (1 through 4)
 3. Test your work: `python test_simulation.py`
-4. Run the simulation: `python main.py`
+4. Run the simulation:
+
+```bash
+pip install -r requirements.txt
+python main.py
+```
 
 ---
 

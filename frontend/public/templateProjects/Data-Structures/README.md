@@ -17,7 +17,12 @@ By completing this project, you'll understand:
 1. **Open `main.py`** and read through the class skeletons and docstrings
 2. **Complete the TODOs** in order (1 through 5)
 3. **Test your work:** `python test_structures.py`
-4. **Run the demo:** `python main.py`
+4. **Run the demo:**
+
+```bash
+pip install -r requirements.txt
+python main.py
+```
 
 ---
 

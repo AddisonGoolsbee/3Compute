@@ -218,6 +218,7 @@ The test suite checks each function against several inputs, including edge cases
 Once all tests pass:
 
 ```bash
+pip install -r requirements.txt
 python main.py
 ```
 

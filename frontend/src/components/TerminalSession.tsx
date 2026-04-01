@@ -82,14 +82,14 @@ export function TerminalSession({ tabId, isActive }: TerminalSessionProps) {
       term.scrollToBottom();
     });
 
-    // Re-fit after layout settles (react-resizable-panels may not have reached
-    // final dimensions by the time the first fit runs)
+    // Re-fit after layout settles (react-resizable-panels CSS transitions can
+    // take up to ~300 ms, so we wait a bit longer than that)
     const deferredFit = setTimeout(() => {
       if (fitAddonRef.current && socketRef.current) {
         fitAddonRef.current.fit();
         emitResize(fitAddonRef.current, socketRef.current);
       }
-    }, 150);
+    }, 400);
 
     term.onData((data) => {
       socket.emit('pty-input', { input: data });

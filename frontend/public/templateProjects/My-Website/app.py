@@ -11,9 +11,10 @@ and sends back responses. Some routes serve HTML pages. Others return
 data as JSON. Those are your APIs.
 
 HOW TO RUN:
+    pip install -r requirements.txt
     python app.py
 
-Then click the link that appears. Your site is live.
+Then click the Ports button (top right of the terminal), assign a subdomain to port 8000, and open your public URL.
 
 YOUR TASKS (in order):
     Section 2  - About Me (HTML/CSS only, no Python changes needed)
@@ -154,8 +155,11 @@ def index():
 # =============================================================================
 
 if __name__ == "__main__":
+    port = 8000
     print("=" * 50)
-    print("  Your website is starting up...")
-    print("  Open the link above to view it.")
+    print(f"  Your website is running on port {port}.")
+    print("  To share it: click the Ports button (top right of the terminal),")
+    print(f"  assign a subdomain to port {port},")
+    print("  then share https://yoursubdomain.app.3compute.org")
     print("=" * 50)
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    app.run(host="0.0.0.0", port=port, debug=True)

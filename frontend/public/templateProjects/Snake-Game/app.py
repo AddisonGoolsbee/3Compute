@@ -3,7 +3,7 @@ Snake Game - Flask Backend
 ==========================
 
 This file does two things:
-  1. Serves the game at http://localhost:5000/
+  1. Serves the game at port 8000 (use the Ports button to get a public URL)
   2. Provides a leaderboard API so players can save and view high scores.
 
 YOUR TASKS:
@@ -92,7 +92,8 @@ def get_leaderboard():
 # =============================================================================
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
-    print(f"Snake is running at http://localhost:{port}")
-    print("Share your public URL so others can play!")
+    port = int(os.environ.get("PORT", 8000))
+    print(f"Snake is running on port {port}.")
+    print(f"To share it: click the Ports button (top right of the terminal), assign a subdomain to port {port},")
+    print("then your public URL will be https://yoursubdomain.app.3compute.org")
     serve(app, host="0.0.0.0", port=port)

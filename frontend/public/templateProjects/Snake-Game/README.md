@@ -7,6 +7,7 @@ The game runs in a browser. You write Python (the server) and JavaScript (the ga
 ## How to run it
 
 ```bash
+pip install -r requirements.txt
 python app.py
 ```
 
