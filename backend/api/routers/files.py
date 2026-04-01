@@ -844,6 +844,13 @@ async def update_file(
 
     body = await request.body()
     content = body.decode("utf-8")
+    # Take ownership before writing — the file may be owned by the container user
+    # (999:995) and www-data won't have write permission without GID 995.
+    # CAP_CHOWN lets us change ownership regardless of current owner.
+    try:
+        os.chown(abs_path, os.getuid(), os.getgid())
+    except OSError:
+        pass
     with open(abs_path, "w") as fh:
         fh.write(content)
     set_container_ownership(abs_path)
