@@ -55,6 +55,7 @@ export function TerminalSession({ tabId, isActive }: TerminalSessionProps) {
       macOptionIsMeta: true,
       macOptionClickForcesSelection: true,
       scrollback: 5000,
+      theme: { background: '#000000' },
     });
     const webLinks = new WebLinksAddon();
     const search = new SearchAddon();
@@ -109,10 +110,6 @@ export function TerminalSession({ tabId, isActive }: TerminalSessionProps) {
         }
       }
       return true;
-    });
-
-    term.onResize(({ cols, rows }) => {
-      socket.emit('resize', { cols, rows });
     });
 
     socket.on('pty-output', (data: { output: string }) => {
