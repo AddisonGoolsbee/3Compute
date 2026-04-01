@@ -165,8 +165,9 @@ def run_lesson(lesson: dict, work_root: Path) -> tuple[bool, str]:
 
     pip_install_requirements(dst)
 
+    cmd = [sys.executable if arg == "python3" else arg for arg in lesson["test"]]
     proc = subprocess.run(
-        lesson["test"],
+        cmd,
         cwd=str(dst),
         capture_output=True,
         text=True,
