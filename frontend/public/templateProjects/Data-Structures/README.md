@@ -70,11 +70,13 @@ You can. But a dedicated class:
 - **Prevents bugs** by restricting operations to only what makes sense
 - **Documents intent** -- seeing `Stack()` in code immediately communicates the access pattern
 - **Hides the implementation** -- the rest of the program doesn't need to know which end of the list is the "top"
+- **Makes time complexity explicit** -- *time complexity* describes how an operation's speed scales with the size of the data. O(1) means "constant time": it takes the same amount of work whether the list has 10 items or 10 million. O(n) means "linear time": the work grows proportionally with the number of items. A Stack wrapping a list has O(1) push and pop because it always touches the end. A Queue naively backed by a list has O(n) dequeue because `pop(0)` shifts every remaining element one position to fill the gap. A dedicated Queue can swap in a `collections.deque` internally and make both ends O(1) without any caller ever noticing.
 
 | Feature | Python list | Stack | Queue |
 |---|---|---|---|
 | Access any index | Yes | No | No |
 | Add/remove from either end | Yes | Top only | Back in, front out |
+| Core operations (push/pop or enqueue/dequeue) | O(1) at end, O(n) at front | O(1) | O(1) with right internals |
 | Communicates intent | No | Yes | Yes |
 | Prevents accidental misuse | No | Yes | Yes |
 

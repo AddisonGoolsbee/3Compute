@@ -20,6 +20,13 @@ export function TerminalSession({ tabId, isActive }: TerminalSessionProps) {
   const fitAddonRef = useRef<FitAddon>(null);
   const wasActiveRef = useRef<boolean>(isActive);
 
+  const emitResize = (fit: FitAddon, socket: Socket) => {
+    const dims = fit.proposeDimensions();
+    if (dims && Number.isFinite(dims.cols) && Number.isFinite(dims.rows) && dims.cols > 0 && dims.rows > 0) {
+      socket.emit('resize', { cols: dims.cols, rows: dims.rows });
+    }
+  };
+
   const waitForFitReady = (
     term: Terminal,
     fit: FitAddon,
@@ -31,10 +38,7 @@ export function TerminalSession({ tabId, isActive }: TerminalSessionProps) {
       const height = term.element?.clientHeight ?? 0;
       if (width > 0 && height > 0) {
         fit.fit();
-        const dims = fit.proposeDimensions();
-        if (dims) {
-          socket.emit('resize', { cols: dims.cols, rows: dims.rows });
-        }
+        emitResize(fit, socket);
         callback();
       } else {
         requestAnimationFrame(check);
@@ -77,6 +81,15 @@ export function TerminalSession({ tabId, isActive }: TerminalSessionProps) {
       term.focus();
       term.scrollToBottom();
     });
+
+    // Re-fit after layout settles (react-resizable-panels may not have reached
+    // final dimensions by the time the first fit runs)
+    const deferredFit = setTimeout(() => {
+      if (fitAddonRef.current && socketRef.current) {
+        fitAddonRef.current.fit();
+        emitResize(fitAddonRef.current, socketRef.current);
+      }
+    }, 150);
 
     term.onData((data) => {
       socket.emit('pty-input', { input: data });
@@ -130,6 +143,12 @@ export function TerminalSession({ tabId, isActive }: TerminalSessionProps) {
       }
     });
 
+    socket.on('connect', () => {
+      // Refresh file explorer on (re)connect in case files changed while the socket was disconnected
+      // (e.g. lesson imported from the /lessons page which has no active socket)
+      window.dispatchEvent(new CustomEvent('3compute:files-changed'));
+    });
+
     socket.on('files-changed', () => {
       window.dispatchEvent(new CustomEvent('3compute:files-changed'));
     });
@@ -142,21 +161,16 @@ export function TerminalSession({ tabId, isActive }: TerminalSessionProps) {
     window.addEventListener('3compute:run-command', runHandler);
 
     const resizeObserver = new ResizeObserver(() => {
-      if (fitAddonRef.current) {
+      if (fitAddonRef.current && socketRef.current) {
         fitAddonRef.current.fit();
-        const dims = fitAddonRef.current.proposeDimensions();
-        if (dims && socketRef.current) {
-          socketRef.current.emit('resize', {
-            cols: dims.cols,
-            rows: dims.rows,
-          });
-        }
+        emitResize(fitAddonRef.current, socketRef.current);
       }
     });
 
     resizeObserver.observe(terminalRef.current);
 
     return () => {
+      clearTimeout(deferredFit);
       window.removeEventListener('3compute:run-command', runHandler);
       resizeObserver.disconnect();
       socket.disconnect();
@@ -165,14 +179,16 @@ export function TerminalSession({ tabId, isActive }: TerminalSessionProps) {
   }, [tabId]);
 
   useEffect(() => {
-    if (
-      isActive &&
-      !wasActiveRef.current &&
-      terminalInstanceRef.current &&
-      fitAddonRef.current
-    ) {
-      fitAddonRef.current.fit();
-      terminalInstanceRef.current.focus();
+    if (isActive && !wasActiveRef.current) {
+      // Defer by one frame so the browser paints the visibility change before we fit.
+      // Fitting synchronously leaves the canvas at the wrong size for one frame, showing dots.
+      requestAnimationFrame(() => {
+        fitAddonRef.current?.fit();
+        if (fitAddonRef.current && socketRef.current) {
+          emitResize(fitAddonRef.current, socketRef.current);
+        }
+        terminalInstanceRef.current?.focus();
+      });
     }
     wasActiveRef.current = isActive;
   }, [isActive]);

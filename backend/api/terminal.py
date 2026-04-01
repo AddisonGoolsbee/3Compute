@@ -599,15 +599,15 @@ async def handle_resize(sid, data):
             )
             return
 
+    cols = data.get("cols")
+    rows = data.get("rows")
+    if not isinstance(cols, int) or not isinstance(rows, int) or cols <= 0 or rows <= 0:
+        logger.warning("Ignoring resize with invalid dimensions: cols=%s rows=%s", cols, rows)
+        return
+
     fd = session_info["fd"]
     try:
-        set_winsize(fd, data["rows"], data["cols"])
-    except KeyError as e:
-        logger.error(
-            "Missing required resize data: %s. Available keys: %s",
-            e,
-            list(data.keys()),
-        )
+        set_winsize(fd, rows, cols)
     except Exception as e:
         logger.error("Failed to resize terminal: %s", e, exc_info=True)
 
