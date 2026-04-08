@@ -102,6 +102,18 @@ export function TerminalSession({ tabId, isActive }: TerminalSessionProps) {
       socket.emit('resize', { cols, rows });
     });
 
+    socket.on('connect', () => {
+      // Re-emit resize after socket connects (or reconnects) so the backend
+      // always has the correct terminal dimensions.
+      if (fitAddonRef.current) {
+        fitAddonRef.current.fit();
+        const dims = fitAddonRef.current.proposeDimensions();
+        if (dims) {
+          socket.emit('resize', { cols: dims.cols, rows: dims.rows });
+        }
+      }
+    });
+
     socket.on('pty-output', (data: { output: string }) => {
       term.write(data.output);
     });

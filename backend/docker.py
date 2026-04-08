@@ -565,6 +565,11 @@ def attach_to_container(container_name, tab_id="1"):
         raise RuntimeError(f"Container {container_name} is not running")
 
     master_fd, slave_fd = pty.openpty()
+    # Set a reasonable default size so tmux doesn't render at 0x0.
+    # The frontend will send the real dimensions shortly after connect.
+    import struct, fcntl, termios
+    default_winsize = struct.pack("HHHH", 24, 80, 0, 0)
+    fcntl.ioctl(slave_fd, termios.TIOCSWINSZ, default_winsize)
     # Create unique tmux session for each tab
     session_name = f"3compute-tab{tab_id}"
     tmux_conf = "/home/myuser/.tmux.conf"
