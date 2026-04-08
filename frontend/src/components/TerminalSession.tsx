@@ -198,7 +198,7 @@ export function TerminalSession({ tabId, isActive }: TerminalSessionProps) {
       })}
       data-tab-id={tabId}
     >
-      <div ref={terminalRef} className="w-full h-full overflow-hidden" />
+      <div ref={terminalRef} className="w-full h-full overflow-hidden px-1" />
     </div>
   );
 }
