@@ -59,8 +59,7 @@ services:
       CLASSROOMS_ROOT: /var/lib/3compute/classrooms
       USERS_JSON_FILE: /var/lib/3compute/users.json
     env_file:
-      - path: backend/.env
-        required: false
+      - backend/.env
     volumes:
       - .:/var/www/3compute
       - backend-logs:/var/www/3compute/logs
