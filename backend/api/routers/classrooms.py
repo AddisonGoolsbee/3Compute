@@ -1087,6 +1087,71 @@ async def get_classroom_progress(
     }
 
 
+class RunStudentTestsRequest(BaseModel):
+    student_email: str
+    template_name: str
+
+
+@router.post("/{classroom_id}/run-student-tests")
+async def run_student_tests(
+    classroom_id: str,
+    body: RunStudentTestsRequest,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Run tests for a single student on a single template and return raw output."""
+    from backend.test_runner import run_tests_for_student_with_output
+
+    _require_classroom(db, classroom_id)
+    _require_instructor(db, classroom_id, str(user.id))
+
+    import asyncio
+    from concurrent.futures import ThreadPoolExecutor
+    from datetime import datetime
+
+    loop = asyncio.get_event_loop()
+    with ThreadPoolExecutor() as pool:
+        passed, total, output = await loop.run_in_executor(
+            pool,
+            run_tests_for_student_with_output,
+            classroom_id, body.template_name, body.student_email,
+        )
+
+    # Also persist the result
+    student_email_sanitized = (body.student_email or "").replace("/", "_")
+    student_user = db.exec(
+        select(User).where(User.email == body.student_email)
+    ).first()
+    if student_user:
+        existing = db.exec(
+            select(TestResult).where(
+                TestResult.classroom_id == classroom_id,
+                TestResult.user_id == student_user.id,
+                TestResult.template_name == body.template_name,
+            )
+        ).first()
+        if existing:
+            existing.tests_passed = passed
+            existing.tests_total = total
+            existing.last_run = datetime.utcnow()
+            db.add(existing)
+        else:
+            db.add(TestResult(
+                classroom_id=classroom_id,
+                user_id=student_user.id,
+                template_name=body.template_name,
+                tests_passed=passed,
+                tests_total=total,
+            ))
+        db.commit()
+
+    return {
+        "passed": passed,
+        "total": total,
+        "output": output,
+    }
+
+
 class RunTestsRequest(BaseModel):
     template_name: str | None = None
 

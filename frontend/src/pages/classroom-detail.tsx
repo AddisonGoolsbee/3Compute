@@ -5,7 +5,7 @@ import MonacoEditor from '@monaco-editor/react';
 import {
   ArrowLeft, Copy, Check, Settings, Play,
   RefreshCw, Pause, PlayCircle, KeyRound, Pencil,
-  FileText, ExternalLink, ChevronRight,
+  FileText, ExternalLink, ChevronRight, FlaskConical,
 } from 'lucide-react';
 import { apiUrl } from '../util/UserData';
 import { languageMap } from '../util/languageMap';
@@ -378,6 +378,44 @@ function StudentsTab({
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [fileContent, setFileContent] = useState<string | null>(null);
   const [loadingContent, setLoadingContent] = useState(false);
+  const [showTestOutput, setShowTestOutput] = useState(false);
+  const [testOutput, setTestOutput] = useState<string | null>(null);
+  const [testRunning, setTestRunning] = useState(false);
+  const [testResult, setTestResult] = useState<{ passed: number; total: number } | null>(null);
+
+  const runStudentTests = async (studentEmail: string) => {
+    setShowTestOutput(true);
+    setSelectedFile(null);
+    setFileContent(null);
+    setTestRunning(true);
+    setTestOutput(null);
+    setTestResult(null);
+    try {
+      const res = await fetch(
+        `${apiUrl}/classrooms/${classroomId}/run-student-tests`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            student_email: studentEmail,
+            template_name: selectedTemplate,
+          }),
+        },
+      );
+      if (res.ok) {
+        const data = await res.json();
+        setTestOutput(data.output || 'No output.');
+        setTestResult({ passed: data.passed, total: data.total });
+      } else {
+        setTestOutput('Failed to run tests.');
+      }
+    } catch {
+      setTestOutput('Failed to run tests.');
+    } finally {
+      setTestRunning(false);
+    }
+  };
 
   const toggleStudent = async (studentEmail: string) => {
     if (expandedStudent === studentEmail) {
@@ -385,11 +423,17 @@ function StudentsTab({
       setStudentFiles([]);
       setSelectedFile(null);
       setFileContent(null);
+      setShowTestOutput(false);
+      setTestOutput(null);
+      setTestResult(null);
       return;
     }
     setExpandedStudent(studentEmail);
     setSelectedFile(null);
     setFileContent(null);
+    setShowTestOutput(false);
+    setTestOutput(null);
+    setTestResult(null);
     setLoadingFiles(true);
     try {
       const res = await fetch(
@@ -440,6 +484,9 @@ function StudentsTab({
     setStudentFiles([]);
     setSelectedFile(null);
     setFileContent(null);
+    setShowTestOutput(false);
+    setTestOutput(null);
+    setTestResult(null);
   }, [selectedTemplate]);
 
   if (!progress || progress.templates.length === 0) {
@@ -523,15 +570,28 @@ function StudentsTab({
                     ) : studentFiles.length === 0 ? (
                       <div className="p-4 text-sm text-gray-600">No files found.</div>
                     ) : (
-                      <div className="flex" style={{ height: selectedFile ? '360px' : 'auto' }}>
-                        {/* File list */}
-                        <div className={`${selectedFile ? 'w-48 border-r border-gray-800' : 'w-full'} overflow-y-auto flex-shrink-0`}>
+                      <div className="flex" style={{ height: (selectedFile || showTestOutput) ? '360px' : 'auto' }}>
+                        {/* File list + test output button */}
+                        <div className={`${(selectedFile || showTestOutput) ? 'w-48 border-r border-gray-800' : 'w-full'} overflow-y-auto flex-shrink-0`}>
+                          <button
+                            onClick={() => runStudentTests(student.email)}
+                            disabled={testRunning}
+                            className={`w-full text-left px-3 py-1.5 text-sm truncate transition-colors flex items-center gap-2 ${
+                              showTestOutput
+                                ? 'bg-blue-900/30 text-blue-300'
+                                : 'text-blue-400 hover:text-blue-200 hover:bg-blue-900/20'
+                            }`}
+                          >
+                            {testRunning ? <RefreshCw size={12} className="flex-shrink-0 animate-spin" /> : <FlaskConical size={12} className="flex-shrink-0" />}
+                            <span className="truncate">{testRunning ? 'Running...' : 'View test output'}</span>
+                          </button>
+                          <div className="border-b border-gray-800/50" />
                           {studentFiles.map((f) => (
                             <button
                               key={f}
-                              onClick={() => viewFile(f)}
+                              onClick={() => { setShowTestOutput(false); viewFile(f); }}
                               className={`w-full text-left px-3 py-1.5 text-sm truncate transition-colors flex items-center gap-2 ${
-                                selectedFile === f
+                                selectedFile === f && !showTestOutput
                                   ? 'bg-gray-800 text-white'
                                   : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800/40'
                               }`}
@@ -543,8 +603,41 @@ function StudentsTab({
                           ))}
                         </div>
 
+                        {/* Test output preview */}
+                        {showTestOutput && (
+                          <div className="flex-1 flex flex-col min-w-0">
+                            <div className="flex items-center justify-between px-3 py-1.5 border-b border-gray-800 flex-shrink-0">
+                              <span className="text-xs text-gray-500">
+                                Test output
+                                {testResult && (
+                                  <span className={`ml-2 ${testResult.total > 0 && testResult.passed === testResult.total ? 'text-green-400' : 'text-gray-400'}`}>
+                                    {testResult.passed}/{testResult.total} passed
+                                  </span>
+                                )}
+                              </span>
+                              <button
+                                onClick={() => runStudentTests(student.email)}
+                                disabled={testRunning}
+                                className="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-white transition-colors shrink-0 ml-3 disabled:opacity-50"
+                              >
+                                <RefreshCw size={11} className={testRunning ? 'animate-spin' : ''} />
+                                Re-run
+                              </button>
+                            </div>
+                            <div className="flex-1 min-h-0 overflow-auto p-3">
+                              {testRunning && !testOutput ? (
+                                <div className="text-sm text-gray-500">Running tests...</div>
+                              ) : testOutput ? (
+                                <pre className="whitespace-pre-wrap text-gray-300 text-xs leading-relaxed font-mono">{testOutput}</pre>
+                              ) : (
+                                <div className="text-sm text-gray-600">Click &quot;View test output&quot; to run tests.</div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
                         {/* Monaco preview */}
-                        {selectedFile && (
+                        {selectedFile && !showTestOutput && (
                           <div className="flex-1 flex flex-col min-w-0">
                             <div className="flex items-center justify-between px-3 py-1.5 border-b border-gray-800 flex-shrink-0">
                               <span className="text-xs text-gray-500 font-mono truncate">{selectedFile}</span>

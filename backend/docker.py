@@ -10,7 +10,7 @@ import subprocess
 import psutil
 
 logger = logging.getLogger("docker")
-MAX_USERS = 20
+MAX_USERS = 50
 num_cpus = os.cpu_count() or 1
 memory_mb = psutil.virtual_memory().total // (1024 * 1024)
 

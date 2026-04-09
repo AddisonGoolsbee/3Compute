@@ -46,6 +46,14 @@ export default function App() {
       userData.setCurrentFile(file);
       userData.setSelectedLocation?.(file.location);
 
+      // Set student view context so the editor can show the test output banner
+      const templateName = filePath.split('/')[0];
+      userData.setStudentView?.({
+        classroomId,
+        studentEmail,
+        templateName,
+      });
+
       // Open all parent folders so the file is visible in the explorer
       const parts = targetLocation.split('/').filter(Boolean);
       const foldersToOpen: string[] = [];

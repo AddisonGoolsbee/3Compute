@@ -1,6 +1,6 @@
 import { ChangeEvent, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import MonacoEditor, { type OnMount } from '@monaco-editor/react';
-import { File, Save, Check, X, Play, Printer } from 'lucide-react';
+import { File, Save, Check, X, Play, Printer, FlaskConical, RefreshCw, ArrowLeft } from 'lucide-react';
 import { printMarkdownElement } from '../util/printMarkdown';
 import { apiUrl, UserDataContext } from '../util/UserData';
 import { getClasses, SelectMenuRaw } from '@luminescent/ui-react';
@@ -80,6 +80,9 @@ export default function Editor() {
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [loadError, setLoadError] = useState<string | null>(null);
   const [isClient, setIsClient] = useState(false);
+  const [testOutput, setTestOutput] = useState<string | null>(null);
+  const [testRunning, setTestRunning] = useState(false);
+  const [testResult, setTestResult] = useState<{ passed: number; total: number } | null>(null);
   const editorRef = useRef<any>(null);
   const markdownRef = useRef<HTMLDivElement>(null);
   const autosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -130,6 +133,45 @@ export default function Editor() {
   };
 
   const userData = useContext(UserDataContext);
+  const studentView = userData.studentView;
+
+  // Clear test output when navigating away from student view
+  useEffect(() => {
+    setTestOutput(null);
+    setTestResult(null);
+  }, [studentView?.classroomId, studentView?.studentEmail, studentView?.templateName]);
+
+  const runStudentTests = useCallback(async () => {
+    if (!studentView) return;
+    setTestRunning(true);
+    setTestOutput(null);
+    setTestResult(null);
+    try {
+      const res = await fetch(
+        `${apiUrl}/classrooms/${studentView.classroomId}/run-student-tests`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            student_email: studentView.studentEmail,
+            template_name: studentView.templateName,
+          }),
+        },
+      );
+      if (res.ok) {
+        const data = await res.json();
+        setTestOutput(data.output || 'No output.');
+        setTestResult({ passed: data.passed, total: data.total });
+      } else {
+        setTestOutput('Failed to run tests.');
+      }
+    } catch {
+      setTestOutput('Failed to run tests.');
+    } finally {
+      setTestRunning(false);
+    }
+  }, [studentView]);
 
   // Keep a stable ref to the current file location for use inside callbacks
   useEffect(() => {
@@ -363,7 +405,50 @@ export default function Editor() {
           </div>
         </div>
       )}
-      {isBinary ? (
+      {studentView && (
+        <div className="flex items-center gap-2 px-3 py-1.5 mx-1 mb-1 rounded-lum-1 bg-blue-950/40 border border-blue-800/30">
+          <span className="text-xs text-blue-300 flex-1 truncate">
+            Viewing <span className="font-medium">{studentView.studentEmail}</span>
+            {' \u2014 '}
+            <span className="text-blue-400">{studentView.templateName}</span>
+          </span>
+          {testOutput !== null ? (
+            <button
+              className="flex items-center gap-1 text-xs text-blue-300 hover:text-white transition-colors"
+              onClick={() => { setTestOutput(null); setTestResult(null); }}
+            >
+              <ArrowLeft size={12} />
+              Back to file
+            </button>
+          ) : (
+            <button
+              className="flex items-center gap-1 text-xs text-blue-300 hover:text-white transition-colors"
+              onClick={runStudentTests}
+              disabled={testRunning}
+            >
+              {testRunning ? <RefreshCw size={12} className="animate-spin" /> : <FlaskConical size={12} />}
+              {testRunning ? 'Running...' : 'Run Tests'}
+            </button>
+          )}
+          <button
+            className="text-xs text-gray-500 hover:text-gray-300 transition-colors ml-1"
+            onClick={() => userData.setStudentView?.(undefined)}
+            title="Exit student view"
+          >
+            <X size={12} />
+          </button>
+        </div>
+      )}
+      {testOutput !== null ? (
+        <div className="flex-1 overflow-auto p-4 font-mono text-sm">
+          {testResult && (
+            <div className={`mb-3 text-sm font-sans ${testResult.total > 0 && testResult.passed === testResult.total ? 'text-green-400' : 'text-gray-400'}`}>
+              Result: {testResult.passed}/{testResult.total} tests passed
+            </div>
+          )}
+          <pre className="whitespace-pre-wrap text-gray-300 text-xs leading-relaxed">{testOutput}</pre>
+        </div>
+      ) : isBinary ? (
         <div className="flex-1 flex items-center justify-center p-4">
           <div className="text-center text-gray-400">
             <File size={48} className="mx-auto mb-3 opacity-40" />

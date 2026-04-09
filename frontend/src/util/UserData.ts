@@ -9,6 +9,12 @@ export interface UserInfo {
   needs_onboarding: boolean;
 }
 
+export type StudentViewContext = {
+  classroomId: string;
+  studentEmail: string;
+  templateName: string;
+};
+
 export type UserData = {
   userInfo?: UserInfo;
   files?: Files;
@@ -39,6 +45,8 @@ export type UserData = {
     y: number;
     targetLocation?: string;
   }>>;
+  studentView?: StudentViewContext;
+  setStudentView?: Dispatch<SetStateAction<StudentViewContext | undefined>>;
 };
 
 export const backendUrl =

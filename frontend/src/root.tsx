@@ -1,7 +1,7 @@
 import { ReactNode, useCallback, useEffect, useState } from 'react';
 import { Links, Meta, Outlet, Scripts, ScrollRestoration, useLoaderData } from 'react-router';
 import NavComponent from './components/Nav';
-import { UserData, UserDataContext, apiUrl, clientLoader } from './util/UserData';
+import { UserData, UserDataContext, apiUrl, clientLoader, StudentViewContext } from './util/UserData';
 import { fetchFilesList, Files, FileType } from './util/Files';
 
 // eslint-disable-next-line react-refresh/only-export-components
@@ -23,6 +23,7 @@ export function Layout({ children }: { children: ReactNode }) {
   const [dragOverLocation, setDragOverLocation] = useState<string | undefined>();
   const [contentVersion, setContentVersion] = useState<number>(0);
   const [contextMenu, setContextMenu] = useState<{ visible: boolean; x: number; y: number; targetLocation?: string }>({ visible: false, x: 0, y: 0 });
+  const [studentView, setStudentView] = useState<StudentViewContext | undefined>();
 
   // Keep a live ref of editing state to guard against in-flight refreshes overwriting editor input
   useEffect(() => {
@@ -82,6 +83,8 @@ export function Layout({ children }: { children: ReactNode }) {
     contextMenu,
     setContextMenu,
     classroomSymlinks,
+    studentView,
+    setStudentView,
   };
 
   // Ensure only one item is in renaming mode at a time; invoked via right-click context action

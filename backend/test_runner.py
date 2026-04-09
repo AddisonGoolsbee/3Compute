@@ -136,6 +136,112 @@ def _parse_script_output(output: str) -> tuple[int, int]:
     return 0, 0
 
 
+def run_tests_for_student_with_output(
+    classroom_id: str,
+    template_name: str,
+    student_email: str,
+) -> tuple[int, int, str]:
+    """Like run_tests_for_student but also returns the raw test output."""
+    # Reuses the same logic but captures stdout/stderr text.
+    student_email = (student_email or "participant").replace("/", "_")
+
+    templates_dir = os.path.join(
+        CLASSROOMS_ROOT, classroom_id, "templates", template_name
+    )
+    student_dir = os.path.join(
+        CLASSROOMS_ROOT, classroom_id, "participants", student_email, template_name
+    )
+
+    if not os.path.isdir(templates_dir):
+        return 0, 0, "Template directory not found."
+
+    if not os.path.isdir(student_dir):
+        logger.info(f"Creating student dir from template: {student_dir}")
+        try:
+            shutil.copytree(templates_dir, student_dir)
+            for dirpath, _dirnames, filenames in os.walk(student_dir):
+                try:
+                    os.chown(dirpath, CONTAINER_USER_UID, CONTAINER_USER_GID)
+                except OSError:
+                    pass
+                for fn in filenames:
+                    try:
+                        os.chown(os.path.join(dirpath, fn), CONTAINER_USER_UID, CONTAINER_USER_GID)
+                    except OSError:
+                        pass
+        except Exception as e:
+            return 0, 0, f"Failed to create student directory: {e}"
+
+    test_files = _find_test_files(templates_dir)
+    if not test_files:
+        return 0, 0, "No test files found."
+
+    copied_files: list[str] = []
+    all_output = ""
+    try:
+        for tf in test_files:
+            src = os.path.join(templates_dir, tf)
+            dst = os.path.join(student_dir, tf)
+            os.makedirs(os.path.dirname(dst), exist_ok=True)
+            shutil.copy2(src, dst)
+            try:
+                os.chown(dst, CONTAINER_USER_UID, CONTAINER_USER_GID)
+            except OSError:
+                pass
+            copied_files.append(dst)
+
+        py_tests = [f for f in test_files if f.endswith(".py")]
+        passed, total = 0, 0
+
+        if py_tests:
+            for tf in py_tests:
+                try:
+                    result = subprocess.run(
+                        ["python3", os.path.join(student_dir, tf)],
+                        capture_output=True,
+                        text=True,
+                        timeout=30,
+                        cwd=student_dir,
+                    )
+                    output = result.stdout + result.stderr
+                    all_output += output
+                    p, t = _parse_script_output(output)
+                    passed += p
+                    total += t
+                except subprocess.TimeoutExpired:
+                    all_output += f"\n[Timeout] {tf} exceeded 30s limit\n"
+                except Exception as e:
+                    all_output += f"\n[Error] {tf}: {e}\n"
+
+            if total == 0:
+                try:
+                    result = subprocess.run(
+                        ["python3", "-m", "pytest", "--tb=short", "-q", student_dir],
+                        capture_output=True,
+                        text=True,
+                        timeout=30,
+                        cwd=student_dir,
+                    )
+                    output = result.stdout + result.stderr
+                    all_output += output
+                    passed, total = _parse_pytest_output(output)
+                    if total == 0:
+                        passed, total = _parse_unittest_output(output)
+                except subprocess.TimeoutExpired:
+                    all_output += "\n[Timeout] pytest exceeded 30s limit\n"
+                except Exception as e:
+                    all_output += f"\n[Error] pytest: {e}\n"
+
+        return passed, total, all_output
+
+    finally:
+        for f in copied_files:
+            try:
+                os.remove(f)
+            except OSError:
+                pass
+
+
 def run_tests_for_student(
     classroom_id: str,
     template_name: str,
