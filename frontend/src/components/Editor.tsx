@@ -83,7 +83,7 @@ export default function Editor() {
   const editorRef = useRef<any>(null);
   const markdownRef = useRef<HTMLDivElement>(null);
   const autosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const currentFileLocationRef = useRef<string | undefined>();
+  const currentFileLocationRef = useRef<string | undefined>(undefined);
   const lastSavedValueRef = useRef<string>('');
   const broadcastChannelRef = useRef<BroadcastChannel | null>(null);
 
