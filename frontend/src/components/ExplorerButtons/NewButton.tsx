@@ -221,7 +221,6 @@ export default function NewButton() {
 
       const formData = new FormData();
       let resolvedBase: 'classroom-templates' | 'templates' | null = null;
-      const classroomRoot = `/${classroomSlug}`;
 
       const fetchFile = async (filename: string): Promise<Blob> => {
         const baseCandidates: Array<'classroom-templates' | 'templates'> = resolvedBase
@@ -249,19 +248,11 @@ export default function NewButton() {
         }),
       );
 
-      const basePath = resolvedBase === 'classroom-templates' ? 'classroom-templates' : '';
-
       for (const { filename, blob } of fetchedFiles) {
-        const filePath = basePath
-          ? `${classroomSlug}/${basePath}/${templateName}/${filename}`
-          : `${classroomSlug}/${templateName}/${filename}`;
-        formData.append('files', blob, filePath);
+        formData.append('files', blob, `${templateName}/${filename}`);
       }
 
-      const moveInto = basePath
-        ? `${classroomSlug}/${basePath}/${templateName}`
-        : `${classroomSlug}/${templateName}`;
-      formData.append('move-into', moveInto);
+      formData.append('move-into', templateName);
 
       const res = await fetch(`${apiUrl}/files/upload-folder`, {
         method: 'POST',
@@ -277,17 +268,10 @@ export default function NewButton() {
       setStatus('Template copied to workspace!');
       await userData.refreshFiles();
 
-      const templateFolderLocation = basePath
-        ? `${classroomRoot}/${basePath}/${templateName}`
-        : `${classroomRoot}/${templateName}`;
-
-      const foldersToOpen = [classroomRoot];
-      if (basePath) foldersToOpen.push(`${classroomRoot}/${basePath}`);
-      foldersToOpen.push(templateFolderLocation);
+      const templateFolderLocation = `/${templateName}`;
 
       userData.setOpenFolders((prev) => {
-        const newFolders = foldersToOpen.filter(f => !prev.includes(f));
-        return newFolders.length > 0 ? [...prev, ...newFolders] : prev;
+        return prev.includes(templateFolderLocation) ? prev : [...prev, templateFolderLocation];
       });
     } catch (error) {
       console.error('Classroom template copy error:', error);

@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useContext, useEffect, useState, useRef } from 'react';
 import { Link } from 'react-router';
 import { LogoBirdflop } from '@luminescent/ui-react';
 import {
@@ -19,7 +19,7 @@ import {
   Server,
   Heart,
 } from 'lucide-react';
-import { apiUrl } from '../util/UserData';
+import { apiUrl, UserDataContext } from '../util/UserData';
 
 // ---------------------------------------------------------------------------
 // Terminal demo data
@@ -404,6 +404,19 @@ function TerminalDemo() {
 // ---------------------------------------------------------------------------
 
 export default function LandingPage() {
+  const userData = useContext(UserDataContext);
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    if (userData?.userInfo) {
+      setIsLoggedIn(true);
+    } else {
+      fetch(`${apiUrl}/auth/me`, { credentials: 'include' })
+        .then((r) => setIsLoggedIn(r.ok))
+        .catch(() => setIsLoggedIn(false));
+    }
+  }, [userData?.userInfo]);
+
   useEffect(() => {
     document.documentElement.style.overflowY = 'auto';
     // Remove the nav's bottom border so it blends flush into the hero gradient
@@ -446,13 +459,23 @@ export default function LandingPage() {
               </p>
 
               <div className="flex flex-wrap gap-3 justify-center lg:justify-start">
-                <a
-                  href={`${apiUrl}/auth/login`}
-                  className="lum-btn lum-pad-md text-base rounded-lg bg-[#2a9bb8] hover:bg-[#238da8] text-white font-semibold inline-flex items-center gap-2 transition-colors shadow-lg shadow-[#2a9bb8]/20"
-                >
-                  Sign in with Google
-                  <ArrowRight size={18} />
-                </a>
+                {isLoggedIn ? (
+                  <Link
+                    to="/"
+                    className="lum-btn lum-pad-md text-base rounded-lg bg-[#2a9bb8] hover:bg-[#238da8] text-white font-semibold inline-flex items-center gap-2 transition-colors shadow-lg shadow-[#2a9bb8]/20"
+                  >
+                    Go to Dashboard
+                    <ArrowRight size={18} />
+                  </Link>
+                ) : (
+                  <a
+                    href={`${apiUrl}/auth/login`}
+                    className="lum-btn lum-pad-md text-base rounded-lg bg-[#2a9bb8] hover:bg-[#238da8] text-white font-semibold inline-flex items-center gap-2 transition-colors shadow-lg shadow-[#2a9bb8]/20"
+                  >
+                    Sign in with Google
+                    <ArrowRight size={18} />
+                  </a>
+                )}
                 <a
                   href="#how-it-works"
                   className="lum-btn lum-pad-md text-base rounded-lg border border-gray-600 hover:border-gray-400 font-semibold inline-flex items-center gap-2 transition-colors"
@@ -665,13 +688,23 @@ export default function LandingPage() {
           <p className="text-gray-400 mb-6">
             3Compute is free for schools, clubs, and individual learners. No credit card, no trial period.
           </p>
-          <a
-            href={`${apiUrl}/auth/login`}
-            className="lum-btn lum-pad-md text-lg rounded-lg bg-[#2a9bb8] hover:bg-[#238da8] text-white font-semibold inline-flex items-center gap-2 transition-colors shadow-lg shadow-[#2a9bb8]/20"
-          >
-            Get started
-            <ArrowRight size={20} />
-          </a>
+          {isLoggedIn ? (
+            <Link
+              to="/"
+              className="lum-btn lum-pad-md text-lg rounded-lg bg-[#2a9bb8] hover:bg-[#238da8] text-white font-semibold inline-flex items-center gap-2 transition-colors shadow-lg shadow-[#2a9bb8]/20"
+            >
+              Go to Dashboard
+              <ArrowRight size={20} />
+            </Link>
+          ) : (
+            <a
+              href={`${apiUrl}/auth/login`}
+              className="lum-btn lum-pad-md text-lg rounded-lg bg-[#2a9bb8] hover:bg-[#238da8] text-white font-semibold inline-flex items-center gap-2 transition-colors shadow-lg shadow-[#2a9bb8]/20"
+            >
+              Get started
+              <ArrowRight size={20} />
+            </a>
+          )}
         </div>
       </section>
 

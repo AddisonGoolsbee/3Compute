@@ -220,38 +220,63 @@ export default function LessonsPage() {
             {filterOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
           </button>
 
-          {filterOpen && (
-            <div className="mt-3 border border-gray-700 rounded-lg p-4 lum-card">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-sm font-medium text-gray-300">CSTA Standards</span>
-                {selectedStandards.size > 0 && (
-                  <button
-                    onClick={() => setSelectedStandards(new Set())}
-                    className="text-xs text-gray-400 hover:text-white flex items-center gap-1 transition-colors"
-                  >
-                    <X size={12} />
-                    Clear all
-                  </button>
-                )}
+          {filterOpen && (() => {
+            const categoryNames: Record<string, string> = {
+              AP: 'Algorithms & Programming',
+              CS: 'Computing Systems',
+              DA: 'Data & Analysis',
+              IC: 'Impacts of Computing',
+              NI: 'Networks & the Internet',
+            };
+            const grouped: Record<string, Standard[]> = {};
+            for (const s of allStandards) {
+              const cat = s.id.replace(/^[^-]+-/, '').replace(/-\d+$/, '');
+              if (!grouped[cat]) grouped[cat] = [];
+              grouped[cat].push(s);
+            }
+            const sortedCategories = Object.keys(grouped).sort((a, b) => a.localeCompare(b));
+            return (
+              <div className="mt-3 border border-gray-700 rounded-lg p-4 lum-card">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-sm font-medium text-gray-300">CSTA Standards</span>
+                  {selectedStandards.size > 0 && (
+                    <button
+                      onClick={() => setSelectedStandards(new Set())}
+                      className="text-xs text-gray-400 hover:text-white flex items-center gap-1 transition-colors"
+                    >
+                      <X size={12} />
+                      Clear all
+                    </button>
+                  )}
+                </div>
+                <div className="flex flex-col gap-4">
+                  {sortedCategories.map((cat) => (
+                    <div key={cat}>
+                      <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
+                        {categoryNames[cat] || cat}
+                      </h4>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                        {grouped[cat].map((s) => (
+                          <button
+                            key={s.id}
+                            onClick={() => toggleStandard(s.id)}
+                            className={`text-left text-xs px-3 py-2 rounded-md border transition-colors ${
+                              selectedStandards.has(s.id)
+                                ? 'border-purple-500 bg-purple-500/20 text-purple-300'
+                                : 'border-gray-700 hover:border-gray-500 text-gray-400 hover:text-gray-200'
+                            }`}
+                          >
+                            <span className="font-medium">{s.id}</span>
+                            <span className="text-[11px] opacity-70 ml-1.5">{s.description}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
-              <div className="flex flex-wrap gap-2">
-                {allStandards.map((s) => (
-                  <button
-                    key={s.id}
-                    onClick={() => toggleStandard(s.id)}
-                    title={s.description}
-                    className={`text-xs px-2.5 py-1.5 rounded-md border transition-colors ${
-                      selectedStandards.has(s.id)
-                        ? 'border-purple-500 bg-purple-500/20 text-purple-300'
-                        : 'border-gray-600 hover:border-gray-400 text-gray-400 hover:text-gray-200'
-                    }`}
-                  >
-                    {s.id}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
+            );
+          })()}
         </div>
       </div>
 

@@ -553,6 +553,7 @@ def spawn_container(
                 except Exception as e:
                     logger.warning(f"[{user_id}] Failed writing README on host for {cid}: {e}")
 
+
             logger.info(f"[{user_id}] Classroom README files written from template")
 
 
