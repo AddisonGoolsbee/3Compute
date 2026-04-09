@@ -19,10 +19,21 @@ export default function TemplateButton() {
       .catch((err) => console.error('Failed to load template manifest', err));
   }, []);
 
+  const getUniqueFolderName = (baseName: string): string => {
+    const existing = userData?.files;
+    if (!existing) return baseName;
+    const topLevelNames = new Set(existing.map((item) => item.name));
+    if (!topLevelNames.has(baseName)) return baseName;
+    let n = 1;
+    while (topLevelNames.has(`${baseName} (${n})`)) n++;
+    return `${baseName} (${n})`;
+  };
+
   const handleUseTemplate = async (templateName: string) => {
     if (!templateName) return;
     setStatus('Uploading template…');
 
+    const folderName = getUniqueFolderName(templateName);
     const files = manifest[templateName] || [];
     const formData = new FormData();
 
@@ -40,11 +51,11 @@ export default function TemplateButton() {
             text = text.replace(/host\s*=\s*['"][^'"]+['"]/, 'host = "0.0.0.0"');
           }
 
-          formData.append('files', new Blob([text], { type: blob.type }), `${templateName}/${filename}`);
+          formData.append('files', new Blob([text], { type: blob.type }), `${folderName}/${filename}`);
         }),
       );
 
-      formData.append('move-into', templateName);
+      formData.append('move-into', folderName);
 
       const res = await fetch(`${apiUrl}/files/upload-folder`, {
         method: 'POST',
@@ -57,7 +68,7 @@ export default function TemplateButton() {
       setStatus('Template uploaded!');
       await userData.refreshFiles();
 
-      const templateFolderLocation = `/${templateName}`;
+      const templateFolderLocation = `/${folderName}`;
       const readmeCandidate = files.find((f) => /^(readme)(\.|$)/i.test(f)) || 'README.md';
       userData.setOpenFolders((prev) =>
         prev.includes(templateFolderLocation) ? prev : [...prev, templateFolderLocation],

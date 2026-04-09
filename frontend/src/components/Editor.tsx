@@ -82,18 +82,89 @@ export default function Editor() {
   const [isClient, setIsClient] = useState(false);
   const editorRef = useRef<any>(null);
   const markdownRef = useRef<HTMLDivElement>(null);
+  const autosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const currentFileLocationRef = useRef<string | undefined>();
+  const lastSavedValueRef = useRef<string>('');
+  const broadcastChannelRef = useRef<BroadcastChannel | null>(null);
 
   useEffect(() => { setIsClient(true); }, []);
 
-  const onChange = useCallback((val: string | undefined) => {
-    setValue(val ?? '');
+  const saveFile = useCallback(async (location: string, content: string) => {
+    setSaveStatus('saving');
+    try {
+      const response = await fetch(`${apiUrl}/files/file${location}`, {
+        method: 'PUT',
+        body: content,
+        headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+        credentials: 'include',
+      });
+      if (!response.ok) {
+        setSaveStatus('error');
+        setTimeout(() => setSaveStatus('idle'), 3000);
+      } else {
+        lastSavedValueRef.current = content;
+        setSaveStatus('saved');
+        setTimeout(() => setSaveStatus('idle'), 1000);
+        broadcastChannelRef.current?.postMessage({ type: 'file-saved', location });
+      }
+    } catch {
+      setSaveStatus('error');
+      setTimeout(() => setSaveStatus('idle'), 3000);
+    }
   }, []);
+
+  const onChange = useCallback((val: string | undefined) => {
+    const newVal = val ?? '';
+    setValue(newVal);
+    const location = currentFileLocationRef.current;
+    if (!location || newVal === lastSavedValueRef.current) return;
+    if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current);
+    autosaveTimerRef.current = setTimeout(() => {
+      autosaveTimerRef.current = null;
+      saveFile(location, newVal);
+    }, 1500);
+  }, [saveFile]);
 
   const handleEditorMount: OnMount = (editor) => {
     editorRef.current = editor;
   };
 
   const userData = useContext(UserDataContext);
+
+  // Keep a stable ref to the current file location for use inside callbacks
+  useEffect(() => {
+    currentFileLocationRef.current = userData.currentFile?.location;
+  }, [userData.currentFile?.location]);
+
+  // Cancel pending autosave when switching files
+  useEffect(() => {
+    return () => {
+      if (autosaveTimerRef.current) {
+        clearTimeout(autosaveTimerRef.current);
+        autosaveTimerRef.current = null;
+      }
+    };
+  }, [userData.currentFile?.location]);
+
+  // BroadcastChannel: reload editor when another tab saves the current file
+  useEffect(() => {
+    const bc = new BroadcastChannel('3compute-files');
+    broadcastChannelRef.current = bc;
+    bc.onmessage = (e) => {
+      if (
+        e.data?.type === 'file-saved' &&
+        e.data.location === currentFileLocationRef.current &&
+        !autosaveTimerRef.current
+      ) {
+        userData.setContentVersion?.((v) => (v ?? 0) + 1);
+      }
+    };
+    return () => {
+      bc.close();
+      broadcastChannelRef.current = null;
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const [initialFileSet, setInitialFileSet] = useState(false);
 
@@ -169,6 +240,7 @@ export default function Editor() {
       }
 
       setLoadError(null);
+      lastSavedValueRef.current = file;
       setValue(file);
 
       const ext = currentFile.name.split('.').pop()?.toLowerCase();
@@ -255,32 +327,11 @@ export default function Editor() {
                   })}
                   onClick={async () => {
                     if (!userData.currentFile || saveStatus === 'saving') return;
-
-                    setSaveStatus('saving');
-
-                    try {
-                      const response = await fetch(`${apiUrl}/files/file${userData.currentFile.location}`, {
-                        method: 'PUT',
-                        body: value,
-                        headers: {
-                          'Content-Type': 'text/plain; charset=utf-8',
-                        },
-                        credentials: 'include',
-                      });
-
-                      if (!response.ok) {
-                        console.error('Failed to save file');
-                        setSaveStatus('error');
-                        setTimeout(() => setSaveStatus('idle'), 3000);
-                      } else {
-                        setSaveStatus('saved');
-                        setTimeout(() => setSaveStatus('idle'), 1000);
-                      }
-                    } catch (error) {
-                      console.error('Error saving file:', error);
-                      setSaveStatus('error');
-                      setTimeout(() => setSaveStatus('idle'), 3000);
+                    if (autosaveTimerRef.current) {
+                      clearTimeout(autosaveTimerRef.current);
+                      autosaveTimerRef.current = null;
                     }
+                    await saveFile(userData.currentFile.location, value);
                   }}
                   disabled={saveStatus === 'saving'}
                 >
