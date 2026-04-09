@@ -18,6 +18,10 @@ import {
   Zap,
   Server,
   Heart,
+  ChevronRight,
+  FlaskConical,
+  FileText,
+  RefreshCw,
 } from 'lucide-react';
 import { apiUrl, UserDataContext } from '../util/UserData';
 
@@ -400,6 +404,237 @@ function TerminalDemo() {
 }
 
 // ---------------------------------------------------------------------------
+// Classroom demo data & component
+// ---------------------------------------------------------------------------
+
+const DEMO_STUDENTS = [
+  { name: 'Alice Chen', email: 'alice@school.edu', scores: { 'Data-Encoding': [8, 8], 'Tic-Tac-Toe': [3, 4], 'Weather-App': [2, 3] } },
+  { name: 'Ben Torres', email: 'ben@school.edu', scores: { 'Data-Encoding': [6, 8], 'Tic-Tac-Toe': [4, 4], 'Weather-App': [3, 3] } },
+  { name: 'Chloe Park', email: 'chloe@school.edu', scores: { 'Data-Encoding': [8, 8], 'Tic-Tac-Toe': [4, 4], 'Weather-App': [3, 3] } },
+  { name: 'David Kim', email: 'david@school.edu', scores: { 'Data-Encoding': [5, 8], 'Tic-Tac-Toe': [2, 4], 'Weather-App': [1, 3] } },
+  { name: 'Emma Davis', email: 'emma@school.edu', scores: { 'Data-Encoding': [7, 8], 'Tic-Tac-Toe': [4, 4], 'Weather-App': [2, 3] } },
+];
+
+const DEMO_TEMPLATES = ['Data-Encoding', 'Tic-Tac-Toe', 'Weather-App'];
+
+const DEMO_TEST_OUTPUT = `Running tests for Data-Encoding...
+
+test_hex_encode .......... PASSED
+test_hex_decode .......... PASSED
+test_base64_encode ....... PASSED
+test_base64_decode ....... PASSED
+test_caesar_encrypt ...... PASSED
+test_caesar_decrypt ...... PASSED
+test_binary_encode ....... FAILED
+  Expected: '01001000 01101001'
+  Got:      '1001000 1101001'
+test_binary_decode ....... PASSED
+
+7/8 tests passed`;
+
+const DEMO_CODE = `def hex_encode(text):
+    return ' '.join(format(ord(c), '02x') for c in text)
+
+def hex_decode(hex_str):
+    bytes_list = hex_str.strip().split()
+    return ''.join(chr(int(b, 16)) for b in bytes_list)
+
+def binary_encode(text):
+    return ' '.join(format(ord(c), 'b') for c in text)
+    #        should be '08b' ^  missing zero-pad!`;
+
+function ClassroomDemo() {
+  const [step, setStep] = useState(0);
+
+  const steps = [
+    { label: 'Students tab', desc: 'See every student and their test scores at a glance' },
+    { label: 'Drill into student', desc: 'Expand a student to view their files and code' },
+    { label: 'Run tests', desc: 'Run tests against a student\'s code and see detailed output' },
+    { label: 'Gradebook', desc: 'Track all scores in a spreadsheet-style view with flexible grading' },
+  ];
+
+  return (
+    <div className="rounded-2xl border border-[#54daf4]/20 bg-[#54daf4]/5 overflow-hidden">
+      <div className="px-8 pt-8 pb-4 text-center">
+        <h3 className="text-2xl font-bold mb-2">Track every student&rsquo;s progress</h3>
+        <p className="text-gray-400 text-sm max-w-lg mx-auto">
+          See scores, drill into code, run tests, and manage grades.
+        </p>
+      </div>
+
+      {/* Step indicator pills */}
+      <div className="flex items-center justify-center gap-2 mb-4 px-4">
+        {steps.map((s, i) => (
+          <button
+            key={i}
+            onClick={() => setStep(i)}
+            className={`px-3 py-1.5 rounded-lg text-xs transition-all ${
+              step === i
+                ? 'bg-[#54daf4]/20 text-[#54daf4] font-medium'
+                : 'text-gray-500 hover:text-gray-300'
+            }`}
+          >
+            {s.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Mock UI panels */}
+      <div className="mx-4 mb-4 rounded-xl border border-gray-700 bg-[#0d1117] overflow-hidden" style={{ minHeight: 340 }}>
+        {step === 0 && (
+          <div className="p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="px-3 py-1 rounded-lg bg-gray-700 text-white text-xs">Data-Encoding</div>
+              <div className="px-3 py-1 rounded-lg text-gray-500 text-xs">Tic-Tac-Toe</div>
+              <div className="px-3 py-1 rounded-lg text-gray-500 text-xs">Weather-App</div>
+            </div>
+            {DEMO_STUDENTS.map((s) => {
+              const [p, t] = s.scores['Data-Encoding'];
+              return (
+                <div key={s.email} className="flex items-center gap-3 px-3 py-2.5 hover:bg-gray-800/30 rounded-lg">
+                  <ChevronRight size={14} className="text-gray-500" />
+                  <div className="flex-1">
+                    <span className="text-sm font-medium">{s.name}</span>
+                    <span className="text-xs text-gray-600 ml-2">{s.email}</span>
+                  </div>
+                  <span className={`font-mono text-sm tabular-nums ${p === t ? 'text-green-400' : 'text-gray-500'}`}>
+                    {p}/{t}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+        {step === 1 && (
+          <div className="p-4">
+            <div className="flex items-center gap-3 px-3 py-2 mb-2">
+              <ChevronRight size={14} className="text-gray-500 rotate-90" />
+              <span className="text-sm font-medium">David Kim</span>
+              <span className="font-mono text-sm text-gray-500 ml-auto">5/8</span>
+            </div>
+            <div className="ml-6 border border-gray-800 rounded-lg overflow-hidden flex" style={{ height: 260 }}>
+              <div className="w-40 border-r border-gray-800 overflow-y-auto">
+                <div className="px-3 py-1.5 text-sm text-blue-400 bg-blue-900/20 flex items-center gap-2">
+                  <FlaskConical size={12} /> View test output
+                </div>
+                <div className="border-b border-gray-800/50" />
+                {['encoding.py', 'decode.py', 'test_encoding.py'].map((f, i) => (
+                  <div key={f} className={`px-3 py-1.5 text-sm flex items-center gap-2 ${i === 0 ? 'bg-gray-800 text-white' : 'text-gray-400'}`}>
+                    <FileText size={12} className="opacity-50" /> {f}
+                  </div>
+                ))}
+              </div>
+              <div className="flex-1 p-3 font-mono text-xs leading-relaxed overflow-auto">
+                <pre className="text-gray-300 whitespace-pre-wrap">{DEMO_CODE}</pre>
+              </div>
+            </div>
+          </div>
+        )}
+        {step === 2 && (
+          <div className="p-4">
+            <div className="flex items-center gap-3 px-3 py-2 mb-2">
+              <ChevronRight size={14} className="text-gray-500 rotate-90" />
+              <span className="text-sm font-medium">David Kim</span>
+              <span className="font-mono text-sm text-gray-500 ml-auto">5/8</span>
+            </div>
+            <div className="ml-6 border border-gray-800 rounded-lg overflow-hidden flex" style={{ height: 260 }}>
+              <div className="w-40 border-r border-gray-800">
+                <div className="px-3 py-1.5 text-sm text-blue-300 bg-blue-900/30 flex items-center gap-2">
+                  <FlaskConical size={12} /> View test output
+                </div>
+                <div className="border-b border-gray-800/50" />
+                {['encoding.py', 'decode.py'].map((f) => (
+                  <div key={f} className="px-3 py-1.5 text-sm text-gray-400 flex items-center gap-2">
+                    <FileText size={12} className="opacity-50" /> {f}
+                  </div>
+                ))}
+              </div>
+              <div className="flex-1 flex flex-col min-w-0">
+                <div className="flex items-center justify-between px-3 py-1.5 border-b border-gray-800 flex-shrink-0">
+                  <span className="text-xs text-gray-500">
+                    Test output
+                    <span className="ml-2 text-gray-400">7/8 passed</span>
+                  </span>
+                  <button className="text-xs text-gray-400 flex items-center gap-1">
+                    <RefreshCw size={11} /> Re-run
+                  </button>
+                </div>
+                <div className="flex-1 p-3 overflow-auto">
+                  <pre className="whitespace-pre-wrap text-gray-300 text-xs leading-relaxed font-mono">{DEMO_TEST_OUTPUT}</pre>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+        {step === 3 && (
+          <div className="p-4">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="flex rounded-lg overflow-hidden border border-gray-700">
+                <span className="px-3 py-1 text-xs bg-gray-700 text-white">Equal weights</span>
+                <span className="px-3 py-1 text-xs text-gray-500">Custom weights</span>
+                <span className="px-3 py-1 text-xs text-gray-500">Manual scores</span>
+              </div>
+            </div>
+            <div className="overflow-x-auto rounded-lg border border-gray-800">
+              <table className="w-full text-sm" style={{ borderSpacing: 0 }}>
+                <thead>
+                  <tr className="bg-gray-800/40">
+                    <th style={{ padding: '8px 12px' }} className="text-left text-xs text-gray-500 font-medium">Student</th>
+                    {DEMO_TEMPLATES.map((t) => (
+                      <th key={t} style={{ padding: '8px 12px' }} className="text-xs text-gray-500 font-medium text-center">{t}</th>
+                    ))}
+                    <th style={{ padding: '8px 12px' }} className="text-xs text-gray-500 font-medium text-center">Average</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {DEMO_STUDENTS.map((s) => {
+                    let totalW = 0, weightedS = 0;
+                    for (const t of DEMO_TEMPLATES) {
+                      const [p, tot] = s.scores[t as keyof typeof s.scores];
+                      if (tot > 0) { totalW += 1; weightedS += p / tot; }
+                    }
+                    const avg = totalW > 0 ? Math.round((weightedS / totalW) * 100) : 0;
+                    return (
+                      <tr key={s.email} className="border-t border-gray-800/50">
+                        <td style={{ padding: '8px 12px' }} className="text-sm">{s.name}</td>
+                        {DEMO_TEMPLATES.map((t) => {
+                          const [p, tot] = s.scores[t as keyof typeof s.scores];
+                          return (
+                            <td key={t} style={{ padding: '8px 12px' }} className="text-center">
+                              <span className={`font-mono text-xs tabular-nums ${p === tot ? 'text-green-400' : 'text-gray-500'}`}>
+                                {p}/{tot}
+                              </span>
+                            </td>
+                          );
+                        })}
+                        <td style={{ padding: '8px 12px' }} className="text-center">
+                          <span className="font-mono text-xs tabular-nums text-gray-400">{avg}%</span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="flex items-center justify-between px-6 pb-6">
+        <p className="text-sm text-gray-400">{steps[step].desc}</p>
+        <button
+          onClick={() => setStep((s) => (s + 1) % steps.length)}
+          className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-white transition-colors px-3 py-1.5 rounded-lg border border-gray-700 hover:border-gray-500"
+        >
+          {steps[(step + 1) % steps.length].label}
+          <ChevronRight size={12} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Page
 // ---------------------------------------------------------------------------
 
@@ -589,10 +824,17 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Classroom demo */}
+      <section className="py-20 px-6">
+        <div className="max-w-5xl mx-auto">
+          <ClassroomDemo />
+        </div>
+      </section>
+
       {/* Student ownership */}
       <section className="py-20 px-6">
         <div className="max-w-5xl mx-auto">
-          <div className="rounded-2xl border border-[#54daf4]/20 bg-[#54daf4]/5 px-10 py-12 lg:px-16 lg:py-14">
+          <div className="px-10 py-12 lg:px-16 lg:py-14">
             <div className="text-center mb-12">
               <h2 className="text-3xl font-bold mb-3">Students own their projects</h2>
               <p className="text-gray-400 max-w-xl mx-auto">
