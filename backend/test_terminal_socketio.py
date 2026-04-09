@@ -177,11 +177,12 @@ class TestFullConnectFlow:
     """Integration-style test of the connect handler."""
 
     @pytest.mark.asyncio
+    @patch("backend.api.terminal._attach_container")
     @patch("backend.api.terminal._ensure_container")
     @patch("backend.api.terminal._get_user")
     @patch("backend.api.terminal._settings")
     async def test_connect_with_valid_cookie(
-        self, mock_settings, mock_get_user, mock_ensure
+        self, mock_settings, mock_get_user, mock_ensure, mock_attach
     ):
         mock_settings.flask_secret = FLASK_SECRET
 
@@ -192,6 +193,7 @@ class TestFullConnectFlow:
         mock_get_user.return_value = mock_user
 
         mock_ensure.return_value = f"user-container-{TEST_USER_ID}"
+        mock_attach.return_value = True
 
         from backend.api.terminal import handle_connect, session_map, sio
 
