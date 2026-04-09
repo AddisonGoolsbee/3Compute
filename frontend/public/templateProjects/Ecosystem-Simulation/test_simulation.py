@@ -327,3 +327,5 @@ else:
     print("Some tests failed. Read the hints above and check your code.")
     print("Implement functions in order: simulate_step first, then the rest.")
 print()
+
+print(f"###3COMPUTE_RESULTS:{passed}/{passed + failed}###")

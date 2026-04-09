@@ -26,10 +26,33 @@ logger.info(
 )
 
 
+def _run_migrations(engine):
+    """Add missing columns to existing tables (SQLModel doesn't do this)."""
+    import sqlalchemy
+
+    migrations = [
+        ("classroom", "joins_paused", "BOOLEAN NOT NULL DEFAULT 0"),
+        ("classroom", "grading_mode", "TEXT NOT NULL DEFAULT 'equal'"),
+    ]
+
+    with engine.connect() as conn:
+        for table, column, col_type in migrations:
+            try:
+                conn.execute(sqlalchemy.text(
+                    f"ALTER TABLE {table} ADD COLUMN {column} {col_type}"
+                ))
+                conn.commit()
+                logger.info("Migration: added %s.%s", table, column)
+            except sqlalchemy.exc.OperationalError:
+                # Column already exists
+                pass
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     engine = get_engine(settings.database_url)
     create_db_and_tables(engine)
+    _run_migrations(engine)
     app.state.engine = engine
     app.state.settings = settings
 

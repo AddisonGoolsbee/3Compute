@@ -50,7 +50,7 @@ check(
 
 check(
     "load_data returns 150 rows",
-    len(data) == 150,
+    data is not None and len(data) == 150,
     f"Expected 150 rows, got {len(data) if data else 'None'}."
 )
 
@@ -148,7 +148,7 @@ check(
 result = average([1.5, 2.5, 3.5, 4.5])
 check(
     "average([1.5, 2.5, 3.5, 4.5]) == 3.0",
-    abs(result - 3.0) < 1e-9,
+    result is not None and abs(result - 3.0) < 1e-9,
     f"Expected 3.0, got {result}."
 )
 
@@ -238,14 +238,14 @@ print("\n--- Testing correlation() ---")
 r_perfect_pos = correlation([1, 2, 3, 4, 5], [2, 4, 6, 8, 10])
 check(
     "perfect positive correlation is ~1.0",
-    abs(r_perfect_pos - 1.0) < 1e-6,
+    r_perfect_pos is not None and abs(r_perfect_pos - 1.0) < 1e-6,
     f"Expected ~1.0, got {r_perfect_pos}."
 )
 
 r_perfect_neg = correlation([1, 2, 3, 4, 5], [10, 8, 6, 4, 2])
 check(
     "perfect negative correlation is ~-1.0",
-    abs(r_perfect_neg - (-1.0)) < 1e-6,
+    r_perfect_neg is not None and abs(r_perfect_neg - (-1.0)) < 1e-6,
     f"Expected ~-1.0, got {r_perfect_neg}."
 )
 
@@ -253,7 +253,7 @@ check(
 r_none = correlation([1, 2, 3], [3, 1, 2])
 check(
     "no correlation returns value between -0.5 and 0.5 (inclusive)",
-    abs(r_none) <= 0.5,
+    r_none is not None and abs(r_none) <= 0.5,
     f"Expected a value close to 0, got {r_none}."
 )
 
@@ -265,7 +265,8 @@ check(
 
 check(
     "correlation result is in [-1, 1]",
-    -1.0 <= r_perfect_pos <= 1.0 and -1.0 <= r_perfect_neg <= 1.0,
+    r_perfect_pos is not None and r_perfect_neg is not None
+    and -1.0 <= r_perfect_pos <= 1.0 and -1.0 <= r_perfect_neg <= 1.0,
     "Correlation must always be between -1 and 1."
 )
 
@@ -293,3 +294,5 @@ if failed == 0:
 else:
     print("  Fix the failing tests before running the full analysis.")
 print("=" * 60)
+
+print(f"\n###3COMPUTE_RESULTS:{passed}/{passed + failed}###")

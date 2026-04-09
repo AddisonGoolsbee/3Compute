@@ -497,3 +497,5 @@ else:
     print("All tests pass. Try running the shell: python main.py")
 
 print("=" * 40)
+
+print(f"\n###3COMPUTE_RESULTS:{passed}/{total}###")

@@ -6,6 +6,8 @@ Students build a personal portfolio website from scratch over 7-8 class periods.
 
 This is a project-based learning unit. There is no single right answer. The goal is that every student finishes with something they're proud of and would actually share.
 
+> **Online Safety Note:** All websites built on 3Compute are publicly accessible. Before students begin, let them know they can avoid putting personal information on their site or use a nickname instead of their real name if they prefer. Respect each student's comfort level and remind them to follow your school's guidelines for online safety. This is a good opportunity to discuss responsible web presence as part of the project.
+
 **Estimated Duration:** 7-8 class periods (45-50 minutes each)
 
 **Prerequisites:**
@@ -94,7 +96,7 @@ A few students share their screens and show their color choices. Briefly discuss
 ### Day 2: Sections 2 and 3 (45-50 min)
 
 **Objectives:**
-- Write real personal content in HTML
+- Write content in HTML
 - Build a multi-card grid layout
 
 **Brief Demo (10 min):**

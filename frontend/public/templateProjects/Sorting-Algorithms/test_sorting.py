@@ -313,3 +313,5 @@ if failed == 0:
     print("All tests passed. Run 'python main.py' to see the performance comparison.")
 else:
     print(f"{failed} test(s) failed. Review the output above and check your implementations.")
+
+print(f"\n###3COMPUTE_RESULTS:{passed}/{total}###")

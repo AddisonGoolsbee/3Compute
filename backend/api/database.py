@@ -23,6 +23,8 @@ class Classroom(SQLModel, table=True):
     access_code: str = Field(unique=True, index=True)
     created_by: str = Field(foreign_key="user.id")
     created_at: datetime = Field(default_factory=datetime.utcnow)
+    joins_paused: bool = Field(default=False)
+    grading_mode: str = Field(default="equal")  # "equal", "weighted", "manual"
 
 
 class ClassroomMember(SQLModel, table=True):
@@ -45,6 +47,34 @@ class Template(SQLModel, table=True):
     classroom_id: Optional[str] = Field(default=None, foreign_key="classroom.id")
     path: str
     created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class AssignmentWeight(SQLModel, table=True):
+    __tablename__ = "assignment_weight"
+    id: Optional[int] = Field(default=None, primary_key=True)
+    classroom_id: str = Field(foreign_key="classroom.id", index=True)
+    template_name: str
+    weight: float = Field(default=1.0)
+
+
+class TestResult(SQLModel, table=True):
+    __tablename__ = "test_result"
+    id: Optional[int] = Field(default=None, primary_key=True)
+    classroom_id: str = Field(foreign_key="classroom.id", index=True)
+    user_id: str = Field(foreign_key="user.id", index=True)
+    template_name: str
+    tests_passed: int = Field(default=0)
+    tests_total: int = Field(default=0)
+    last_run: datetime = Field(default_factory=datetime.utcnow)
+
+
+class ManualScore(SQLModel, table=True):
+    __tablename__ = "manual_score"
+    id: Optional[int] = Field(default=None, primary_key=True)
+    classroom_id: str = Field(foreign_key="classroom.id", index=True)
+    user_id: str = Field(foreign_key="user.id", index=True)
+    template_name: str
+    score: float = Field(default=0)
 
 
 class PortSubdomain(SQLModel, table=True):

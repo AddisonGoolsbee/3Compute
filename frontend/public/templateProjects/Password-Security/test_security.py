@@ -40,11 +40,11 @@ def test_hash_password():
     # Test 2: Returns exactly 64 hex characters (SHA-256 digest length)
     total_tests += 1
     result = hash_password("hello")
-    if len(result) == 64:
+    if result is not None and len(result) == 64:
         print("OK  Test 2: Hash is 64 characters long")
         tests_passed += 1
     else:
-        print(f"FAIL Test 2: Hash should be 64 characters, got {len(result)}")
+        print(f"FAIL Test 2: Hash should be 64 characters, got {len(result) if result is not None else 'None'}")
 
     # Test 3: Known SHA-256 value for "hello"
     total_tests += 1
@@ -152,17 +152,17 @@ def test_generate_salt():
     # Test 2: Returns exactly 16 characters
     total_tests += 1
     result = generate_salt()
-    if len(result) == 16:
+    if result is not None and len(result) == 16:
         print("OK  Test 2: Salt is 16 characters long")
         tests_passed += 1
     else:
-        print(f"FAIL Test 2: Salt should be 16 characters, got {len(result)}")
+        print(f"FAIL Test 2: Salt should be 16 characters, got {len(result) if result is not None else 'None'}")
 
     # Test 3: Only contains hex characters
     total_tests += 1
     result = generate_salt()
     valid_chars = set("0123456789abcdef")
-    if all(c in valid_chars for c in result):
+    if result is not None and all(c in valid_chars for c in result):
         print("OK  Test 3: Salt contains only hex characters")
         tests_passed += 1
     else:
@@ -172,7 +172,7 @@ def test_generate_salt():
     total_tests += 1
     salt1 = generate_salt()
     salt2 = generate_salt()
-    if salt1 != salt2:
+    if salt1 is not None and salt2 is not None and salt1 != salt2:
         print("OK  Test 4: generate_salt() produces different values each call")
         tests_passed += 1
     else:
@@ -426,6 +426,10 @@ def run_all_tests():
         print("Tip: each function builds on the ones before it.")
     print()
 
+    func_passed = sum(1 for _, p in results if p)
+    print(f"###3COMPUTE_RESULTS:{func_passed}/{len(results)}###")
+
 
 if __name__ == "__main__":
     run_all_tests()
+

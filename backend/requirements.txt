@@ -10,3 +10,4 @@ aiofiles>=24.0.0
 python-multipart>=0.0.18
 python-socketio>=5.13.0
 pydantic-settings>=2.7.0
+pytest>=7.4.0

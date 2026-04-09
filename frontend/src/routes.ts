@@ -8,5 +8,6 @@ export default [
   route('/lessons', 'pages/lessons.tsx'),
   route('/terms', 'pages/terms.tsx'),
   route('/classrooms', 'pages/classrooms.tsx'),
+  route('/classrooms/:id', 'pages/classroom-detail.tsx'),
   route('*?', 'main.tsx'),
 ] satisfies RouteConfig;

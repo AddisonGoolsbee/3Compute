@@ -1,22 +1,34 @@
 import { useEffect, useState, useContext } from 'react';
-import { Link, useNavigate } from 'react-router';
+import { Link } from 'react-router';
 import { LogoBirdflop } from '@luminescent/ui-react';
-import { ArrowLeft, Copy, Check, Users, Plus, BookOpen } from 'lucide-react';
+import { ArrowLeft, Copy, Check, Users, ChevronRight, Plus, LogIn } from 'lucide-react';
 import { apiUrl, UserDataContext } from '../util/UserData';
+import CreateClassroomDialog from '../components/CreateClassroomDialog';
+import JoinClassroomDialog from '../components/JoinClassroomDialog';
 
 interface Classroom {
   id: string;
   name: string;
   access_code: string;
-  member_count?: number;
+  participants?: string[];
+  instructors?: string[];
+  joins_paused?: boolean;
+}
+
+function formatCode(code: string) {
+  return code.length === 6 ? `${code.slice(0, 3)}-${code.slice(3)}` : code;
 }
 
 export default function ClassroomsPage() {
   const userData = useContext(UserDataContext);
-  const navigate = useNavigate();
   const [owned, setOwned] = useState<Classroom[]>([]);
+  const [joined, setJoined] = useState<Classroom[]>([]);
   const [loading, setLoading] = useState(true);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [joinOpen, setJoinOpen] = useState(false);
+
+  const isTeacher = userData?.userInfo?.role === 'teacher';
 
   useEffect(() => {
     document.documentElement.style.overflowY = 'auto';
@@ -25,23 +37,25 @@ export default function ClassroomsPage() {
     };
   }, []);
 
-  useEffect(() => {
-    if (userData?.userInfo && userData.userInfo.role !== 'teacher') {
-      navigate('/ide', { replace: true });
-    }
-  }, [userData?.userInfo, navigate]);
-
-  useEffect(() => {
+  const fetchClassrooms = () => {
     fetch(`${apiUrl}/classrooms/`, { credentials: 'include' })
       .then((r) => r.json())
       .then((data) => {
         setOwned(data.owner ?? []);
+        setJoined(data.joined ?? []);
       })
-      .catch(() => setOwned([]))
+      .catch(() => { setOwned([]); setJoined([]); })
       .finally(() => setLoading(false));
-  }, []);
+  };
 
-  const copyCode = (classroom: Classroom) => {
+  useEffect(() => {
+    if (!userData?.userInfo) return;
+    fetchClassrooms();
+  }, [userData?.userInfo]);
+
+  const copyCode = (e: React.MouseEvent, classroom: Classroom) => {
+    e.stopPropagation();
+    e.preventDefault();
     navigator.clipboard.writeText(classroom.access_code);
     setCopiedId(classroom.id);
     setTimeout(() => setCopiedId(null), 2000);
@@ -60,8 +74,28 @@ export default function ClassroomsPage() {
           </Link>
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold mb-1">My Classrooms</h1>
-              <p className="text-gray-400">Manage your classrooms and share access codes with students.</p>
+              <h1 className="text-3xl font-bold mb-1">Classrooms</h1>
+              <p className="text-gray-400">
+                {isTeacher ? 'Manage your classrooms and view student progress.' : 'Your classrooms.'}
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setJoinOpen(true)}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-700 hover:border-gray-500 text-sm font-medium transition-colors text-gray-300 hover:text-white"
+              >
+                <LogIn size={15} />
+                Join
+              </button>
+              {isTeacher && (
+                <button
+                  onClick={() => setCreateOpen(true)}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 text-sm font-medium transition-colors"
+                >
+                  <Plus size={15} />
+                  Create
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -71,68 +105,70 @@ export default function ClassroomsPage() {
         <div className="max-w-4xl mx-auto">
           {loading ? (
             <div className="text-center py-20 text-gray-500">Loading...</div>
-          ) : owned.length === 0 ? (
+          ) : owned.length === 0 && joined.length === 0 ? (
             <div className="text-center py-20">
               <Users size={48} className="mx-auto mb-4 text-gray-600" />
               <p className="text-gray-400 mb-2">No classrooms yet.</p>
               <p className="text-gray-500 text-sm mb-6">
-                Create your first classroom from the IDE using the &ldquo;Create Classroom&rdquo; button in the top navigation.
+                {isTeacher
+                  ? 'Create a classroom or join one with an access code.'
+                  : 'Join a classroom with an access code from your teacher.'}
               </p>
-              <Link
-                to="/ide"
-                className="lum-btn lum-pad-sm rounded-lg bg-[#54daf4] hover:bg-[#3cc8e2] text-gray-950 font-medium text-sm inline-flex items-center gap-2 transition-colors"
-              >
-                Go to IDE
-              </Link>
             </div>
           ) : (
-            <div className="grid sm:grid-cols-2 gap-4">
+            <div className="flex flex-col divide-y divide-gray-800/60">
               {owned.map((classroom) => (
-                <div
+                <Link
                   key={classroom.id}
-                  className="lum-card border border-gray-700 rounded-xl p-6 hover:border-gray-600 transition-colors"
+                  to={`/classrooms/${classroom.id}`}
+                  className="flex items-center gap-4 px-4 py-4 hover:bg-gray-800/40 transition-colors group hover:no-underline!"
                 >
-                  <div className="flex items-start justify-between gap-3 mb-4">
-                    <h2 className="text-lg font-semibold leading-tight">{classroom.name}</h2>
-                  </div>
-
-                  {/* Access code */}
-                  <div className="mb-4">
-                    <div className="text-xs text-gray-500 mb-1">Student access code</div>
-                    <div className="flex items-center gap-2">
-                      <code className="text-lg font-mono font-bold text-[#54daf4] tracking-widest">
-                        {classroom.access_code}
-                      </code>
-                      <button
-                        onClick={() => copyCode(classroom)}
-                        className="p-1.5 rounded hover:bg-gray-800 transition-colors text-gray-400 hover:text-white"
-                        title="Copy code"
-                      >
-                        {copiedId === classroom.id ? (
-                          <Check size={14} className="text-green-400" />
-                        ) : (
-                          <Copy size={14} />
-                        )}
-                      </button>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-3">
+                      <h2 className="text-lg font-semibold truncate group-hover:text-white transition-colors">{classroom.name}</h2>
+                      {classroom.joins_paused && (
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-yellow-900/50 text-yellow-400">
+                          Paused
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-3 mt-1 text-sm text-gray-500">
+                      <span className="flex items-center gap-1.5">
+                        <Users size={13} />
+                        {classroom.participants?.length ?? 0} {(classroom.participants?.length ?? 0) === 1 ? 'student' : 'students'}
+                      </span>
+                      <span className="text-gray-700">|</span>
+                      <span className="flex items-center gap-1.5">
+                        <span className="text-gray-600 text-xs">Join code</span>
+                        <span className="font-mono text-gray-400 tracking-[0.12em] text-[13px]">{formatCode(classroom.access_code)}</span>
+                        <button
+                          onClick={(e) => copyCode(e, classroom)}
+                          className="p-0.5 rounded hover:bg-gray-700 transition-colors text-gray-600 hover:text-white"
+                          title="Copy join code"
+                        >
+                          {copiedId === classroom.id ? (
+                            <Check size={12} className="text-green-400" />
+                          ) : (
+                            <Copy size={12} />
+                          )}
+                        </button>
+                      </span>
                     </div>
                   </div>
-
-                  {/* Actions */}
-                  <div className="flex flex-wrap gap-2">
-                    <Link
-                      to="/ide"
-                      className="lum-btn lum-pad-sm rounded-lg border border-gray-600 hover:border-gray-400 text-sm inline-flex items-center gap-1.5 transition-colors"
-                    >
-                      <Plus size={13} />
-                      Open in IDE
-                    </Link>
-                    <Link
-                      to="/lessons"
-                      className="lum-btn lum-pad-sm rounded-lg border border-gray-600 hover:border-[#54daf4]/50 text-sm inline-flex items-center gap-1.5 transition-colors"
-                    >
-                      <BookOpen size={13} />
-                      Add a lesson
-                    </Link>
+                  <ChevronRight size={18} className="text-gray-700 group-hover:text-gray-400 transition-colors" />
+                </Link>
+              ))}
+              {joined.length > 0 && owned.length > 0 && (
+                <div className="border-t border-gray-700/50" />
+              )}
+              {joined.map((classroom) => (
+                <div
+                  key={classroom.id}
+                  className="flex items-center gap-4 px-4 py-4"
+                >
+                  <div className="flex-1 min-w-0">
+                    <h2 className="text-lg font-semibold truncate">{classroom.name}</h2>
+                    <span className="text-sm text-gray-600">Joined</span>
                   </div>
                 </div>
               ))}
@@ -141,7 +177,7 @@ export default function ClassroomsPage() {
         </div>
       </main>
 
-      <footer className="border-t border-gray-700 py-8 px-6">
+      <footer className="border-t border-gray-700/50 py-8 px-6">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2">
             <LogoBirdflop size={20} fillGradient={['#54daf4', '#545eb6']} />
@@ -152,6 +188,15 @@ export default function ClassroomsPage() {
           </Link>
         </div>
       </footer>
+
+      <CreateClassroomDialog
+        open={createOpen}
+        onClose={() => { setCreateOpen(false); fetchClassrooms(); }}
+      />
+      <JoinClassroomDialog
+        open={joinOpen}
+        onClose={() => { setJoinOpen(false); fetchClassrooms(); }}
+      />
     </div>
   );
 }

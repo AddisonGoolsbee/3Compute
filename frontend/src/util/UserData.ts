@@ -49,11 +49,24 @@ export const backendUrl =
 export const apiUrl = `${backendUrl}/api`;
 
 export async function clientLoader() {
-  const userRes = await fetch(`${apiUrl}/auth/me`, { credentials: 'include' });
+  let userRes;
+  try {
+    userRes = await fetch(`${apiUrl}/auth/me`, { credentials: 'include' });
+  } catch {
+    return {};
+  }
   if (!userRes.ok) return {};
   const userInfo: UserInfo = await userRes.json();
 
-  const { files, classroomSymlinks } = await fetchFilesList();
+  let files: Files = [];
+  let classroomSymlinks: Record<string, { id: string; name?: string; archived?: boolean; isInstructor?: boolean }> = {};
+  try {
+    const result = await fetchFilesList();
+    files = result.files;
+    classroomSymlinks = result.classroomSymlinks;
+  } catch {
+    // Backend may be unreachable; continue with empty file list
+  }
 
   return {
     userInfo,

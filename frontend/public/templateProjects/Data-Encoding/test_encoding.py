@@ -184,4 +184,6 @@ else:
     print(f"{failed} test(s) failed. Review the output above for details.")
 print("=" * 50)
 
+print(f"\n###3COMPUTE_RESULTS:{passed}/{total}###")
+
 sys.exit(0 if failed == 0 else 1)

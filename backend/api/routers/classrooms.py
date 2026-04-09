@@ -18,7 +18,7 @@ from backend.docker import (
     spawn_container,
 )
 
-from ..database import Classroom, ClassroomMember, User
+from ..database import AssignmentWeight, Classroom, ClassroomMember, ManualScore, TestResult, User
 from ..dependencies import get_current_user, get_db
 
 try:
@@ -71,6 +71,47 @@ def _ensure_classroom_dirs(classroom_id: str) -> str:
     return base
 
 
+def _populate_templates_for_participant(
+    classroom_id: str, participant_email: str
+) -> None:
+    """Copy all existing classroom templates into a participant's workspace."""
+    sanitized = (participant_email or "participant").replace("/", "_")
+    templates_dir = os.path.join(CLASSROOMS_ROOT, classroom_id, "templates")
+    participant_dir = os.path.join(
+        CLASSROOMS_ROOT, classroom_id, "participants", sanitized
+    )
+
+    if not os.path.isdir(templates_dir):
+        return
+
+    os.makedirs(participant_dir, exist_ok=True)
+
+    for entry in os.listdir(templates_dir):
+        src = os.path.join(templates_dir, entry)
+        dst = os.path.join(participant_dir, entry)
+        if not os.path.isdir(src) or os.path.exists(dst):
+            continue
+        try:
+            shutil.copytree(src, dst)
+            for dirpath, _dirnames, filenames in os.walk(dst):
+                try:
+                    os.chown(dirpath, CONTAINER_USER_UID, CONTAINER_USER_GID)
+                    os.chmod(dirpath, 0o775)
+                except OSError:
+                    pass
+                for fn in filenames:
+                    try:
+                        fp = os.path.join(dirpath, fn)
+                        os.chown(fp, CONTAINER_USER_UID, CONTAINER_USER_GID)
+                        os.chmod(fp, 0o664)
+                    except OSError:
+                        pass
+        except Exception as e:
+            logger.warning(
+                "Failed to copy template %s for %s: %s", entry, sanitized, e
+            )
+
+
 def _is_instructor(db: Session, classroom_id: str, user_id: str) -> bool:
     member = db.exec(
         select(ClassroomMember).where(
@@ -98,6 +139,8 @@ def _classroom_to_dict(
         "access_code": classroom.access_code,
         "archived": False,
         "archived_by": archived_by,
+        "joins_paused": getattr(classroom, "joins_paused", False),
+        "grading_mode": getattr(classroom, "grading_mode", "equal"),
     }
 
 
@@ -161,8 +204,10 @@ class ValidateCodeRequest(BaseModel):
     code: str = ""
 
 
-class RenameClassroomRequest(BaseModel):
-    name: str
+class UpdateClassroomRequest(BaseModel):
+    name: str | None = None
+    joins_paused: bool | None = None
+    grading_mode: str | None = None  # "equal", "weighted", "manual"
 
 
 class ArchiveClassroomRequest(BaseModel):
@@ -336,6 +381,11 @@ async def join_classroom(
         if not classroom:
             raise HTTPException(status_code=404, detail="Invalid code")
 
+        if classroom.joins_paused:
+            raise HTTPException(
+                status_code=403, detail="Joins are currently paused for this classroom"
+            )
+
         user_id = str(user.id)
 
         existing = db.exec(
@@ -381,6 +431,9 @@ async def join_classroom(
 
         port_range = _get_user_port_range(user)
         restarted = _restart_user_container(user.id, user.email, port_range)
+
+        # Populate existing templates into the new participant's workspace
+        _populate_templates_for_participant(classroom.id, user.email)
 
         logger.info(
             f"JOIN: user {user.id} joined classroom {classroom.id} "
@@ -579,23 +632,37 @@ async def regenerate_access_code(
 
 
 @router.patch("/{classroom_id}")
-async def rename_classroom(
+async def update_classroom(
     classroom_id: str,
-    body: RenameClassroomRequest,
+    body: UpdateClassroomRequest,
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     classroom = _require_classroom(db, classroom_id)
     _require_instructor(db, classroom_id, str(user.id))
 
-    new_name = body.name.strip()
-    if not new_name:
-        raise HTTPException(status_code=400, detail="Name required")
+    if body.name is not None:
+        new_name = body.name.strip()
+        if not new_name:
+            raise HTTPException(status_code=400, detail="Name required")
+        classroom.name = new_name
 
-    classroom.name = new_name
+    if body.joins_paused is not None:
+        classroom.joins_paused = body.joins_paused
+
+    if body.grading_mode is not None:
+        if body.grading_mode not in ("equal", "weighted", "manual"):
+            raise HTTPException(status_code=400, detail="Invalid grading mode")
+        classroom.grading_mode = body.grading_mode
+
     db.add(classroom)
     db.commit()
-    return {"id": classroom_id, "name": new_name}
+    return {
+        "id": classroom_id,
+        "name": classroom.name,
+        "joins_paused": classroom.joins_paused,
+        "grading_mode": classroom.grading_mode,
+    }
 
 
 @router.delete("/{classroom_id}")
@@ -938,3 +1005,437 @@ async def upload_classroom_template(
     except Exception as e:
         logger.error(f"Failed to upload classroom template: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
+
+
+# ---------------------------------------------------------------------------
+# Progress / Test results
+# ---------------------------------------------------------------------------
+
+
+@router.get("/{classroom_id}/progress")
+async def get_classroom_progress(
+    classroom_id: str,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Get all students' test results for all templates in a classroom."""
+    _require_classroom(db, classroom_id)
+    _require_instructor(db, classroom_id, str(user.id))
+
+    # Get all participants
+    participant_members = db.exec(
+        select(ClassroomMember).where(
+            ClassroomMember.classroom_id == classroom_id,
+            ClassroomMember.role == "participant",
+        )
+    ).all()
+
+    participant_ids = [m.user_id for m in participant_members]
+    participants_info: list[dict] = []
+    if participant_ids:
+        users = db.exec(
+            select(User).where(User.id.in_(participant_ids))
+        ).all()
+        user_map = {u.id: u for u in users}
+        for pid in participant_ids:
+            u = user_map.get(pid)
+            participants_info.append({
+                "id": pid,
+                "email": u.email if u else pid,
+                "name": u.name if u else pid,
+            })
+
+    # Sort alphabetically by name
+    participants_info.sort(key=lambda p: (p["name"] or p["email"] or "").lower())
+
+    # Get templates
+    templates_dir = os.path.join(CLASSROOMS_ROOT, classroom_id, "templates")
+    templates: list[str] = []
+    if os.path.isdir(templates_dir):
+        templates = sorted(
+            e for e in os.listdir(templates_dir)
+            if os.path.isdir(os.path.join(templates_dir, e))
+        )
+
+    # Get test results
+    results = db.exec(
+        select(TestResult).where(TestResult.classroom_id == classroom_id)
+    ).all()
+    result_map: dict[str, dict[str, dict]] = {}
+    for r in results:
+        result_map.setdefault(r.user_id, {})[r.template_name] = {
+            "passed": r.tests_passed,
+            "total": r.tests_total,
+        }
+
+    students = []
+    for p in participants_info:
+        student_results = result_map.get(p["id"], {})
+        students.append({
+            "id": p["id"],
+            "email": p["email"],
+            "name": p["name"],
+            "results": {
+                t: student_results.get(t, {"passed": 0, "total": 0})
+                for t in templates
+            },
+        })
+
+    return {
+        "students": students,
+        "templates": templates,
+    }
+
+
+class RunTestsRequest(BaseModel):
+    template_name: str | None = None
+
+
+@router.post("/{classroom_id}/run-tests")
+async def run_classroom_tests(
+    classroom_id: str,
+    body: RunTestsRequest,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Run tests for all students on a specific template (or all templates)."""
+    from backend.test_runner import run_tests_for_student
+
+    _require_classroom(db, classroom_id)
+    _require_instructor(db, classroom_id, str(user.id))
+
+    # Get templates to test
+    templates_dir = os.path.join(CLASSROOMS_ROOT, classroom_id, "templates")
+    if body.template_name:
+        templates = [body.template_name]
+    elif os.path.isdir(templates_dir):
+        templates = [
+            e for e in os.listdir(templates_dir)
+            if os.path.isdir(os.path.join(templates_dir, e))
+        ]
+    else:
+        templates = []
+
+    # Get participants
+    participant_members = db.exec(
+        select(ClassroomMember).where(
+            ClassroomMember.classroom_id == classroom_id,
+            ClassroomMember.role == "participant",
+        )
+    ).all()
+
+    participant_ids = [m.user_id for m in participant_members]
+    users = db.exec(
+        select(User).where(User.id.in_(participant_ids))
+    ).all() if participant_ids else []
+    user_map = {u.id: u for u in users}
+
+    import asyncio
+    from concurrent.futures import ThreadPoolExecutor
+    from datetime import datetime
+
+    # Build list of (template, participant_id, email) jobs
+    jobs: list[tuple[str, str, str]] = []
+    for template_name in templates:
+        for pid in participant_ids:
+            u = user_map.get(pid)
+            if not u:
+                continue
+            jobs.append((template_name, pid, u.email))
+
+    # Run all test jobs in parallel using a thread pool
+    loop = asyncio.get_event_loop()
+    with ThreadPoolExecutor() as pool:
+        futures = [
+            loop.run_in_executor(
+                pool,
+                run_tests_for_student,
+                classroom_id, tmpl, email,
+            )
+            for tmpl, _pid, email in jobs
+        ]
+        results = await asyncio.gather(*futures)
+
+    # Write all results to DB
+    updated_results = []
+    for (template_name, pid, _email), (passed, total) in zip(jobs, results):
+        existing = db.exec(
+            select(TestResult).where(
+                TestResult.classroom_id == classroom_id,
+                TestResult.user_id == pid,
+                TestResult.template_name == template_name,
+            )
+        ).first()
+
+        if existing:
+            existing.tests_passed = passed
+            existing.tests_total = total
+            existing.last_run = datetime.utcnow()
+            db.add(existing)
+        else:
+            db.add(TestResult(
+                classroom_id=classroom_id,
+                user_id=pid,
+                template_name=template_name,
+                tests_passed=passed,
+                tests_total=total,
+            ))
+
+        updated_results.append({
+            "user_id": pid,
+            "template_name": template_name,
+            "passed": passed,
+            "total": total,
+        })
+
+    db.commit()
+    return {"results": updated_results}
+
+
+# ---------------------------------------------------------------------------
+# Assignment weights
+# ---------------------------------------------------------------------------
+
+
+class UpdateWeightsRequest(BaseModel):
+    grading_mode: str  # "equal", "weighted", "manual"
+    weights: dict[str, float] = {}
+
+
+@router.get("/{classroom_id}/weights")
+async def get_weights(
+    classroom_id: str,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    classroom = _require_classroom(db, classroom_id)
+    _require_instructor(db, classroom_id, str(user.id))
+
+    weights = db.exec(
+        select(AssignmentWeight).where(
+            AssignmentWeight.classroom_id == classroom_id
+        )
+    ).all()
+
+    return {
+        "grading_mode": classroom.grading_mode,
+        "weights": {w.template_name: w.weight for w in weights},
+    }
+
+
+@router.put("/{classroom_id}/weights")
+async def update_weights(
+    classroom_id: str,
+    body: UpdateWeightsRequest,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    classroom = _require_classroom(db, classroom_id)
+    _require_instructor(db, classroom_id, str(user.id))
+
+    if body.grading_mode not in ("equal", "weighted", "manual"):
+        raise HTTPException(status_code=400, detail="Invalid grading mode")
+
+    classroom.grading_mode = body.grading_mode
+    db.add(classroom)
+
+    # Only update stored weights when the mode actually uses them.
+    # Switching to "equal" just changes the mode — existing weights are
+    # preserved so nothing is lost if the teacher switches back.
+    if body.grading_mode != "equal":
+        existing = db.exec(
+            select(AssignmentWeight).where(
+                AssignmentWeight.classroom_id == classroom_id
+            )
+        ).all()
+        for w in existing:
+            db.delete(w)
+
+        for template_name, weight in body.weights.items():
+            db.add(AssignmentWeight(
+                classroom_id=classroom_id,
+                template_name=template_name,
+                weight=weight,
+            ))
+
+    db.commit()
+
+    # Return current weights from DB so frontend stays in sync
+    weights = db.exec(
+        select(AssignmentWeight).where(
+            AssignmentWeight.classroom_id == classroom_id
+        )
+    ).all()
+    return {
+        "grading_mode": body.grading_mode,
+        "weights": {w.template_name: w.weight for w in weights},
+    }
+
+
+# ---------------------------------------------------------------------------
+# Manual scores (teacher only)
+# ---------------------------------------------------------------------------
+
+
+class UpdateManualScoreRequest(BaseModel):
+    user_id: str
+    template_name: str
+    score: float
+
+
+@router.get("/{classroom_id}/manual-scores")
+async def get_manual_scores(
+    classroom_id: str,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    _require_classroom(db, classroom_id)
+    _require_instructor(db, classroom_id, str(user.id))
+
+    scores = db.exec(
+        select(ManualScore).where(ManualScore.classroom_id == classroom_id)
+    ).all()
+
+    result: dict[str, dict[str, float]] = {}
+    for s in scores:
+        result.setdefault(s.user_id, {})[s.template_name] = s.score
+
+    return {"scores": result}
+
+
+@router.put("/{classroom_id}/manual-score")
+async def update_manual_score(
+    classroom_id: str,
+    body: UpdateManualScoreRequest,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    _require_classroom(db, classroom_id)
+    _require_instructor(db, classroom_id, str(user.id))
+
+    existing = db.exec(
+        select(ManualScore).where(
+            ManualScore.classroom_id == classroom_id,
+            ManualScore.user_id == body.user_id,
+            ManualScore.template_name == body.template_name,
+        )
+    ).first()
+
+    if existing:
+        existing.score = body.score
+        db.add(existing)
+    else:
+        db.add(ManualScore(
+            classroom_id=classroom_id,
+            user_id=body.user_id,
+            template_name=body.template_name,
+            score=body.score,
+        ))
+
+    db.commit()
+    return {"ok": True}
+
+
+# ---------------------------------------------------------------------------
+# View student file (teacher only)
+# ---------------------------------------------------------------------------
+
+
+@router.get("/{classroom_id}/student-files")
+async def list_student_files(
+    classroom_id: str,
+    email: str,
+    template: str,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """List files in a student's assignment directory. Teacher-only."""
+    _require_classroom(db, classroom_id)
+    _require_instructor(db, classroom_id, str(user.id))
+
+    target_user = db.exec(select(User).where(User.email == email)).first()
+    if not target_user:
+        raise HTTPException(status_code=404, detail="Student not found")
+
+    member = db.exec(
+        select(ClassroomMember).where(
+            ClassroomMember.classroom_id == classroom_id,
+            ClassroomMember.user_id == target_user.id,
+            ClassroomMember.role == "participant",
+        )
+    ).first()
+    if not member:
+        raise HTTPException(status_code=404, detail="Student is not in this classroom")
+
+    safe_template = os.path.normpath(template).lstrip("/")
+    if ".." in safe_template.split(os.sep):
+        raise HTTPException(status_code=400, detail="Invalid template name")
+
+    sanitized_email = (email or "").replace("/", "_")
+    base = os.path.join(
+        CLASSROOMS_ROOT, classroom_id, "participants", sanitized_email, safe_template
+    )
+    if not os.path.isdir(base):
+        return {"files": []}
+
+    files: list[str] = []
+    for root, dirs, fnames in os.walk(base):
+        # Skip hidden dirs and __pycache__
+        dirs[:] = [d for d in dirs if not d.startswith('.') and d != '__pycache__']
+        for fn in fnames:
+            if fn.startswith('.'):
+                continue
+            rel = os.path.relpath(os.path.join(root, fn), base)
+            files.append(rel)
+    files.sort()
+    return {"files": files}
+
+
+@router.get("/{classroom_id}/student-file")
+async def get_student_file(
+    classroom_id: str,
+    email: str,
+    path: str,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Read a student's file content. Teacher-only."""
+    _require_classroom(db, classroom_id)
+    _require_instructor(db, classroom_id, str(user.id))
+
+    # Validate email belongs to a participant
+    target_user = db.exec(
+        select(User).where(User.email == email)
+    ).first()
+    if not target_user:
+        raise HTTPException(status_code=404, detail="Student not found")
+
+    member = db.exec(
+        select(ClassroomMember).where(
+            ClassroomMember.classroom_id == classroom_id,
+            ClassroomMember.user_id == target_user.id,
+            ClassroomMember.role == "participant",
+        )
+    ).first()
+    if not member:
+        raise HTTPException(status_code=404, detail="Student is not in this classroom")
+
+    # Build the file path - prevent directory traversal
+    safe_path = os.path.normpath(path).lstrip("/")
+    if ".." in safe_path.split(os.sep):
+        raise HTTPException(status_code=400, detail="Invalid path")
+
+    sanitized_email = (email or "").replace("/", "_")
+    file_path = os.path.join(
+        CLASSROOMS_ROOT, classroom_id, "participants", sanitized_email, safe_path
+    )
+
+    if not os.path.isfile(file_path):
+        raise HTTPException(status_code=404, detail="File not found")
+
+    try:
+        with open(file_path, "r", encoding="utf-8") as f:
+            content = f.read()
+        return {"content": content, "path": path}
+    except UnicodeDecodeError:
+        raise HTTPException(status_code=400, detail="Binary file cannot be read")

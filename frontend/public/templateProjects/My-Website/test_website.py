@@ -305,6 +305,10 @@ def run_tests():
               f"{failed} failed, {skipped} skipped")
     print("=" * 60)
 
+    effective_total = result.testsRun - len(result.skipped)
+    effective_passed = effective_total - len(result.failures) - len(result.errors)
+    print(f"\n###3COMPUTE_RESULTS:{effective_passed}/{effective_total}###")
+
     return result.wasSuccessful()
 
 

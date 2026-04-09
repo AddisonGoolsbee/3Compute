@@ -21,7 +21,8 @@
                 "id": "3A-AP-22",
                 "description": "Design and develop computational artifacts working in team roles using collaborative tools."
             }
-        ]
+        ],
+        "testCount": 0
     },
     "Discord-Bot": {
         "files": [
@@ -47,7 +48,8 @@
                 "id": "3B-AP-14",
                 "description": "Construct solutions to problems using student-created components, such as procedures, modules and/or objects."
             }
-        ]
+        ],
+        "testCount": 0
     },
     "Tic-Tac-Toe": {
         "files": [
@@ -85,7 +87,8 @@
                 "id": "3B-AP-21",
                 "description": "Develop and use a series of test cases to verify that a program performs according to its design specifications."
             }
-        ]
+        ],
+        "testCount": 4
     },
     "Sorting-Algorithms": {
         "files": [
@@ -111,7 +114,8 @@
                 "id": "3A-AP-15",
                 "description": "Justify the selection of specific control structures when tradeoffs involve implementation, readability, and program performance."
             }
-        ]
+        ],
+        "testCount": 37
     },
     "Data-Structures": {
         "files": [
@@ -137,7 +141,8 @@
                 "id": "3A-AP-17",
                 "description": "Decompose problems into smaller components through systematic analysis, using constructs such as procedures, modules, and/or objects."
             }
-        ]
+        ],
+        "testCount": 60
     },
     "Ecosystem-Simulation": {
         "files": [
@@ -163,7 +168,8 @@
                 "id": "3A-IC-26",
                 "description": "Demonstrate ways a given algorithm applies to problems across disciplines."
             }
-        ]
+        ],
+        "testCount": 30
     },
     "Data-Analysis": {
         "files": [
@@ -194,7 +200,8 @@
                 "id": "3A-IC-25",
                 "description": "Test and refine computational artifacts to reduce bias and equity deficits."
             }
-        ]
+        ],
+        "testCount": 31
     },
     "Data-Encoding": {
         "files": [
@@ -212,7 +219,8 @@
                 "id": "3A-DA-09",
                 "description": "Translate between different bit representations of real-world phenomena, such as characters, numbers, and images."
             }
-        ]
+        ],
+        "testCount": 78
     },
     "Password-Security": {
         "files": [
@@ -251,7 +259,8 @@
                 "id": "3B-AP-18",
                 "description": "Explain security issues that might lead to compromised computer programs."
             }
-        ]
+        ],
+        "testCount": 6
     },
     "Weather-App": {
         "files": [
@@ -287,7 +296,8 @@
                 "id": "3A-AP-13",
                 "description": "Create prototypes that use algorithms to solve computational problems by leveraging prior student knowledge and personal interests."
             }
-        ]
+        ],
+        "testCount": 3
     },
     "Debugging-Workshop": {
         "files": [
@@ -322,7 +332,8 @@
                 "id": "3B-AP-23",
                 "description": "Evaluate key qualities of a program through a process such as a code review."
             }
-        ]
+        ],
+        "testCount": 49
     },
     "Computing-Layers": {
         "files": [
@@ -353,7 +364,8 @@
                 "id": "3A-DA-10",
                 "description": "Evaluate the tradeoffs in how data elements are organized and where data is stored."
             }
-        ]
+        ],
+        "testCount": 36
     },
     "Snake-Game": {
         "files": [
@@ -405,7 +417,8 @@
                 "id": "3B-AP-19",
                 "description": "Develop programs for multiple computing platforms."
             }
-        ]
+        ],
+        "testCount": 0
     },
     "My-Website": {
         "files": [
@@ -451,6 +464,7 @@
                 "id": "3B-AP-19",
                 "description": "Develop programs for multiple computing platforms."
             }
-        ]
+        ],
+        "testCount": 15
     }
 }

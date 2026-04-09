@@ -67,7 +67,7 @@ services:
       - 3compute-uploads:/var/lib/3compute/uploads
       - 3compute-classrooms:/var/lib/3compute/classrooms
     working_dir: /var/www/3compute
-    command: python -m backend.api --host 0.0.0.0 --port 5555 --reload
+    command: sh -c "pip install -q -r backend/requirements.txt && python -m backend.api --host 0.0.0.0 --port 5555 --reload"
     ports:
       - "5555:5555"
     depends_on:

@@ -116,16 +116,25 @@ check_raises("[] raises ValueError",    find_max, [], exception=ValueError)
 
 print("\n--- reverse_words ---")
 
-check("'hello world' -> 'world hello'",
-      reverse_words("hello world"),      "world hello")
-check("'one two three' -> 'three two one'",
-      reverse_words("one two three"),    "three two one")
-check("'python' -> 'python' (single word)",
-      reverse_words("python"),           "python")
-check("'a b c d' -> 'd c b a'",
-      reverse_words("a b c d"),          "d c b a")
-check("'the quick brown fox' -> 'fox brown quick the'",
-      reverse_words("the quick brown fox"), "fox brown quick the")
+_rw_before = passed + failed
+_rw_total = 5
+try:
+    check("'hello world' -> 'world hello'",
+          reverse_words("hello world"),      "world hello")
+    check("'one two three' -> 'three two one'",
+          reverse_words("one two three"),    "three two one")
+    check("'python' -> 'python' (single word)",
+          reverse_words("python"),           "python")
+    check("'a b c d' -> 'd c b a'",
+          reverse_words("a b c d"),          "d c b a")
+    check("'the quick brown fox' -> 'fox brown quick the'",
+          reverse_words("the quick brown fox"), "fox brown quick the")
+except Exception as _rw_err:
+    _rw_skipped = _rw_total - (passed + failed - _rw_before)
+    print(f"  ❌ reverse_words crashed: {type(_rw_err).__name__}: {_rw_err}")
+    if _rw_skipped > 0:
+        print(f"       ({_rw_skipped} test(s) skipped)")
+        failed += _rw_skipped
 
 
 # =============================================================================
@@ -160,6 +169,8 @@ if failed == 0:
 else:
     print(f"{failed} test(s) still failing. Keep going.")
 print("=" * 40)
+
+print(f"\n###3COMPUTE_RESULTS:{passed}/{total}###")
 
 
 # =============================================================================

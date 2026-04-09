@@ -16,6 +16,7 @@ import {
   ChevronUp,
   Code,
   Printer,
+  FlaskConical,
 } from 'lucide-react';
 import { apiUrl, backendUrl, UserDataContext } from '../util/UserData';
 import { printMarkdownElement } from '../util/printMarkdown';
@@ -32,6 +33,7 @@ interface LessonMeta {
   lessonPlanDoc?: string;
   solutionDoc?: string;
   standards?: Standard[];
+  testCount?: number;
 }
 
 type MetaManifest = Record<string, LessonMeta>;
@@ -471,6 +473,12 @@ function LessonCard({
               <span className="inline-flex items-center gap-1 text-xs text-gray-400 bg-gray-800 rounded-full px-2.5 py-1 flex-shrink-0">
                 <Clock size={11} />
                 {lesson.duration}
+              </span>
+            )}
+            {isTeacher && (lesson.testCount ?? 0) > 0 && (
+              <span className="inline-flex items-center gap-1 text-xs rounded-full px-2.5 py-1 flex-shrink-0 text-green-400 bg-green-400/10">
+                <FlaskConical size={11} />
+                Tests included
               </span>
             )}
           </div>

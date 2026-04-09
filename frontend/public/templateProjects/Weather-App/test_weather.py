@@ -239,24 +239,34 @@ def main():
     print("=" * 50)
 
     all_results = []
+    func_results = []
 
     try:
-        all_results += test_weather_description()
+        desc_results = test_weather_description()
+        all_results += desc_results
+        func_results.append(all(desc_results))
     except Exception as e:
         print(f"\n  [!!] weather_description() raised an error: {e}")
         print("       Make sure you have implemented it in display.py")
+        func_results.append(False)
 
     try:
-        all_results += test_get_coordinates()
+        coord_results = test_get_coordinates()
+        all_results += coord_results
+        func_results.append(all(coord_results))
     except Exception as e:
         print(f"\n  [!!] get_coordinates() raised an error: {e}")
         print("       Make sure you have implemented it in weather_api.py")
+        func_results.append(False)
 
     try:
-        all_results += test_get_weather()
+        weather_results = test_get_weather()
+        all_results += weather_results
+        func_results.append(all(weather_results))
     except Exception as e:
         print(f"\n  [!!] get_weather() raised an error: {e}")
         print("       Make sure you have implemented it in weather_api.py")
+        func_results.append(False)
 
     passed = sum(1 for r in all_results if r)
     total = len(all_results)
@@ -272,6 +282,10 @@ def main():
         print(f"  {total - passed} test(s) failed. Review the hints above.")
 
     print()
+
+    func_passed = sum(1 for r in func_results if r)
+    print(f"###3COMPUTE_RESULTS:{func_passed}/{len(func_results)}###")
+
     return 0 if passed == total else 1
 
 

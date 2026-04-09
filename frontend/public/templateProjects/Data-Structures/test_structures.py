@@ -19,6 +19,14 @@ passed = 0
 failed = 0
 
 
+def _safe_str(obj):
+    """str() wrapper that handles __str__ returning non-string."""
+    try:
+        return str(obj)
+    except (TypeError, Exception) as e:
+        return f"ERROR({type(e).__name__})"
+
+
 def check(label, got, expected):
     """Compare got vs expected and print a result line."""
     global passed, failed
@@ -114,10 +122,10 @@ check("Stack LIFO order: items come out in reverse order", order, [30, 20, 10])
 
 # __str__
 s3 = Stack()
-check("__str__ on empty stack", str(s3), "Stack: []")
+check("__str__ on empty stack", _safe_str(s3), "Stack: []")
 s3.push("a")
 s3.push("b")
-check("__str__ with items", str(s3), "Stack: [a, b <-top]")
+check("__str__ with items", _safe_str(s3), "Stack: [a, b <-top]")
 
 
 # =============================================================================
@@ -176,10 +184,10 @@ check("Queue FIFO order: items come out in insertion order", order, [10, 20, 30]
 
 # __str__
 q3 = Queue()
-check("__str__ on empty queue", str(q3), "Queue: []")
+check("__str__ on empty queue", _safe_str(q3), "Queue: []")
 q3.enqueue("x")
 q3.enqueue("y")
-check("__str__ with items", str(q3), "Queue: [front-> x, y]")
+check("__str__ with items", _safe_str(q3), "Queue: [front-> x, y]")
 
 
 # =============================================================================
@@ -297,3 +305,5 @@ total = passed + failed
 print(f"\n{'=' * 40}")
 print(f"  {passed}/{total} tests passed")
 print(f"{'=' * 40}\n")
+
+print(f"###3COMPUTE_RESULTS:{passed}/{total}###")

@@ -344,6 +344,9 @@ def run_all_tests():
         print("Tip: Implement functions in order - later ones depend on earlier ones.")
     print()
 
+    func_passed = sum(1 for _, p in results if p)
+    print(f"###3COMPUTE_RESULTS:{func_passed}/{len(results)}###")
+
 
 if __name__ == "__main__":
     run_all_tests()
