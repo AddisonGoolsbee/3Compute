@@ -475,7 +475,7 @@ function LessonCard({
                 {lesson.duration}
               </span>
             )}
-            {isTeacher && (lesson.testCount ?? 0) > 0 && (
+            {(lesson.testCount ?? 0) > 0 && (
               <span className="inline-flex items-center gap-1 text-xs rounded-full px-2.5 py-1 flex-shrink-0 text-green-400 bg-green-400/10">
                 <FlaskConical size={11} />
                 Tests included
