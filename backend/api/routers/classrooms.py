@@ -1443,7 +1443,7 @@ async def list_student_files(
     if not os.path.isdir(base):
         return {"files": []}
 
-    files: list[str] = []
+    files: set[str] = set()
     for root, dirs, fnames in os.walk(base):
         # Skip hidden dirs and __pycache__
         dirs[:] = [d for d in dirs if not d.startswith('.') and d != '__pycache__']
@@ -1451,9 +1451,24 @@ async def list_student_files(
             if fn.startswith('.'):
                 continue
             rel = os.path.relpath(os.path.join(root, fn), base)
-            files.append(rel)
-    files.sort()
-    return {"files": files}
+            files.add(rel)
+
+    # Also include test files from the template directory so teachers
+    # can always see them in the student file listing.
+    templates_dir = os.path.join(
+        CLASSROOMS_ROOT, classroom_id, "templates", safe_template
+    )
+    if os.path.isdir(templates_dir):
+        for root, dirs, fnames in os.walk(templates_dir):
+            dirs[:] = [d for d in dirs if not d.startswith('.') and d != '__pycache__']
+            for fn in fnames:
+                if fn.startswith('.'):
+                    continue
+                if fn.startswith('test_'):
+                    rel = os.path.relpath(os.path.join(root, fn), templates_dir)
+                    files.add(rel)
+
+    return {"files": sorted(files)}
 
 
 @router.get("/{classroom_id}/student-file")
@@ -1494,6 +1509,19 @@ async def get_student_file(
     file_path = os.path.join(
         CLASSROOMS_ROOT, classroom_id, "participants", sanitized_email, safe_path
     )
+
+    # Fall back to template directory for test files
+    if not os.path.isfile(file_path):
+        # The path format is "template_name/file" — extract template name
+        parts = safe_path.split(os.sep)
+        if len(parts) >= 2:
+            template_name = parts[0]
+            rel_file = os.sep.join(parts[1:])
+            template_file = os.path.join(
+                CLASSROOMS_ROOT, classroom_id, "templates", template_name, rel_file
+            )
+            if os.path.isfile(template_file):
+                file_path = template_file
 
     if not os.path.isfile(file_path):
         raise HTTPException(status_code=404, detail="File not found")

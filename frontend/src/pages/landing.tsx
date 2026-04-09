@@ -22,6 +22,7 @@ import {
   FlaskConical,
   FileText,
   RefreshCw,
+  ExternalLink,
 } from 'lucide-react';
 import { apiUrl, UserDataContext } from '../util/UserData';
 
@@ -513,7 +514,7 @@ function ClassroomDemo() {
               <span className="font-mono text-sm text-gray-500 ml-auto">5/8</span>
             </div>
             <div className="ml-6 border border-gray-800 rounded-lg overflow-hidden flex" style={{ height: 260 }}>
-              <div className="w-40 border-r border-gray-800 overflow-y-auto">
+              <div className="w-40 border-r border-gray-800 overflow-y-auto flex-shrink-0">
                 <div className="px-3 py-1.5 text-sm text-blue-400 bg-blue-900/20 flex items-center gap-2">
                   <FlaskConical size={12} /> View test output
                 </div>
@@ -524,8 +525,22 @@ function ClassroomDemo() {
                   </div>
                 ))}
               </div>
-              <div className="flex-1 p-3 font-mono text-xs leading-relaxed overflow-auto">
-                <pre className="text-gray-300 whitespace-pre-wrap">{DEMO_CODE}</pre>
+              <div className="flex-1 flex flex-col min-w-0">
+                <div className="flex items-center justify-between px-3 py-1.5 border-b border-gray-800 flex-shrink-0">
+                  <span className="text-xs text-gray-500 font-mono">encoding.py</span>
+                  <span className="inline-flex items-center gap-1.5 text-xs text-gray-400 shrink-0 ml-3">
+                    <ExternalLink size={11} />
+                    Open in IDE
+                  </span>
+                </div>
+                <div className="flex-1 overflow-auto bg-[#0d1117] px-4 pt-3 pb-2 font-mono text-sm leading-6">
+                  {DEMO_CODE.split('\n').map((line, i) => (
+                    <div key={i} className="flex gap-4">
+                      <span className="select-none text-gray-600 text-xs leading-6 w-4 text-right flex-shrink-0">{i + 1}</span>
+                      <span className="whitespace-pre">{line === '' ? <span>&nbsp;</span> : highlightLine(line)}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
@@ -538,12 +553,12 @@ function ClassroomDemo() {
               <span className="font-mono text-sm text-gray-500 ml-auto">5/8</span>
             </div>
             <div className="ml-6 border border-gray-800 rounded-lg overflow-hidden flex" style={{ height: 260 }}>
-              <div className="w-40 border-r border-gray-800">
+              <div className="w-40 border-r border-gray-800 flex-shrink-0">
                 <div className="px-3 py-1.5 text-sm text-blue-300 bg-blue-900/30 flex items-center gap-2">
                   <FlaskConical size={12} /> View test output
                 </div>
                 <div className="border-b border-gray-800/50" />
-                {['encoding.py', 'decode.py'].map((f) => (
+                {['encoding.py', 'decode.py', 'test_encoding.py'].map((f) => (
                   <div key={f} className="px-3 py-1.5 text-sm text-gray-400 flex items-center gap-2">
                     <FileText size={12} className="opacity-50" /> {f}
                   </div>
@@ -555,9 +570,9 @@ function ClassroomDemo() {
                     Test output
                     <span className="ml-2 text-gray-400">7/8 passed</span>
                   </span>
-                  <button className="text-xs text-gray-400 flex items-center gap-1">
+                  <span className="text-xs text-gray-400 flex items-center gap-1 shrink-0 ml-3">
                     <RefreshCw size={11} /> Re-run
-                  </button>
+                  </span>
                 </div>
                 <div className="flex-1 p-3 overflow-auto">
                   <pre className="whitespace-pre-wrap text-gray-300 text-xs leading-relaxed font-mono">{DEMO_TEST_OUTPUT}</pre>
