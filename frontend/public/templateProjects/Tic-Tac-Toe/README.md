@@ -260,13 +260,3 @@ Before submitting, verify:
 ### Python Recursion
 - **[Real Python - Recursion](https://realpython.com/python-recursion/)** - Recursion tutorial
 - **[Visualize Recursion](https://pythontutor.com/)** - Step through code visually
-
----
-
-## For Instructors
-
-Want to share this template with your classroom?
-
-1. Copy this template folder into your classroom's `assignments/` directory
-2. Customize it for your course (pre-configure the .env, add starter commands, etc.)
-3. Students can access it via **Templates → Classroom Assignments** or browse the `assignments/` folder in their classroom
