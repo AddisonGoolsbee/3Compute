@@ -503,116 +503,100 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
           <button
             className="lum-btn lum-btn-p-1 rounded-lum-1 gap-0.5 w-full text-left lum-bg-transparent"
             onClick={async () => {
-            if (!contextMenu.targetLocation) return;
-            if (isProtectedLocation(contextMenu.targetLocation)) return;
+              if (!contextMenu.targetLocation) return;
+              if (isProtectedLocation(contextMenu.targetLocation)) return;
 
-            // Handle restore from archive folder
-            if (isArchiveFolder(contextMenu.targetLocation)) {
-              const parts = contextMenu.targetLocation.split('/').filter(Boolean);
-              if (parts.length === 2) {
-                // This is an archived classroom - dispatch restore action
-                // The slug is the classroom name inside archive
-                const archivedSlug = parts[1];
-                window.dispatchEvent(new CustomEvent('3compute:archive-restore', {
-                  detail: { slug: archivedSlug },
-                }));
-              }
-              return;
-            }
-
-            const parts = contextMenu.targetLocation.split('/').filter(Boolean);
-            const isClassroomRoot = parts.length === 1;
-            const slug = parts[0];
-            const classroom = slug ? classroomSymlinks?.[slug] : undefined;
-
-            // Handle classroom archive/restore - classroom roots can only be archived, not deleted
-            if (isClassroomRoot && classroom) {
-              window.dispatchEvent(new CustomEvent('3compute:classroom-action', {
-                detail: {
-                  location: contextMenu.targetLocation,
-                  action: classroom.archived ? 'restore' : 'archive',
-                },
-              }));
-              return;
-            }
-
-            // Don't allow deletion of classroom roots (only archive/restore)
-            if (isClassroomRoot && classroom) {
-              return;
-            }
-
-            // Handle regular file/folder deletion (not classroom roots)
-            if (!window.confirm(`Delete "${contextMenu.targetLocation}"? This cannot be undone.`)) {
-              return;
-            }
-
-            try {
-              const res = await fetch(`${apiUrl}/files/file${contextMenu.targetLocation}`, {
-                method: 'DELETE',
-                credentials: 'include',
-              });
-
-              if (!res.ok) {
-                console.error('Failed to delete:', contextMenu.targetLocation);
-                alert('Failed to delete file');
+              // Handle restore from archive folder
+              if (isArchiveFolder(contextMenu.targetLocation)) {
+                const parts = contextMenu.targetLocation.split('/').filter(Boolean);
+                if (parts.length === 2) {
+                  const archivedSlug = parts[1];
+                  window.dispatchEvent(new CustomEvent('3compute:archive-restore', {
+                    detail: { slug: archivedSlug },
+                  }));
+                }
                 return;
               }
 
-              // Refresh file list
-              await refreshFiles();
+              const parts = contextMenu.targetLocation.split('/').filter(Boolean);
+              const isClassroomRoot = parts.length === 1;
+              const slug = parts[0];
+              const classroom = slug ? classroomSymlinks?.[slug] : undefined;
 
-              // Clear current file if it was deleted
-              if (currentFile?.location === contextMenu.targetLocation) {
-                setCurrentFile(undefined);
+              // Handle classroom archive/restore - classroom roots can only be archived, not deleted
+              if (isClassroomRoot && classroom) {
+                window.dispatchEvent(new CustomEvent('3compute:classroom-action', {
+                  detail: {
+                    location: contextMenu.targetLocation,
+                    action: classroom.archived ? 'restore' : 'archive',
+                  },
+                }));
+                return;
               }
-              // If we removed a top-level item, ensure selection resets
-              if (!contextMenu.targetLocation.includes('/', 1)) {
-                setSelectedLocation?.(undefined);
+
+              // Handle regular file/folder deletion (not classroom roots)
+              if (!window.confirm(`Delete "${contextMenu.targetLocation}"? This cannot be undone.`)) {
+                return;
               }
-            } catch (error) {
-              console.error('Error deleting file:', error);
-              alert('Error deleting file');
-            }
-          }}
-          disabled={(() => {
-            if (!contextMenu.targetLocation) return true;
-            if (isProtectedLocation(contextMenu.targetLocation)) return true;
-            // Top-level README.md cannot be deleted
-            if (contextMenu.targetLocation === '/README.md') return true;
-            // Archive root folder cannot be deleted
-            if (isArchiveRoot(contextMenu.targetLocation)) return true;
-            // Items inside archive folder - disable regular delete, except for restore action on classroom folders
-            if (isArchiveFolder(contextMenu.targetLocation)) {
-              // Only allow action on direct children of archive (archived classrooms)
+
+              try {
+                const res = await fetch(`${apiUrl}/files/file${contextMenu.targetLocation}`, {
+                  method: 'DELETE',
+                  credentials: 'include',
+                });
+
+                if (!res.ok) {
+                  console.error('Failed to delete:', contextMenu.targetLocation);
+                  alert('Failed to delete file');
+                  return;
+                }
+
+                await refreshFiles();
+
+                if (currentFile?.location === contextMenu.targetLocation) {
+                  setCurrentFile(undefined);
+                }
+                if (!contextMenu.targetLocation.includes('/', 1)) {
+                  setSelectedLocation?.(undefined);
+                }
+              } catch (error) {
+                console.error('Error deleting file:', error);
+                alert('Error deleting file');
+              }
+            }}
+            disabled={(() => {
+              if (!contextMenu.targetLocation) return true;
+              if (isProtectedLocation(contextMenu.targetLocation)) return true;
+              if (contextMenu.targetLocation === '/README.md') return true;
+              if (isArchiveRoot(contextMenu.targetLocation)) return true;
+              if (isArchiveFolder(contextMenu.targetLocation)) {
+                const parts = contextMenu.targetLocation.split('/').filter(Boolean);
+                if (parts.length !== 2) return true;
+                return false;
+              }
+              return false;
+            })()}
+          >
+            <Trash size={16} className="inline mr-2" />
+            {(() => {
+              if (!contextMenu.targetLocation) return 'Delete';
+              if (isArchiveFolder(contextMenu.targetLocation)) {
+                const parts = contextMenu.targetLocation.split('/').filter(Boolean);
+                if (parts.length === 2) {
+                  return 'Restore';
+                }
+                return 'Delete';
+              }
               const parts = contextMenu.targetLocation.split('/').filter(Boolean);
-              if (parts.length !== 2) return true; // Only archive/classroom-name can be restored
-              return false; // Enable for classroom folders in archive
-            }
-            return false;
-          })()}
-        >
-          <Trash size={16} className="inline mr-2" />
-          {(() => {
-            if (!contextMenu.targetLocation) return 'Delete';
-            // Archive folder items
-            if (isArchiveFolder(contextMenu.targetLocation)) {
-              const parts = contextMenu.targetLocation.split('/').filter(Boolean);
-              if (parts.length === 2) {
-                return 'Restore';
+              const isClassroomRoot = parts.length === 1;
+              const slug = parts[0];
+              const classroom = slug ? classroomSymlinks?.[slug] : undefined;
+              if (isClassroomRoot && classroom) {
+                return classroom.archived ? 'Restore' : 'Archive';
               }
-              return 'Delete'; // Won't actually work since it's disabled
-            }
-            // Check if this is a top-level item (classroom root)
-            const parts = contextMenu.targetLocation.split('/').filter(Boolean);
-            const isClassroomRoot = parts.length === 1;
-            const slug = parts[0];
-            const classroom = slug ? classroomSymlinks?.[slug] : undefined;
-            if (isClassroomRoot && classroom) {
-              return classroom.archived ? 'Restore' : 'Archive';
-            }
-            return 'Delete';
-          })()}
-        </button>
+              return 'Delete';
+            })()}
+          </button>
         )}
       </div>
     </div>

@@ -406,6 +406,42 @@ Files named `test_*.py` are used for automated grading. Students can see them bu
 
 You can also import lessons with pre-written tests from the **Lessons** page.
 
+### Writing your own tests
+Test files must be named `test_*.py` (e.g. `test_math.py`). Each file is run as a standalone Python script. The last line of output must be:
+
+```
+###3COMPUTE_RESULTS:passed/total###
+```
+
+For example, `###3COMPUTE_RESULTS:4/5###` means 4 out of 5 tests passed. 3Compute reads this line to determine the score. As long as your script prints this line at the end, you can structure the rest however you like. Here is a simple pattern used by our built-in lessons:
+
+```python
+passed = 0
+failed = 0
+
+def check(description, got, expected):
+    global passed, failed
+    if got == expected:
+        print(f"  PASS  {description}")
+        passed += 1
+    else:
+        print(f"  FAIL  {description}")
+        print(f"          expected: {expected!r}")
+        print(f"          got:      {got!r}")
+        failed += 1
+
+from main import add, multiply  # import student code
+
+check("add(2, 3) == 5", add(2, 3), 5)
+check("multiply(4, 5) == 20", multiply(4, 5), 20)
+
+total = passed + failed
+print(f"Results: {passed}/{total} tests passed")
+print(f"###3COMPUTE_RESULTS:{passed}/{total}###")
+```
+
+If an assignment has multiple `test_*.py` files, their results are combined into a single score.
+
 ### Tracking progress
 The **Students** tab lets you view each student's progress. Select an assignment, then click on a student to see their files and test results. You can also run tests from here.
 

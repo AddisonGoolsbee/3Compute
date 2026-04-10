@@ -102,11 +102,6 @@ def verify_success(lesson_id: str, output: str, returncode: int) -> tuple[bool, 
     if returncode != 0:
         return False, f"exit code {returncode}"
 
-    if lesson_id == "tic_tac_toe":
-        if "🎉 ALL TESTS PASSED" in output:
-            return True, ""
-        return False, "expected '🎉 ALL TESTS PASSED' in test output"
-
     if lesson_id == "password_security":
         marker = "All tests passed. Run 'python main.py' to see the demo."
         if marker in output:
