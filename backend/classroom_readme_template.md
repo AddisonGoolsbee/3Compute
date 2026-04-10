@@ -7,31 +7,31 @@ Access Code: `{{ACCESS_CODE}}`
 A classroom groups a set of participants (students) with one or more instructors and provides a shared logical space inside the coding environment. For each classroom you own:
 
 - A host directory is mounted inside your container at `/classrooms/{{CLASSROOM_ID}}`
-- A `templates/` folder lets you place starter files or reference material for participants. All files in this directory are viewable read-only by participants. Participants can also clone any folders (e.g., projects) you place in here to their classroom directory through the Templates button.
+- An `assignments/` folder lets you place starter files or reference material for participants. All files in this directory are viewable read-only by participants.
 - A `participants/` folder contains per-student workspaces
 
-## Sharing Templates
+## Sharing Assignments
 
-As an instructor, you can easily share project templates with your classroom:
+As an instructor, you can easily share assignments with your classroom:
 
-1. Create folders inside `templates/`. Each folder becomes a template that students can copy.
-2. Add starter files (code, README, requirements.txt, etc.) to each template folder.
-3. Students can access these templates in two ways:
-   - **Templates dropdown**: Students select Templates → Classroom Templates → Your Classroom → Template Name
-   - **Direct access**: Students browse `classroom-templates/` folder in their classroom view
+1. Create folders inside `assignments/`. Each folder becomes an assignment that students can work on.
+2. Add starter files (code, README, requirements.txt, etc.) to each assignment folder.
+3. Students can access these assignments in two ways:
+   - **Assignments dropdown**: Students select Templates → Classroom Assignments → Your Classroom → Assignment Name
+   - **Direct access**: Students browse the `assignments/` folder in their classroom view
 
 ### As a Student
 
-When you join this classroom, you can access instructor-provided templates:
+When you join this classroom, you can access instructor-provided assignments:
 
 1. **Using the Templates dropdown** (recommended):
    - Click **Templates** in the file explorer toolbar
-   - Select **Classroom Templates**
-   - Choose this classroom, then select a template
+   - Select **Classroom Assignments**
+   - Choose this classroom, then select an assignment
    - Files are copied to your workspace and your terminal changes to that directory via the `cd` command.
 
 2. **Manual copy**:
-   - Browse the `classroom-templates/` folder in your classroom directory
+   - Browse the `assignments/` folder in your classroom directory
    - Copy files you need to your personal workspace through the terminal
 
 ## Publishing a Web App (Custom Subdomain)

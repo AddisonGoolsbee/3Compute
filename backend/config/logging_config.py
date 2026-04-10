@@ -2,7 +2,7 @@ import logging
 import os
 from datetime import datetime, timezone
 
-_SUPPRESS_PATHS = {"/api/files/list", "/api/classrooms/templates"}
+_SUPPRESS_PATHS = {"/api/files/list", "/api/classrooms/assignments"}
 
 
 class _SuppressPollingPaths(logging.Filter):

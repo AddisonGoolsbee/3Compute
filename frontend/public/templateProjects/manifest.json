@@ -10,11 +10,5 @@
     "main.py",
     "README.md",
     "requirements.txt"
-  ],
-  "Tic-Tac-Toe": [
-    "main.py",
-    "test_game.py",
-    "README.md",
-    "requirements.txt"
   ]
 }

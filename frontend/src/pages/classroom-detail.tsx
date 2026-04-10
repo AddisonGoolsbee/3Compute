@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { Link, useParams } from 'react-router';
 import { LogoBirdflop } from '@luminescent/ui-react';
 import MonacoEditor from '@monaco-editor/react';
@@ -6,6 +6,7 @@ import {
   ArrowLeft, Copy, Check, Settings, Play,
   RefreshCw, Pause, PlayCircle, KeyRound, Pencil,
   FileText, ExternalLink, ChevronRight, FlaskConical,
+  HelpCircle, BookOpen, Upload, Trash2, Send,
 } from 'lucide-react';
 import { apiUrl } from '../util/UserData';
 import { languageMap } from '../util/languageMap';
@@ -50,7 +51,7 @@ export default function ClassroomDetailPage() {
   const [classroom, setClassroom] = useState<ClassroomInfo | null>(null);
   const [progress, setProgress] = useState<ProgressData | null>(null);
   const [weights, setWeights] = useState<WeightsData | null>(null);
-  const [activeTab, setActiveTab] = useState<'students' | 'gradebook'>('students');
+  const [activeTab, setActiveTab] = useState<'students' | 'gradebook' | 'assignments'>('students');
   const [selectedTemplate, setSelectedTemplate] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [runningTests, setRunningTests] = useState(false);
@@ -58,6 +59,7 @@ export default function ClassroomDetailPage() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [renaming, setRenaming] = useState(false);
   const [renameValue, setRenameValue] = useState('');
+  const [helpOpen, setHelpOpen] = useState(false);
   const fetchClassroom = useCallback(async () => {
     const res = await fetch(`${apiUrl}/classrooms/`, { credentials: 'include' });
     const data = await res.json();
@@ -244,43 +246,122 @@ export default function ClassroomDetailPage() {
               </div>
             </div>
 
-            <div className="relative">
+            <div className="flex items-center gap-1">
               <button
-                onClick={() => setSettingsOpen(!settingsOpen)}
-                className="p-2 rounded-lg hover:bg-gray-800 transition-colors text-gray-400 hover:text-white"
+                onClick={() => setHelpOpen(!helpOpen)}
+                className={`p-2 rounded-lg hover:bg-gray-800 transition-colors ${helpOpen ? 'text-white bg-gray-800' : 'text-gray-400 hover:text-white'}`}
+                title="How classrooms work"
               >
-                <Settings size={20} />
+                <HelpCircle size={20} />
               </button>
-              {settingsOpen && (
-                <>
-                  <div className="fixed inset-0 z-40" onClick={() => setSettingsOpen(false)} />
-                  <div className="absolute right-0 top-full mt-1 z-50 bg-gray-800 border border-gray-700 rounded-lg shadow-xl py-1 min-w-[200px]">
-                    <button
-                      onClick={toggleJoins}
-                      className="w-full text-left px-4 py-2.5 text-sm hover:bg-gray-700/50 flex items-center gap-2.5 transition-colors"
-                    >
-                      {classroom.joins_paused ? <PlayCircle size={15} className="text-gray-400" /> : <Pause size={15} className="text-gray-400" />}
-                      {classroom.joins_paused ? 'Resume joins' : 'Pause joins'}
-                    </button>
-                    <button
-                      onClick={regenerateCode}
-                      className="w-full text-left px-4 py-2.5 text-sm hover:bg-gray-700/50 flex items-center gap-2.5 transition-colors"
-                    >
-                      <KeyRound size={15} className="text-gray-400" />
+              <div className="relative">
+                <button
+                  onClick={() => setSettingsOpen(!settingsOpen)}
+                  className="p-2 rounded-lg hover:bg-gray-800 transition-colors text-gray-400 hover:text-white"
+                >
+                  <Settings size={20} />
+                </button>
+                {settingsOpen && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setSettingsOpen(false)} />
+                    <div className="absolute right-0 top-full mt-1 z-50 bg-gray-800 border border-gray-700 rounded-lg shadow-xl py-1 min-w-[200px]">
+                      <button
+                        onClick={toggleJoins}
+                        className="w-full text-left px-4 py-2.5 text-sm hover:bg-gray-700/50 flex items-center gap-2.5 transition-colors"
+                      >
+                        {classroom.joins_paused ? <PlayCircle size={15} className="text-gray-400" /> : <Pause size={15} className="text-gray-400" />}
+                        {classroom.joins_paused ? 'Resume joins' : 'Pause joins'}
+                      </button>
+                      <button
+                        onClick={regenerateCode}
+                        className="w-full text-left px-4 py-2.5 text-sm hover:bg-gray-700/50 flex items-center gap-2.5 transition-colors"
+                      >
+                        <KeyRound size={15} className="text-gray-400" />
                       Regenerate code
-                    </button>
-                    <button
-                      onClick={() => { setRenameValue(classroom.name); setRenaming(true); setSettingsOpen(false); }}
-                      className="w-full text-left px-4 py-2.5 text-sm hover:bg-gray-700/50 flex items-center gap-2.5 transition-colors"
-                    >
-                      <Pencil size={15} className="text-gray-400" />
+                      </button>
+                      <button
+                        onClick={() => { setRenameValue(classroom.name); setRenaming(true); setSettingsOpen(false); }}
+                        className="w-full text-left px-4 py-2.5 text-sm hover:bg-gray-700/50 flex items-center gap-2.5 transition-colors"
+                      >
+                        <Pencil size={15} className="text-gray-400" />
                       Rename
-                    </button>
-                  </div>
-                </>
-              )}
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
           </div>
+
+          {/* Help panel */}
+          {helpOpen && (
+            <div className="mt-4 border border-gray-700/60 rounded-xl bg-gray-800/30 overflow-hidden">
+              <div className="px-5 py-3 bg-gray-800/40 border-b border-gray-700/40 flex items-center justify-between">
+                <span className="text-sm font-medium text-gray-300">How classrooms work</span>
+                <button onClick={() => setHelpOpen(false)} className="text-gray-500 hover:text-gray-300 text-xs">Dismiss</button>
+              </div>
+              <div className="px-5 py-4 space-y-0 divide-y divide-gray-700/40">
+                <div className="flex gap-4 py-3 first:pt-0">
+                  <div className="mt-0.5 w-6 h-6 rounded-full bg-gray-700 flex items-center justify-center text-xs font-bold text-gray-300 shrink-0">1</div>
+                  <div>
+                    <p className="text-base font-semibold text-white">Upload your assignment folder</p>
+                    <p className="text-sm text-gray-300 mt-1">
+                      Go to the <span className="text-white font-medium">Assignments</span> tab and click <span className="text-white font-medium">Upload Folder</span> to
+                      add a folder with your starter code and any <code className="text-gray-300 bg-gray-800 px-1 rounded">test_*.py</code> files.
+                      This is exactly what students will start with.
+                      Or, import a lesson from the <span className="text-white font-medium">Lessons</span> page directly into your classroom to use its code as-is.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex gap-4 py-3">
+                  <div className="mt-0.5 w-6 h-6 rounded-full bg-gray-700 flex items-center justify-center text-xs font-bold text-gray-300 shrink-0">2</div>
+                  <div>
+                    <p className="text-base font-semibold text-white">Edit your draft and publish</p>
+                    <p className="text-sm text-gray-300 mt-1">
+                      Uploaded folders appear as drafts in the <span className="text-white font-medium">Assignments</span> tab.
+                      Click <span className="text-white font-medium">Edit in IDE</span> to refine files before distributing,
+                      then click <span className="text-white font-medium">Publish</span> when ready.
+                      Drafts are synced with the classroom's drafts folder in the IDE, so you can also create and manage drafts there.
+                      To publish from the IDE, move the folder into <code className="text-gray-300 bg-gray-800 px-1 rounded">assignments</code>. This publishes it immediately.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex gap-4 py-3">
+                  <div className="mt-0.5 w-6 h-6 rounded-full bg-gray-700 flex items-center justify-center text-xs font-bold text-gray-300 shrink-0">3</div>
+                  <div>
+                    <p className="text-base font-semibold text-white">Students get a copy automatically</p>
+                    <p className="text-sm text-gray-300 mt-1">
+                      When you publish an assignment, every current student receives their own copy. New students who join later also get all assignments automatically.
+                      Once published, changes you make to the template are not synced to existing students, but the template in{' '}
+                      <code className="text-gray-300 bg-gray-800 px-1 rounded">assignments</code> is updated for future students.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex gap-4 py-3">
+                  <div className="mt-0.5 w-6 h-6 rounded-full bg-gray-700 flex items-center justify-center text-xs font-bold text-gray-300 shrink-0">4</div>
+                  <div>
+                    <p className="text-base font-semibold text-white">Share the join code with students</p>
+                    <p className="text-sm text-gray-300 mt-1">
+                      Students enter the code on the Classrooms page to join. You can pause joins or regenerate the code from the settings menu above.
+                    </p>
+                  </div>
+                </div>
+                <div className="pt-3 space-y-2">
+                  <p className="text-xs text-gray-300">
+                    <span className="text-gray-300 font-medium">Test files:</span>{' '}
+                    Files named <code className="text-gray-300 bg-gray-800 px-1 rounded">test_*.py</code> are used for automated grading.
+                    Students can see them but can't modify them. You can also import lessons with pre-written tests from the <span className="text-white font-medium">Lessons</span> page.
+                  </p>
+                  <p className="text-xs text-gray-300">
+                    <span className="text-gray-300 font-medium">Removing assignments:</span>{' '}
+                    Delete the assignment from the <span className="text-white font-medium">Assignments</span> tab, or remove the folder from{' '}
+                    <code className="text-gray-300 bg-gray-800 px-1 rounded">assignments</code> in the IDE.
+                    Students keep their existing copies, but it won't appear in the gradebook or be given to new students.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Tabs */}
           <div className="flex gap-1 mt-6 border-b border-gray-700/50">
@@ -304,6 +385,16 @@ export default function ClassroomDetailPage() {
             >
               Gradebook
             </button>
+            <button
+              onClick={() => setActiveTab('assignments')}
+              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === 'assignments'
+                  ? 'border-white text-white'
+                  : 'border-transparent text-gray-500 hover:text-gray-300'
+              }`}
+            >
+              Assignments
+            </button>
           </div>
         </div>
       </header>
@@ -319,7 +410,7 @@ export default function ClassroomDetailPage() {
               onRunTests={runTests}
               runningTests={runningTests}
             />
-          ) : (
+          ) : activeTab === 'gradebook' ? (
             <GradebookTab
               classroomId={id!}
               progress={progress}
@@ -327,6 +418,12 @@ export default function ClassroomDetailPage() {
               onSaveWeights={saveWeights}
               onRunTests={runTests}
               runningTests={runningTests}
+            />
+          ) : (
+            <AssignmentsTab
+              classroomId={id!}
+              templates={progress?.templates ?? []}
+              onPublished={() => { fetchProgress(); }}
             />
           )}
         </div>
@@ -491,9 +588,73 @@ function StudentsTab({
 
   if (!progress || progress.templates.length === 0) {
     return (
-      <div className="text-center py-16 text-gray-500">
-        <p>No assignments yet.</p>
-        <p className="text-sm mt-1 text-gray-600">Upload templates to your classroom from the IDE.</p>
+      <div className="py-10 max-w-2xl mx-auto">
+        <div className="text-center mb-8">
+          <BookOpen size={40} className="mx-auto mb-3 text-gray-500" />
+          <h2 className="text-lg font-semibold text-gray-200 mb-1">No assignments yet</h2>
+          <p className="text-sm text-gray-400">Add your first assignment to get started.</p>
+        </div>
+
+        <div className="border border-gray-700/60 rounded-xl bg-gray-800/30 divide-y divide-gray-700/40">
+          <div className="px-5 py-4 flex gap-4">
+            <div className="mt-0.5 w-6 h-6 rounded-full bg-gray-700 flex items-center justify-center text-xs font-bold text-gray-300 shrink-0">1</div>
+            <div>
+              <p className="text-base font-semibold text-white">Upload your assignment folder</p>
+              <p className="text-sm text-gray-300 mt-1">
+                Go to the <span className="text-white font-medium">Assignments</span> tab and click <span className="text-white font-medium">Upload Folder</span> to
+                add a folder with your starter code and any <code className="text-gray-300 bg-gray-800 px-1 rounded">test_*.py</code> files.
+                This is exactly what students will start with.
+                Or, import a lesson from the <span className="text-white font-medium">Lessons</span> page directly into your classroom to use its code as-is.
+              </p>
+            </div>
+          </div>
+          <div className="px-5 py-4 flex gap-4">
+            <div className="mt-0.5 w-6 h-6 rounded-full bg-gray-700 flex items-center justify-center text-xs font-bold text-gray-300 shrink-0">2</div>
+            <div>
+              <p className="text-base font-semibold text-white">Edit your draft and publish</p>
+              <p className="text-sm text-gray-300 mt-1">
+                Uploaded folders appear as drafts in the <span className="text-white font-medium">Assignments</span> tab.
+                Click <span className="text-white font-medium">Edit in IDE</span> to refine files before distributing,
+                then click <span className="text-white font-medium">Publish</span> when ready.
+                Drafts are synced with the classroom's drafts folder in the IDE, so you can also create and manage drafts there.
+                To publish from the IDE, move the folder into <code className="text-gray-300 bg-gray-800 px-1 rounded">assignments</code>. This publishes it immediately.
+              </p>
+            </div>
+          </div>
+          <div className="px-5 py-4 flex gap-4">
+            <div className="mt-0.5 w-6 h-6 rounded-full bg-gray-700 flex items-center justify-center text-xs font-bold text-gray-300 shrink-0">3</div>
+            <div>
+              <p className="text-base font-semibold text-white">Students get a copy automatically</p>
+              <p className="text-sm text-gray-300 mt-1">
+                When you publish an assignment, every current student receives their own copy. New students who join later also get all assignments automatically.
+                Once published, changes you make to the template are not synced to existing students, but the template in{' '}
+                <code className="text-gray-300 bg-gray-800 px-1 rounded">assignments</code> is updated for future students.
+              </p>
+            </div>
+          </div>
+          <div className="px-5 py-4 flex gap-4">
+            <div className="mt-0.5 w-6 h-6 rounded-full bg-gray-700 flex items-center justify-center text-xs font-bold text-gray-300 shrink-0">4</div>
+            <div>
+              <p className="text-base font-semibold text-white">Share the join code with students</p>
+              <p className="text-sm text-gray-300 mt-1">
+                Students enter the code on the Classrooms page to join. You can pause joins or regenerate the code from the settings menu above.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-6 border border-gray-700/40 rounded-lg bg-gray-800/20 px-5 py-3 space-y-2">
+          <p className="text-xs text-gray-300">
+            <span className="text-gray-300 font-medium">Test files:</span>{' '}
+            Files named <code className="text-gray-300 bg-gray-800 px-1 rounded">test_*.py</code> are used for automated grading. Students can see them but can't modify them. You can also import lessons with pre-written tests from the <span className="text-white font-medium">Lessons</span> page.
+          </p>
+          <p className="text-xs text-gray-300">
+            <span className="text-gray-300 font-medium">Removing assignments:</span>{' '}
+            Delete the assignment from the <span className="text-white font-medium">Assignments</span> tab, or remove the folder from{' '}
+            <code className="text-gray-300 bg-gray-800 px-1 rounded">assignments</code> in the IDE.
+            Students keep their existing copies, but it won't appear in the gradebook or be given to new students.
+          </p>
+        </div>
       </div>
     );
   }
@@ -858,7 +1019,7 @@ function GradebookTab({
               <th className="sticky left-0 z-10 bg-gray-800/40 min-w-[180px]" />
               <th
                 colSpan={templates.length}
-                className="px-4 pt-3 pb-1 text-xs font-medium text-gray-500 uppercase tracking-wider text-center border-l border-gray-800/50"
+                className="px-4 pt-3 pb-1 text-xs font-medium text-gray-400 text-center border-l border-gray-800/50"
               >
                 Assignments
               </th>
@@ -867,7 +1028,7 @@ function GradebookTab({
             {/* Assignment names row */}
             <tr className={`bg-gray-800/40 ${!showInputRow ? 'border-b border-gray-700/50' : ''}`}>
               {!showInputRow ? (
-                <th className="text-left pl-8! pr-4 py-2 text-xs font-medium text-gray-500 uppercase tracking-wider sticky left-0 z-10 bg-gray-800/40 min-w-[180px]">
+                <th className="text-left pl-8! pr-4 py-2 text-xs font-medium text-gray-400 sticky left-0 z-10 bg-gray-800/40 min-w-[180px]">
                   Student
                 </th>
               ) : (
@@ -879,7 +1040,7 @@ function GradebookTab({
                 </th>
               ))}
               {!showInputRow ? (
-                <th className="px-4 py-2 text-xs font-medium text-gray-500 uppercase tracking-wider text-center min-w-[80px] border-l border-gray-800/50">
+                <th className="px-4 py-2 text-xs font-medium text-gray-400 text-center min-w-[80px] border-l border-gray-800/50">
                   Average
                 </th>
               ) : (
@@ -892,7 +1053,7 @@ function GradebookTab({
             {/* Weights/totals row (custom weights or manual scores) */}
             {showInputRow && (
               <tr className="bg-gray-800/40 border-b border-gray-700/50">
-                <th className="text-left pl-8! pr-4 py-2 text-xs font-medium text-gray-500 uppercase tracking-wider sticky left-0 z-10 bg-gray-800/40 min-w-[180px]">
+                <th className="text-left pl-8! pr-4 py-2 text-xs font-medium text-gray-400 sticky left-0 z-10 bg-gray-800/40 min-w-[180px]">
                   Student
                 </th>
                 {templates.map((t) => (
@@ -918,11 +1079,11 @@ function GradebookTab({
                   </th>
                 ))}
                 {localMode === 'manual' && (
-                  <th className="px-4 py-2 text-xs font-medium text-gray-500 uppercase tracking-wider text-center min-w-[80px] border-l border-gray-800/50">
+                  <th className="px-4 py-2 text-xs font-medium text-gray-400 text-center min-w-[80px] border-l border-gray-800/50">
                     Total
                   </th>
                 )}
-                <th className="px-4 py-2 text-xs font-medium text-gray-500 uppercase tracking-wider text-center min-w-[80px] border-l border-gray-800/50">
+                <th className="px-4 py-2 text-xs font-medium text-gray-400 text-center min-w-[80px] border-l border-gray-800/50">
                   Average
                 </th>
               </tr>
@@ -1014,6 +1175,199 @@ function GradebookTab({
           </tbody>
         </table>
       </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Assignments Tab
+// ---------------------------------------------------------------------------
+
+interface Draft {
+  name: string;
+  files: string[];
+}
+
+function AssignmentsTab({
+  classroomId,
+  templates,
+  onPublished,
+}: {
+  classroomId: string;
+  templates: string[];
+  onPublished: () => void;
+}) {
+  const [drafts, setDrafts] = useState<Draft[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
+  const [publishing, setPublishing] = useState<string | null>(null);
+  const folderInputRef = useRef<HTMLInputElement>(null);
+
+  const fetchDrafts = useCallback(async () => {
+    try {
+      const res = await fetch(`${apiUrl}/classrooms/${classroomId}/drafts`, { credentials: 'include' });
+      if (res.ok) {
+        const data = await res.json();
+        setDrafts(data.drafts ?? []);
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, [classroomId]);
+
+  useEffect(() => { fetchDrafts(); }, [fetchDrafts]);
+
+  const handleUpload = async (fileList: FileList) => {
+    if (fileList.length === 0) return;
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      for (const file of Array.from(fileList)) {
+        const path = (file as { webkitRelativePath?: string }).webkitRelativePath || file.name;
+        formData.append('files', file, path);
+      }
+      const res = await fetch(`${apiUrl}/classrooms/${classroomId}/drafts`, {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
+      });
+      if (!res.ok) {
+        const text = await res.text();
+        alert(text || 'Upload failed');
+      }
+      await fetchDrafts();
+    } finally {
+      setUploading(false);
+      if (folderInputRef.current) folderInputRef.current.value = '';
+    }
+  };
+
+  const deleteDraft = async (name: string) => {
+    if (!window.confirm(`Delete draft "${name}"?`)) return;
+    await fetch(`${apiUrl}/classrooms/${classroomId}/drafts/${encodeURIComponent(name)}`, {
+      method: 'DELETE',
+      credentials: 'include',
+    });
+    await fetchDrafts();
+  };
+
+  const publishDraft = async (name: string) => {
+    setPublishing(name);
+    try {
+      const res = await fetch(`${apiUrl}/classrooms/${classroomId}/drafts/${encodeURIComponent(name)}/publish`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      if (!res.ok) {
+        const text = await res.text();
+        alert(text || 'Publish failed');
+      } else {
+        onPublished();
+      }
+      await fetchDrafts();
+    } finally {
+      setPublishing(null);
+    }
+  };
+
+  return (
+    <div>
+      {/* Upload button */}
+      <div className="flex items-center justify-between mb-6">
+        <h3 className="text-sm font-medium text-gray-300">Manage assignment templates</h3>
+        <label className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm bg-[#54daf4]/15 text-[#54daf4] hover:bg-[#54daf4]/25 cursor-pointer transition-colors">
+          <Upload size={14} />
+          {uploading ? 'Uploading...' : 'Upload Folder'}
+          <input
+            ref={folderInputRef}
+            type="file"
+            className="hidden"
+            {...{ webkitdirectory: '', directory: '' } as React.InputHTMLAttributes<HTMLInputElement>}
+            onChange={(e) => e.target.files && handleUpload(e.target.files)}
+            disabled={uploading}
+          />
+        </label>
+      </div>
+
+      {/* Drafts section */}
+      <div className="mb-6 border border-yellow-700/30 rounded-xl bg-yellow-900/5 overflow-hidden">
+        <div className="px-4 py-2.5 bg-yellow-900/15 border-b border-yellow-700/20 flex items-center gap-2">
+          <div className="w-2 h-2 rounded-full bg-yellow-500/70" />
+          <span className="text-xs font-medium text-yellow-400/90">Drafts</span>
+          <span className="text-xs text-gray-500">· edit and preview before publishing</span>
+        </div>
+        <div className="p-3">
+          {drafts.length === 0 ? (
+            <p className="text-sm text-gray-500 py-3 text-center">No drafts. Upload a folder above to create one.</p>
+          ) : (
+            <div className="flex flex-col gap-2">
+              {drafts.map((draft) => (
+                <div
+                  key={draft.name}
+                  className="flex items-center justify-between px-4 py-3 rounded-lg bg-gray-800/40"
+                >
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-white truncate">{draft.name}</p>
+                    <p className="text-xs text-gray-400">{draft.files.length} file{draft.files.length !== 1 ? 's' : ''}</p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Link
+                      to={`/ide?classroom=${classroomId}&folder=${encodeURIComponent('drafts/' + draft.name)}`}
+                      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs text-gray-400 hover:text-white hover:bg-gray-700/50 transition-colors"
+                      title="Open in IDE to edit"
+                    >
+                      <ExternalLink size={12} />
+                      Edit in IDE
+                    </Link>
+                    <button
+                      onClick={() => publishDraft(draft.name)}
+                      disabled={publishing === draft.name}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm bg-green-700/50 hover:bg-green-700/70 text-green-200 transition-colors disabled:opacity-50"
+                    >
+                      <Send size={13} />
+                      {publishing === draft.name ? 'Publishing...' : 'Publish'}
+                    </button>
+                    <button
+                      onClick={() => deleteDraft(draft.name)}
+                      className="p-1.5 rounded-lg text-gray-500 hover:text-red-400 hover:bg-gray-800 transition-colors"
+                      title="Delete draft"
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Published assignments */}
+      <div className="border border-gray-700/40 rounded-xl bg-gray-800/10 overflow-hidden">
+        <div className="px-4 py-2.5 bg-gray-800/30 border-b border-gray-700/30 flex items-center gap-2">
+          <div className="w-2 h-2 rounded-full bg-green-500/70" />
+          <span className="text-xs font-medium text-gray-300">Published</span>
+          <span className="text-xs text-gray-500">· distributed to students</span>
+        </div>
+        <div className="p-3">
+          {templates.length === 0 && drafts.length === 0 ? (
+            <p className="text-sm text-gray-500 py-3 text-center">No assignments yet. Upload a folder to create a draft, then publish it to distribute to students.</p>
+          ) : templates.length === 0 ? (
+            <p className="text-sm text-gray-500 py-3 text-center">No published assignments yet.</p>
+          ) : (
+            <div className="flex flex-col gap-1">
+              {templates.map((t) => (
+                <div key={t} className="flex items-center px-4 py-2.5 rounded-lg bg-gray-800/30">
+                  <FileText size={15} className="text-green-500/70 mr-3 shrink-0" />
+                  <span className="text-sm text-gray-200">{t}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {loading && <div className="text-center py-8 text-gray-500 text-sm">Loading...</div>}
     </div>
   );
 }

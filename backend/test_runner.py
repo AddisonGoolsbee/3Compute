@@ -146,7 +146,7 @@ def run_tests_for_student_with_output(
     student_email = (student_email or "participant").replace("/", "_")
 
     templates_dir = os.path.join(
-        CLASSROOMS_ROOT, classroom_id, "templates", template_name
+        CLASSROOMS_ROOT, classroom_id, "assignments", template_name
     )
     student_dir = os.path.join(
         CLASSROOMS_ROOT, classroom_id, "participants", student_email, template_name
@@ -260,7 +260,7 @@ def run_tests_for_student(
     student_email = (student_email or "participant").replace("/", "_")
 
     templates_dir = os.path.join(
-        CLASSROOMS_ROOT, classroom_id, "templates", template_name
+        CLASSROOMS_ROOT, classroom_id, "assignments", template_name
     )
     student_dir = os.path.join(
         CLASSROOMS_ROOT, classroom_id, "participants", student_email, template_name

@@ -149,7 +149,7 @@ export default function LessonsPage() {
     }
   };
 
-  const importToClassroom = async (lessonName: string, classroomId: string) => {
+  const importToClassroom = async (lessonName: string, classroomId: string | null) => {
     setImporting(true);
     setImportError(null);
     setImportSuccess(null);
@@ -165,15 +165,17 @@ export default function LessonsPage() {
           formData.append('files', await res.blob(), `${lessonName}/${filename}`);
         }),
       );
-      formData.append('classroom_id', classroomId);
-      formData.append('move-into', lessonName);
+      if (classroomId) {
+        formData.append('classroom_id', classroomId);
+        formData.append('move-into', lessonName);
+      }
       const res = await fetch(`${apiUrl}/files/upload-folder`, {
         method: 'POST',
         body: formData,
         credentials: 'include',
       });
       if (!res.ok) throw new Error((await res.text()) || `Upload failed (${res.status})`);
-      setImportSuccess(classroomId);
+      setImportSuccess(classroomId ?? '_workspace');
       setTimeout(() => {
         setShowImportDialog(null);
         setImportSuccess(null);
@@ -198,7 +200,7 @@ export default function LessonsPage() {
     <div className="-mt-20 text-white min-h-screen flex flex-col">
       <header className="pt-24 pb-6 px-6">
         <div className="max-w-5xl mx-auto">
-          <h1 className="text-3xl font-bold mb-1">Lesson Plans</h1>
+          <h1 className="text-3xl font-bold mb-1">Lessons</h1>
           <p className="text-gray-400">
             Browse and import ready-to-use projects into your classrooms.
           </p>
@@ -403,21 +405,27 @@ export default function LessonsPage() {
                 <h2 className="text-lg font-semibold">
                   Import &ldquo;{showImportDialog.replace(/[-_]/g, ' ')}&rdquo;
                 </h2>
-                <p className="text-sm text-gray-400">Choose a classroom to import this lesson into:</p>
+                <p className="text-sm text-gray-400">Choose where to import this lesson:</p>
 
                 {importError && (
                   <div className="text-red-400 text-sm bg-red-400/10 rounded-lg p-3">{importError}</div>
                 )}
 
                 {loadingClassrooms ? (
-                  <div className="text-center py-6 text-gray-400 text-sm">Loading classrooms...</div>
-                ) : classrooms.length === 0 ? (
-                  <div className="text-center py-6">
-                    <p className="text-gray-400 text-sm mb-1">You don&apos;t have any classrooms yet.</p>
-                    <p className="text-gray-500 text-xs">Create one from the IDE to get started.</p>
-                  </div>
+                  <div className="text-center py-6 text-gray-400 text-sm">Loading...</div>
                 ) : (
                   <div className="flex flex-col gap-2 max-h-72 overflow-y-auto">
+                    <button
+                      disabled={importing}
+                      onClick={() => importToClassroom(showImportDialog, null)}
+                      className="lum-btn text-left px-4 py-3 rounded-lg border border-gray-600 hover:border-[#54daf4]/50 hover:bg-[#54daf4]/5 transition-colors disabled:opacity-50 flex items-center justify-between"
+                    >
+                      <div>
+                        <span className="font-medium">My workspace</span>
+                        <p className="text-xs text-gray-500 mt-0.5">Import to edit first, then drag into a classroom when ready</p>
+                      </div>
+                      {importSuccess === '_workspace' && <Check size={16} className="text-green-400" />}
+                    </button>
                     {classrooms.map((classroom) => (
                       <button
                         key={classroom.id}

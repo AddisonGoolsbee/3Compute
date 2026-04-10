@@ -44,7 +44,7 @@ export default function NavComponent() {
               className="lum-btn lum-bg-transparent hover:lum-bg-nav-bg flex items-center gap-1 text-sm font-medium transition-colors px-3 py-2"
             >
               <BookOpen size={16} className="opacity-80" />
-              <span>Lesson Plans</span>
+              <span>Lessons</span>
             </Link>
           )}
           {isLoggedIn && (

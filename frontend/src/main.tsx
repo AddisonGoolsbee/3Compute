@@ -7,11 +7,39 @@ import { useSearchParams } from 'react-router';
 import { UserDataContext } from './util/UserData';
 import type { Files, FileType } from './util/Files';
 
+// Recursively search for a file in the tree (pure function, stable reference)
+function findFile(items: Files, location: string): FileType | undefined {
+  for (const item of items) {
+    if (item.location === location) return item;
+    if ('files' in item) {
+      const found = findFile(item.files, location);
+      if (found) return found;
+    }
+  }
+  return undefined;
+}
+
 export default function App() {
   const userData = useContext(UserDataContext);
   const [searchParams, setSearchParams] = useSearchParams();
 
-  // Deep-link: open a specific file when navigating from classroom detail
+  // Helper: open all parent folders so a path is visible in the explorer
+  const openParentFolders = (targetLocation: string) => {
+    const parts = targetLocation.split('/').filter(Boolean);
+    const foldersToOpen: string[] = [];
+    for (let i = 1; i < parts.length; i++) {
+      foldersToOpen.push('/' + parts.slice(0, i).join('/'));
+    }
+    userData.setOpenFolders((prev: string[]) => {
+      const next = [...prev];
+      for (const f of foldersToOpen) {
+        if (!next.includes(f)) next.push(f);
+      }
+      return next;
+    });
+  };
+
+  // Deep-link: open a specific student file when navigating from classroom detail
   useEffect(() => {
     const classroomId = searchParams.get('classroom');
     const studentEmail = searchParams.get('student');
@@ -20,7 +48,6 @@ export default function App() {
     if (!classroomId || !studentEmail || !filePath) return;
     if (!userData.files || !userData.classroomSymlinks) return;
 
-    // Find the classroom slug by matching its ID
     const slug = Object.entries(userData.classroomSymlinks).find(
       ([, info]) => info.id === classroomId,
     )?.[0];
@@ -29,24 +56,11 @@ export default function App() {
     const sanitizedEmail = (studentEmail || '').replace(/\//g, '_');
     const targetLocation = `/${slug}/participants/${sanitizedEmail}/${filePath}`;
 
-    // Recursively search for the file in the tree
-    const findFile = (items: Files): FileType | undefined => {
-      for (const item of items) {
-        if (item.location === targetLocation) return item;
-        if ('files' in item) {
-          const found = findFile(item.files);
-          if (found) return found;
-        }
-      }
-      return undefined;
-    };
-
-    const file = findFile(userData.files);
+    const file = findFile(userData.files, targetLocation);
     if (file) {
       userData.setCurrentFile(file);
       userData.setSelectedLocation?.(file.location);
 
-      // Set student view context so the editor can show the test output banner
       const templateName = filePath.split('/')[0];
       userData.setStudentView?.({
         classroomId,
@@ -54,24 +68,41 @@ export default function App() {
         templateName,
       });
 
-      // Open all parent folders so the file is visible in the explorer
-      const parts = targetLocation.split('/').filter(Boolean);
-      const foldersToOpen: string[] = [];
-      for (let i = 1; i < parts.length; i++) {
-        foldersToOpen.push('/' + parts.slice(0, i).join('/'));
-      }
-      userData.setOpenFolders((prev: string[]) => {
-        const next = [...prev];
-        for (const f of foldersToOpen) {
-          if (!next.includes(f)) next.push(f);
-        }
-        return next;
-      });
-
-      // Clear search params so it doesn't re-trigger
+      openParentFolders(targetLocation);
       setSearchParams({}, { replace: true });
     }
-  }, [searchParams, userData.files, userData.classroomSymlinks]);
+  }, [searchParams, userData]);
+
+  // Deep-link: open a folder (e.g. draft) in the IDE, selecting README.md if present
+  useEffect(() => {
+    const classroomId = searchParams.get('classroom');
+    const folderPath = searchParams.get('folder');
+
+    if (!classroomId || !folderPath) return;
+    if (!userData.files || !userData.classroomSymlinks) return;
+
+    const slug = Object.entries(userData.classroomSymlinks).find(
+      ([, info]) => info.id === classroomId,
+    )?.[0];
+    if (!slug) return;
+
+    const folderLocation = `/${slug}/${folderPath}`;
+
+    // Try to find a README.md inside the folder
+    const readmePath = `${folderLocation}/README.md`;
+    const readmeFile = findFile(userData.files, readmePath);
+
+    if (readmeFile) {
+      userData.setCurrentFile(readmeFile);
+      userData.setSelectedLocation?.(readmeFile.location);
+      openParentFolders(readmeFile.location);
+    } else {
+      // Just open the folder in the explorer
+      openParentFolders(folderLocation + '/placeholder');
+    }
+
+    setSearchParams({}, { replace: true });
+  }, [searchParams, userData]);
 
   if (!userData.userInfo) {
     return (

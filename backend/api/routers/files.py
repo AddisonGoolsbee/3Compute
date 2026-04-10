@@ -227,17 +227,17 @@ def _is_instructor_for_classroom(
 def _check_templates_write_access(
     file_path: str, filename: str, user_id: str, db: Session
 ) -> str | None:
-    """Return an error message if writing to a templates path is denied,
+    """Return an error message if writing to an assignments path is denied,
     or ``None`` if the write is allowed."""
     rel_to_classrooms = ""
     if file_path.startswith(CLASSROOMS_ROOT):
         rel_to_classrooms = file_path[len(CLASSROOMS_ROOT) :].lstrip("/")
 
     is_templates_path = (
-        "/templates/" in f"/{rel_to_classrooms}"
-        or rel_to_classrooms.endswith("/templates")
-        or "/classroom-templates/" in filename
-        or filename.startswith("classroom-templates/")
+        "/assignments/" in f"/{rel_to_classrooms}"
+        or rel_to_classrooms.endswith("/assignments")
+        or "/assignments/" in filename
+        or filename.startswith("assignments/")
     )
     if not is_templates_path:
         return None
@@ -251,7 +251,44 @@ def _check_templates_write_access(
     if classroom_id and _is_instructor_for_classroom(db, classroom_id, str(user_id)):
         return None
 
-    return "Templates folder is read-only. Use 'Copy to Workspace' instead."
+    return "Assignments folder is read-only. Use 'Copy to Workspace' instead."
+
+
+def _check_participant_scope(
+    abs_path: str, user_id: str, db: Session
+) -> str | None:
+    """Return an error if a participant writes outside template folders.
+
+    Students can only create/modify files inside template subdirectories
+    within their participant folder, not create arbitrary top-level entries.
+    """
+    if not abs_path.startswith(CLASSROOMS_ROOT):
+        return None
+
+    rel = abs_path[len(CLASSROOMS_ROOT) :].lstrip("/")
+    parts = rel.split("/")
+
+    # Structure: {classroom_id}/participants/{email}/{template_name}/...
+    if len(parts) < 3 or parts[1] != "participants":
+        return None
+
+    classroom_id = parts[0]
+
+    # Instructors can do anything
+    if _is_instructor_for_classroom(db, classroom_id, str(user_id)):
+        return None
+
+    # Must target a path inside a known template folder
+    if len(parts) < 4:
+        return "You can only create files inside assignment folders."
+
+    template_name = parts[3]
+    templates_dir = os.path.join(CLASSROOMS_ROOT, classroom_id, "assignments")
+
+    if os.path.isdir(os.path.join(templates_dir, template_name)):
+        return None
+
+    return "You can only create files inside assignment folders."
 
 
 def _validate_path_within_roots(abs_path: str, upload_dir: str) -> None:
@@ -282,6 +319,121 @@ class MoveRequest(BaseModel):
     overwrite: bool = False
 
 
+class CopyRequest(BaseModel):
+    source: str
+    destination: str
+
+
+# ---------------------------------------------------------------------------
+# Auto-generated README
+# ---------------------------------------------------------------------------
+
+_STUDENT_README = """\
+# Welcome to 3Compute!
+
+3Compute is a free educational platform that gives you a cloud-based development environment. No local setup required.
+
+## Getting Started
+
+1. **Templates**: click Templates in the file explorer to create a new project from a starter (e.g. Website, Discord Bot). The template files are copied into your workspace.
+2. **Upload**: upload your own files or folders using the Upload button.
+3. **New**: create new files or folders with the New button.
+
+You also have a full Linux terminal below the editor. Some useful commands:
+- `python3 file.py` to run a Python script
+- `mkdir folder_name` to create a folder
+- `rm file_name` to delete a file (irreversible!)
+
+## Classrooms
+
+If your teacher gave you a **join code**, go to the Classrooms page and enter it.
+Once you join, assignment folders appear in your workspace automatically.
+You can edit files inside assignment folders, but you cannot create new top-level folders in the classroom. Just work inside the assignments your teacher provides.
+
+Files named `test_*.py` are **test files** written by your teacher for automated grading. You can see them but cannot modify them.
+
+## Workspace Tour
+
+- **File Explorer** (left): browse, upload, create, and delete files.
+- **Editor** (center): edit code with syntax highlighting. Use the Save button or the language selector to change highlighting mode. Toggle Markdown preview for `.md` files.
+- **Terminal** (bottom): full shell access. Open multiple tabs; closing a tab stops its processes.
+
+## Learn more
+
+Open any template's `README.md` after creating it for project-specific instructions.
+"""
+
+_TEACHER_README = """\
+# Welcome to 3Compute!
+
+3Compute is a free educational platform that gives you and your students cloud-based development environments. No local setup required.
+
+## Getting Started
+
+1. **Templates**: click Templates in the file explorer to create a new project from a starter (e.g. Website, Discord Bot). The template files are copied into your workspace.
+2. **Upload**: upload your own files or folders using the Upload button.
+3. **New**: create new files or folders with the New button.
+
+You also have a full Linux terminal below the editor. Some useful commands:
+- `python3 file.py` to run a Python script
+- `mkdir folder_name` to create a folder
+- `rm file_name` to delete a file (irreversible!)
+
+## Managing Classrooms
+
+### Creating a classroom
+Go to the **Classrooms** page and click **Create**. Share the join code with your students.
+
+### Adding assignments
+1. Open your classroom from the **Classrooms** page, go to the **Assignments** tab, and click **Upload Folder** to upload a folder with your starter code and any `test_*.py` test files.
+2. Your upload appears as a draft. Click **Edit in IDE** to refine it, then click **Publish** when ready.
+3. You can also manage assignments in the IDE. Drafts are synced with the classroom's `drafts/` folder. Moving a folder into the `assignments/` folder publishes it immediately.
+
+Every current student receives a copy when you publish. Students who join later also get all assignments automatically. Once published, edits to the original are not synced to existing students, but the template is updated for future students.
+
+### Deleting assignments
+Delete the assignment from the **Assignments** tab, or remove the folder from your classroom's `assignments/` folder in the IDE. Students keep their existing copies, but the assignment will no longer appear in the gradebook or be distributed to new students.
+
+### Test files & grading
+Files named `test_*.py` are used for automated grading. Students can see them but cannot modify them. Run tests from the classroom detail page to see scores.
+
+You can also import lessons with pre-written tests from the **Lessons** page.
+
+### Tracking progress
+The **Students** tab lets you view each student's progress. Select an assignment, then click on a student to see their files and test results. You can also run tests from here.
+
+The **Gradebook** tab shows a matrix of all students and assignments with their scores. You can grade assignments automatically through test cases or use manual scoring. Students cannot see the gradebook.
+
+### Student restrictions
+Students can only create and edit files inside their assignment folders. They cannot create new top-level folders in the classroom.
+
+## Workspace Tour
+
+- **File Explorer** (left): browse, upload, create, and delete files.
+- **Editor** (center): edit code with syntax highlighting. Use the Save button or the language selector to change highlighting mode. Toggle Markdown preview for `.md` files.
+- **Terminal** (bottom): full shell access. Open multiple tabs; closing a tab stops its processes.
+
+## Learn more
+
+Open any template's `README.md` after creating it for project-specific instructions.
+"""
+
+
+def _ensure_readme(upload_dir: str, user: User) -> None:
+    """Create a role-specific README.md in the user's workspace if missing."""
+    readme_path = os.path.join(upload_dir, "README.md")
+    if os.path.exists(readme_path):
+        return
+    os.makedirs(upload_dir, exist_ok=True)
+    content = _TEACHER_README if user.role == "teacher" else _STUDENT_README
+    try:
+        with open(readme_path, "w") as fh:
+            fh.write(content)
+        set_container_ownership(readme_path)
+    except OSError as e:
+        logger.warning(f"Failed to create README for user {user.id}: {e}")
+
+
 # ---------------------------------------------------------------------------
 # Routes
 # ---------------------------------------------------------------------------
@@ -293,6 +445,7 @@ async def list_files(
     db: Session = Depends(get_db),
 ):
     upload_dir = f"{UPLOADS_ROOT}/{user.id}"
+    _ensure_readme(upload_dir, user)
 
     if not os.path.exists(upload_dir):
         return {"files": [], "classroomMeta": {}}
@@ -474,6 +627,10 @@ async def move_file_or_folder(
         if not src_ok or not dst_ok:
             raise HTTPException(status_code=400, detail="Invalid path")
 
+        err = _check_participant_scope(dst_path, user.id, db)
+        if err:
+            raise HTTPException(status_code=403, detail=err)
+
         if not os.path.exists(src_path):
             raise HTTPException(status_code=404, detail="Source not found")
 
@@ -521,11 +678,92 @@ async def move_file_or_folder(
         raise HTTPException(status_code=500, detail=f"Failed to move: {e}")
 
 
+@router.post("/copy")
+async def copy_file_or_folder(
+    body: CopyRequest,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    source_param = body.source.lstrip("/")
+    destination_param = body.destination.lstrip("/")
+
+    if not source_param or not destination_param:
+        raise HTTPException(status_code=400, detail="Invalid path")
+
+    dest_name = destination_param.rstrip("/").split("/")[-1]
+    if _is_reserved_name(dest_name):
+        raise HTTPException(status_code=400, detail="The name 'archive' is reserved")
+
+    upload_dir = f"{UPLOADS_ROOT}/{user.id}"
+
+    src_mapped = _resolve_classroom_path(upload_dir, source_param)
+    dst_mapped = _resolve_classroom_path(upload_dir, destination_param)
+
+    src_path = (
+        src_mapped
+        if src_mapped
+        else os.path.normpath(os.path.join(upload_dir, source_param))
+    )
+    dst_path = (
+        dst_mapped
+        if dst_mapped
+        else os.path.normpath(os.path.join(upload_dir, destination_param))
+    )
+
+    _validate_path_within_roots(src_path, upload_dir)
+    _validate_path_within_roots(dst_path, upload_dir)
+
+    err = _check_templates_write_access(dst_path, destination_param, user.id, db)
+    if err:
+        raise HTTPException(status_code=403, detail=err)
+
+    err = _check_participant_scope(dst_path, user.id, db)
+    if err:
+        raise HTTPException(status_code=403, detail=err)
+
+    if not os.path.exists(src_path):
+        raise HTTPException(status_code=404, detail="Source not found")
+
+    # Auto-rename on collision: append (1), (2), etc.
+    final_dst = dst_path
+    if os.path.exists(final_dst):
+        base, ext = os.path.splitext(dst_path)
+        if os.path.isdir(src_path):
+            ext = ""
+            base = dst_path.rstrip("/")
+        i = 1
+        while os.path.exists(f"{base} ({i}){ext}"):
+            i += 1
+        final_dst = f"{base} ({i}){ext}"
+
+    try:
+        if os.path.isdir(src_path):
+            shutil.copytree(src_path, final_dst)
+            for root, dirs, fnames in os.walk(final_dst):
+                set_container_ownership(root)
+                for fn in fnames:
+                    set_container_ownership(os.path.join(root, fn))
+        else:
+            dst_parent = os.path.dirname(final_dst)
+            os.makedirs(dst_parent, exist_ok=True)
+            set_container_ownership(dst_parent)
+            shutil.copy2(src_path, final_dst)
+            set_container_ownership(final_dst)
+    except PermissionError:
+        raise HTTPException(status_code=403, detail="Permission denied")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to copy: {e}")
+
+    await notify_files_changed(str(user.id))
+    return {"message": "Copied successfully"}
+
+
 @router.post("/upload")
 async def upload(
     files: list[UploadFile] = File(...),
     destination: str = Form(default=""),
     user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
 ):
     upload_dir = f"{UPLOADS_ROOT}/{user.id}"
     os.makedirs(upload_dir, exist_ok=True)
@@ -540,6 +778,12 @@ async def upload(
         target_dir = os.path.normpath(os.path.join(upload_dir, destination))
         if not target_dir.startswith(upload_dir):
             raise HTTPException(status_code=400, detail="Invalid destination")
+        # Check if destination resolves through a symlink into a classroom
+        classroom_dest = _resolve_classroom_path(upload_dir, destination)
+        if classroom_dest:
+            err = _check_participant_scope(classroom_dest, user.id, db)
+            if err:
+                raise HTTPException(status_code=403, detail=err)
         if os.path.isfile(target_dir):
             os.remove(target_dir)
         os.makedirs(target_dir, exist_ok=True)
@@ -628,9 +872,9 @@ async def _push_classroom_templates_to_participants(
     templates_written: set[tuple[str, str]],
     db: Session,
 ) -> None:
-    """For each (classroom_id, template_name) push classroom-templates/{template_name}."""
+    """For each (classroom_id, template_name) push assignments/{template_name}."""
     for cid, template_name in templates_written:
-        src = os.path.join(CLASSROOMS_ROOT, cid, "classroom-templates", template_name)
+        src = os.path.join(CLASSROOMS_ROOT, cid, "assignments", template_name)
         await _push_template_to_participants(cid, template_name, src, db)
 
 
@@ -662,13 +906,13 @@ async def upload_folder(
         if not _is_instructor_for_classroom(db, str(classroom_id), str(user.id)):
             raise HTTPException(
                 status_code=403,
-                detail="Only instructors can import into classroom templates",
+                detail="Only instructors can import into classroom assignments",
             )
-        target_base = os.path.join(CLASSROOMS_ROOT, str(classroom_id), "templates")
+        target_base = os.path.join(CLASSROOMS_ROOT, str(classroom_id), "assignments")
         os.makedirs(target_base, exist_ok=True)
         set_container_ownership(target_base)
 
-    # Track (classroom_id, template_name) pairs written to classroom-templates
+    # Track (classroom_id, template_name) pairs written to assignments
     classroom_templates_written: set[tuple[str, str]] = set()
 
     for f in files:
@@ -683,8 +927,8 @@ async def upload_folder(
             if dest_path.startswith(CLASSROOMS_ROOT):
                 rel_to_classrooms = dest_path[len(CLASSROOMS_ROOT) :].lstrip("/")
                 is_templates_path = (
-                    "/templates/" in f"/{rel_to_classrooms}"
-                    or rel_to_classrooms.endswith("/templates")
+                    "/assignments/" in f"/{rel_to_classrooms}"
+                    or rel_to_classrooms.endswith("/assignments")
                 )
                 if is_templates_path:
                     parts = rel_to_classrooms.split("/")
@@ -694,12 +938,17 @@ async def upload_folder(
                     ):
                         raise HTTPException(
                             status_code=403,
-                            detail="Templates folder is read-only for participants",
+                            detail="Assignments folder is read-only for participants",
                         )
 
-                # Track writes to classroom-templates/{template_name}/
+                # Check participant scope for non-assignment paths
+                err = _check_participant_scope(dest_path, str(user.id), db)
+                if err:
+                    raise HTTPException(status_code=403, detail=err)
+
+                # Track writes to assignments/{template_name}/
                 parts = rel_to_classrooms.split("/")
-                if len(parts) >= 3 and parts[1] == "classroom-templates":
+                if len(parts) >= 3 and parts[1] == "assignments":
                     classroom_templates_written.add((parts[0], parts[2]))
         else:
             dest_path = safe_path
@@ -745,13 +994,13 @@ async def upload_folder(
         except subprocess.CalledProcessError:
             pass
 
-    # Push to student workspaces if files landed in classroom-templates (teacher drag-drop)
+    # Push to student workspaces if files landed in assignments (teacher drag-drop)
     await _push_classroom_templates_to_participants(classroom_templates_written, db)
 
     # Push to student workspaces for lesson imports (classroom_id + move-into provided)
     move_into_str = str(move_into) if move_into else ""
     if classroom_id and move_into_str:
-        src = os.path.join(CLASSROOMS_ROOT, str(classroom_id), "templates", move_into_str)
+        src = os.path.join(CLASSROOMS_ROOT, str(classroom_id), "assignments", move_into_str)
         await _push_template_to_participants(str(classroom_id), move_into_str, src, db)
 
     await notify_files_changed(str(user.id))
@@ -871,6 +1120,10 @@ async def delete_file(
     if parts and parts[0] == "archive":
         raise HTTPException(status_code=403, detail="The archive folder is read-only")
 
+    # Protect the top-level README.md (auto-generated, not deletable)
+    if abs_path == os.path.join(upload_dir, "README.md"):
+        raise HTTPException(status_code=403, detail="The README cannot be deleted")
+
     err = _check_templates_write_access(abs_path, file_path, user.id, db)
     if err:
         raise HTTPException(status_code=403, detail=err)
@@ -920,6 +1173,10 @@ async def create_file(
                 resolved = _resolve_classroom_path(upload_dir, file_path)
                 if resolved:
                     abs_path = resolved
+
+    err = _check_participant_scope(abs_path, user.id, db)
+    if err:
+        raise HTTPException(status_code=403, detail=err)
 
     if file_path.endswith("/"):
         # Creating a directory

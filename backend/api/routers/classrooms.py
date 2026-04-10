@@ -20,6 +20,7 @@ from backend.docker import (
 
 from ..database import AssignmentWeight, Classroom, ClassroomMember, ManualScore, TestResult, User
 from ..dependencies import get_current_user, get_db
+from ..terminal import notify_files_changed
 
 try:
     from backend.api.terminal import user_containers
@@ -50,10 +51,12 @@ def _generate_access_code() -> str:
 
 def _ensure_classroom_dirs(classroom_id: str) -> str:
     base = os.path.join(CLASSROOMS_ROOT, classroom_id)
-    templates_dir = os.path.join(base, "templates")
+    templates_dir = os.path.join(base, "assignments")
     participants_dir = os.path.join(base, "participants")
+    drafts_dir = os.path.join(base, "drafts")
     os.makedirs(templates_dir, exist_ok=True)
     os.makedirs(participants_dir, exist_ok=True)
+    os.makedirs(drafts_dir, exist_ok=True)
     try:
         for root, dirs, files in os.walk(base):
             os.chown(root, CONTAINER_USER_UID, CONTAINER_USER_GID)
@@ -74,9 +77,9 @@ def _ensure_classroom_dirs(classroom_id: str) -> str:
 def _populate_templates_for_participant(
     classroom_id: str, participant_email: str
 ) -> None:
-    """Copy all existing classroom templates into a participant's workspace."""
+    """Copy all existing classroom assignments into a participant's workspace."""
     sanitized = (participant_email or "participant").replace("/", "_")
-    templates_dir = os.path.join(CLASSROOMS_ROOT, classroom_id, "templates")
+    templates_dir = os.path.join(CLASSROOMS_ROOT, classroom_id, "assignments")
     participant_dir = os.path.join(
         CLASSROOMS_ROOT, classroom_id, "participants", sanitized
     )
@@ -432,7 +435,7 @@ async def join_classroom(
         port_range = _get_user_port_range(user)
         restarted = _restart_user_container(user.id, user.email, port_range)
 
-        # Populate existing templates into the new participant's workspace
+        # Populate existing assignments into the new participant's workspace
         _populate_templates_for_participant(classroom.id, user.email)
 
         logger.info(
@@ -537,8 +540,8 @@ async def restore_by_slug(
     }
 
 
-@router.get("/templates")
-async def list_classroom_templates(
+@router.get("/assignments")
+async def list_classroom_assignments(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -563,7 +566,7 @@ async def list_classroom_templates(
         if not classroom:
             continue
 
-        templates_dir = os.path.join(CLASSROOMS_ROOT, classroom.id, "templates")
+        templates_dir = os.path.join(CLASSROOMS_ROOT, classroom.id, "assignments")
         if not os.path.isdir(templates_dir):
             continue
 
@@ -583,7 +586,7 @@ async def list_classroom_templates(
                         templates.append({"name": entry, "files": files})
         except Exception as e:
             logger.warning(
-                f"Failed to list templates for classroom {classroom.id}: {e}"
+                f"Failed to list assignments for classroom {classroom.id}: {e}"
             )
             continue
 
@@ -928,8 +931,8 @@ async def remove_instructor(
 
 
 
-@router.post("/{classroom_id}/templates/upload")
-async def upload_classroom_template(
+@router.post("/{classroom_id}/assignments/upload")
+async def upload_classroom_assignment(
     classroom_id: str,
     files: list[UploadFile] = File(...),
     template_name: str = Form(default=""),
@@ -946,7 +949,7 @@ async def upload_classroom_template(
         template_name = template_name.strip()
 
         classroom_base = os.path.join(CLASSROOMS_ROOT, classroom_id)
-        templates_dir = os.path.join(classroom_base, "templates")
+        templates_dir = os.path.join(classroom_base, "assignments")
         os.makedirs(templates_dir, exist_ok=True)
 
         if template_name:
@@ -1048,8 +1051,8 @@ async def get_classroom_progress(
     # Sort alphabetically by name
     participants_info.sort(key=lambda p: (p["name"] or p["email"] or "").lower())
 
-    # Get templates
-    templates_dir = os.path.join(CLASSROOMS_ROOT, classroom_id, "templates")
+    # Get assignments
+    templates_dir = os.path.join(CLASSROOMS_ROOT, classroom_id, "assignments")
     templates: list[str] = []
     if os.path.isdir(templates_dir):
         templates = sorted(
@@ -1169,8 +1172,8 @@ async def run_classroom_tests(
     _require_classroom(db, classroom_id)
     _require_instructor(db, classroom_id, str(user.id))
 
-    # Get templates to test
-    templates_dir = os.path.join(CLASSROOMS_ROOT, classroom_id, "templates")
+    # Get assignments to test
+    templates_dir = os.path.join(CLASSROOMS_ROOT, classroom_id, "assignments")
     if body.template_name:
         templates = [body.template_name]
     elif os.path.isdir(templates_dir):
@@ -1453,10 +1456,10 @@ async def list_student_files(
             rel = os.path.relpath(os.path.join(root, fn), base)
             files.add(rel)
 
-    # Also include test files from the template directory so teachers
+    # Also include test files from the assignment directory so teachers
     # can always see them in the student file listing.
     templates_dir = os.path.join(
-        CLASSROOMS_ROOT, classroom_id, "templates", safe_template
+        CLASSROOMS_ROOT, classroom_id, "assignments", safe_template
     )
     if os.path.isdir(templates_dir):
         for root, dirs, fnames in os.walk(templates_dir):
@@ -1518,7 +1521,7 @@ async def get_student_file(
             template_name = parts[0]
             rel_file = os.sep.join(parts[1:])
             template_file = os.path.join(
-                CLASSROOMS_ROOT, classroom_id, "templates", template_name, rel_file
+                CLASSROOMS_ROOT, classroom_id, "assignments", template_name, rel_file
             )
             if os.path.isfile(template_file):
                 file_path = template_file
@@ -1532,3 +1535,175 @@ async def get_student_file(
         return {"content": content, "path": path}
     except UnicodeDecodeError:
         raise HTTPException(status_code=400, detail="Binary file cannot be read")
+
+
+# ---------------------------------------------------------------------------
+# Draft management
+# ---------------------------------------------------------------------------
+
+
+def _set_ownership_recursive(path: str) -> None:
+    """Set container ownership on a directory tree."""
+    for dirpath, _dirnames, filenames in os.walk(path):
+        try:
+            os.chown(dirpath, CONTAINER_USER_UID, CONTAINER_USER_GID)
+            os.chmod(dirpath, 0o775)
+        except OSError:
+            pass
+        for fn in filenames:
+            try:
+                fp = os.path.join(dirpath, fn)
+                os.chown(fp, CONTAINER_USER_UID, CONTAINER_USER_GID)
+                os.chmod(fp, 0o664)
+            except OSError:
+                pass
+
+
+def _list_dir_files(base: str) -> list[str]:
+    """Return relative file paths under *base*."""
+    result: list[str] = []
+    if not os.path.isdir(base):
+        return result
+    for root, _dirs, files in os.walk(base):
+        for fn in files:
+            rel = os.path.relpath(os.path.join(root, fn), base)
+            result.append(rel)
+    return sorted(result)
+
+
+@router.get("/{classroom_id}/drafts")
+async def list_drafts(
+    classroom_id: str,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if not _is_instructor(db, classroom_id, str(user.id)):
+        raise HTTPException(status_code=403, detail="Not an instructor")
+
+    drafts_dir = os.path.join(CLASSROOMS_ROOT, classroom_id, "drafts")
+    if not os.path.isdir(drafts_dir):
+        return {"drafts": []}
+
+    drafts = []
+    for entry in sorted(os.listdir(drafts_dir)):
+        entry_path = os.path.join(drafts_dir, entry)
+        if os.path.isdir(entry_path):
+            files = _list_dir_files(entry_path)
+            drafts.append({"name": entry, "files": files})
+    return {"drafts": drafts}
+
+
+@router.post("/{classroom_id}/drafts")
+async def upload_draft(
+    classroom_id: str,
+    files: list[UploadFile] = File(...),
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if not _is_instructor(db, classroom_id, str(user.id)):
+        raise HTTPException(status_code=403, detail="Not an instructor")
+
+    if not files:
+        raise HTTPException(status_code=400, detail="No files provided")
+
+    # Derive draft name from the top-level folder in the uploaded paths
+    first_name = files[0].filename or ""
+    draft_name = first_name.split("/")[0] if "/" in first_name else first_name
+    if not draft_name:
+        raise HTTPException(status_code=400, detail="Could not determine draft name")
+
+    _ensure_classroom_dirs(classroom_id)
+    drafts_dir = os.path.join(CLASSROOMS_ROOT, classroom_id, "drafts")
+    draft_path = os.path.join(drafts_dir, draft_name)
+
+    # Remove existing draft with same name so re-uploads replace cleanly
+    if os.path.exists(draft_path):
+        shutil.rmtree(draft_path)
+
+    for f in files:
+        rel = f.filename or ""
+        safe = os.path.normpath(os.path.join(draft_path, rel.split("/", 1)[1] if "/" in rel else rel))
+        if not safe.startswith(draft_path):
+            continue
+        os.makedirs(os.path.dirname(safe), exist_ok=True)
+        content = await f.read()
+        with open(safe, "wb") as fh:
+            fh.write(content)
+
+    _set_ownership_recursive(draft_path)
+    return {"name": draft_name, "files": _list_dir_files(draft_path)}
+
+
+@router.delete("/{classroom_id}/drafts/{draft_name}")
+async def delete_draft(
+    classroom_id: str,
+    draft_name: str,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if not _is_instructor(db, classroom_id, str(user.id)):
+        raise HTTPException(status_code=403, detail="Not an instructor")
+
+    draft_path = os.path.join(CLASSROOMS_ROOT, classroom_id, "drafts", draft_name)
+    if not os.path.isdir(draft_path):
+        raise HTTPException(status_code=404, detail="Draft not found")
+
+    shutil.rmtree(draft_path)
+    return {"message": "Draft deleted"}
+
+
+@router.post("/{classroom_id}/drafts/{draft_name}/publish")
+async def publish_draft(
+    classroom_id: str,
+    draft_name: str,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if not _is_instructor(db, classroom_id, str(user.id)):
+        raise HTTPException(status_code=403, detail="Not an instructor")
+
+    draft_path = os.path.join(CLASSROOMS_ROOT, classroom_id, "drafts", draft_name)
+    if not os.path.isdir(draft_path):
+        raise HTTPException(status_code=404, detail="Draft not found")
+
+    templates_dir = os.path.join(CLASSROOMS_ROOT, classroom_id, "assignments")
+    os.makedirs(templates_dir, exist_ok=True)
+    dest = os.path.join(templates_dir, draft_name)
+
+    # Atomic move: draft → assignments
+    if os.path.exists(dest):
+        shutil.rmtree(dest)
+    shutil.move(draft_path, dest)
+    _set_ownership_recursive(dest)
+
+    # Push to all current participants
+    participants = db.exec(
+        select(ClassroomMember).where(
+            ClassroomMember.classroom_id == classroom_id,
+            ClassroomMember.role == "participant",
+        )
+    ).all()
+
+    if participants:
+        participant_users = db.exec(
+            select(User).where(User.id.in_([p.user_id for p in participants]))
+        ).all()
+        for pu in participant_users:
+            sanitized = (pu.email or "participant").replace("/", "_")
+            participant_dir = os.path.join(
+                CLASSROOMS_ROOT, classroom_id, "participants", sanitized
+            )
+            student_dest = os.path.join(participant_dir, draft_name)
+            if os.path.exists(student_dest):
+                continue  # Don't overwrite existing student work
+            try:
+                os.makedirs(participant_dir, exist_ok=True)
+                shutil.copytree(dest, student_dest)
+                _set_ownership_recursive(student_dest)
+                await notify_files_changed(str(pu.id))
+            except Exception as e:
+                logger.warning(
+                    "Failed to push template %s to %s: %s", draft_name, pu.email, e
+                )
+
+    return {"message": "Published", "name": draft_name}

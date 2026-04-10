@@ -1,4 +1,4 @@
-import { Download, FileIcon, FolderClosed, FolderOpen, MoreHorizontal, Pencil, Trash, X } from 'lucide-react';
+import { Copy, ClipboardPaste, Download, FileIcon, FolderClosed, FolderOpen, MoreHorizontal, Pencil, Trash, X } from 'lucide-react';
 import { getClasses } from '@luminescent/ui-react';
 import { useContext, Fragment, useEffect } from 'react';
 import { apiUrl, UserData, UserDataContext } from '../util/UserData';
@@ -22,6 +22,8 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
     contextMenu,
     setContextMenu,
     classroomSymlinks,
+    clipboardLocation,
+    setClipboardLocation,
   } = useContext(UserDataContext);
   const { setStatus } = useContext(StatusContext);
 
@@ -30,7 +32,7 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
     const parts = location.split('/').filter(Boolean);
     if (parts.length < 2) return false;
     const second = parts[1];
-    return second === 'classroom-templates' || second === 'participants';
+    return second === 'assignments' || second === 'participants';
   };
 
   const isArchiveFolder = (location?: string) => {
@@ -363,6 +365,7 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
             </div>
             {'files' in file && (
               <div
+                data-folder-location={file.location}
                 className={getClasses({
                   'transition-all duration-200 overflow-hidden': true,
                   'max-h-0 opacity-0 scale-98 -mt-1': !openFolders.includes(
@@ -389,65 +392,117 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
         style={{ left: contextMenu.x, top: contextMenu.y }}
         onClick={(e) => e.stopPropagation()}
       >
+        {!contextMenu.blankSpace && (
+          <>
+            <button
+              className="lum-btn lum-btn-p-1 rounded-lum-1 gap-0.5 w-full text-left lum-bg-transparent"
+              onClick={() => {
+                if (!contextMenu.targetLocation) return;
+                const a = document.createElement('a');
+                a.href = `${apiUrl}/files/download${contextMenu.targetLocation}`;
+                a.download = '';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+              }}
+            >
+              <Download size={16} className="inline mr-2" />
+              Download
+            </button>
+            <button
+              className="lum-btn lum-btn-p-1 rounded-lum-1 gap-0.5 w-full text-left lum-bg-transparent"
+              onClick={() => {
+                if (!contextMenu.targetLocation) return;
+                setClipboardLocation?.(contextMenu.targetLocation);
+                setContextMenu({ ...contextMenu, visible: false });
+              }}
+            >
+              <Copy size={16} className="inline mr-2" />
+              Copy
+            </button>
+          </>
+        )}
         <button
           className="lum-btn lum-btn-p-1 rounded-lum-1 gap-0.5 w-full text-left lum-bg-transparent"
-          onClick={() => {
-            if (!contextMenu.targetLocation) return;
-            const a = document.createElement('a');
-            a.href = `${apiUrl}/files/download${contextMenu.targetLocation}`;
-            a.download = '';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-          }}
-        >
-          <Download size={16} className="inline mr-2" />
-          Download
-        </button>
-        <button
-          className="lum-btn lum-btn-p-1 rounded-lum-1 gap-0.5 w-full text-left lum-bg-transparent"
-          onClick={() => {
-            if (!contextMenu.targetLocation) return;
-            if (isProtectedLocation(contextMenu.targetLocation)) return;
-            const parts = contextMenu.targetLocation.split('/').filter(Boolean);
-            const isClassroomRoot = parts.length === 1;
-            if (isClassroomRoot) {
-              // Only instructors can rename classrooms
-              const slug = parts[0];
-              const classroom = slug ? classroomSymlinks?.[slug] : undefined;
-              if (classroom?.isInstructor) {
-                window.dispatchEvent(new CustomEvent('3compute:classroom-action', {
-                  detail: { location: contextMenu.targetLocation, action: 'rename' },
-                }));
-              }
-            } else {
-              document.dispatchEvent(new CustomEvent('3compute:rename', { detail: { location: contextMenu.targetLocation } }));
-            }
-          }}
-          disabled={(() => {
-            if (!contextMenu.targetLocation) return true;
-            if (isProtectedLocation(contextMenu.targetLocation)) return true;
-            // Archive folder and its contents cannot be renamed
-            if (isArchiveFolder(contextMenu.targetLocation)) return true;
-            const parts = contextMenu.targetLocation.split('/').filter(Boolean);
-            const isClassroomRoot = parts.length === 1;
-            if (isClassroomRoot) {
-              const slug = parts[0];
-              const classroom = slug ? classroomSymlinks?.[slug] : undefined;
-              // Only instructors can rename classrooms; normal folders can be renamed
-              if (classroom) {
-                return !classroom.isInstructor;
-              }
-            }
-            return false;
-          })()}
-        >
-          <Pencil size={16} className="inline mr-2" />
-          Rename
-        </button>
-        <button
-          className="lum-btn lum-btn-p-1 rounded-lum-1 gap-0.5 w-full text-left lum-bg-transparent"
+          disabled={!clipboardLocation}
           onClick={async () => {
+            if (!clipboardLocation || !contextMenu.targetLocation) return;
+            const srcName = clipboardLocation.split('/').filter(Boolean).pop() ?? '';
+            // Determine destination folder: if target is a folder, paste inside it; otherwise paste next to it
+            const targetIsFolder = contextMenu.targetLocation.endsWith('/');
+            const destFolder = targetIsFolder
+              ? contextMenu.targetLocation
+              : contextMenu.targetLocation.split('/').slice(0, -1).join('/') + '/';
+            const destination = destFolder + srcName;
+            try {
+              const res = await fetch(`${apiUrl}/files/copy`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ source: clipboardLocation, destination }),
+              });
+              if (!res.ok) {
+                const text = await res.text();
+                alert(text || 'Failed to paste');
+              } else {
+                await refreshFiles();
+              }
+            } catch {
+              alert('Failed to paste');
+            }
+            setContextMenu({ ...contextMenu, visible: false });
+          }}
+        >
+          <ClipboardPaste size={16} className="inline mr-2" />
+          Paste{clipboardLocation ? ` "${clipboardLocation.split('/').filter(Boolean).pop()}"` : ''}
+        </button>
+        {!contextMenu.blankSpace && (
+          <button
+            className="lum-btn lum-btn-p-1 rounded-lum-1 gap-0.5 w-full text-left lum-bg-transparent"
+            onClick={() => {
+              if (!contextMenu.targetLocation) return;
+              if (isProtectedLocation(contextMenu.targetLocation)) return;
+              const parts = contextMenu.targetLocation.split('/').filter(Boolean);
+              const isClassroomRoot = parts.length === 1;
+              if (isClassroomRoot) {
+                // Only instructors can rename classrooms
+                const slug = parts[0];
+                const classroom = slug ? classroomSymlinks?.[slug] : undefined;
+                if (classroom?.isInstructor) {
+                  window.dispatchEvent(new CustomEvent('3compute:classroom-action', {
+                    detail: { location: contextMenu.targetLocation, action: 'rename' },
+                  }));
+                }
+              } else {
+                document.dispatchEvent(new CustomEvent('3compute:rename', { detail: { location: contextMenu.targetLocation } }));
+              }
+            }}
+            disabled={(() => {
+              if (!contextMenu.targetLocation) return true;
+              if (isProtectedLocation(contextMenu.targetLocation)) return true;
+              // Archive folder and its contents cannot be renamed
+              if (isArchiveFolder(contextMenu.targetLocation)) return true;
+              const parts = contextMenu.targetLocation.split('/').filter(Boolean);
+              const isClassroomRoot = parts.length === 1;
+              if (isClassroomRoot) {
+                const slug = parts[0];
+                const classroom = slug ? classroomSymlinks?.[slug] : undefined;
+                // Only instructors can rename classrooms; normal folders can be renamed
+                if (classroom) {
+                  return !classroom.isInstructor;
+                }
+              }
+              return false;
+            })()}
+          >
+            <Pencil size={16} className="inline mr-2" />
+            Rename
+          </button>
+        )}
+        {!contextMenu.blankSpace && (
+          <button
+            className="lum-btn lum-btn-p-1 rounded-lum-1 gap-0.5 w-full text-left lum-bg-transparent"
+            onClick={async () => {
             if (!contextMenu.targetLocation) return;
             if (isProtectedLocation(contextMenu.targetLocation)) return;
 
@@ -522,6 +577,8 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
           disabled={(() => {
             if (!contextMenu.targetLocation) return true;
             if (isProtectedLocation(contextMenu.targetLocation)) return true;
+            // Top-level README.md cannot be deleted
+            if (contextMenu.targetLocation === '/README.md') return true;
             // Archive root folder cannot be deleted
             if (isArchiveRoot(contextMenu.targetLocation)) return true;
             // Items inside archive folder - disable regular delete, except for restore action on classroom folders
@@ -556,6 +613,7 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
             return 'Delete';
           })()}
         </button>
+        )}
       </div>
     </div>
   );

@@ -137,7 +137,7 @@ export default function PortsPanel({ onClose }: Props) {
           {/* Existing mappings */}
           {records.length > 0 && (
             <div>
-              <h3 className="text-xs text-gray-500 uppercase tracking-wider mb-3">Active</h3>
+              <h3 className="text-xs text-gray-400 font-medium mb-3">Active</h3>
               <div className="space-y-2">
                 {records.map((r) => (
                   <div key={r.subdomain} className="flex items-center gap-3 bg-gray-800/50 rounded-lg px-4 py-3">
@@ -176,7 +176,7 @@ export default function PortsPanel({ onClose }: Props) {
 
           {/* Claim form */}
           <div>
-            <h3 className="text-xs text-gray-500 uppercase tracking-wider mb-3">Claim a URL</h3>
+            <h3 className="text-xs text-gray-400 font-medium mb-3">Claim a URL</h3>
             <div className="space-y-3">
               <div>
                 <label className="text-xs text-gray-400 mb-1 block">Port</label>

@@ -299,6 +299,11 @@ export default function Editor() {
 
   return (
     <div className="relative transition-all flex flex-col rounded-lum h-full bg-[#1e1e1e] w-full border border-lum-border/20">
+      {!userData.currentFile && (
+        <div className="flex-1 flex items-center justify-center text-gray-500 text-sm">
+          Click a file to view it
+        </div>
+      )}
       {userData.currentFile && (
         <div className="flex items-center gap-2 pl-3 p-1 m-1 lum-bg-gray-900 rounded-lum-1">
           <span className="text-sm flex gap-2 items-center flex-1">
@@ -439,7 +444,7 @@ export default function Editor() {
           </button>
         </div>
       )}
-      {testOutput !== null ? (
+      {!userData.currentFile ? null : testOutput !== null ? (
         <div className="flex-1 overflow-auto p-4 font-mono text-sm">
           {testResult && (
             <div className={`mb-3 text-sm font-sans ${testResult.total > 0 && testResult.passed === testResult.total ? 'text-green-400' : 'text-gray-400'}`}>

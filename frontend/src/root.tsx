@@ -24,6 +24,7 @@ export function Layout({ children }: { children: ReactNode }) {
   const [contentVersion, setContentVersion] = useState<number>(0);
   const [contextMenu, setContextMenu] = useState<{ visible: boolean; x: number; y: number; targetLocation?: string }>({ visible: false, x: 0, y: 0 });
   const [studentView, setStudentView] = useState<StudentViewContext | undefined>();
+  const [clipboardLocation, setClipboardLocation] = useState<string | undefined>();
 
   // Keep a live ref of editing state to guard against in-flight refreshes overwriting editor input
   useEffect(() => {
@@ -85,6 +86,8 @@ export function Layout({ children }: { children: ReactNode }) {
     classroomSymlinks,
     studentView,
     setStudentView,
+    clipboardLocation,
+    setClipboardLocation,
   };
 
   // Ensure only one item is in renaming mode at a time; invoked via right-click context action

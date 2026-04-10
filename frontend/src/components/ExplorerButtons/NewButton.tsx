@@ -38,7 +38,7 @@ export default function NewButton() {
   useEffect(() => {
     if (!userData?.userInfo || !userData?.classroomSymlinks) return;
 
-    fetch(`${apiUrl}/classrooms/templates`, { credentials: 'include' })
+    fetch(`${apiUrl}/classrooms/assignments`, { credentials: 'include' })
       .then((res) => res.json())
       .then((data) => {
         const classroomsWithTemplates = Array.isArray(data.classrooms) ? data.classrooms : [];
@@ -50,7 +50,7 @@ export default function NewButton() {
         });
         setClassroomTemplates(availableClassrooms);
       })
-      .catch((err) => console.error('Failed to load classroom templates', err));
+      .catch((err) => console.error('Failed to load classroom assignments', err));
   }, [userData?.userInfo, userData?.classroomSymlinks]);
 
   const handleFileClick = () => {
@@ -220,12 +220,12 @@ export default function NewButton() {
       }
 
       const formData = new FormData();
-      let resolvedBase: 'classroom-templates' | 'templates' | null = null;
+      let resolvedBase: 'assignments' | null = null;
 
       const fetchFile = async (filename: string): Promise<Blob> => {
-        const baseCandidates: Array<'classroom-templates' | 'templates'> = resolvedBase
+        const baseCandidates: Array<'assignments'> = resolvedBase
           ? [resolvedBase]
-          : ['classroom-templates', 'templates'];
+          : ['assignments'];
 
         for (const base of baseCandidates) {
           const url = `${apiUrl}/files/file/${classroomSlug}/${base}/${templateName}/${filename}`;
@@ -348,9 +348,9 @@ export default function NewButton() {
                 }}
                 className="lum-btn lum-bg-purple-700 hover:lum-bg-purple-600 text-left px-4 py-3 rounded-lum-1"
               >
-                <div className="font-medium">Classroom Templates</div>
+                <div className="font-medium">Classroom Assignments</div>
                 <div className="text-xs opacity-70">
-                  Browse templates from your classrooms
+                  Browse assignments from your classrooms
                 </div>
               </button>
             )}
@@ -390,7 +390,7 @@ export default function NewButton() {
         >
           <h2 className="text-lg font-semibold">Choose a Classroom</h2>
           <p className="text-sm opacity-70">
-            Select a classroom to browse its templates:
+            Select a classroom to browse its assignments:
           </p>
 
           <div className="flex flex-col gap-2 max-h-96 overflow-auto">
@@ -406,7 +406,7 @@ export default function NewButton() {
               >
                 <div className="font-medium">{classroom.name}</div>
                 <div className="text-xs opacity-70">
-                  {classroom.templates.length} template{classroom.templates.length !== 1 ? 's' : ''} available
+                  {classroom.templates.length} assignment{classroom.templates.length !== 1 ? 's' : ''} available
                 </div>
               </button>
             ))}

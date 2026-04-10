@@ -38,15 +38,19 @@ export type UserData = {
     x: number;
     y: number;
     targetLocation?: string;
+    blankSpace?: boolean;
   };
   setContextMenu: Dispatch<SetStateAction<{
     visible: boolean;
     x: number;
     y: number;
     targetLocation?: string;
+    blankSpace?: boolean;
   }>>;
   studentView?: StudentViewContext;
   setStudentView?: Dispatch<SetStateAction<StudentViewContext | undefined>>;
+  clipboardLocation?: string;
+  setClipboardLocation?: Dispatch<SetStateAction<string | undefined>>;
 };
 
 export const backendUrl =
@@ -120,6 +124,8 @@ export const defaultUserData: UserData = {
   contextMenu: { visible: false, x: 0, y: 0, targetLocation: undefined },
   setContextMenu: () => {},
   classroomSymlinks: {},
+  clipboardLocation: undefined,
+  setClipboardLocation: () => {},
 };
 
 export const UserDataContext = createContext<UserData>(defaultUserData);

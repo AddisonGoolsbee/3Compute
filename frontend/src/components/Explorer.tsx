@@ -45,6 +45,18 @@ export default function Explorer() {
           if ((e.target as HTMLElement).closest('[data-explorer-item]')) return;
           userData.setSelectedLocation?.(undefined);
         }}
+        onContextMenu={(e) => {
+          // Only handle blank-space right-clicks (not on file/folder items)
+          if ((e.target as HTMLElement).closest('[data-explorer-item]')) return;
+          e.preventDefault();
+          // Find the nearest parent folder container to determine paste target
+          const folderContainer = (e.target as HTMLElement).closest('[data-folder-location]');
+          const targetLocation = folderContainer
+            ? (folderContainer as HTMLElement).dataset.folderLocation!
+            : '/';
+          userData.setSelectedLocation?.(undefined);
+          userData.setContextMenu?.({ visible: true, x: e.clientX, y: e.clientY, targetLocation, blankSpace: true });
+        }}
         onDragOver={(e) => {
           // Allow dropping to root only when hovering blank space (not over an item)
           if ((e.target as HTMLElement).closest('[data-explorer-item]')) return;

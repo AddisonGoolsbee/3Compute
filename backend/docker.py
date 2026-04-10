@@ -346,10 +346,10 @@ def spawn_container(
         for cid, slug in slug_map.items():
             link_commands.append(f"chown 999:995 /classrooms/{cid} || true")
             link_commands.append(
-                f"mkdir -p /classrooms/{cid}/templates /classrooms/{cid}/participants || true"
+                f"mkdir -p /classrooms/{cid}/assignments /classrooms/{cid}/participants || true"
             )
             # basic perms; keep participants dir traversable
-            link_commands.append(f"chmod 775 /classrooms/{cid}/templates || true")
+            link_commands.append(f"chmod 775 /classrooms/{cid}/assignments || true")
             link_commands.append(f"chmod 775 /classrooms/{cid}/participants || true")
             target_path = (
                 f"/classrooms/{cid}"
@@ -369,10 +369,10 @@ def spawn_container(
                 )
                 # create symlink to templates inside participant folder so students can access them
                 link_commands.append(
-                    f"rm -rf /classrooms/{cid}/participants/{sanitized_email}/classroom-templates || true"
+                    f"rm -rf /classrooms/{cid}/participants/{sanitized_email}/assignments || true"
                 )
                 link_commands.append(
-                    f"ln -s /classrooms/{cid}/templates /classrooms/{cid}/participants/{sanitized_email}/classroom-templates || true"
+                    f"ln -s /classrooms/{cid}/assignments /classrooms/{cid}/participants/{sanitized_email}/assignments || true"
                 )
             # Create symlink inside container for immediate access
             link_commands.append(f"rm -rf /app/{slug} || true")
@@ -393,12 +393,12 @@ def spawn_container(
                 # Ensure base classroom directories exist on host
                 os.makedirs(host_target, exist_ok=True)
 
-                # For participants, mirror classroom-templates symlink on host
+                # For participants, mirror assignments symlink on host
                 if participant_mode.get(cid):
-                    templates_target = os.path.join(CLASSROOMS_ROOT, cid, "templates")
+                    templates_target = os.path.join(CLASSROOMS_ROOT, cid, "assignments")
                     os.makedirs(templates_target, exist_ok=True)
 
-                    templates_link = os.path.join(host_target, "classroom-templates")
+                    templates_link = os.path.join(host_target, "assignments")
                     if os.path.islink(templates_link) or os.path.exists(templates_link):
                         if os.path.islink(templates_link):
                             os.unlink(templates_link)

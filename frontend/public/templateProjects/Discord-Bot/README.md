@@ -159,6 +159,6 @@ Once you're comfortable with this template, try these challenges:
 
 Want to share this template with your classroom?
 
-1. Copy this template folder into your classroom's `templates/` directory
+1. Copy this template folder into your classroom's `assignments/` directory
 2. Customize it for your course (pre-configure the .env, add starter commands, etc.)
-3. Students can access it via **Templates → Classroom Templates** or browse `classroom-templates/` in their classroom folder
+3. Students can access it via **Templates → Classroom Assignments** or browse the `assignments/` folder in their classroom
