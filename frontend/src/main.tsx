@@ -105,14 +105,7 @@ export default function App() {
   }, [searchParams, userData]);
 
   if (!userData.userInfo) {
-    return (
-      <>
-        <Layout>
-          <TerminalTabs />
-        </Layout>
-        <Login />
-      </>
-    );
+    return <Login />;
   }
 
   if (userData.userInfo.needs_onboarding) {

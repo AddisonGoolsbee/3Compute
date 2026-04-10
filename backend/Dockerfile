@@ -9,6 +9,7 @@ RUN apk update && apk add --no-cache \
     py3-pip \
     shadow \
     nano \
+    git \
  && ln -sf python3 /usr/bin/python
 
 # Create a non-root user matching the dedicated host system user

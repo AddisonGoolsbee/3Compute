@@ -409,7 +409,7 @@ function TerminalDemo() {
 // ---------------------------------------------------------------------------
 
 const DEMO_STUDENTS = [
-  { name: 'Alice Chen', email: 'alice@school.edu', scores: { 'Data-Encoding': [8, 8], 'Tic-Tac-Toe': [3, 4], 'Weather-App': [2, 3] } },
+  { name: 'Alice Chen', email: 'alice@school.edu', scores: { 'Data-Encoding': [7, 8], 'Tic-Tac-Toe': [3, 4], 'Weather-App': [2, 3] } },
   { name: 'Ben Torres', email: 'ben@school.edu', scores: { 'Data-Encoding': [6, 8], 'Tic-Tac-Toe': [4, 4], 'Weather-App': [3, 3] } },
   { name: 'Chloe Park', email: 'chloe@school.edu', scores: { 'Data-Encoding': [8, 8], 'Tic-Tac-Toe': [4, 4], 'Weather-App': [3, 3] } },
   { name: 'David Kim', email: 'david@school.edu', scores: { 'Data-Encoding': [5, 8], 'Tic-Tac-Toe': [2, 4], 'Weather-App': [1, 3] } },
@@ -484,17 +484,17 @@ function ClassroomDemo() {
       <div className="mx-4 mb-4 rounded-xl border border-gray-700 bg-[#0d1117] overflow-hidden" style={{ minHeight: 340 }}>
         {step === 0 && (
           <div className="p-4">
-            <div className="flex items-center gap-2 mb-3">
-              <div className="px-3 py-1 rounded-lg bg-gray-700 text-white text-xs">Data-Encoding</div>
-              <div className="px-3 py-1 rounded-lg text-gray-500 text-xs">Tic-Tac-Toe</div>
-              <div className="px-3 py-1 rounded-lg text-gray-500 text-xs">Weather-App</div>
+            <div className="flex items-center gap-1.5 mb-3">
+              <div className="px-3 py-1.5 rounded-lg bg-gray-700 text-white text-sm">Data-Encoding</div>
+              <div className="px-3 py-1.5 rounded-lg text-gray-400 text-sm">Tic-Tac-Toe</div>
+              <div className="px-3 py-1.5 rounded-lg text-gray-400 text-sm">Weather-App</div>
             </div>
             {DEMO_STUDENTS.map((s) => {
               const [p, t] = s.scores['Data-Encoding'];
               return (
-                <div key={s.email} className="flex items-center gap-3 px-3 py-2.5 hover:bg-gray-800/30 rounded-lg">
+                <div key={s.email} className="flex items-center gap-4 px-3 py-2.5 hover:bg-gray-800/20 rounded-lg">
                   <ChevronRight size={14} className="text-gray-500" />
-                  <div className="flex-1">
+                  <div className="flex-1 min-w-0">
                     <span className="text-sm font-medium">{s.name}</span>
                     <span className="text-xs text-gray-600 ml-2">{s.email}</span>
                   </div>
@@ -506,79 +506,92 @@ function ClassroomDemo() {
             })}
           </div>
         )}
-        {step === 1 && (
-          <div className="p-4">
-            <div className="flex items-center gap-3 px-3 py-2 mb-2">
-              <ChevronRight size={14} className="text-gray-500 rotate-90" />
-              <span className="text-sm font-medium">David Kim</span>
-              <span className="font-mono text-sm text-gray-500 ml-auto">5/8</span>
+        {(step === 1 || step === 2) && (
+          <div className="p-4 overflow-y-auto" style={{ maxHeight: 340 }}>
+            {/* Assignment selector */}
+            <div className="flex items-center gap-1.5 mb-3">
+              <div className="px-3 py-1.5 rounded-lg bg-gray-700 text-white text-sm">Data-Encoding</div>
+              <div className="px-3 py-1.5 rounded-lg text-gray-400 text-sm">Tic-Tac-Toe</div>
+              <div className="px-3 py-1.5 rounded-lg text-gray-400 text-sm">Weather-App</div>
             </div>
-            <div className="ml-6 border border-gray-800 rounded-lg overflow-hidden flex" style={{ height: 260 }}>
-              <div className="w-40 border-r border-gray-800 overflow-y-auto flex-shrink-0">
-                <div className="px-3 py-1.5 text-sm text-blue-400 bg-blue-900/20 flex items-center gap-2">
-                  <FlaskConical size={12} /> View test output
-                </div>
-                <div className="border-b border-gray-800/50" />
-                {['encoding.py', 'decode.py', 'test_encoding.py'].map((f, i) => (
-                  <div key={f} className={`px-3 py-1.5 text-sm flex items-center gap-2 ${i === 0 ? 'bg-gray-800 text-white' : 'text-gray-400'}`}>
-                    <FileText size={12} className="opacity-50" /> {f}
-                  </div>
-                ))}
+            {/* Alice expanded */}
+            <button className="w-full flex items-center gap-4 px-3 py-2.5 bg-gray-800/20 rounded-t-lg text-left">
+              <span className="text-gray-500" style={{ transform: 'rotate(90deg)' }}>
+                <ChevronRight size={14} />
+              </span>
+              <div className="flex-1 min-w-0">
+                <span className="text-sm font-medium">Alice Chen</span>
+                <span className="text-xs text-gray-600 ml-2">alice@school.edu</span>
               </div>
-              <div className="flex-1 flex flex-col min-w-0">
-                <div className="flex items-center justify-between px-3 py-1.5 border-b border-gray-800 flex-shrink-0">
-                  <span className="text-xs text-gray-500 font-mono">encoding.py</span>
-                  <span className="inline-flex items-center gap-1.5 text-xs text-gray-400 shrink-0 ml-3">
-                    <ExternalLink size={11} />
-                    Open in IDE
-                  </span>
-                </div>
-                <div className="flex-1 overflow-auto bg-[#0d1117] px-4 pt-3 pb-2 font-mono text-sm leading-6">
-                  {DEMO_CODE.split('\n').map((line, i) => (
-                    <div key={i} className="flex gap-4">
-                      <span className="select-none text-gray-600 text-xs leading-6 w-4 text-right flex-shrink-0">{i + 1}</span>
-                      <span className="whitespace-pre">{line === '' ? <span>&nbsp;</span> : highlightLine(line)}</span>
+              <span className="font-mono text-sm tabular-nums text-gray-500">7/8</span>
+            </button>
+            <div className="ml-8 mr-3 mb-3 border border-gray-800 rounded-b-lg overflow-hidden bg-gray-900/50">
+              <div className="flex" style={{ height: 220 }}>
+                <div className="w-48 border-r border-gray-800 overflow-y-auto flex-shrink-0">
+                  <div className={`px-3 py-1.5 text-sm truncate flex items-center gap-2 ${step === 2 ? 'bg-blue-900/30 text-blue-300' : 'text-blue-400'}`}>
+                    <FlaskConical size={12} className="flex-shrink-0" /> <span className="truncate">View test output</span>
+                  </div>
+                  <div className="border-b border-gray-800/50" />
+                  {['encoding.py', 'decode.py', 'test_encoding.py'].map((f, i) => (
+                    <div key={f} className={`px-3 py-1.5 text-sm truncate flex items-center gap-2 ${step === 1 && i === 0 ? 'bg-gray-800 text-white' : 'text-gray-400'}`}>
+                      <FileText size={12} className="flex-shrink-0 opacity-50" /> <span className="truncate">{f}</span>
                     </div>
                   ))}
                 </div>
+                <div className="flex-1 flex flex-col min-w-0">
+                  {step === 1 ? (
+                    <>
+                      <div className="flex items-center justify-between px-3 py-1.5 border-b border-gray-800 flex-shrink-0">
+                        <span className="text-xs text-gray-500 font-mono truncate">encoding.py</span>
+                        <span className="inline-flex items-center gap-1.5 text-xs text-gray-400 shrink-0 ml-3">
+                          <ExternalLink size={11} />
+                          Open in IDE
+                        </span>
+                      </div>
+                      <div className="flex-1 overflow-auto bg-[#0d1117] px-4 pt-3 pb-2 font-mono text-sm leading-6">
+                        {DEMO_CODE.split('\n').map((line, i) => (
+                          <div key={i} className="flex gap-4">
+                            <span className="select-none text-gray-600 text-xs leading-6 w-4 text-right flex-shrink-0">{i + 1}</span>
+                            <span className="whitespace-pre">{line === '' ? <span>&nbsp;</span> : highlightLine(line)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex items-center justify-between px-3 py-1.5 border-b border-gray-800 flex-shrink-0">
+                        <span className="text-xs text-gray-500">
+                          Test output
+                          <span className="ml-2 text-gray-400">7/8 passed</span>
+                        </span>
+                        <span className="inline-flex items-center gap-1 text-xs text-gray-400 shrink-0 ml-3">
+                          <RefreshCw size={11} /> Re-run
+                        </span>
+                      </div>
+                      <div className="flex-1 p-3 overflow-auto">
+                        <pre className="whitespace-pre-wrap text-gray-300 text-xs leading-relaxed font-mono">{DEMO_TEST_OUTPUT}</pre>
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
-        )}
-        {step === 2 && (
-          <div className="p-4">
-            <div className="flex items-center gap-3 px-3 py-2 mb-2">
-              <ChevronRight size={14} className="text-gray-500 rotate-90" />
-              <span className="text-sm font-medium">David Kim</span>
-              <span className="font-mono text-sm text-gray-500 ml-auto">5/8</span>
-            </div>
-            <div className="ml-6 border border-gray-800 rounded-lg overflow-hidden flex" style={{ height: 260 }}>
-              <div className="w-40 border-r border-gray-800 flex-shrink-0">
-                <div className="px-3 py-1.5 text-sm text-blue-300 bg-blue-900/30 flex items-center gap-2">
-                  <FlaskConical size={12} /> View test output
-                </div>
-                <div className="border-b border-gray-800/50" />
-                {['encoding.py', 'decode.py', 'test_encoding.py'].map((f) => (
-                  <div key={f} className="px-3 py-1.5 text-sm text-gray-400 flex items-center gap-2">
-                    <FileText size={12} className="opacity-50" /> {f}
+            {/* Remaining students collapsed */}
+            {DEMO_STUDENTS.slice(1).map((s) => {
+              const [p, t] = s.scores['Data-Encoding'];
+              return (
+                <div key={s.email} className="flex items-center gap-4 px-3 py-2.5 hover:bg-gray-800/20 rounded-lg">
+                  <ChevronRight size={14} className="text-gray-500" />
+                  <div className="flex-1 min-w-0">
+                    <span className="text-sm font-medium">{s.name}</span>
+                    <span className="text-xs text-gray-600 ml-2">{s.email}</span>
                   </div>
-                ))}
-              </div>
-              <div className="flex-1 flex flex-col min-w-0">
-                <div className="flex items-center justify-between px-3 py-1.5 border-b border-gray-800 flex-shrink-0">
-                  <span className="text-xs text-gray-500">
-                    Test output
-                    <span className="ml-2 text-gray-400">7/8 passed</span>
-                  </span>
-                  <span className="text-xs text-gray-400 flex items-center gap-1 shrink-0 ml-3">
-                    <RefreshCw size={11} /> Re-run
+                  <span className={`font-mono text-sm tabular-nums ${p === t ? 'text-green-400' : 'text-gray-500'}`}>
+                    {p}/{t}
                   </span>
                 </div>
-                <div className="flex-1 p-3 overflow-auto">
-                  <pre className="whitespace-pre-wrap text-gray-300 text-xs leading-relaxed font-mono">{DEMO_TEST_OUTPUT}</pre>
-                </div>
-              </div>
-            </div>
+              );
+            })}
           </div>
         )}
         {step === 3 && (
@@ -682,11 +695,11 @@ export default function LandingPage() {
 
   return (
     <div className="-mt-20 text-white">
-      {/* Hero gradient — fixed so it's always flush with the viewport top */}
-      <div className="fixed inset-x-0 top-0 h-screen pointer-events-none bg-[radial-gradient(ellipse_at_top,_rgba(84,218,244,0.12)_0%,_rgba(84,94,182,0.06)_40%,_transparent_70%)]" />
-      {/* Dot grid — covers entire page */}
+      {/* Hero gradient — absolute so it stays at the top and scrolls away */}
+      <div className="absolute inset-x-0 top-0 h-screen pointer-events-none bg-[radial-gradient(ellipse_at_top,_rgba(84,218,244,0.12)_0%,_rgba(84,94,182,0.06)_40%,_transparent_70%)]" />
+      {/* Dot grid — covers hero area */}
       <div
-        className="fixed inset-0 pointer-events-none"
+        className="absolute inset-x-0 top-0 h-screen pointer-events-none"
         style={{
           backgroundImage: 'radial-gradient(rgba(84, 218, 244, 0.05) 1px, transparent 1px)',
           backgroundSize: '32px 32px',
@@ -704,8 +717,8 @@ export default function LandingPage() {
                 <span className="text-[#54daf4]">that stays with students</span>
               </h1>
               <p className="text-base sm:text-lg text-gray-300 max-w-xl mx-auto lg:mx-0 mb-8 leading-relaxed">
-                Free coding environment for teachers and students. Import lessons, run Python
-                in the browser, and let students build projects they keep.
+                Free coding environment for teachers and students. Create or import lessons,
+                run Python in the browser, and let students build projects they keep.
               </p>
 
               <div className="flex flex-wrap gap-3 justify-center lg:justify-start">
@@ -792,7 +805,7 @@ export default function LandingPage() {
                 <h3 className="text-xl font-semibold">For Teachers</h3>
               </div>
               <div className="space-y-5">
-                <Step number={1} icon={<Code size={18} />} text="Create a classroom and import a lesson" />
+                <Step number={1} icon={<Code size={18} />} text="Create a classroom and import or write a lesson" />
                 <Step number={2} icon={<Share2 size={18} />} text="Share the access code with students" />
                 <Step number={3} icon={<Users size={18} />} text="Watch progress update as students work" />
               </div>
@@ -807,7 +820,7 @@ export default function LandingPage() {
               </div>
               <div className="space-y-5">
                 <Step number={1} icon={<UserPlus size={18} />} text="Join with the code your teacher gave you" />
-                <Step number={2} icon={<Laptop size={18} />} text="Open your personal coding environment" />
+                <Step number={2} icon={<Laptop size={18} />} text="Open your personal browser coding environment" />
                 <Step number={3} icon={<Send size={18} />} text="Write, run, and keep your projects forever" />
               </div>
             </div>
@@ -822,7 +835,7 @@ export default function LandingPage() {
           <div className="grid md:grid-cols-3 gap-6">
             <FeatureCard
               icon={<Terminal size={28} />}
-              title="Python in the browser"
+              title="Full IDE in your browser"
               description="A full coding environment with no installation. Open a browser and start writing code."
             />
             <FeatureCard
@@ -832,8 +845,8 @@ export default function LandingPage() {
             />
             <FeatureCard
               icon={<LayoutTemplate size={28} />}
-              title="Ready-to-use lessons"
-              description="Import pre-built projects into your classroom. Each comes with a lesson plan and student-facing README."
+              title="Import, modify, or create lessons"
+              description="Import pre-built lessons, modify them to fit your class, or build your own from scratch."
             />
           </div>
         </div>
@@ -913,21 +926,21 @@ export default function LandingPage() {
                       <Globe size={22} />
                     </div>
                     <h3 className="font-semibold text-sm mb-1">Host websites</h3>
-                    <p className="text-gray-400 text-xs leading-relaxed">Serve a custom website at a public URL. Flask, FastAPI, or anything that binds to a port.</p>
+                    <p className="text-gray-400 text-sm leading-relaxed">Serve a website at a public URL. Flask, FastAPI, or anything else.</p>
                   </div>
                   <div className="rounded-xl border border-gray-700 bg-gray-900/70 p-4 text-center">
                     <div className="w-10 h-10 rounded-lg bg-[#54daf4]/15 flex items-center justify-center text-[#54daf4] mx-auto mb-3">
                       <Zap size={22} />
                     </div>
                     <h3 className="font-semibold text-sm mb-1">Build REST APIs</h3>
-                    <p className="text-gray-400 text-xs leading-relaxed">Expose endpoints other apps can call. Hosted on infrastructure that stays online for free.</p>
+                    <p className="text-gray-400 text-sm leading-relaxed">Expose endpoints other apps can call, hosted on free infrastructure.</p>
                   </div>
                   <div className="rounded-xl border border-gray-700 bg-gray-900/70 p-4 text-center">
                     <div className="w-10 h-10 rounded-lg bg-[#54daf4]/15 flex items-center justify-center text-[#54daf4] mx-auto mb-3">
                       <Code size={22} />
                     </div>
                     <h3 className="font-semibold text-sm mb-1">Any Python app</h3>
-                    <p className="text-gray-400 text-xs leading-relaxed">If it runs on a Linux server, it runs on 3Compute. Scripts, scrapers, games, automation, anything.</p>
+                    <p className="text-gray-400 text-sm leading-relaxed">Scripts, scrapers, games, automation. If it runs on Linux, it runs here.</p>
                   </div>
                 </div>
               </div>
@@ -994,7 +1007,7 @@ function FeatureCard({
   description,
 }: {
   icon: React.ReactNode;
-  title: string;
+  title: React.ReactNode;
   description: string;
 }) {
   return (
@@ -1024,7 +1037,7 @@ function Step({
       </div>
       <div className="flex items-center gap-2 pt-0.5">
         <span className="text-gray-400">{icon}</span>
-        <span className="text-sm">{text}</span>
+        <span className="text-base">{text}</span>
       </div>
     </div>
   );

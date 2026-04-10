@@ -340,23 +340,29 @@ _STUDENT_README = """\
 3. **New**: create new files or folders with the New button.
 
 You also have a full Linux terminal below the editor. Some useful commands:
-- `python3 file.py` to run a Python script
+- `python file.py` to run a Python script
 - `mkdir folder_name` to create a folder
 - `rm file_name` to delete a file (irreversible!)
+- `cd folder_name` to change to a folder
 
 ## Classrooms
 
 If your teacher gave you a **join code**, go to the Classrooms page and enter it.
 Once you join, assignment folders appear in your workspace automatically.
 You can edit files inside assignment folders, but you cannot create new top-level folders in the classroom. Just work inside the assignments your teacher provides.
+You can view or copy the assignment templates in the classroom's `assignments/` folder for reference of the original files.
 
-Files named `test_*.py` are **test files** written by your teacher for automated grading. You can see them but cannot modify them.
+Files named `test_*.py` are **test files** written by your teacher for automated evaluation. You can see them but cannot modify them.
 
 ## Workspace Tour
 
 - **File Explorer** (left): browse, upload, create, and delete files.
 - **Editor** (center): edit code with syntax highlighting. Use the Save button or the language selector to change highlighting mode. Toggle Markdown preview for `.md` files.
-- **Terminal** (bottom): full shell access. Open multiple tabs; closing a tab stops its processes.
+- **Terminal** (bottom): full shell access. This is where you will type commands. Open multiple tabs; closing a tab stops its processes.
+
+## Nice to know
+
+Your 3Compute terminal is a window into a session running on the server. You can close the browser and your tabs will keep running. A consequence of this is that the terminal can only display as many lines as the screen is tall. If a command prints more output than fits on screen in a single burst, it will appear to overwrite some of the previous contents. The best approach for large output is to pipe it into a file (e.g. `python run_tests.py > output.txt`), then open that file in the editor.
 
 ## Learn more
 
@@ -375,9 +381,10 @@ _TEACHER_README = """\
 3. **New**: create new files or folders with the New button.
 
 You also have a full Linux terminal below the editor. Some useful commands:
-- `python3 file.py` to run a Python script
+- `python file.py` to run a Python script
 - `mkdir folder_name` to create a folder
 - `rm file_name` to delete a file (irreversible!)
+- `cd folder_name` to change to a folder
 
 ## Managing Classrooms
 
@@ -389,7 +396,7 @@ Go to the **Classrooms** page and click **Create**. Share the join code with you
 2. Your upload appears as a draft. Click **Edit in IDE** to refine it, then click **Publish** when ready.
 3. You can also manage assignments in the IDE. Drafts are synced with the classroom's `drafts/` folder. Moving a folder into the `assignments/` folder publishes it immediately.
 
-Every current student receives a copy when you publish. Students who join later also get all assignments automatically. Once published, edits to the original are not synced to existing students, but the template is updated for future students.
+Every current student receives a copy when you publish. Students who join later also get all assignments automatically. Once published, edits to the original are not synced to existing students, but the template is updated for future students. Current students can view the modifications in the classroom's `assignments/` folder, even if it is not on their copy of the assignment by default.
 
 ### Deleting assignments
 Delete the assignment from the **Assignments** tab, or remove the folder from your classroom's `assignments/` folder in the IDE. Students keep their existing copies, but the assignment will no longer appear in the gradebook or be distributed to new students.
@@ -412,6 +419,10 @@ Students can only create and edit files inside their assignment folders. They ca
 - **File Explorer** (left): browse, upload, create, and delete files.
 - **Editor** (center): edit code with syntax highlighting. Use the Save button or the language selector to change highlighting mode. Toggle Markdown preview for `.md` files.
 - **Terminal** (bottom): full shell access. Open multiple tabs; closing a tab stops its processes.
+
+## Nice to know
+
+The 3Compute terminal is a window into a session running on the server. You can close the browser and your tabs will keep running. A consequence of this is that the terminal can only display as many lines as the screen is tall. If a command prints more output than fits on screen in a single burst, it will appear to overwrite some of the previous contents. The best approach for large output is to pipe it into a file (e.g. `python run_tests.py > output.txt`), then open that file in the editor.
 
 ## Learn more
 

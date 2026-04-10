@@ -333,7 +333,7 @@ export default function ClassroomDetailPage() {
                     <p className="text-sm text-gray-300 mt-1">
                       When you publish an assignment, every current student receives their own copy. New students who join later also get all assignments automatically.
                       Once published, changes you make to the template are not synced to existing students, but the template in{' '}
-                      <code className="text-gray-300 bg-gray-800 px-1 rounded">assignments</code> is updated for future students.
+                      <code className="text-gray-300 bg-gray-800 px-1 rounded">assignments</code> is updated for reference by current students and is synced for future students.
                     </p>
                   </div>
                 </div>
@@ -628,7 +628,7 @@ function StudentsTab({
               <p className="text-sm text-gray-300 mt-1">
                 When you publish an assignment, every current student receives their own copy. New students who join later also get all assignments automatically.
                 Once published, changes you make to the template are not synced to existing students, but the template in{' '}
-                <code className="text-gray-300 bg-gray-800 px-1 rounded">assignments</code> is updated for future students.
+                <code className="text-gray-300 bg-gray-800 px-1 rounded">assignments</code> is updated for reference by current students and is synced for future students.
               </p>
             </div>
           </div>
