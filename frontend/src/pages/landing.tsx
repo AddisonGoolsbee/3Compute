@@ -724,7 +724,7 @@ export default function LandingPage() {
               <div className="flex flex-wrap gap-3 justify-center lg:justify-start">
                 {isLoggedIn ? (
                   <Link
-                    to="/"
+                    to="/ide"
                     className="lum-btn lum-pad-md text-base rounded-lg bg-[#2a9bb8] hover:bg-[#238da8] text-white font-semibold inline-flex items-center gap-2 transition-colors shadow-lg shadow-[#2a9bb8]/20"
                   >
                     Go to Dashboard
@@ -960,7 +960,7 @@ export default function LandingPage() {
           </p>
           {isLoggedIn ? (
             <Link
-              to="/"
+              to="/ide"
               className="lum-btn lum-pad-md text-lg rounded-lg bg-[#2a9bb8] hover:bg-[#238da8] text-white font-semibold inline-flex items-center gap-2 transition-colors shadow-lg shadow-[#2a9bb8]/20"
             >
               Go to Dashboard

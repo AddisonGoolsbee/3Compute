@@ -1649,6 +1649,7 @@ async def delete_draft(
         raise HTTPException(status_code=404, detail="Draft not found")
 
     shutil.rmtree(draft_path)
+    await notify_files_changed(str(user.id))
     return {"message": "Draft deleted"}
 
 
@@ -1707,3 +1708,24 @@ async def publish_draft(
                 )
 
     return {"message": "Published", "name": draft_name}
+
+
+@router.delete("/{classroom_id}/assignments/{template_name}")
+async def delete_assignment(
+    classroom_id: str,
+    template_name: str,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if not _is_instructor(db, classroom_id, str(user.id)):
+        raise HTTPException(status_code=403, detail="Not an instructor")
+
+    assignment_path = os.path.join(
+        CLASSROOMS_ROOT, classroom_id, "assignments", template_name
+    )
+    if not os.path.isdir(assignment_path):
+        raise HTTPException(status_code=404, detail="Assignment not found")
+
+    shutil.rmtree(assignment_path)
+    await notify_files_changed(str(user.id))
+    return {"message": "Assignment deleted"}

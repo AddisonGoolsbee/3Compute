@@ -2,7 +2,7 @@ import TerminalTabs from './components/Terminal';
 import Login from './components/Login';
 import Onboarding from './components/Onboarding';
 import Layout from './Layout';
-import { useContext, useEffect } from 'react';
+import { useContext, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router';
 import { UserDataContext } from './util/UserData';
 import type { Files, FileType } from './util/Files';
@@ -22,6 +22,7 @@ function findFile(items: Files, location: string): FileType | undefined {
 export default function App() {
   const userData = useContext(UserDataContext);
   const [searchParams, setSearchParams] = useSearchParams();
+  const deepLinkProcessedRef = useRef(false);
 
   // Helper: open all parent folders so a path is visible in the explorer
   const openParentFolders = (targetLocation: string) => {
@@ -41,6 +42,7 @@ export default function App() {
 
   // Deep-link: open a specific student file when navigating from classroom detail
   useEffect(() => {
+    if (deepLinkProcessedRef.current) return;
     const classroomId = searchParams.get('classroom');
     const studentEmail = searchParams.get('student');
     const filePath = searchParams.get('file');
@@ -58,6 +60,7 @@ export default function App() {
 
     const file = findFile(userData.files, targetLocation);
     if (file) {
+      deepLinkProcessedRef.current = true;
       userData.setCurrentFile(file);
       userData.setSelectedLocation?.(file.location);
 
@@ -75,6 +78,7 @@ export default function App() {
 
   // Deep-link: open a folder (e.g. draft) in the IDE, selecting README.md if present
   useEffect(() => {
+    if (deepLinkProcessedRef.current) return;
     const classroomId = searchParams.get('classroom');
     const folderPath = searchParams.get('folder');
 
@@ -85,6 +89,8 @@ export default function App() {
       ([, info]) => info.id === classroomId,
     )?.[0];
     if (!slug) return;
+
+    deepLinkProcessedRef.current = true;
 
     const folderLocation = `/${slug}/${folderPath}`;
 

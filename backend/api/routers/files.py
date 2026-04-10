@@ -468,6 +468,8 @@ Open any template's `README.md` after creating it for project-specific instructi
 
 def _ensure_readme(upload_dir: str, user: User) -> None:
     """Create a role-specific README.md in the user's workspace if missing."""
+    if not user.role:
+        return  # Don't create until onboarding sets a role
     readme_path = os.path.join(upload_dir, "README.md")
     if os.path.exists(readme_path):
         return

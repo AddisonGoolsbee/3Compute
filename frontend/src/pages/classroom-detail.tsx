@@ -1251,6 +1251,15 @@ function AssignmentsTab({
     await fetchDrafts();
   };
 
+  const deleteAssignment = async (name: string) => {
+    if (!window.confirm(`Delete published assignment "${name}"? This will not remove copies already in students' folders.`)) return;
+    await fetch(`${apiUrl}/classrooms/${classroomId}/assignments/${encodeURIComponent(name)}`, {
+      method: 'DELETE',
+      credentials: 'include',
+    });
+    onPublished();
+  };
+
   const publishDraft = async (name: string) => {
     setPublishing(name);
     try {
@@ -1359,7 +1368,14 @@ function AssignmentsTab({
               {templates.map((t) => (
                 <div key={t} className="flex items-center px-4 py-2.5 rounded-lg bg-gray-800/30">
                   <FileText size={15} className="text-green-500/70 mr-3 shrink-0" />
-                  <span className="text-sm text-gray-200">{t}</span>
+                  <span className="text-sm text-gray-200 flex-1">{t}</span>
+                  <button
+                    onClick={() => deleteAssignment(t)}
+                    className="p-1.5 rounded-lg text-gray-500 hover:text-red-400 hover:bg-gray-800 transition-colors"
+                    title="Delete assignment"
+                  >
+                    <Trash2 size={15} />
+                  </button>
                 </div>
               ))}
             </div>
