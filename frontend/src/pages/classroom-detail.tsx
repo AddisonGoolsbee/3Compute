@@ -1289,20 +1289,33 @@ function AssignmentsTab({
   return (
     <div>
       {/* Upload button */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-6 gap-3 flex-wrap">
         <h3 className="text-sm font-medium text-gray-300">Manage assignment templates</h3>
-        <label className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm bg-[#54daf4]/15 text-[#54daf4] hover:bg-[#54daf4]/25 cursor-pointer transition-colors">
-          <Upload size={14} />
-          {uploading ? 'Uploading...' : 'Upload Folder'}
-          <input
-            ref={folderInputRef}
-            type="file"
-            className="hidden"
-            {...{ webkitdirectory: '', directory: '' } as React.InputHTMLAttributes<HTMLInputElement>}
-            onChange={(e) => e.target.files && handleUpload(e.target.files)}
-            disabled={uploading}
-          />
-        </label>
+        <div className="flex items-center gap-2">
+          <Link
+            to="/lessons"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm border border-gray-600 hover:border-gray-400 text-gray-300 hover:text-white transition-colors"
+            title="Browse ready-to-import lessons (opens in a new tab)"
+          >
+            <BookOpen size={14} />
+            Browse Lessons
+            <ExternalLink size={12} className="opacity-70" />
+          </Link>
+          <label className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm bg-[#54daf4]/15 text-[#54daf4] hover:bg-[#54daf4]/25 cursor-pointer transition-colors">
+            <Upload size={14} />
+            {uploading ? 'Uploading...' : 'Upload Folder'}
+            <input
+              ref={folderInputRef}
+              type="file"
+              className="hidden"
+              {...{ webkitdirectory: '', directory: '' } as React.InputHTMLAttributes<HTMLInputElement>}
+              onChange={(e) => e.target.files && handleUpload(e.target.files)}
+              disabled={uploading}
+            />
+          </label>
+        </div>
       </div>
 
       {/* Drafts section */}

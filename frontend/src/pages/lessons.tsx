@@ -17,6 +17,11 @@ import {
   Code,
   Printer,
   FlaskConical,
+  User,
+  GraduationCap,
+  FileEdit,
+  Send,
+  Info,
 } from 'lucide-react';
 import { apiUrl, backendUrl, UserDataContext } from '../util/UserData';
 import { printMarkdownElement } from '../util/printMarkdown';
@@ -41,6 +46,17 @@ type MetaManifest = Record<string, LessonMeta>;
 interface Classroom {
   id: string;
   name: string;
+  studentCount: number;
+}
+
+type ImportDestination =
+  | { kind: 'workspace' }
+  | { kind: 'draft'; classroomId: string }
+  | { kind: 'publish'; classroomId: string };
+
+function destinationKey(dest: ImportDestination): string {
+  if (dest.kind === 'workspace') return '_workspace';
+  return `${dest.kind}:${dest.classroomId}`;
 }
 
 export default function LessonsPage() {
@@ -136,9 +152,15 @@ export default function LessonsPage() {
       const res = await fetch(`${apiUrl}/classrooms/`, { credentials: 'include' });
       if (res.ok) {
         const data = await res.json();
-        const owned: Classroom[] = (data.owner ?? []).map((c: Record<string, string>) => ({ id: c.id, name: c.name }));
-        const joined: Classroom[] = (data.joined ?? []).map((c: Record<string, string>) => ({ id: c.id, name: c.name }));
-        setClassrooms([...owned, ...joined]);
+        type ApiClassroom = { id: string; name: string; participants?: string[] };
+        const toClassroom = (c: ApiClassroom): Classroom => ({
+          id: c.id,
+          name: c.name,
+          studentCount: c.participants?.length ?? 0,
+        });
+        // Only classrooms the user owns (is instructor of) — draft/publish
+        // require instructor privileges.
+        setClassrooms((data.owner ?? []).map(toClassroom));
       } else {
         setClassrooms([]);
       }
@@ -149,7 +171,7 @@ export default function LessonsPage() {
     }
   };
 
-  const importToClassroom = async (lessonName: string, classroomId: string | null) => {
+  const importLesson = async (lessonName: string, dest: ImportDestination) => {
     setImporting(true);
     setImportError(null);
     setImportSuccess(null);
@@ -165,17 +187,25 @@ export default function LessonsPage() {
           formData.append('files', await res.blob(), `${lessonName}/${filename}`);
         }),
       );
-      if (classroomId) {
-        formData.append('classroom_id', classroomId);
+
+      let endpoint: string;
+      if (dest.kind === 'draft') {
+        endpoint = `${apiUrl}/classrooms/${dest.classroomId}/drafts`;
+      } else if (dest.kind === 'publish') {
+        formData.append('classroom_id', dest.classroomId);
         formData.append('move-into', lessonName);
+        endpoint = `${apiUrl}/files/upload-folder`;
+      } else {
+        endpoint = `${apiUrl}/files/upload-folder`;
       }
-      const res = await fetch(`${apiUrl}/files/upload-folder`, {
+
+      const res = await fetch(endpoint, {
         method: 'POST',
         body: formData,
         credentials: 'include',
       });
       if (!res.ok) throw new Error((await res.text()) || `Upload failed (${res.status})`);
-      setImportSuccess(classroomId ?? '_workspace');
+      setImportSuccess(destinationKey(dest));
       setTimeout(() => {
         setShowImportDialog(null);
         setImportSuccess(null);
@@ -373,17 +403,17 @@ export default function LessonsPage() {
 
       {/* Import dialog */}
       {showImportDialog && (
-        <div className="fixed inset-0 flex items-center justify-center z-50">
+        <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
           <div
-            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
             onClick={() => { setShowImportDialog(null); setImportError(null); setImportSuccess(null); }}
           />
           <div
-            className="relative border border-gray-700 rounded-xl shadow-xl w-full max-w-md p-6 flex flex-col gap-4"
-            style={{ backgroundColor: 'var(--color-bg, #1f2937)' }}
+            className="relative border border-gray-700 rounded-2xl shadow-2xl w-full max-w-xl flex flex-col max-h-[90vh]"
+            style={{ backgroundColor: 'var(--color-bg, #0f1623)' }}
           >
             {!isLoggedIn ? (
-              <>
+              <div className="p-6 flex flex-col gap-4">
                 <h2 className="text-lg font-semibold">Sign in required</h2>
                 <p className="text-sm text-gray-400">You need to sign in before importing a lesson.</p>
                 <a
@@ -399,53 +429,143 @@ export default function LessonsPage() {
                 >
                   Cancel
                 </button>
-              </>
+              </div>
             ) : (
               <>
-                <h2 className="text-lg font-semibold">
-                  Import &ldquo;{showImportDialog.replace(/[-_]/g, ' ')}&rdquo;
-                </h2>
-                <p className="text-sm text-gray-400">Choose where to import this lesson:</p>
+                {/* Header */}
+                <div className="px-6 py-5 border-b border-gray-700/60 flex items-start justify-between gap-4">
+                  <div>
+                    <div className="text-xs uppercase tracking-wider text-gray-500 mb-0.5">Import lesson</div>
+                    <h2 className="text-xl font-semibold">&ldquo;{showImportDialog.replace(/[-_]/g, ' ')}&rdquo;</h2>
+                  </div>
+                  <button
+                    onClick={() => { setShowImportDialog(null); setImportError(null); setImportSuccess(null); }}
+                    className="p-2 rounded-lg hover:bg-gray-800 text-gray-400 hover:text-white transition-colors"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
 
-                {importError && (
-                  <div className="text-red-400 text-sm bg-red-400/10 rounded-lg p-3">{importError}</div>
-                )}
+                {/* Body */}
+                <div className="px-6 py-5 overflow-y-auto flex flex-col gap-6">
+                  {importError && (
+                    <div className="text-red-400 text-sm bg-red-400/10 border border-red-400/20 rounded-lg p-3">
+                      {importError}
+                    </div>
+                  )}
 
-                {loadingClassrooms ? (
-                  <div className="text-center py-6 text-gray-400 text-sm">Loading...</div>
-                ) : (
-                  <div className="flex flex-col gap-2 max-h-72 overflow-y-auto">
+                  {/* Workspace section */}
+                  <section>
+                    <div className="text-xs uppercase tracking-wider text-gray-500 mb-2 flex items-center gap-1.5">
+                      <User size={12} />
+                      Just me
+                    </div>
                     <button
                       disabled={importing}
-                      onClick={() => importToClassroom(showImportDialog, null)}
-                      className="lum-btn text-left px-4 py-3 rounded-lg border border-gray-600 hover:border-[#54daf4]/50 hover:bg-[#54daf4]/5 transition-colors disabled:opacity-50 flex items-center justify-between"
+                      onClick={() => importLesson(showImportDialog, { kind: 'workspace' })}
+                      className="w-full text-left rounded-xl border border-gray-700 hover:border-[#54daf4]/60 hover:bg-[#54daf4]/5 transition-colors p-4 flex items-start gap-3 group disabled:opacity-50"
                     >
-                      <div>
-                        <span className="font-medium">My workspace</span>
-                        <p className="text-xs text-gray-500 mt-0.5">Import to edit first, then drag into a classroom when ready</p>
+                      <div className="mt-0.5 p-2 rounded-lg bg-[#54daf4]/10 border border-[#54daf4]/30 group-hover:bg-[#54daf4]/20 transition-colors">
+                        <User size={18} className="text-[#54daf4]" />
                       </div>
-                      {importSuccess === '_workspace' && <Check size={16} className="text-green-400" />}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-white">Import to my workspace</span>
+                          <span className="text-[10px] uppercase tracking-wider text-gray-500 bg-gray-800 rounded px-1.5 py-0.5">
+                            Private
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-400 mt-1">
+                          Adds the lesson files straight to your IDE, alongside your own files. Not linked to any classroom.
+                        </p>
+                      </div>
+                      {importSuccess === destinationKey({ kind: 'workspace' }) && (
+                        <Check size={16} className="text-green-400 mt-3 shrink-0" />
+                      )}
                     </button>
-                    {classrooms.map((classroom) => (
-                      <button
-                        key={classroom.id}
-                        disabled={importing}
-                        onClick={() => importToClassroom(showImportDialog, classroom.id)}
-                        className="lum-btn text-left px-4 py-3 rounded-lg border border-gray-600 hover:border-[#54daf4]/50 hover:bg-[#54daf4]/5 transition-colors disabled:opacity-50 flex items-center justify-between"
-                      >
-                        <span className="font-medium">{classroom.name}</span>
-                        {importSuccess === classroom.id && <Check size={16} className="text-green-400" />}
-                      </button>
-                    ))}
-                  </div>
-                )}
+                  </section>
 
-                <button
-                  onClick={() => { setShowImportDialog(null); setImportError(null); setImportSuccess(null); }}
-                  className="lum-btn lum-pad-sm rounded-lg border border-gray-600 hover:border-gray-400 transition-colors"
-                >
-                  Cancel
-                </button>
+                  {/* Classrooms section */}
+                  <section>
+                    <div className="text-xs uppercase tracking-wider text-gray-500 mb-2 flex items-center gap-1.5">
+                      <GraduationCap size={12} />
+                      Your classrooms
+                    </div>
+
+                    {loadingClassrooms ? (
+                      <div className="text-center py-6 text-gray-400 text-sm">Loading...</div>
+                    ) : classrooms.length === 0 ? (
+                      <div className="text-sm text-gray-500 px-3 py-4 rounded-lg bg-gray-800/30 border border-gray-700/50">
+                        You aren&rsquo;t a teacher in any classrooms yet.
+                      </div>
+                    ) : (
+                      <>
+                        <div className="flex items-start gap-2 px-3 py-2 mb-3 rounded-lg bg-gray-800/40 border border-gray-700/50">
+                          <Info size={13} className="text-gray-400 mt-0.5 shrink-0" />
+                          <p className="text-xs text-gray-400 leading-snug">
+                            <span className="text-yellow-300 font-medium">Draft</span> keeps the lesson private in
+                            the classroom&rsquo;s <code className="text-[11px] bg-gray-900 rounded px-1">drafts/</code> folder so you can
+                            edit before students see it. <span className="text-green-300 font-medium">Publish</span>{' '}
+                            moves it into <code className="text-[11px] bg-gray-900 rounded px-1">assignments/</code> and
+                            distributes copies to every current student immediately.
+                          </p>
+                        </div>
+
+                        <div className="flex flex-col gap-2">
+                          {classrooms.map((classroom) => (
+                            <div
+                              key={classroom.id}
+                              className="rounded-xl border border-gray-700 bg-gray-900/30 overflow-hidden"
+                            >
+                              <div className="flex items-center justify-between gap-3 px-4 py-3 flex-wrap">
+                                <div className="min-w-0">
+                                  <div className="font-medium truncate text-gray-100">{classroom.name}</div>
+                                  <div className="text-xs text-gray-500">{classroom.studentCount} student{classroom.studentCount === 1 ? '' : 's'}</div>
+                                </div>
+                                <div className="flex items-center gap-2 shrink-0">
+                                  <button
+                                    disabled={importing}
+                                    onClick={() => importLesson(showImportDialog, { kind: 'draft', classroomId: classroom.id })}
+                                    title="Stage as draft for editing. Not visible to students yet."
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-yellow-200 bg-yellow-500/10 border border-yellow-500/30 hover:bg-yellow-500/20 transition-colors disabled:opacity-50"
+                                  >
+                                    <FileEdit size={14} />
+                                    Save as draft
+                                    {importSuccess === destinationKey({ kind: 'draft', classroomId: classroom.id }) && (
+                                      <Check size={14} className="text-green-400" />
+                                    )}
+                                  </button>
+                                  <button
+                                    disabled={importing}
+                                    onClick={() => importLesson(showImportDialog, { kind: 'publish', classroomId: classroom.id })}
+                                    title="Distribute to every current student in this classroom immediately."
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-green-200 bg-green-600/25 border border-green-500/40 hover:bg-green-600/40 transition-colors font-medium disabled:opacity-50"
+                                  >
+                                    <Send size={14} />
+                                    Publish
+                                    {importSuccess === destinationKey({ kind: 'publish', classroomId: classroom.id }) && (
+                                      <Check size={14} className="text-green-400" />
+                                    )}
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </section>
+                </div>
+
+                {/* Footer */}
+                <div className="px-6 py-4 border-t border-gray-700/60 flex items-center justify-end gap-3">
+                  <button
+                    onClick={() => { setShowImportDialog(null); setImportError(null); setImportSuccess(null); }}
+                    className="px-3 py-1.5 rounded-lg text-sm border border-gray-600 hover:border-gray-400 text-gray-300 hover:text-white transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
               </>
             )}
           </div>
