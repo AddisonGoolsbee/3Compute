@@ -1631,6 +1631,7 @@ async def upload_draft(
             fh.write(content)
 
     _set_ownership_recursive(draft_path)
+    await notify_files_changed(str(user.id))
     return {"name": draft_name, "files": _list_dir_files(draft_path)}
 
 
@@ -1675,6 +1676,15 @@ async def publish_draft(
     if os.path.exists(dest):
         shutil.rmtree(dest)
     shutil.move(draft_path, dest)
+    # Defensive: if shutil fell back to copy+unlink and the unlink failed
+    # silently, the draft would still be listed. Ensure it is gone.
+    if os.path.exists(draft_path):
+        try:
+            shutil.rmtree(draft_path)
+        except OSError as e:
+            logger.warning(
+                "Publish: failed to remove leftover draft %s: %s", draft_path, e
+            )
     _set_ownership_recursive(dest)
 
     # Push to all current participants
@@ -1707,6 +1717,7 @@ async def publish_draft(
                     "Failed to push template %s to %s: %s", draft_name, pu.email, e
                 )
 
+    await notify_files_changed(str(user.id))
     return {"message": "Published", "name": draft_name}
 
 

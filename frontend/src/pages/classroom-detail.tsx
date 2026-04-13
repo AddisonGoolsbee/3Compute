@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { Link, useParams } from 'react-router';
 import { LogoBirdflop } from '@luminescent/ui-react';
 import MonacoEditor from '@monaco-editor/react';
@@ -8,7 +8,7 @@ import {
   FileText, ExternalLink, ChevronRight, FlaskConical,
   HelpCircle, BookOpen, Upload, Trash2, Send,
 } from 'lucide-react';
-import { apiUrl } from '../util/UserData';
+import { apiUrl, UserDataContext } from '../util/UserData';
 import { languageMap } from '../util/languageMap';
 
 interface StudentResult {
@@ -423,7 +423,7 @@ export default function ClassroomDetailPage() {
             <AssignmentsTab
               classroomId={id!}
               templates={progress?.templates ?? []}
-              onPublished={() => { fetchProgress(); }}
+              onPublished={fetchProgress}
             />
           )}
         </div>
@@ -1195,8 +1195,9 @@ function AssignmentsTab({
 }: {
   classroomId: string;
   templates: string[];
-  onPublished: () => void;
+  onPublished: () => Promise<void> | void;
 }) {
+  const userData = useContext(UserDataContext);
   const [drafts, setDrafts] = useState<Draft[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -1235,7 +1236,7 @@ function AssignmentsTab({
         const text = await res.text();
         alert(text || 'Upload failed');
       }
-      await fetchDrafts();
+      await Promise.all([fetchDrafts(), userData.refreshFiles()]);
     } finally {
       setUploading(false);
       if (folderInputRef.current) folderInputRef.current.value = '';
@@ -1248,7 +1249,7 @@ function AssignmentsTab({
       method: 'DELETE',
       credentials: 'include',
     });
-    await fetchDrafts();
+    await Promise.all([fetchDrafts(), userData.refreshFiles()]);
   };
 
   const deleteAssignment = async (name: string) => {
@@ -1257,7 +1258,7 @@ function AssignmentsTab({
       method: 'DELETE',
       credentials: 'include',
     });
-    onPublished();
+    await Promise.all([Promise.resolve(onPublished()), userData.refreshFiles()]);
   };
 
   const publishDraft = async (name: string) => {
@@ -1270,10 +1271,16 @@ function AssignmentsTab({
       if (!res.ok) {
         const text = await res.text();
         alert(text || 'Publish failed');
-      } else {
-        onPublished();
+        return;
       }
-      await fetchDrafts();
+      // Wait for all refreshes before clearing the spinner so the UI reflects
+      // the new state atomically — otherwise the teacher may see the draft and
+      // published assignment side-by-side while fetchProgress is still in flight.
+      await Promise.all([
+        Promise.resolve(onPublished()),
+        fetchDrafts(),
+        userData.refreshFiles(),
+      ]);
     } finally {
       setPublishing(null);
     }

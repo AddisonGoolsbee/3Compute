@@ -23,6 +23,20 @@ export default function App() {
   const userData = useContext(UserDataContext);
   const [searchParams, setSearchParams] = useSearchParams();
   const deepLinkProcessedRef = useRef(false);
+  const deepLinkRefreshedRef = useRef(false);
+
+  // If the user arrived via a deep link (e.g. "Edit in IDE" on a freshly-uploaded
+  // draft), the cached file tree may pre-date the new folder. Refresh once so the
+  // target is findable by the processing effects below.
+  useEffect(() => {
+    if (deepLinkRefreshedRef.current) return;
+    const hasDeepLink =
+      !!searchParams.get('classroom') &&
+      (!!searchParams.get('folder') || !!searchParams.get('file'));
+    if (!hasDeepLink) return;
+    deepLinkRefreshedRef.current = true;
+    userData.refreshFiles();
+  }, [searchParams, userData]);
 
   // Helper: open all parent folders so a path is visible in the explorer
   const openParentFolders = (targetLocation: string) => {

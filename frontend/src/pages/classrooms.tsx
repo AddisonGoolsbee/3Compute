@@ -76,7 +76,7 @@ export default function ClassroomsPage() {
             <div>
               <h1 className="text-3xl font-bold mb-1">Classrooms</h1>
               <p className="text-gray-400">
-                {isTeacher ? 'Manage your classrooms and view student progress.' : 'Your classrooms.'}
+                {isTeacher ? 'Manage your classrooms and view student progress' : 'Your classrooms'}
               </p>
             </div>
             <div className="flex items-center gap-2">
