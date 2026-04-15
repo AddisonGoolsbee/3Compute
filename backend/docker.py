@@ -566,14 +566,16 @@ def attach_to_container(container_name, tab_id="1"):
         raise RuntimeError(f"Container {container_name} is not running")
 
     master_fd, slave_fd = pty.openpty()
+    logger.info(f"[DIAG] attach_to_container: openpty master_fd={master_fd} slave_fd={slave_fd}")
     # Set a reasonable default size so tmux doesn't render at 0x0.
     # The frontend will send the real dimensions shortly after connect.
     try:
         import struct, fcntl, termios
         default_winsize = struct.pack("HHHH", 24, 80, 0, 0)
         fcntl.ioctl(slave_fd, termios.TIOCSWINSZ, default_winsize)
-    except OSError:
-        pass
+        logger.info(f"[DIAG] attach_to_container: set PTY to 80x24 default")
+    except OSError as e:
+        logger.info(f"[DIAG] attach_to_container: set PTY size failed: {e}")
     # Create unique tmux session for each tab
     session_name = f"3compute-tab{tab_id}"
     tmux_conf = "/home/myuser/.tmux.conf"
@@ -588,12 +590,20 @@ def attach_to_container(container_name, tab_id="1"):
         f"tmux -f {tmux_conf} new-session -d -A -s {session_name}; tmux source-file {tmux_conf} 2>/dev/null; tmux attach -t {session_name}",
     ]
     logger.info(
-        f"Attaching to container '{container_name}' with tmux session '{session_name}'"
+        f"[DIAG] attach_to_container: starting docker exec for '{container_name}' tmux='{session_name}'"
     )
     try:
         proc = subprocess.Popen(
             cmd, stdin=slave_fd, stdout=slave_fd, stderr=slave_fd, close_fds=True
         )
+        logger.info(f"[DIAG] attach_to_container: Popen started pid={proc.pid}")
+        # Close slave fd in parent process — only the child (docker exec) needs it.
+        # Leaving it open leaks an fd and prevents EOF detection on master_fd.
+        try:
+            os.close(slave_fd)
+            logger.info(f"[DIAG] attach_to_container: closed slave_fd={slave_fd} in parent")
+        except OSError as e:
+            logger.warning(f"[DIAG] attach_to_container: failed to close slave_fd: {e}")
         return proc, master_fd
     except Exception as e:
         logger.error(f"Failed to attach to container '{container_name}': {e}")

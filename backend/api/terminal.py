@@ -196,6 +196,10 @@ def _ensure_container_locked(
     email: str | None,
 ) -> str | None:
     container_name = f"user-container-{user_id}"
+    logger.info(
+        "[DIAG] _ensure_container: user=%s tracked=%s",
+        user_id, user_id in user_containers,
+    )
 
     if user_id not in user_containers:
         if container_exists(container_name):
@@ -257,6 +261,7 @@ def _ensure_container_locked(
                 )
                 return None
     else:
+        logger.info("[DIAG] _ensure_container: user=%s already tracked, checking if running", user_id)
         if user_containers[user_id]["port_range"] is None:
             user_containers[user_id]["port_range"] = port_range
 
@@ -326,6 +331,10 @@ def _attach_container(session_info: dict) -> bool:
                 )
                 return False
 
+    logger.info(
+        "[DIAG] _attach_container: about to call attach_to_container for user=%s tab=%s container=%s",
+        user_id, tab_id, container_name,
+    )
     try:
         _proc, fd = attach_to_container(container_name, tab_id)
     except Exception:
@@ -337,9 +346,8 @@ def _attach_container(session_info: dict) -> bool:
     session_info["fd"] = fd
     session_info["container_attached"] = True
     logger.info(
-        "Attached to container for user %s tab %s in handle_resize()",
-        user_id,
-        tab_id,
+        "[DIAG] _attach_container: SUCCESS for user=%s tab=%s fd=%s",
+        user_id, tab_id, fd,
     )
     return True
 
@@ -455,19 +463,30 @@ def _blocking_pty_read(fd: int, max_read_bytes: int) -> str | None:
     data_ready, _, _ = select.select([fd], [], [], 0)
     if data_ready:
         raw = os.read(fd, max_read_bytes)
-        if raw:
-            return raw.decode(errors="ignore")
+        if not raw:
+            logger.info("[DIAG] _blocking_pty_read: EOF (empty read) on fd=%s", fd)
+            raise OSError("PTY EOF — empty read")
+        return raw.decode(errors="ignore")
     return None
 
 
 async def read_and_forward_pty_output(sid: str):
     """Background coroutine: stream PTY output to the client via Socket.IO."""
     max_read_bytes = 1024 * 20
+    session = session_map.get(sid)
+    logger.info(
+        "[DIAG] read_loop: STARTED for sid=%s user=%s tab=%s",
+        sid,
+        session.get("user_id") if session else "?",
+        session.get("tab_id") if session else "?",
+    )
+    first_output = True
     try:
         while True:
             await sio.sleep(0.01)
             session = session_map.get(sid)
             if not session:
+                logger.info("[DIAG] read_loop: session gone for sid=%s, stopping", sid)
                 break
             fd = session.get("fd")
             if not fd:
@@ -477,14 +496,21 @@ async def read_and_forward_pty_output(sid: str):
                     _blocking_pty_read, fd, max_read_bytes
                 )
                 if output:
+                    if first_output:
+                        logger.info(
+                            "[DIAG] read_loop: FIRST output for sid=%s, len=%d, repr=%.200r",
+                            sid, len(output), output,
+                        )
+                        first_output = False
                     await sio.emit("pty-output", {"output": output}, to=sid)
-            except (OSError, ValueError):
+            except (OSError, ValueError) as exc:
+                logger.info("[DIAG] read_loop: PTY error for sid=%s: %s", sid, exc)
                 await sio.emit("terminal-restart-required", {}, to=sid)
                 break
     except asyncio.CancelledError:
         pass
     finally:
-        logger.info("Stopping read task for %s", sid)
+        logger.info("[DIAG] read_loop: STOPPED for sid=%s", sid)
 
 
 # ---------------------------------------------------------------------------
@@ -523,6 +549,17 @@ async def handle_connect(sid, environ, auth=None):
         )
         return False
 
+    # Check for existing sessions for same user+tab (stale from prior connection)
+    existing_sids = [
+        s for s, info in session_map.items()
+        if info["user_id"] == user_id and info["tab_id"] == tab_id
+    ]
+    if existing_sids:
+        logger.warning(
+            "[DIAG] handle_connect: DUPLICATE session(s) for user=%s tab=%s existing_sids=%s new_sid=%s",
+            user_id, tab_id, existing_sids, sid,
+        )
+
     session_info = {
         "fd": None,
         "user_id": user_id,
@@ -533,14 +570,20 @@ async def handle_connect(sid, environ, auth=None):
         "email": email,
     }
     session_map[sid] = session_info
+    logger.info(
+        "[DIAG] handle_connect: session created for sid=%s user=%s tab=%s container=%s (total sessions: %d)",
+        sid, user_id, tab_id, container_name, len(session_map),
+    )
 
     # Attach the PTY eagerly so input/output works immediately without waiting
     # for the first resize event.  This also fixes the post-reconnect freeze:
     # when Socket.IO silently drops and reconnects, handle_connect fires again
     # with a fresh session (container_attached=False), but the frontend doesn't
     # re-emit a resize, so the lazy path in handle_resize was never triggered.
+    logger.info("[DIAG] handle_connect: about to eager-attach for sid=%s", sid)
     success = await asyncio.to_thread(_attach_container, session_info)
     if not success:
+        logger.info("[DIAG] handle_connect: eager-attach FAILED for sid=%s", sid)
         session_map.pop(sid, None)
         await sio.emit(
             "error",
@@ -549,44 +592,60 @@ async def handle_connect(sid, environ, auth=None):
         )
         return False
 
+    logger.info("[DIAG] handle_connect: eager-attach SUCCESS for sid=%s, fd=%s", sid, session_info.get("fd"))
+
     # Don't start the read loop yet — wait for the first resize so the PTY
     # has correct dimensions before tmux renders anything.  The read loop
     # is started in handle_resize on the first resize for this session.
     session_info["read_loop_started"] = False
+    logger.info("[DIAG] handle_connect: DONE for sid=%s, waiting for first resize to start read loop", sid)
 
 
 async def handle_disconnect(sid):
     session = session_map.pop(sid, None)
     if not session:
+        logger.info("[DIAG] handle_disconnect: sid=%s not in session_map, ignoring", sid)
         return
 
     user_id = session["user_id"]
+    tab_id = session.get("tab_id")
     fd = session.get("fd")
+    logger.info("[DIAG] handle_disconnect: sid=%s user=%s tab=%s fd=%s", sid, user_id, tab_id, fd)
+
     if fd:
         try:
             os.close(fd)
+            logger.info("[DIAG] handle_disconnect: closed fd=%s for sid=%s", fd, sid)
         except Exception as e:
             logger.error("Failed to close PTY for user %s: %s", user_id, e)
 
-    if not any(s["user_id"] == user_id for s in session_map.values()):
+    remaining = [s["tab_id"] for s in session_map.values() if s["user_id"] == user_id]
+    logger.info("[DIAG] handle_disconnect: remaining sessions for user=%s: %s", user_id, remaining)
+    if not remaining:
+        logger.info("[DIAG] handle_disconnect: no sessions left, starting idle poller for user=%s", user_id)
         _start_idle_poller(user_id)
 
 
 async def handle_pty_input(sid, data):
     session = session_map.get(sid)
     if not session:
+        logger.info("[DIAG] handle_pty_input: sid=%s NOT in session_map", sid)
         return
     fd = session.get("fd")
     if fd:
         await asyncio.to_thread(os.write, fd, data["input"].encode())
+    else:
+        logger.warning("[DIAG] handle_pty_input: sid=%s has NO fd, dropping input", sid)
 
 
 async def handle_resize(sid, data):
-    logger.debug("handle_resize called with data: %s", data)
+    cols = data.get("cols")
+    rows = data.get("rows")
+    logger.info("[DIAG] handle_resize: sid=%s cols=%s rows=%s", sid, cols, rows)
 
     if sid not in session_map:
         logger.warning(
-            "Session %s not found in session_map. Available: %s",
+            "[DIAG] handle_resize: sid=%s NOT in session_map (keys=%s)",
             sid,
             list(session_map.keys()),
         )
@@ -594,11 +653,21 @@ async def handle_resize(sid, data):
 
     session_info = session_map[sid]
     user_id = session_info["user_id"]
+    tab_id = session_info["tab_id"]
+    attached = session_info["container_attached"]
+    read_started = session_info.get("read_loop_started", "N/A")
 
-    if not session_info["container_attached"]:
+    logger.info(
+        "[DIAG] handle_resize: sid=%s user=%s tab=%s attached=%s read_started=%s fd=%s",
+        sid, user_id, tab_id, attached, read_started, session_info.get("fd"),
+    )
+
+    if not attached:
+        logger.info("[DIAG] handle_resize: lazy-attaching for sid=%s", sid)
         try:
             success = await asyncio.to_thread(_attach_container, session_info)
             if not success:
+                logger.info("[DIAG] handle_resize: lazy-attach FAILED for sid=%s", sid)
                 await sio.emit(
                     "error",
                     {
@@ -607,9 +676,10 @@ async def handle_resize(sid, data):
                     to=sid,
                 )
                 return
+            logger.info("[DIAG] handle_resize: lazy-attach SUCCESS for sid=%s fd=%s", sid, session_info.get("fd"))
         except Exception as e:
             logger.error(
-                "Failed to attach to container for user %s: %s", user_id, e
+                "[DIAG] handle_resize: lazy-attach EXCEPTION for sid=%s: %s", sid, e
             )
             await sio.emit(
                 "error",
@@ -618,23 +688,25 @@ async def handle_resize(sid, data):
             )
             return
 
-    cols = data.get("cols")
-    rows = data.get("rows")
     if not isinstance(cols, int) or not isinstance(rows, int) or cols <= 0 or rows <= 0:
-        logger.warning("Ignoring resize with invalid dimensions: cols=%s rows=%s", cols, rows)
+        logger.warning("[DIAG] handle_resize: INVALID dimensions cols=%s rows=%s sid=%s", cols, rows, sid)
         return
 
     fd = session_info["fd"]
     try:
         set_winsize(fd, rows, cols)
+        logger.info("[DIAG] handle_resize: set_winsize OK fd=%s rows=%s cols=%s sid=%s", fd, rows, cols, sid)
     except Exception as e:
-        logger.error("Failed to resize terminal: %s", e, exc_info=True)
+        logger.error("[DIAG] handle_resize: set_winsize FAILED: %s", e, exc_info=True)
 
     # Start the read loop on the first resize — now the PTY has correct
     # dimensions so tmux won't render a prompt at the wrong size.
     if not session_info.get("read_loop_started"):
         session_info["read_loop_started"] = True
+        logger.info("[DIAG] handle_resize: STARTING read loop for sid=%s (first resize)", sid)
         sio.start_background_task(read_and_forward_pty_output, sid)
+    else:
+        logger.info("[DIAG] handle_resize: read loop already running for sid=%s", sid)
 
 
 async def handle_tmux_new_window(sid, data):
