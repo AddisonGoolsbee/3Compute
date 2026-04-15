@@ -1208,6 +1208,8 @@ function AssignmentsTab({
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [publishing, setPublishing] = useState<string | null>(null);
+  const [renamingDraft, setRenamingDraft] = useState<string | null>(null);
+  const [renameDraftValue, setRenameDraftValue] = useState<string>('');
   const folderInputRef = useRef<HTMLInputElement>(null);
 
   const fetchDrafts = useCallback(async () => {
@@ -1249,11 +1251,22 @@ function AssignmentsTab({
     }
   };
 
-  const renameDraft = async (oldName: string) => {
-    const proposed = window.prompt(`Rename draft "${oldName}" to:`, oldName);
-    if (proposed === null) return; // cancelled
-    const next = proposed.trim();
-    if (!next || next === oldName) return;
+  const startRenameDraft = (oldName: string) => {
+    setRenamingDraft(oldName);
+    setRenameDraftValue(oldName);
+  };
+
+  const cancelRenameDraft = () => {
+    setRenamingDraft(null);
+    setRenameDraftValue('');
+  };
+
+  const commitRenameDraft = async (oldName: string) => {
+    const next = renameDraftValue.trim();
+    if (!next || next === oldName) {
+      cancelRenameDraft();
+      return;
+    }
     const res = await fetch(
       `${apiUrl}/classrooms/${classroomId}/drafts/${encodeURIComponent(oldName)}/rename`,
       {
@@ -1273,6 +1286,7 @@ function AssignmentsTab({
       alert(msg || 'Rename failed');
       return;
     }
+    cancelRenameDraft();
     await Promise.all([fetchDrafts(), userData.refreshFiles()]);
   };
 
@@ -1372,8 +1386,28 @@ function AssignmentsTab({
                   key={draft.name}
                   className="flex items-center justify-between px-4 py-3 rounded-lg bg-gray-800/40"
                 >
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-white truncate">{draft.name}</p>
+                  <div className="min-w-0 flex-1">
+                    {renamingDraft === draft.name ? (
+                      <input
+                        autoFocus
+                        value={renameDraftValue}
+                        onChange={(e) => setRenameDraftValue(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            commitRenameDraft(draft.name);
+                          } else if (e.key === 'Escape') {
+                            e.preventDefault();
+                            cancelRenameDraft();
+                          }
+                        }}
+                        onBlur={() => commitRenameDraft(draft.name)}
+                        onFocus={(e) => e.currentTarget.select()}
+                        className="text-sm font-medium text-white bg-gray-900/80 border border-gray-600 rounded px-2 py-0.5 w-full outline-none focus:border-[#54daf4]"
+                      />
+                    ) : (
+                      <p className="text-sm font-medium text-white truncate">{draft.name}</p>
+                    )}
                     <p className="text-xs text-gray-400">{draft.files.length} file{draft.files.length !== 1 ? 's' : ''}</p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
@@ -1387,14 +1421,14 @@ function AssignmentsTab({
                     </Link>
                     <button
                       onClick={() => publishDraft(draft.name)}
-                      disabled={publishing === draft.name}
+                      disabled={publishing === draft.name || renamingDraft === draft.name}
                       className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm bg-green-700/50 hover:bg-green-700/70 text-green-200 transition-colors disabled:opacity-50"
                     >
                       <Send size={13} />
                       {publishing === draft.name ? 'Publishing...' : 'Publish'}
                     </button>
                     <button
-                      onClick={() => renameDraft(draft.name)}
+                      onClick={() => startRenameDraft(draft.name)}
                       className="p-1.5 rounded-lg text-gray-500 hover:text-white hover:bg-gray-800 transition-colors"
                       title="Rename draft"
                     >

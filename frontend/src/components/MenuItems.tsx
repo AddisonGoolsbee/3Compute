@@ -33,7 +33,19 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
     const parts = location.split('/').filter(Boolean);
     if (parts.length < 2) return false;
     const second = parts[1];
-    return second === 'assignments' || second === '.templates' || second === 'participants';
+    if (second !== 'assignments' && second !== '.templates' && second !== 'participants') {
+      return false;
+    }
+    // Instructors can rename/delete inside their own classroom's
+    // `assignments/` tree via the IDE. `.templates` is the read-only
+    // student-side symlink and `participants/` holds student work, so those
+    // stay protected for everyone at the Explorer UI level.
+    if (second === 'assignments') {
+      const slug = parts[0];
+      const classroom = classroomSymlinks?.[slug];
+      if (classroom?.isInstructor) return false;
+    }
+    return true;
   };
 
   const isArchiveFolder = (location?: string) => {
