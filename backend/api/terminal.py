@@ -549,7 +549,10 @@ async def handle_connect(sid, environ, auth=None):
         )
         return False
 
-    sio.start_background_task(read_and_forward_pty_output, sid)
+    # Don't start the read loop yet — wait for the first resize so the PTY
+    # has correct dimensions before tmux renders anything.  The read loop
+    # is started in handle_resize on the first resize for this session.
+    session_info["read_loop_started"] = False
 
 
 async def handle_disconnect(sid):
@@ -626,6 +629,12 @@ async def handle_resize(sid, data):
         set_winsize(fd, rows, cols)
     except Exception as e:
         logger.error("Failed to resize terminal: %s", e, exc_info=True)
+
+    # Start the read loop on the first resize — now the PTY has correct
+    # dimensions so tmux won't render a prompt at the wrong size.
+    if not session_info.get("read_loop_started"):
+        session_info["read_loop_started"] = True
+        sio.start_background_task(read_and_forward_pty_output, sid)
 
 
 async def handle_tmux_new_window(sid, data):

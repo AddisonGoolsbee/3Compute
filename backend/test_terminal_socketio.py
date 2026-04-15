@@ -233,3 +233,145 @@ class TestFullConnectFlow:
         assert "test-sid-no-cookie" not in session_map
 
         session_map.clear()
+
+
+class TestReadLoopTiming:
+    """Verify the PTY read loop doesn't start before the first resize.
+
+    Bug: handle_connect eagerly attaches the PTY and immediately starts
+    read_and_forward_pty_output.  The PTY defaults to 80x24, but the real
+    terminal dimensions only arrive with the first 'resize' event.  Between
+    connect and resize, tmux renders a prompt at 80x24.  When resize arrives
+    (e.g. 165x13), tmux redraws — but the old 80x24 prompt is already in the
+    scrollback.  Each page reload adds another stale prompt, which the user
+    sees as repeated prompts with blank lines when scrolling up.
+
+    The fix: read_and_forward_pty_output should only start after the first
+    resize event sets the correct dimensions.
+    """
+
+    @pytest.mark.asyncio
+    @patch("backend.api.terminal._attach_container", return_value=True)
+    @patch("backend.api.terminal._ensure_container")
+    @patch("backend.api.terminal._get_user")
+    @patch("backend.api.terminal._settings")
+    async def test_read_loop_should_not_start_before_resize(
+        self, mock_settings, mock_get_user, mock_ensure, mock_attach
+    ):
+        """The read loop must NOT start in handle_connect (before resize).
+
+        This test FAILS on the current code — proving the bug exists.
+        When the fix is applied, it will pass.
+        """
+        mock_settings.flask_secret = FLASK_SECRET
+
+        mock_user = MagicMock()
+        mock_user.port_start = 10000
+        mock_user.port_end = 10009
+        mock_user.email = "test@test.com"
+        mock_get_user.return_value = mock_user
+
+        mock_ensure.return_value = f"user-container-{TEST_USER_ID}"
+
+        from backend.api.terminal import (
+            handle_connect,
+            session_map,
+            sio,
+            read_and_forward_pty_output,
+        )
+
+        session_map.clear()
+
+        with patch.object(sio, "start_background_task") as mock_start_task:
+            cookie_val = _make_signed_cookie(TEST_USER_ID)
+            environ = _make_wsgi_environ(cookie_val)
+
+            await handle_connect("test-sid-readloop", environ)
+
+            # The read loop should NOT have been started yet — no resize received
+            read_loop_calls = [
+                call
+                for call in mock_start_task.call_args_list
+                if call[0][0] is read_and_forward_pty_output
+            ]
+            assert len(read_loop_calls) == 0, (
+                "BUG: read_and_forward_pty_output was started in handle_connect "
+                "before any resize event.  This means tmux output is streamed "
+                "at default 80x24 dimensions before the frontend sends the real "
+                "terminal size, causing stale prompts in scrollback on every reload."
+            )
+
+        session_map.clear()
+
+    @pytest.mark.asyncio
+    @patch("backend.api.terminal.set_winsize")
+    @patch("backend.api.terminal._attach_container", return_value=True)
+    @patch("backend.api.terminal._ensure_container")
+    @patch("backend.api.terminal._get_user")
+    @patch("backend.api.terminal._settings")
+    async def test_read_loop_should_start_after_first_resize(
+        self, mock_settings, mock_get_user, mock_ensure, mock_attach, mock_winsize
+    ):
+        """After the first resize, the read loop should be running.
+
+        This test FAILS on the current code because the read loop is started
+        in handle_connect, not handle_resize.  After the fix, the read loop
+        should start exactly once, on the first resize.
+        """
+        mock_settings.flask_secret = FLASK_SECRET
+
+        mock_user = MagicMock()
+        mock_user.port_start = 10000
+        mock_user.port_end = 10009
+        mock_user.email = "test@test.com"
+        mock_get_user.return_value = mock_user
+
+        mock_ensure.return_value = f"user-container-{TEST_USER_ID}"
+
+        from backend.api.terminal import (
+            handle_connect,
+            handle_resize,
+            session_map,
+            sio,
+            read_and_forward_pty_output,
+        )
+
+        session_map.clear()
+        sid = "test-sid-resize"
+
+        with patch.object(sio, "start_background_task") as mock_start_task:
+            cookie_val = _make_signed_cookie(TEST_USER_ID)
+            environ = _make_wsgi_environ(cookie_val)
+
+            await handle_connect(sid, environ)
+
+            # Simulate the session having an fd (normally set by _attach_container)
+            session_map[sid]["fd"] = 999
+
+            # Now send the first resize — this is when the read loop should start
+            mock_start_task.reset_mock()
+            await handle_resize(sid, {"cols": 165, "rows": 13})
+
+            read_loop_calls = [
+                call
+                for call in mock_start_task.call_args_list
+                if call[0][0] is read_and_forward_pty_output
+            ]
+            assert len(read_loop_calls) == 1, (
+                "read_and_forward_pty_output should be started exactly once "
+                f"after the first resize, but was started {len(read_loop_calls)} times"
+            )
+
+            # A second resize should NOT start another read loop
+            mock_start_task.reset_mock()
+            await handle_resize(sid, {"cols": 100, "rows": 20})
+
+            read_loop_calls = [
+                call
+                for call in mock_start_task.call_args_list
+                if call[0][0] is read_and_forward_pty_output
+            ]
+            assert len(read_loop_calls) == 0, (
+                "read_and_forward_pty_output should NOT be started again on "
+                f"subsequent resizes, but was started {len(read_loop_calls)} times"
+            )
