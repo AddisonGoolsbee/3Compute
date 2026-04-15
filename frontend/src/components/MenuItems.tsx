@@ -419,7 +419,7 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
       )}
       <div
         className={getClasses({
-          'transition-opacity duration-300 fixed lum-card p-1 gap-1 z-50 drop-shadow-xl lum-bg-gray-900/50 backdrop-blur-lg': true,
+          'transition-opacity duration-300 fixed lum-card p-1 gap-1 z-50 drop-shadow-xl lum-bg-gray-900 border border-gray-700/60': true,
           'opacity-0 pointer-events-none': !contextMenu.visible,
         })}
         style={{ left: contextMenu.x, top: contextMenu.y }}
@@ -446,15 +446,25 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
           };
           return (
             <div className="relative group/new">
-              <button className="lum-btn lum-btn-p-1 rounded-lum-1 gap-0.5 w-full text-left lum-bg-transparent flex items-center">
+              <button className="lum-btn lum-btn-p-1 rounded-lum-1 gap-0.5 w-full text-left lum-bg-transparent">
                 <Plus size={16} className="inline mr-2" />
-                <span className="flex-1">New</span>
-                <ChevronRight size={14} className="opacity-70" />
+                New
+                <ChevronRight size={14} className="ml-auto opacity-70" />
               </button>
-              {/* Submenu sits flush against the parent (left-full, no margin)
-                  so the cursor doesn't cross a dead zone on its way over.
-                  Classes mirror the parent context menu exactly. */}
-              <div className="absolute left-full top-0 min-w-[10rem] lum-card p-1 gap-1 drop-shadow-xl lum-bg-gray-900/50 backdrop-blur-lg hidden group-hover/new:flex flex-col">
+              {/* Mirror the parent context menu's exact class list, including
+                  the opacity-based visibility transition, so Luminescent's
+                  `lum-card` / `lum-bg-*` utilities render the surface the
+                  same way. Using opacity (not display) also means both
+                  surfaces stack identically — avoiding the subtle
+                  transparency mismatch that appears when one is rendered
+                  via `hidden`/`flex` and the other via `opacity`. */}
+              <div
+                className={getClasses({
+                  'transition-opacity duration-300 absolute left-full top-0 lum-card p-1 gap-1 z-50 drop-shadow-xl lum-bg-gray-900 border border-gray-700/60 min-w-[10rem]': true,
+                  'opacity-0 pointer-events-none': true,
+                  'group-hover/new:opacity-100 group-hover/new:pointer-events-auto': true,
+                })}
+              >
                 <button
                   className="lum-btn lum-btn-p-1 rounded-lum-1 gap-0.5 w-full text-left lum-bg-transparent"
                   onClick={() => dispatchNew('file')}
