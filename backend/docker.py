@@ -166,9 +166,7 @@ def _load_classrooms_for_user(user_id: str, include_archived: bool = False):
 
         engine = get_engine()
         with Session(engine) as db:
-            memberships = db.exec(
-                select(ClassroomMember).where(ClassroomMember.user_id == user_id)
-            ).all()
+            memberships = db.exec(select(ClassroomMember).where(ClassroomMember.user_id == user_id)).all()
             for membership in memberships:
                 is_archived = membership.archived
                 if include_archived and not is_archived:
@@ -192,8 +190,6 @@ def _load_classrooms_for_user(user_id: str, include_archived: bool = False):
     return inst, part
 
 
-
-
 def _slugify(name: str) -> str:
     name = name.lower()
     name = re.sub(r"[^a-z0-9\s-]", "", name)
@@ -201,14 +197,10 @@ def _slugify(name: str) -> str:
     return name or "classroom"
 
 
-def spawn_container(
-    user_id, slave_fd, container_name, port_range=None, user_email: str | None = None
-):
+def spawn_container(user_id, slave_fd, container_name, port_range=None, user_email: str | None = None):
     # Only create a new container if one doesn't already exist
     if container_exists(container_name):
-        logger.warning(
-            f"Container {container_name} already exists, not creating a new one"
-        )
+        logger.warning(f"Container {container_name} already exists, not creating a new one")
         raise RuntimeError(f"Container {container_name} already exists")
 
     # Prepare host directory with correct ownership before mounting
@@ -254,10 +246,14 @@ def spawn_container(
         "--security-opt",
         "no-new-privileges",
         "--read-only",
-        "--tmpfs", "/tmp:exec,size=256m",
-        "--tmpfs", "/run:size=10m",
-        "-e", "HOME=/app",
-        "-e", "HISTFILE=/tmp/.ash_history",
+        "--tmpfs",
+        "/tmp:exec,size=256m",
+        "--tmpfs",
+        "/run:size=10m",
+        "-e",
+        "HOME=/app",
+        "-e",
+        "HISTFILE=/tmp/.ash_history",
         "--cpus",
         str(cpu_per_user),
         "--memory",
@@ -311,9 +307,7 @@ def spawn_container(
         participant_mode[class_id] = is_participant
 
     if port_range:
-        cmd.extend(
-            ["-p", f"{port_range[0]}-{port_range[1]}:{port_range[0]}-{port_range[1]}"]
-        )
+        cmd.extend(["-p", f"{port_range[0]}-{port_range[1]}:{port_range[0]}-{port_range[1]}"])
 
     # Environment variable with mapping (JSON) for optional in-container logic
     if slug_map:
@@ -325,9 +319,7 @@ def spawn_container(
 
     cmd.append("3compute")
 
-    logger.info(
-        f"[{user_id}] Docker run building with {len(slug_map)} classroom mounts"
-    )
+    logger.info(f"[{user_id}] Docker run building with {len(slug_map)} classroom mounts")
 
     try:
         subprocess.run(cmd, check=True)
@@ -345,9 +337,7 @@ def spawn_container(
         ]
         for cid, slug in slug_map.items():
             link_commands.append(f"chown 999:995 /classrooms/{cid} || true")
-            link_commands.append(
-                f"mkdir -p /classrooms/{cid}/assignments /classrooms/{cid}/participants || true"
-            )
+            link_commands.append(f"mkdir -p /classrooms/{cid}/assignments /classrooms/{cid}/participants || true")
             # basic perms; keep participants dir traversable
             link_commands.append(f"chmod 775 /classrooms/{cid}/assignments || true")
             link_commands.append(f"chmod 775 /classrooms/{cid}/participants || true")
@@ -358,19 +348,11 @@ def spawn_container(
             )
             if participant_mode.get(cid):
                 # create personal participant folder
-                link_commands.append(
-                    f"mkdir -p /classrooms/{cid}/participants/{sanitized_email} || true"
-                )
-                link_commands.append(
-                    f"chown 999:995 /classrooms/{cid}/participants/{sanitized_email} || true"
-                )
-                link_commands.append(
-                    f"chmod 775 /classrooms/{cid}/participants/{sanitized_email} || true"
-                )
+                link_commands.append(f"mkdir -p /classrooms/{cid}/participants/{sanitized_email} || true")
+                link_commands.append(f"chown 999:995 /classrooms/{cid}/participants/{sanitized_email} || true")
+                link_commands.append(f"chmod 775 /classrooms/{cid}/participants/{sanitized_email} || true")
                 # create symlink to templates inside participant folder so students can access them
-                link_commands.append(
-                    f"rm -rf /classrooms/{cid}/participants/{sanitized_email}/assignments || true"
-                )
+                link_commands.append(f"rm -rf /classrooms/{cid}/participants/{sanitized_email}/assignments || true")
                 link_commands.append(
                     f"ln -s /classrooms/{cid}/assignments /classrooms/{cid}/participants/{sanitized_email}/assignments || true"
                 )
@@ -422,16 +404,10 @@ def spawn_container(
 
                 # Create the symlink on host
                 os.symlink(host_target, host_source)
-                logger.info(
-                    f"[{user_id}] Created host symlink: {host_source} -> {host_target}"
-                )
+                logger.info(f"[{user_id}] Created host symlink: {host_source} -> {host_target}")
             except Exception as e:
-                logger.error(
-                    f"[{user_id}] Failed to create host symlink {host_source}: {e}"
-                )
-        link_commands.append(
-            "echo 'Symlinks + permissions (participant-aware) applied'"
-        )
+                logger.error(f"[{user_id}] Failed to create host symlink {host_source}: {e}")
+        link_commands.append("echo 'Symlinks + permissions (participant-aware) applied'")
         try:
             subprocess.run(
                 [
@@ -444,9 +420,7 @@ def spawn_container(
                 ],
                 check=True,
             )
-            logger.info(
-                f"[{user_id}] Applied participant-aware symlinks (map: {slug_map})"
-            )
+            logger.info(f"[{user_id}] Applied participant-aware symlinks (map: {slug_map})")
         except subprocess.CalledProcessError as e:
             logger.error(f"[{user_id}] Failed applying participant symlinks: {e}")
 
@@ -525,9 +499,7 @@ def spawn_container(
                     for cls in classrooms:
                         access_codes[cls.id] = cls.access_code
             except Exception as e:
-                logger.warning(
-                    f"[{user_id}] Failed reloading classrooms for README access codes: {e}"
-                )
+                logger.warning(f"[{user_id}] Failed reloading classrooms for README access codes: {e}")
 
             for cid, slug in slug_map.items():
                 access_code = access_codes.get(cid, "UNKNOWN")
@@ -553,27 +525,24 @@ def spawn_container(
                 except Exception as e:
                     logger.warning(f"[{user_id}] Failed writing README on host for {cid}: {e}")
 
-
             logger.info(f"[{user_id}] Classroom README files written from template")
 
 
-def attach_to_container(container_name, tab_id="1"):
+def attach_to_container(container_name, tab_id="1", cols=80, rows=24):
     # Check if container is running
     if not container_is_running(container_name):
-        logger.error(
-            f"Cannot attach to container '{container_name}' - it is not running"
-        )
+        logger.error(f"Cannot attach to container '{container_name}' - it is not running")
         raise RuntimeError(f"Container {container_name} is not running")
 
     master_fd, slave_fd = pty.openpty()
     logger.info(f"[DIAG] attach_to_container: openpty master_fd={master_fd} slave_fd={slave_fd}")
-    # Set a reasonable default size so tmux doesn't render at 0x0.
-    # The frontend will send the real dimensions shortly after connect.
+    # Initialize the PTY size so tmux renders at the frontend's dimensions.
     try:
         import struct, fcntl, termios
-        default_winsize = struct.pack("HHHH", 24, 80, 0, 0)
-        fcntl.ioctl(slave_fd, termios.TIOCSWINSZ, default_winsize)
-        logger.info(f"[DIAG] attach_to_container: set PTY to 80x24 default")
+
+        winsize = struct.pack("HHHH", rows, cols, 0, 0)
+        fcntl.ioctl(slave_fd, termios.TIOCSWINSZ, winsize)
+        logger.info(f"[DIAG] attach_to_container: set PTY size to {cols}x{rows}")
     except OSError as e:
         logger.info(f"[DIAG] attach_to_container: set PTY size failed: {e}")
     # Create unique tmux session for each tab
@@ -589,13 +558,9 @@ def attach_to_container(container_name, tab_id="1"):
         "-lc",
         f"tmux -f {tmux_conf} new-session -d -A -s {session_name}; tmux source-file {tmux_conf} 2>/dev/null; tmux attach -t {session_name}",
     ]
-    logger.info(
-        f"[DIAG] attach_to_container: starting docker exec for '{container_name}' tmux='{session_name}'"
-    )
+    logger.info(f"[DIAG] attach_to_container: starting docker exec for '{container_name}' tmux='{session_name}'")
     try:
-        proc = subprocess.Popen(
-            cmd, stdin=slave_fd, stdout=slave_fd, stderr=slave_fd, close_fds=True
-        )
+        proc = subprocess.Popen(cmd, stdin=slave_fd, stdout=slave_fd, stderr=slave_fd, close_fds=True)
         logger.info(f"[DIAG] attach_to_container: Popen started pid={proc.pid}")
         return proc, master_fd
     except Exception as e:
