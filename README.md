@@ -35,6 +35,12 @@ cd backend && pytest --cov=. --cov-report=term-missing
 cd frontend && pnpm test:coverage
 ```
 
+If you want to identically test the github action workflows, use act (brew install act)
+```bash
+act -W .github/workflows/test.yml -j test-backend
+act -W .github/workflows/test.yml -j test-frontend
+```
+
 ## Troubleshooting
 
 - TypeError: Failed to fetch at Module.clientLoader (http://localhost:5173/src/util/UserData.ts:5:25)
