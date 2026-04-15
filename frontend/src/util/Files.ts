@@ -46,9 +46,31 @@ export type FilesResponse = {
   classroomSymlinks: Record<string, { id: string; name?: string; archived?: boolean; isInstructor?: boolean }>;
 };
 
+const SHOW_HIDDEN_STORAGE_KEY = '3compute:show-hidden-files';
+
+export function getShowHidden(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    return window.localStorage.getItem(SHOW_HIDDEN_STORAGE_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+export function setShowHidden(value: boolean): void {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(SHOW_HIDDEN_STORAGE_KEY, value ? '1' : '0');
+  } catch {
+    // ignore
+  }
+}
+
 export async function fetchFilesList(): Promise<FilesResponse> {
   // Fetch the list of files
-  const fileRes = await fetch(`${apiUrl}/files/list`, {
+  const url = new URL(`${apiUrl}/files/list`, window.location.origin);
+  if (getShowHidden()) url.searchParams.set('show_hidden', '1');
+  const fileRes = await fetch(url.toString(), {
     credentials: 'include',
   });
   if (!fileRes.ok) return { files: [], classroomSymlinks: {} };
