@@ -40,6 +40,11 @@ async def github_webhook(request: Request):
     if payload.get("workflow_run", {}).get("head_branch") != "main":
         return {"message": "Skipped non-main branch"}
 
-    subprocess.Popen(["/opt/deploy.sh"])
-    logger.info("Deployment script triggered")
+    # Run the checked-in script directly so /opt/deploy.sh can't go stale.
+    # The repo already contains the latest version, and `git reset --hard
+    # origin/main` inside the script picks up any subsequent updates for
+    # the next run.
+    script_path = "/var/www/3compute/production/opt/deploy.sh"
+    subprocess.Popen([script_path])
+    logger.info("Deployment script triggered (%s)", script_path)
     return {"message": "Deployment triggered"}
