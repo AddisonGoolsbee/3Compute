@@ -9,6 +9,33 @@ from backend.docker import CLASSROOMS_ROOT, CONTAINER_USER_GID, CONTAINER_USER_U
 logger = logging.getLogger("test_runner")
 
 
+def _apply_shared_perms(root: str) -> None:
+    """Walk *root* and set ownership to the container user (999:995), mode
+    2775 on directories (setgid so children inherit GID 995), and 0664 on
+    files. Both the backend (www-data with supplementary 995) and the
+    container user can read/write, and subprocess stagings can overwrite
+    existing files via group permissions."""
+    for dirpath, _dirnames, filenames in os.walk(root):
+        try:
+            os.chown(dirpath, CONTAINER_USER_UID, CONTAINER_USER_GID)
+        except OSError:
+            pass
+        try:
+            os.chmod(dirpath, 0o2775)
+        except OSError:
+            pass
+        for fn in filenames:
+            fp = os.path.join(dirpath, fn)
+            try:
+                os.chown(fp, CONTAINER_USER_UID, CONTAINER_USER_GID)
+            except OSError:
+                pass
+            try:
+                os.chmod(fp, 0o664)
+            except OSError:
+                pass
+
+
 def _find_test_files(template_dir: str) -> list[str]:
     """Find test files in a template directory.
 
@@ -159,16 +186,7 @@ def run_tests_for_student_with_output(
         logger.info(f"Creating student dir from template: {student_dir}")
         try:
             shutil.copytree(templates_dir, student_dir)
-            for dirpath, _dirnames, filenames in os.walk(student_dir):
-                try:
-                    os.chown(dirpath, CONTAINER_USER_UID, CONTAINER_USER_GID)
-                except OSError:
-                    pass
-                for fn in filenames:
-                    try:
-                        os.chown(os.path.join(dirpath, fn), CONTAINER_USER_UID, CONTAINER_USER_GID)
-                    except OSError:
-                        pass
+            _apply_shared_perms(student_dir)
         except Exception as e:
             return 0, 0, f"Failed to create student directory: {e}"
 
@@ -184,9 +202,20 @@ def run_tests_for_student_with_output(
             dst = os.path.join(student_dir, tf)
             try:
                 os.makedirs(os.path.dirname(dst), exist_ok=True)
+                # Remove any stale copy first so the copy2 doesn't EACCES on an
+                # existing file that was created with restrictive perms.
+                if os.path.exists(dst):
+                    try:
+                        os.remove(dst)
+                    except OSError:
+                        pass
                 shutil.copy2(src, dst)
                 try:
                     os.chown(dst, CONTAINER_USER_UID, CONTAINER_USER_GID)
+                except OSError:
+                    pass
+                try:
+                    os.chmod(dst, 0o664)
                 except OSError:
                     pass
                 copied_files.append(dst)
@@ -286,21 +315,7 @@ def run_tests_for_student(
         logger.info(f"Creating student dir from template: {student_dir}")
         try:
             shutil.copytree(templates_dir, student_dir)
-            # Fix ownership so the container user can write later
-            for dirpath, _dirnames, filenames in os.walk(student_dir):
-                try:
-                    os.chown(dirpath, CONTAINER_USER_UID, CONTAINER_USER_GID)
-                except OSError:
-                    pass
-                for fn in filenames:
-                    try:
-                        os.chown(
-                            os.path.join(dirpath, fn),
-                            CONTAINER_USER_UID,
-                            CONTAINER_USER_GID,
-                        )
-                    except OSError:
-                        pass
+            _apply_shared_perms(student_dir)
         except Exception as e:
             logger.error(f"Failed to create student dir: {e}")
             return 0, 0
@@ -317,9 +332,18 @@ def run_tests_for_student(
             src = os.path.join(templates_dir, tf)
             dst = os.path.join(student_dir, tf)
             os.makedirs(os.path.dirname(dst), exist_ok=True)
+            if os.path.exists(dst):
+                try:
+                    os.remove(dst)
+                except OSError:
+                    pass
             shutil.copy2(src, dst)
             try:
                 os.chown(dst, CONTAINER_USER_UID, CONTAINER_USER_GID)
+            except OSError:
+                pass
+            try:
+                os.chmod(dst, 0o664)
             except OSError:
                 pass
             copied_files.append(dst)
