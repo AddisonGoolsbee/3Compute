@@ -8,13 +8,19 @@ WorkingDirectory=/var/www/3compute
 Environment=PYTHONUNBUFFERED=1
 Environment=USERS_JSON_FILE=/var/lib/3compute/users.json
 ExecStartPre=+/bin/mkdir -p /var/lib/3compute/uploads /var/lib/3compute/classrooms
-ExecStartPre=+/bin/chown www-data:www-data /var/lib/3compute /var/lib/3compute/uploads /var/lib/3compute/classrooms
-ExecStartPre=+/bin/find /var/lib/3compute/classrooms -type d -exec /bin/chmod 775 {} +
+# Shallow chown only on the three top-level dirs. Do NOT recurse: user files
+# inside are owned by the container user (999:995) and must stay that way so
+# they remain writable from the terminal. Group is 3compute-container (GID 995)
+# so www-data (with supplementary 995) can read/write via group perms.
+ExecStartPre=+/bin/chown www-data:3compute-container /var/lib/3compute /var/lib/3compute/uploads /var/lib/3compute/classrooms
+# Setgid bit (2775) makes new entries inherit GID 995 automatically.
+ExecStartPre=+/bin/chmod 2775 /var/lib/3compute /var/lib/3compute/uploads /var/lib/3compute/classrooms
 ExecStart=/var/www/3compute/.venv/bin/python3 -m backend.api
 Restart=always
 RestartSec=5
 User=www-data
 Group=www-data
+SupplementaryGroups=3compute-container
 AmbientCapabilities=CAP_CHOWN
 
 [Install]

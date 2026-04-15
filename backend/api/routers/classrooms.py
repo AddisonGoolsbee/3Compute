@@ -1118,12 +1118,25 @@ async def run_student_tests(
     from datetime import datetime
 
     loop = asyncio.get_event_loop()
-    with ThreadPoolExecutor() as pool:
-        passed, total, output = await loop.run_in_executor(
-            pool,
-            run_tests_for_student_with_output,
+    try:
+        with ThreadPoolExecutor() as pool:
+            passed, total, output = await loop.run_in_executor(
+                pool,
+                run_tests_for_student_with_output,
+                classroom_id, body.template_name, body.student_email,
+            )
+    except Exception as e:
+        logger.exception(
+            "run_student_tests crashed for classroom=%s template=%s student=%s",
             classroom_id, body.template_name, body.student_email,
         )
+        # Return 200 with an error payload so the UI can display it instead of
+        # collapsing to a generic "Failed to run tests."
+        return {
+            "passed": 0,
+            "total": 0,
+            "output": f"Test runner crashed:\n{type(e).__name__}: {e}",
+        }
 
     # Also persist the result
     student_email_sanitized = (body.student_email or "").replace("/", "_")

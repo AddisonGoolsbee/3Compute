@@ -182,13 +182,23 @@ def run_tests_for_student_with_output(
         for tf in test_files:
             src = os.path.join(templates_dir, tf)
             dst = os.path.join(student_dir, tf)
-            os.makedirs(os.path.dirname(dst), exist_ok=True)
-            shutil.copy2(src, dst)
             try:
-                os.chown(dst, CONTAINER_USER_UID, CONTAINER_USER_GID)
-            except OSError:
-                pass
-            copied_files.append(dst)
+                os.makedirs(os.path.dirname(dst), exist_ok=True)
+                shutil.copy2(src, dst)
+                try:
+                    os.chown(dst, CONTAINER_USER_UID, CONTAINER_USER_GID)
+                except OSError:
+                    pass
+                copied_files.append(dst)
+            except (OSError, shutil.Error) as e:
+                # Surface the error instead of 500-ing the whole request. Most
+                # commonly this is a permission problem on the student's
+                # participant dir.
+                all_output += f"\n[Error] Failed to stage {tf} into {dst}: {e}\n"
+                logger.exception(
+                    "Failed to stage test file %s for %s/%s",
+                    tf, student_email, template_name,
+                )
 
         py_tests = [f for f in test_files if f.endswith(".py")]
         passed, total = 0, 0

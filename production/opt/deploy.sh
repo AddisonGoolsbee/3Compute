@@ -27,7 +27,11 @@ systemctl daemon-reload
 
 echo "Ensuring runtime directories"
 mkdir -p /var/lib/3compute/uploads /var/lib/3compute/classrooms
-chown www-data:www-data /var/lib/3compute /var/lib/3compute/uploads /var/lib/3compute/classrooms
+# Shallow chown (no -R): the three top-level dirs are www-data:3compute-container.
+# Anything inside is owned by the container user (999:995) and must stay so the
+# terminal can write. Setgid (2775) makes new items inherit GID 995.
+chown www-data:3compute-container /var/lib/3compute /var/lib/3compute/uploads /var/lib/3compute/classrooms
+chmod 2775 /var/lib/3compute /var/lib/3compute/uploads /var/lib/3compute/classrooms
 
 echo "Restarting backend service"
 systemctl restart 3compute
