@@ -24,27 +24,41 @@ export function TerminalSession({ tabId, isActive }: TerminalSessionProps) {
     term: Terminal,
     fit: FitAddon,
     socket: Socket,
+    shouldAbort: () => boolean,
     callback: () => void,
   ) => {
+    let animationFrameId = 0;
     const check = () => {
+      if (shouldAbort()) return;
       const width = term.element?.clientWidth ?? 0;
       const height = term.element?.clientHeight ?? 0;
       if (width > 0 && height > 0) {
-        fit.fit();
-        const dims = fit.proposeDimensions();
-        if (dims) {
-          socket.emit('resize', { cols: dims.cols, rows: dims.rows });
+        try {
+          fit.fit();
+          const dims = fit.proposeDimensions();
+          if (dims) {
+            socket.emit('resize', { cols: dims.cols, rows: dims.rows });
+          }
+          callback();
+        } catch (error) {
+          console.error('Terminal fit failed during initialization:', error);
         }
-        callback();
       } else {
-        requestAnimationFrame(check);
+        animationFrameId = requestAnimationFrame(check);
       }
     };
     check();
+    return () => {
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
+    };
   };
 
   useEffect(() => {
     if (!terminalRef.current) return;
+
+    let disposed = false;
 
     const term = new Terminal({
       cursorBlink: true,
@@ -73,7 +87,7 @@ export function TerminalSession({ tabId, isActive }: TerminalSessionProps) {
     });
     socketRef.current = socket;
 
-    waitForFitReady(term, fitAddon, socket, () => {
+    const stopWaiting = waitForFitReady(term, fitAddon, socket, () => disposed, () => {
       term.focus();
       term.scrollToBottom();
     });
@@ -103,13 +117,18 @@ export function TerminalSession({ tabId, isActive }: TerminalSessionProps) {
     });
 
     socket.on('connect', () => {
+      if (disposed) return;
       // Re-emit resize after socket connects (or reconnects) so the backend
       // always has the correct terminal dimensions.
       if (fitAddonRef.current) {
-        fitAddonRef.current.fit();
-        const dims = fitAddonRef.current.proposeDimensions();
-        if (dims) {
-          socket.emit('resize', { cols: dims.cols, rows: dims.rows });
+        try {
+          fitAddonRef.current.fit();
+          const dims = fitAddonRef.current.proposeDimensions();
+          if (dims) {
+            socket.emit('resize', { cols: dims.cols, rows: dims.rows });
+          }
+        } catch (error) {
+          console.error('Terminal fit failed on socket connect:', error);
         }
       }
     });
@@ -154,14 +173,19 @@ export function TerminalSession({ tabId, isActive }: TerminalSessionProps) {
     window.addEventListener('3compute:run-command', runHandler);
 
     const resizeObserver = new ResizeObserver(() => {
+      if (disposed) return;
       if (fitAddonRef.current) {
-        fitAddonRef.current.fit();
-        const dims = fitAddonRef.current.proposeDimensions();
-        if (dims && socketRef.current) {
-          socketRef.current.emit('resize', {
-            cols: dims.cols,
-            rows: dims.rows,
-          });
+        try {
+          fitAddonRef.current.fit();
+          const dims = fitAddonRef.current.proposeDimensions();
+          if (dims && socketRef.current) {
+            socketRef.current.emit('resize', {
+              cols: dims.cols,
+              rows: dims.rows,
+            });
+          }
+        } catch (error) {
+          console.error('Terminal fit failed during resize:', error);
         }
       }
     });
@@ -169,6 +193,8 @@ export function TerminalSession({ tabId, isActive }: TerminalSessionProps) {
     resizeObserver.observe(terminalRef.current);
 
     return () => {
+      disposed = true;
+      stopWaiting();
       window.removeEventListener('3compute:run-command', runHandler);
       resizeObserver.disconnect();
       socket.disconnect();
