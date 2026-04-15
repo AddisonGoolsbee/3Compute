@@ -1672,6 +1672,51 @@ async def delete_draft(
     return {"message": "Draft deleted"}
 
 
+class RenameDraftRequest(BaseModel):
+    new_name: str
+
+
+@router.post("/{classroom_id}/drafts/{draft_name}/rename")
+async def rename_draft(
+    classroom_id: str,
+    draft_name: str,
+    body: RenameDraftRequest,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if not _is_instructor(db, classroom_id, str(user.id)):
+        raise HTTPException(status_code=403, detail="Not an instructor")
+
+    new_name = (body.new_name or "").strip()
+    if not new_name:
+        raise HTTPException(status_code=400, detail="New name is required")
+    # Disallow path separators so the draft stays inside drafts/.
+    if "/" in new_name or "\\" in new_name or new_name in (".", ".."):
+        raise HTTPException(status_code=400, detail="Invalid draft name")
+    if new_name == draft_name:
+        return {"message": "No change", "name": new_name}
+
+    drafts_dir = os.path.join(CLASSROOMS_ROOT, classroom_id, "drafts")
+    src = os.path.join(drafts_dir, draft_name)
+    dst = os.path.join(drafts_dir, new_name)
+
+    if not os.path.isdir(src):
+        raise HTTPException(status_code=404, detail="Draft not found")
+    if os.path.exists(dst):
+        raise HTTPException(
+            status_code=409,
+            detail=f"A draft named \"{new_name}\" already exists.",
+        )
+
+    try:
+        os.rename(src, dst)
+    except OSError as e:
+        raise HTTPException(status_code=500, detail=f"Failed to rename draft: {e}")
+
+    await notify_files_changed(str(user.id))
+    return {"message": "Draft renamed", "name": new_name}
+
+
 @router.post("/{classroom_id}/drafts/{draft_name}/publish")
 async def publish_draft(
     classroom_id: str,
@@ -1690,19 +1735,62 @@ async def publish_draft(
     os.makedirs(templates_dir, exist_ok=True)
     dest = os.path.join(templates_dir, draft_name)
 
-    # Atomic move: draft → assignments
+    # Refuse to clobber an already-published assignment with the same name —
+    # students have copies derived from it and silent overwrites would surprise
+    # the teacher. They can rename the draft (or delete the existing
+    # assignment from the Assignments tab) and publish again.
     if os.path.exists(dest):
-        shutil.rmtree(dest)
-    shutil.move(draft_path, dest)
-    # Defensive: if shutil fell back to copy+unlink and the unlink failed
-    # silently, the draft would still be listed. Ensure it is gone.
-    if os.path.exists(draft_path):
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                f"An assignment named \"{draft_name}\" already exists in this classroom. "
+                "Rename the draft or delete the existing assignment first."
+            ),
+        )
+
+    # Prefer an atomic rename. Same filesystem + well-formed perms makes
+    # this the common path. It fails cleanly without copying anything, so
+    # we can fall back explicitly.
+    renamed = False
+    try:
+        os.rename(draft_path, dest)
+        renamed = True
+    except OSError as rename_err:
+        logger.info(
+            "Publish rename fallback for %s -> %s: %s", draft_path, dest, rename_err
+        )
+
+    if not renamed:
+        # Fallback: copy into place, then try to remove the draft. If the
+        # remove fails (permissions), roll back the copy so we don't leave
+        # BOTH folders on disk — the student-facing state would be confusing
+        # and the frontend would show duplicates.
+        try:
+            shutil.copytree(draft_path, dest)
+        except Exception as e:
+            if os.path.exists(dest):
+                shutil.rmtree(dest, ignore_errors=True)
+            raise HTTPException(
+                status_code=500,
+                detail=f"Failed to copy draft into assignments: {e}",
+            )
         try:
             shutil.rmtree(draft_path)
         except OSError as e:
+            # Roll back the copy so we don't leave duplicates.
+            shutil.rmtree(dest, ignore_errors=True)
             logger.warning(
-                "Publish: failed to remove leftover draft %s: %s", draft_path, e
+                "Publish: could not remove draft %s after copy: %s (rolled back)",
+                draft_path, e,
             )
+            raise HTTPException(
+                status_code=500,
+                detail=(
+                    f"Could not remove {draft_path} after copy: {e}. "
+                    "Your draft is unchanged. Check file permissions on the classroom directory."
+                ),
+            )
+
     _set_ownership_recursive(dest)
 
     # Push to all current participants

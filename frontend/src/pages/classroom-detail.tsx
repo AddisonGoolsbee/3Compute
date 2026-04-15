@@ -1243,6 +1243,33 @@ function AssignmentsTab({
     }
   };
 
+  const renameDraft = async (oldName: string) => {
+    const proposed = window.prompt(`Rename draft "${oldName}" to:`, oldName);
+    if (proposed === null) return; // cancelled
+    const next = proposed.trim();
+    if (!next || next === oldName) return;
+    const res = await fetch(
+      `${apiUrl}/classrooms/${classroomId}/drafts/${encodeURIComponent(oldName)}/rename`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ new_name: next }),
+      },
+    );
+    if (!res.ok) {
+      const body = await res.text();
+      let msg = body;
+      try {
+        const parsed = JSON.parse(body);
+        msg = parsed.detail ?? parsed.error ?? body;
+      } catch { /* not JSON */ }
+      alert(msg || 'Rename failed');
+      return;
+    }
+    await Promise.all([fetchDrafts(), userData.refreshFiles()]);
+  };
+
   const deleteDraft = async (name: string) => {
     if (!window.confirm(`Delete draft "${name}"?`)) return;
     await fetch(`${apiUrl}/classrooms/${classroomId}/drafts/${encodeURIComponent(name)}`, {
@@ -1269,8 +1296,15 @@ function AssignmentsTab({
         credentials: 'include',
       });
       if (!res.ok) {
-        const text = await res.text();
-        alert(text || 'Publish failed');
+        const body = await res.text();
+        let message = body;
+        try {
+          const parsed = JSON.parse(body);
+          message = parsed.detail ?? parsed.error ?? body;
+        } catch {
+          // not JSON — use raw body
+        }
+        alert(message || 'Publish failed');
         return;
       }
       // Wait for all refreshes before clearing the spinner so the UI reflects
@@ -1352,6 +1386,13 @@ function AssignmentsTab({
                     >
                       <Send size={13} />
                       {publishing === draft.name ? 'Publishing...' : 'Publish'}
+                    </button>
+                    <button
+                      onClick={() => renameDraft(draft.name)}
+                      className="p-1.5 rounded-lg text-gray-500 hover:text-white hover:bg-gray-800 transition-colors"
+                      title="Rename draft"
+                    >
+                      <Pencil size={15} />
                     </button>
                     <button
                       onClick={() => deleteDraft(draft.name)}
