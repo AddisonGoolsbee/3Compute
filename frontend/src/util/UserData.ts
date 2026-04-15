@@ -24,7 +24,7 @@ export type UserData = {
   setCurrentFile: Dispatch<SetStateAction<FileType | undefined>>;
   openFolders: string[];
   setOpenFolders: Dispatch<SetStateAction<string[]>>;
-  refreshFiles: (preserveLocation?: string) => Promise<void>;
+  refreshFiles: (force?: boolean) => Promise<void>;
   isUserEditingName?: boolean;
   setIsUserEditingName?: Dispatch<SetStateAction<boolean>>;
   selectedLocation?: string;

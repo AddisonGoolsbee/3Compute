@@ -7,6 +7,10 @@ import { useEffect, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { backendUrl } from '../util/UserData';
 import { getClasses } from '@luminescent/ui-react';
+import {
+  registerTerminalOutput,
+  setActiveTerminalTab,
+} from '../util/terminalActivity';
 
 interface TerminalSessionProps {
   tabId: string;
@@ -59,6 +63,21 @@ export function TerminalSession({ tabId, isActive }: TerminalSessionProps) {
     if (!terminalRef.current) return;
 
     let disposed = false;
+    // Debounce a files-changed dispatch off the tail of pty-output. When a
+    // command finishes, output stops and the shell prompt redraws; anything
+    // created/removed from the terminal (touch, >, rm, mv, cp, mkdir, etc.)
+    // is on disk by then. Polling the file tree 500ms after the last byte is
+    // effectively zero-latency for student workflows without adding idle
+    // network traffic.
+    let fsRefreshTimer: ReturnType<typeof setTimeout> | null = null;
+    const scheduleFsRefresh = () => {
+      if (fsRefreshTimer) clearTimeout(fsRefreshTimer);
+      fsRefreshTimer = setTimeout(() => {
+        fsRefreshTimer = null;
+        if (disposed) return;
+        window.dispatchEvent(new CustomEvent('3compute:files-changed'));
+      }, 500);
+    };
 
     const term = new Terminal({
       cursorBlink: true,
@@ -139,6 +158,8 @@ export function TerminalSession({ tabId, isActive }: TerminalSessionProps) {
 
     socket.on('pty-output', (data: { output: string }) => {
       term.write(data.output);
+      registerTerminalOutput(tabId);
+      scheduleFsRefresh();
     });
 
     socket.on('connect_error', (error) => {
@@ -198,6 +219,7 @@ export function TerminalSession({ tabId, isActive }: TerminalSessionProps) {
       stopWaiting();
       window.removeEventListener('3compute:run-command', runHandler);
       resizeObserver.disconnect();
+      if (fsRefreshTimer) clearTimeout(fsRefreshTimer);
       socket.disconnect();
       term.dispose();
     };
@@ -209,7 +231,8 @@ export function TerminalSession({ tabId, isActive }: TerminalSessionProps) {
       terminalInstanceRef.current.focus();
     }
     wasActiveRef.current = isActive;
-  }, [isActive]);
+    if (isActive) setActiveTerminalTab(tabId);
+  }, [isActive, tabId]);
 
   return (
     <div

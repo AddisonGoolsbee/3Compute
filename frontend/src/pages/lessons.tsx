@@ -1,6 +1,6 @@
 import { useEffect, useState, useContext, useRef } from 'react';
-import { Link } from 'react-router';
-import { LogoBirdflop } from '@luminescent/ui-react';
+import { useNavigate } from 'react-router';
+import Footer from '../components/Footer';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import {
@@ -61,6 +61,7 @@ function destinationKey(dest: ImportDestination): string {
 
 export default function LessonsPage() {
   const userData = useContext(UserDataContext);
+  const navigate = useNavigate();
   const isTeacher = userData?.userInfo?.role === 'teacher';
   const [meta, setMeta] = useState<MetaManifest>({});
   const [selectedStandards, setSelectedStandards] = useState<Set<string>>(new Set());
@@ -206,10 +207,17 @@ export default function LessonsPage() {
       });
       if (!res.ok) throw new Error((await res.text()) || `Upload failed (${res.status})`);
       setImportSuccess(destinationKey(dest));
-      setTimeout(() => {
-        setShowImportDialog(null);
-        setImportSuccess(null);
-      }, 1500);
+      // When the teacher imported into a classroom, jump to that classroom's
+      // page so they can see the new draft / published assignment right away.
+      // Workspace imports stay on the lessons page.
+      if (dest.kind === 'draft' || dest.kind === 'publish') {
+        setTimeout(() => navigate(`/classrooms/${dest.classroomId}`), 600);
+      } else {
+        setTimeout(() => {
+          setShowImportDialog(null);
+          setImportSuccess(null);
+        }, 1500);
+      }
     } catch (err) {
       setImportError(err instanceof Error ? err.message : 'Import failed');
     } finally {
@@ -343,17 +351,7 @@ export default function LessonsPage() {
         </div>
       </main>
 
-      <footer className="border-t border-gray-700 py-8 px-6">
-        <div className="max-w-5xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <LogoBirdflop size={20} fillGradient={['#54daf4', '#545eb6']} />
-            <span className="text-gray-500 text-sm">3Compute</span>
-          </div>
-          <Link to="/" className="text-gray-500 hover:text-gray-300 text-sm transition-colors">
-            Home
-          </Link>
-        </div>
-      </footer>
+      <Footer />
 
       {/* Lesson plan viewer overlay */}
       {activeLessonPlan && (

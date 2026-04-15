@@ -1,10 +1,11 @@
-import { Copy, ClipboardPaste, Download, FileIcon, FolderClosed, FolderOpen, MoreHorizontal, Pencil, Trash, X } from 'lucide-react';
+import { ChevronRight, ClipboardCopy, Copy, ClipboardPaste, Download, FileIcon, Folder, FolderClosed, FolderOpen, LayoutTemplate, MoreHorizontal, Pencil, Plus, Terminal as TerminalIcon, Trash, X } from 'lucide-react';
 import { getClasses } from '@luminescent/ui-react';
 import { useContext, Fragment, useEffect } from 'react';
 import { apiUrl, UserData, UserDataContext } from '../util/UserData';
 import { languageMap } from '../util/languageMap';
 import { uploadLocalFiles } from '../util/uploadLocalFiles';
 import { StatusContext } from '../util/Files';
+import { isActiveTerminalBusy } from '../util/terminalActivity';
 
 export default function MenuItems({ files, count = 0 }: { files: UserData['files'], count?: number }) {
   const {
@@ -211,7 +212,15 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
                   'cursor-pointer': !('files' in file),
                   'ring-1 ring-blue-400/40': dragOverLocation === file.location && 'files' in file,
                 })}
-                style={{ paddingLeft: `calc(0.5rem + ${count * 0.5}rem)` }}
+                style={{
+                  paddingLeft: `calc(0.5rem + ${count * 0.5}rem)`,
+                  boxShadow: 'none',
+                  // Luminescent's lum-bg-* utility paints a blue border on
+                  // :focus; pin it transparent here so mouse clicks don't
+                  // leave a persistent blue box around the row.
+                  borderColor: 'transparent',
+                  WebkitTapHighlightColor: 'transparent',
+                }}
               >
                 {'files' in file
                   ? (
@@ -293,7 +302,13 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
                               input.setSelectionRange(0, input.value.length);
                               return;
                             }
-                            await refreshFiles();
+                            // Must clear the editing flag BEFORE refresh.
+                            // refreshFiles in root.tsx no-ops while the flag is
+                            // set, to protect an in-progress rename input —
+                            // but once the POST succeeds we want the tree to
+                            // re-fetch so the placeholder/renaming flags clear.
+                            setIsUserEditingName?.(false);
+                            await refreshFiles(true);
                           } else if (name && name !== originalName) {
                             // Rename existing by moving to new path
                             const moveRes = await fetch(`${apiUrl}/files/move`, {
@@ -321,13 +336,15 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
                               setCurrentFile({ name, location: newLocation });
                               setSelectedLocation?.(newLocation);
                             }
-                            await refreshFiles();
+                            setIsUserEditingName?.(false);
+                            await refreshFiles(true);
                           } else {
                             // Unchanged rename on existing item: just refresh to clear renaming flag
-                            await refreshFiles();
+                            setIsUserEditingName?.(false);
+                            await refreshFiles(true);
                           }
                         } finally {
-                          // End editing state so auto-refresh resumes
+                          // Guarantee the flag is cleared even on early returns.
                           setIsUserEditingName?.(false);
                         }
                       }}
@@ -396,40 +413,63 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
         style={{ left: contextMenu.x, top: contextMenu.y }}
         onClick={(e) => e.stopPropagation()}
       >
-        {!contextMenu.blankSpace && (
-          <>
-            <button
-              className="lum-btn lum-btn-p-1 rounded-lum-1 gap-0.5 w-full text-left lum-bg-transparent"
-              onClick={() => {
-                if (!contextMenu.targetLocation) return;
-                const a = document.createElement('a');
-                a.href = `${apiUrl}/files/download${contextMenu.targetLocation}`;
-                a.download = '';
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-              }}
-            >
-              <Download size={16} className="inline mr-2" />
-              Download
-            </button>
-            <button
-              className="lum-btn lum-btn-p-1 rounded-lum-1 gap-0.5 w-full text-left lum-bg-transparent"
-              onClick={() => {
-                if (!contextMenu.targetLocation) return;
-                setClipboardLocation?.(contextMenu.targetLocation);
-                setContextMenu({ ...contextMenu, visible: false });
-              }}
-            >
-              <Copy size={16} className="inline mr-2" />
-              Copy
-            </button>
-          </>
-        )}
-        <button
-          className="lum-btn lum-btn-p-1 rounded-lum-1 gap-0.5 w-full text-left lum-bg-transparent"
-          disabled={!clipboardLocation}
-          onClick={async () => {
+        {(() => {
+          // Compute the base path for any "New …" action. Folders become the
+          // base directly; files resolve to their parent; blank space uses
+          // the enclosing folder (or /).
+          const newBase = (() => {
+            const loc = contextMenu.targetLocation;
+            if (!loc) return '/';
+            if (contextMenu.blankSpace || loc.endsWith('/')) {
+              return loc.endsWith('/') ? loc : `${loc}/`;
+            }
+            const idx = loc.lastIndexOf('/');
+            return idx >= 0 ? loc.slice(0, idx + 1) || '/' : '/';
+          })();
+          const dispatchNew = (kind: 'file' | 'folder' | 'template') => {
+            window.dispatchEvent(new CustomEvent('3compute:new-at', {
+              detail: { kind, base: newBase },
+            }));
+            setContextMenu({ ...contextMenu, visible: false });
+          };
+          return (
+            <div className="relative group/new">
+              <button className="lum-btn lum-btn-p-1 rounded-lum-1 gap-0.5 w-full text-left lum-bg-transparent flex items-center">
+                <Plus size={16} className="inline mr-2" />
+                <span className="flex-1">New</span>
+                <ChevronRight size={14} className="opacity-70" />
+              </button>
+              {/* Submenu sits flush against the parent (left-full, no margin)
+                  so the cursor doesn't cross a dead zone on its way over.
+                  Classes mirror the parent context menu exactly. */}
+              <div className="absolute left-full top-0 min-w-[10rem] lum-card p-1 gap-1 drop-shadow-xl lum-bg-gray-900/50 backdrop-blur-lg hidden group-hover/new:flex flex-col">
+                <button
+                  className="lum-btn lum-btn-p-1 rounded-lum-1 gap-0.5 w-full text-left lum-bg-transparent"
+                  onClick={() => dispatchNew('file')}
+                >
+                  <FileIcon size={16} className="inline mr-2" />
+                  File
+                </button>
+                <button
+                  className="lum-btn lum-btn-p-1 rounded-lum-1 gap-0.5 w-full text-left lum-bg-transparent"
+                  onClick={() => dispatchNew('folder')}
+                >
+                  <Folder size={16} className="inline mr-2" />
+                  Folder
+                </button>
+                <button
+                  className="lum-btn lum-btn-p-1 rounded-lum-1 gap-0.5 w-full text-left lum-bg-transparent"
+                  onClick={() => dispatchNew('template')}
+                >
+                  <LayoutTemplate size={16} className="inline mr-2" />
+                  Template
+                </button>
+              </div>
+            </div>
+          );
+        })()}
+        {(() => {
+          const handlePaste = async () => {
             if (!clipboardLocation || !contextMenu.targetLocation) return;
             const srcName = clipboardLocation.split('/').filter(Boolean).pop() ?? '';
             // Determine destination folder: if target is a folder, paste inside it; otherwise paste next to it
@@ -455,11 +495,126 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
               alert('Failed to paste');
             }
             setContextMenu({ ...contextMenu, visible: false });
-          }}
-        >
-          <ClipboardPaste size={16} className="inline mr-2" />
-          Paste{clipboardLocation ? ` "${clipboardLocation.split('/').filter(Boolean).pop()}"` : ''}
-        </button>
+          };
+
+          const PasteButton = (
+            <button
+              key="paste"
+              className="lum-btn lum-btn-p-1 rounded-lum-1 gap-0.5 w-full text-left lum-bg-transparent"
+              disabled={!clipboardLocation}
+              onClick={handlePaste}
+            >
+              <ClipboardPaste size={16} className="inline mr-2" />
+              Paste{clipboardLocation ? ` "${clipboardLocation.split('/').filter(Boolean).pop()}"` : ''}
+            </button>
+          );
+
+          // For blank-space right clicks, treat the implicit target as a
+          // directory (the nearest enclosing folder, or `/` at the root) —
+          // that's the student's `/app` in the container. We still expose
+          // Copy path and Open in terminal there.
+          const isFolder = contextMenu.blankSpace || contextMenu.targetLocation?.endsWith('/');
+          const targetDir = (() => {
+            if (!contextMenu.targetLocation) return null;
+            const trimmed = contextMenu.targetLocation.replace(/\/$/, '');
+            if (isFolder) return trimmed;
+            const parent = trimmed.split('/').slice(0, -1).join('/');
+            return parent || '';
+          })();
+          const pathForCopy = (() => {
+            if (!contextMenu.targetLocation) return null;
+            const trimmed = contextMenu.targetLocation.replace(/\/$/, '');
+            return trimmed || '/';
+          })();
+          const busy = isActiveTerminalBusy();
+          const terminalDisabled = targetDir === null || busy;
+
+          const CopyPathButton = (
+            <button
+              key="copy-path"
+              className="lum-btn lum-btn-p-1 rounded-lum-1 gap-0.5 w-full text-left lum-bg-transparent"
+              onClick={async () => {
+                if (pathForCopy === null) return;
+                try {
+                  await navigator.clipboard.writeText(pathForCopy);
+                } catch {
+                  window.prompt('Copy path', pathForCopy);
+                }
+                setContextMenu({ ...contextMenu, visible: false });
+              }}
+            >
+              <ClipboardCopy size={16} className="inline mr-2" />
+              Copy path
+            </button>
+          );
+
+          const TerminalButton = (
+            <button
+              key="terminal"
+              className="lum-btn lum-btn-p-1 rounded-lum-1 gap-0.5 w-full text-left lum-bg-transparent"
+              disabled={terminalDisabled}
+              title={busy ? 'Terminal is busy running a command' : undefined}
+              onClick={() => {
+                if (targetDir === null) return;
+                // Path inside the container is rooted at /app (the user's
+                // uploads mount). Escape any single-quote in a folder name
+                // by closing/escaping/reopening the quote.
+                const containerPath = `/app${targetDir}`.replace(/'/g, '\'\\\'\'');
+                window.dispatchEvent(new CustomEvent('3compute:run-command', {
+                  detail: { command: `cd '${containerPath}'\n` },
+                }));
+                setContextMenu({ ...contextMenu, visible: false });
+              }}
+            >
+              <TerminalIcon size={16} className="inline mr-2" />
+              Open in terminal
+            </button>
+          );
+
+          if (contextMenu.blankSpace) {
+            return (
+              <>
+                {PasteButton}
+                {CopyPathButton}
+                {TerminalButton}
+              </>
+            );
+          }
+
+          return (
+            <>
+              <button
+                className="lum-btn lum-btn-p-1 rounded-lum-1 gap-0.5 w-full text-left lum-bg-transparent"
+                onClick={() => {
+                  if (!contextMenu.targetLocation) return;
+                  const a = document.createElement('a');
+                  a.href = `${apiUrl}/files/download${contextMenu.targetLocation}`;
+                  a.download = '';
+                  document.body.appendChild(a);
+                  a.click();
+                  document.body.removeChild(a);
+                }}
+              >
+                <Download size={16} className="inline mr-2" />
+                Download
+              </button>
+              <button
+                className="lum-btn lum-btn-p-1 rounded-lum-1 gap-0.5 w-full text-left lum-bg-transparent"
+                onClick={() => {
+                  if (!contextMenu.targetLocation) return;
+                  setClipboardLocation?.(contextMenu.targetLocation);
+                  setContextMenu({ ...contextMenu, visible: false });
+                }}
+              >
+                <Copy size={16} className="inline mr-2" />
+                Copy
+              </button>
+              {PasteButton}
+              {CopyPathButton}
+              {TerminalButton}
+            </>
+          );
+        })()}
         {!contextMenu.blankSpace && (
           <button
             className="lum-btn lum-btn-p-1 rounded-lum-1 gap-0.5 w-full text-left lum-bg-transparent"
@@ -550,8 +705,16 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
                 });
 
                 if (!res.ok) {
-                  console.error('Failed to delete:', contextMenu.targetLocation);
-                  alert('Failed to delete file');
+                  const body = await res.text().catch(() => '');
+                  let reason = body;
+                  try {
+                    const parsed = JSON.parse(body);
+                    reason = parsed.detail ?? parsed.error ?? body;
+                  } catch {
+                    // not JSON, use raw body
+                  }
+                  console.error('Failed to delete:', contextMenu.targetLocation, reason);
+                  alert(reason || `Failed to delete "${contextMenu.targetLocation}"`);
                   return;
                 }
 

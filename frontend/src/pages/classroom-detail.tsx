@@ -1,6 +1,6 @@
 import { useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { Link, useParams } from 'react-router';
-import { LogoBirdflop } from '@luminescent/ui-react';
+import Footer from '../components/Footer';
 import MonacoEditor from '@monaco-editor/react';
 import {
   ArrowLeft, Copy, Check, Settings, Play,
@@ -247,6 +247,14 @@ export default function ClassroomDetailPage() {
             </div>
 
             <div className="flex items-center gap-1">
+              <Link
+                to={`/ide?classroom=${classroom.id}`}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm bg-[#54daf4]/15 text-[#54daf4] hover:bg-[#54daf4]/25 transition-colors"
+                title="Open this classroom in the IDE and cd the terminal into it"
+              >
+                <ExternalLink size={14} />
+                Open in IDE
+              </Link>
               <button
                 onClick={() => setHelpOpen(!helpOpen)}
                 className={`p-2 rounded-lg hover:bg-gray-800 transition-colors ${helpOpen ? 'text-white bg-gray-800' : 'text-gray-400 hover:text-white'}`}
@@ -429,15 +437,7 @@ export default function ClassroomDetailPage() {
         </div>
       </main>
 
-      <footer className="border-t border-gray-700/50 py-8 px-6">
-        <div className="max-w-5xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <LogoBirdflop size={20} fillGradient={['#54daf4', '#545eb6']} />
-            <span className="text-gray-500 text-sm">3Compute</span>
-          </div>
-          <Link to="/" className="text-gray-500 hover:text-gray-300 text-sm transition-colors">Home</Link>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }
@@ -1294,14 +1294,11 @@ function AssignmentsTab({
         <div className="flex items-center gap-2">
           <Link
             to="/lessons"
-            target="_blank"
-            rel="noopener noreferrer"
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm border border-gray-600 hover:border-gray-400 text-gray-300 hover:text-white transition-colors"
-            title="Browse ready-to-import lessons (opens in a new tab)"
+            title="Browse ready-to-import lessons"
           >
             <BookOpen size={14} />
             Browse Lessons
-            <ExternalLink size={12} className="opacity-70" />
           </Link>
           <label className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm bg-[#54daf4]/15 text-[#54daf4] hover:bg-[#54daf4]/25 cursor-pointer transition-colors">
             <Upload size={14} />

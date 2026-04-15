@@ -53,10 +53,10 @@ export default function NewButton() {
       .catch((err) => console.error('Failed to load classroom assignments', err));
   }, [userData?.userInfo, userData?.classroomSymlinks]);
 
-  const handleFileClick = () => {
+  const handleFileClick = (overrideBase?: string) => {
     if (!userData.files) return;
     userData.setIsUserEditingName?.(true);
-    const base = computeBasePath(userData.files, userData.selectedLocation);
+    const base = overrideBase ?? computeBasePath(userData.files, userData.selectedLocation);
     const folderKey = base.endsWith('/') ? base.slice(0, -1) : base;
     if (folderKey && folderKey !== '/') {
       userData.setOpenFolders((prev) => prev.includes(folderKey) ? prev : [...prev, folderKey]);
@@ -67,14 +67,18 @@ export default function NewButton() {
       renaming: true,
       placeholder: true,
     } as const;
-    const next = insertPlaceholder(userData.files, base, newFile);
+    // Drop any previously-spawned placeholder (e.g. one left in an error
+    // state from a validation failure) before inserting this one, otherwise
+    // two inline-rename inputs collide and the tree keys conflict.
+    const cleaned = stripPlaceholders(userData.files);
+    const next = insertPlaceholder(cleaned, base, newFile);
     userData.setFilesClientSide(next);
   };
 
-  const handleFolderClick = () => {
+  const handleFolderClick = (overrideBase?: string) => {
     if (!userData.files) return;
     userData.setIsUserEditingName?.(true);
-    const base = computeBasePath(userData.files, userData.selectedLocation);
+    const base = overrideBase ?? computeBasePath(userData.files, userData.selectedLocation);
     const newFolder = {
       name: 'new_folder',
       location: `${base}new_folder/`,
@@ -82,10 +86,33 @@ export default function NewButton() {
       files: [],
       placeholder: true,
     } as const;
-    const next = insertPlaceholder(userData.files, base, newFolder);
+    const cleaned = stripPlaceholders(userData.files);
+    const next = insertPlaceholder(cleaned, base, newFolder);
     userData.setFilesClientSide(next);
     userData.setOpenFolders((prev) => prev.includes(base.endsWith('/') ? base.slice(0, -1) : base) ? prev : [...prev, base.endsWith('/') ? base.slice(0, -1) : base]);
   };
+
+  function stripPlaceholders(files: any[]): any[] {
+    return files
+      .filter((f) => !f.placeholder)
+      .map((f) => ('files' in f ? { ...f, files: stripPlaceholders(f.files) } : f));
+  }
+
+  // Allow the Explorer context menu (MenuItems.tsx) to invoke the same actions
+  // via a shared event, passing the right-clicked path as the base.
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail as { kind: 'file' | 'folder' | 'template'; base?: string } | undefined;
+      if (!detail) return;
+      const base = detail.base ?? '/';
+      if (detail.kind === 'file') handleFileClick(base);
+      else if (detail.kind === 'folder') handleFolderClick(base);
+      else if (detail.kind === 'template') setShowTemplatePicker(true);
+    };
+    window.addEventListener('3compute:new-at', handler as EventListener);
+    return () => window.removeEventListener('3compute:new-at', handler as EventListener);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userData.files, userData.selectedLocation]);
 
   function insertPlaceholder(files: any[], base: string, item: any): any[] {
     const normBase = base.endsWith('/') ? base.slice(0, -1) : base;
@@ -301,14 +328,14 @@ export default function NewButton() {
       }
       extra-buttons={<>
         <button
-          onClick={handleFileClick}
+          onClick={() => handleFileClick()}
           className="lum-btn lum-btn-p-1 rounded-lum-1 gap-1 text-xs lum-bg-transparent"
         >
           <File size={16} />
           File
         </button>
         <button
-          onClick={handleFolderClick}
+          onClick={() => handleFolderClick()}
           className="lum-btn lum-btn-p-1 rounded-lum-1 gap-1 text-xs lum-bg-transparent"
         >
           <Folder size={16} />

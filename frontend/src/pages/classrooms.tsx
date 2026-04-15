@@ -1,10 +1,10 @@
 import { useEffect, useState, useContext } from 'react';
 import { Link } from 'react-router';
-import { LogoBirdflop } from '@luminescent/ui-react';
 import { ArrowLeft, Copy, Check, Users, ChevronRight, Plus, LogIn } from 'lucide-react';
 import { apiUrl, UserDataContext } from '../util/UserData';
 import CreateClassroomDialog from '../components/CreateClassroomDialog';
 import JoinClassroomDialog from '../components/JoinClassroomDialog';
+import Footer from '../components/Footer';
 
 interface Classroom {
   id: string;
@@ -177,17 +177,7 @@ export default function ClassroomsPage() {
         </div>
       </main>
 
-      <footer className="border-t border-gray-700/50 py-8 px-6">
-        <div className="max-w-4xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <LogoBirdflop size={20} fillGradient={['#54daf4', '#545eb6']} />
-            <span className="text-gray-500 text-sm">3Compute</span>
-          </div>
-          <Link to="/" className="text-gray-500 hover:text-gray-300 text-sm transition-colors">
-            Home
-          </Link>
-        </div>
-      </footer>
+      <Footer />
 
       <CreateClassroomDialog
         open={createOpen}

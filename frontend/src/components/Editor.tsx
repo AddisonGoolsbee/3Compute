@@ -1,6 +1,6 @@
 import { ChangeEvent, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import MonacoEditor, { type OnMount } from '@monaco-editor/react';
-import { File, Save, Check, X, Play, Printer, FlaskConical, RefreshCw, ArrowLeft } from 'lucide-react';
+import { File, Play, Printer, FlaskConical, RefreshCw, ArrowLeft } from 'lucide-react';
 import { printMarkdownElement } from '../util/printMarkdown';
 import { apiUrl, UserDataContext } from '../util/UserData';
 import { getClasses, SelectMenuRaw } from '@luminescent/ui-react';
@@ -53,6 +53,8 @@ const runCommandMap: Partial<Record<keyof typeof languageMap, (location: string)
   javascript: (loc) => `node "/app${loc}"\n`,
 };
 
+const MAX_EDITOR_CHARS = 10_000;
+
 function isImageFile(filename: string): boolean {
   const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg', 'ico'];
   const ext = filename.split('.').pop()?.toLowerCase();
@@ -77,6 +79,7 @@ export default function Editor() {
   const [currentLanguage, setCurrentLanguage] = useState<keyof typeof languageMap>('javascript');
   const [isImage, setIsImage] = useState<boolean>(false);
   const [isBinary, setIsBinary] = useState<boolean>(false);
+  const [isTooLarge, setIsTooLarge] = useState<boolean>(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [loadError, setLoadError] = useState<string | null>(null);
   const [isClient, setIsClient] = useState(false);
@@ -103,16 +106,14 @@ export default function Editor() {
       });
       if (!response.ok) {
         setSaveStatus('error');
-        setTimeout(() => setSaveStatus('idle'), 3000);
       } else {
         lastSavedValueRef.current = content;
+        // Stay on "Saved" until the next edit flips it back to "Saving…".
         setSaveStatus('saved');
-        setTimeout(() => setSaveStatus('idle'), 1000);
         broadcastChannelRef.current?.postMessage({ type: 'file-saved', location });
       }
     } catch {
       setSaveStatus('error');
-      setTimeout(() => setSaveStatus('idle'), 3000);
     }
   }, []);
 
@@ -121,12 +122,29 @@ export default function Editor() {
     setValue(newVal);
     const location = currentFileLocationRef.current;
     if (!location || newVal === lastSavedValueRef.current) return;
+    // Flip the status immediately so the user sees "Saving…" the moment they
+    // start editing; kick off the actual PUT after a short coalescing window
+    // so a burst of keystrokes becomes one request.
+    setSaveStatus('saving');
     if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current);
     autosaveTimerRef.current = setTimeout(() => {
       autosaveTimerRef.current = null;
       saveFile(location, newVal);
-    }, 1500);
+    }, 250);
   }, [saveFile]);
+
+  // Toggle the `- [ ]` / `- [x]` at a given source line in the markdown text
+  // and push the result through onChange so autosave handles persistence.
+  const handleMarkdownCheckboxToggle = useCallback((line: number, nextChecked: boolean) => {
+    const lines = value.split('\n');
+    const idx = line - 1;
+    if (idx < 0 || idx >= lines.length) return;
+    const target = nextChecked ? 'x' : ' ';
+    const replaced = lines[idx].replace(/\[([ xX])\]/, `[${target}]`);
+    if (replaced === lines[idx]) return;
+    lines[idx] = replaced;
+    onChange(lines.join('\n'));
+  }, [value, onChange]);
 
   const handleEditorMount: OnMount = (editor) => {
     editorRef.current = editor;
@@ -248,6 +266,7 @@ export default function Editor() {
 
       setLoadError(null);
       setIsBinary(false);
+      setIsTooLarge(false);
 
       const isImageFileType = isImageFile(currentFile.name);
       setIsImage(isImageFileType);
@@ -281,9 +300,19 @@ export default function Editor() {
         return;
       }
 
+      // Cap the editor at MAX_EDITOR_CHARS to keep Monaco responsive.
+      // Huge files (generated output, datasets) would otherwise jank the
+      // tab and can crash the browser on low-memory devices.
+      if (file.length > MAX_EDITOR_CHARS) {
+        setIsTooLarge(true);
+        setValue('');
+        return;
+      }
+
       setLoadError(null);
       lastSavedValueRef.current = file;
       setValue(file);
+      setSaveStatus('idle');
 
       const ext = currentFile.name.split('.').pop()?.toLowerCase();
       if (!ext) return;
@@ -334,6 +363,22 @@ export default function Editor() {
           <div className="flex items-center gap-1">
             {!isImage && (
               <>
+                <span
+                  className={getClasses({
+                    // Fixed-width slot so the leading "Sav" overlaps regardless
+                    // of whether we're showing Saving…/Saved/Save failed —
+                    // the text stays left-aligned instead of jumping as the
+                    // label length changes.
+                    'text-xs px-2 select-none whitespace-nowrap inline-block text-left w-20': true,
+                    'text-gray-500': saveStatus === 'saving' || saveStatus === 'saved' || saveStatus === 'idle',
+                    'text-red-400': saveStatus === 'error',
+                  })}
+                  aria-live="polite"
+                >
+                  {saveStatus === 'saving' && 'Saving…'}
+                  {saveStatus === 'saved' && 'Saved'}
+                  {saveStatus === 'error' && 'Save failed'}
+                </span>
                 <SelectMenuRaw
                   id="language-select"
                   className="rounded-lum-2 text-xs gap-1 lum-bg-orange-700 hover:lum-bg-orange-600 w-full lum-btn-p-1"
@@ -364,33 +409,6 @@ export default function Editor() {
                     </div>
                   }
                 />
-                <button
-                  className={getClasses({
-                    'lum-btn rounded-lum-2 text-xs gap-1 w-full lum-btn-p-1': true,
-                    'lum-bg-green-700 hover:lum-bg-green-600': saveStatus === 'idle',
-                    'lum-bg-blue-700': saveStatus === 'saving',
-                    'lum-bg-green-600': saveStatus === 'saved',
-                    'lum-bg-red-700': saveStatus === 'error',
-                  })}
-                  onClick={async () => {
-                    if (!userData.currentFile || saveStatus === 'saving') return;
-                    if (autosaveTimerRef.current) {
-                      clearTimeout(autosaveTimerRef.current);
-                      autosaveTimerRef.current = null;
-                    }
-                    await saveFile(userData.currentFile.location, value);
-                  }}
-                  disabled={saveStatus === 'saving'}
-                >
-                  {saveStatus === 'saving' && <Save size={16} className="animate-pulse" />}
-                  {saveStatus === 'saved' && <Check size={16} />}
-                  {saveStatus === 'error' && <X size={16} />}
-                  {saveStatus === 'idle' && <Save size={16} />}
-                  {saveStatus === 'saving' && 'Saving...'}
-                  {saveStatus === 'saved' && 'Saved!'}
-                  {saveStatus === 'error' && 'Error'}
-                  {saveStatus === 'idle' && 'Save'}
-                </button>
                 {userData.currentFile?.location && runCommandMap[currentLanguage as keyof typeof languageMap] && (
                   <button
                     className="lum-btn rounded-lum-2 text-xs gap-1 w-full lum-btn-p-1 lum-bg-blue-700 hover:lum-bg-blue-600"
@@ -435,13 +453,6 @@ export default function Editor() {
               {testRunning ? 'Running...' : 'Run Tests'}
             </button>
           )}
-          <button
-            className="text-xs text-gray-500 hover:text-gray-300 transition-colors ml-1"
-            onClick={() => userData.setStudentView?.(undefined)}
-            title="Exit student view"
-          >
-            <X size={12} />
-          </button>
         </div>
       )}
       {!userData.currentFile ? null : testOutput !== null ? (
@@ -458,6 +469,24 @@ export default function Editor() {
           <div className="text-center text-gray-400">
             <File size={48} className="mx-auto mb-3 opacity-40" />
             <p className="text-sm">This file cannot be displayed in the editor.</p>
+          </div>
+        </div>
+      ) : isTooLarge ? (
+        <div className="flex-1 flex items-center justify-center p-4">
+          <div className="text-center text-gray-400 max-w-sm">
+            <File size={48} className="mx-auto mb-3 opacity-40" />
+            <p className="text-sm">
+              This file is too large to open in the editor ({MAX_EDITOR_CHARS.toLocaleString()}-character limit).
+            </p>
+            <p className="text-xs text-gray-500 mt-2">
+              View it from the terminal (e.g. <code className="bg-gray-800 px-1 rounded">less</code>) or use the Download button.
+            </p>
+            <a
+              href={`${apiUrl}/files/download${userData.currentFile?.location}`}
+              className="mt-3 inline-block text-xs lum-btn lum-bg-gray-800 hover:lum-bg-gray-700 rounded-lum-2 lum-btn-p-1"
+            >
+              Download
+            </a>
           </div>
         </div>
       ) : loadError ? (
@@ -485,7 +514,59 @@ export default function Editor() {
       ) : mdPreview && currentLanguage === 'markdown' ? (
         <div className="flex-1 overflow-auto p-4">
           <div className="markdown-content" ref={markdownRef}>
-            <Markdown remarkPlugins={[remarkGfm]}>
+            <Markdown
+              remarkPlugins={[remarkGfm]}
+              components={{
+                // Task-list items render as `<li class="task-list-item">` with
+                // a `<input type="checkbox" disabled>` first child. react-markdown
+                // passes the disabled attribute through, and disabled inputs
+                // in Chromium don't dispatch click events — so our input
+                // override never fires. Override the list item instead and
+                // swap the disabled input for a live button styled like a
+                // checkbox. The list item also carries reliable source
+                // position info for locating the right `[ ]` in the text.
+                li: ({ node, children, ...props }) => {
+                  const hast = node as { properties?: { className?: string[] }; position?: { start?: { line?: number } } } | undefined;
+                  const classNames = hast?.properties?.className ?? [];
+                  const isTaskItem = Array.isArray(classNames) && classNames.includes('task-list-item');
+                  if (!isTaskItem) return <li {...props}>{children}</li>;
+                  const line = hast?.position?.start?.line;
+                  const childArray = Array.isArray(children) ? children : [children];
+                  let checked = false;
+                  let inputIndex = -1;
+                  for (let i = 0; i < childArray.length; i++) {
+                    const c = childArray[i] as React.ReactElement<{ type?: string; checked?: boolean }> | undefined;
+                    if (c && typeof c === 'object' && 'props' in c && c.props?.type === 'checkbox') {
+                      checked = !!c.props.checked;
+                      inputIndex = i;
+                      break;
+                    }
+                  }
+                  const rest = inputIndex >= 0
+                    ? childArray.filter((_, i) => i !== inputIndex)
+                    : childArray;
+                  return (
+                    <li {...props}>
+                      <button
+                        type="button"
+                        role="checkbox"
+                        aria-checked={checked}
+                        className="mr-1.5 align-middle cursor-pointer inline-flex items-center justify-center w-4 h-4 rounded border border-gray-500 text-gray-200 bg-gray-900 hover:border-gray-300"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          if (typeof line !== 'number') return;
+                          handleMarkdownCheckboxToggle(line, !checked);
+                        }}
+                      >
+                        {checked ? '✓' : ''}
+                      </button>
+                      {rest}
+                    </li>
+                  );
+                },
+              }}
+            >
               {value}
             </Markdown>
           </div>

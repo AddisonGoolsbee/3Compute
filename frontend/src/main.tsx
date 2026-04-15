@@ -30,10 +30,7 @@ export default function App() {
   // target is findable by the processing effects below.
   useEffect(() => {
     if (deepLinkRefreshedRef.current) return;
-    const hasDeepLink =
-      !!searchParams.get('classroom') &&
-      (!!searchParams.get('folder') || !!searchParams.get('file'));
-    if (!hasDeepLink) return;
+    if (!searchParams.get('classroom')) return;
     deepLinkRefreshedRef.current = true;
     userData.refreshFiles();
   }, [searchParams, userData]);
@@ -90,13 +87,18 @@ export default function App() {
     }
   }, [searchParams, userData]);
 
-  // Deep-link: open a folder (e.g. draft) in the IDE, selecting README.md if present
+  // Deep-link: open a folder (e.g. draft) in the IDE, or just a classroom
+  // root, selecting README.md if present and cd'ing the terminal.
   useEffect(() => {
     if (deepLinkProcessedRef.current) return;
     const classroomId = searchParams.get('classroom');
     const folderPath = searchParams.get('folder');
+    const studentEmail = searchParams.get('student');
+    const filePath = searchParams.get('file');
 
-    if (!classroomId || !folderPath) return;
+    if (!classroomId) return;
+    // If this is the student-file variant it's handled by the effect above.
+    if (studentEmail || filePath) return;
     if (!userData.files || !userData.classroomSymlinks) return;
 
     const slug = Object.entries(userData.classroomSymlinks).find(
@@ -106,7 +108,7 @@ export default function App() {
 
     deepLinkProcessedRef.current = true;
 
-    const folderLocation = `/${slug}/${folderPath}`;
+    const folderLocation = folderPath ? `/${slug}/${folderPath}` : `/${slug}`;
 
     // Try to find a README.md inside the folder
     const readmePath = `${folderLocation}/README.md`;
@@ -119,6 +121,20 @@ export default function App() {
     } else {
       // Just open the folder in the explorer
       openParentFolders(folderLocation + '/placeholder');
+    }
+
+    // cd the terminal only when we're deep-linking into a specific folder
+    // (e.g. "Edit in IDE" on a draft). Plain "Open in IDE" on a classroom
+    // leaves the terminal where it is. Delay long enough for the pty to
+    // connect and the shell prompt to draw; the run-command handler only
+    // fires on the active tab, so an early dispatch would be dropped.
+    if (folderPath) {
+      const containerPath = `/app${folderLocation}`.replace(/'/g, '\'\\\'\'');
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('3compute:run-command', {
+          detail: { command: `cd '${containerPath}'\n` },
+        }));
+      }, 1500);
     }
 
     setSearchParams({}, { replace: true });

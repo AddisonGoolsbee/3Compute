@@ -12,9 +12,32 @@ export function HydrateFallback() {
   return null;
 }
 
+const OPEN_FOLDERS_STORAGE_KEY = '3compute:open-folders';
+
+function loadPersistedOpenFolders(): string[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = window.localStorage.getItem(OPEN_FOLDERS_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter((v): v is string => typeof v === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+
+function collectFolderLocations(items: Files, out: Set<string>): void {
+  for (const item of items) {
+    if ('files' in item) {
+      out.add(item.location);
+      collectFolderLocations(item.files, out);
+    }
+  }
+}
+
 export function Layout({ children }: { children: ReactNode }) {
   const loaderData = useLoaderData<UserData>();
-  const [openFolders, setOpenFolders] = useState<string[]>([]);
+  const [openFolders, setOpenFolders] = useState<string[]>(() => loadPersistedOpenFolders());
   const [currentFile, setCurrentFile] = useState<FileType | undefined>();
   const [files, setFilesClientSide] = useState<Files | undefined>(loaderData?.files);
   const [classroomSymlinks, setClassroomSymlinks] = useState(loaderData?.classroomSymlinks || {});
@@ -31,13 +54,40 @@ export function Layout({ children }: { children: ReactNode }) {
     // isUserEditingNameRef.current = isUserEditingName; // This line is removed
   }, [isUserEditingName]);
 
-  const refreshFiles = useCallback(async () => {
-    // Skip starting a refresh while the user is typing a name
-    if (isUserEditingName) return;
+  // Persist the set of expanded folders so the explorer restores its open
+  // state after a reload / tab switch. Only the user's own toggles flow
+  // into state (no server sync), so writing on every change is cheap.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      window.localStorage.setItem(OPEN_FOLDERS_STORAGE_KEY, JSON.stringify(openFolders));
+    } catch {
+      // quota or unavailable — ignore
+    }
+  }, [openFolders]);
+
+  // Prune persisted open-folder entries that no longer exist in the current
+  // file tree (renamed, deleted, archived classroom, etc.). Runs every time
+  // the tree changes; a no-op if every entry still resolves to a folder.
+  useEffect(() => {
+    if (!files) return;
+    const existing = new Set<string>();
+    collectFolderLocations(files, existing);
+    setOpenFolders((prev) => {
+      const kept = prev.filter((loc) => existing.has(loc));
+      return kept.length === prev.length ? prev : kept;
+    });
+  }, [files]);
+
+  const refreshFiles = useCallback(async (force?: boolean) => {
+    // Skip starting a refresh while the user is typing a name — unless the
+    // caller passes force=true (e.g. after successfully creating a file via
+    // the inline rename input, where we explicitly want the tree re-fetched
+    // so the placeholder/renaming flags get cleared).
+    if (!force && isUserEditingName) return;
     try {
       const { files: newFiles, classroomSymlinks: newMap } = await fetchFilesList();
-      // If user started editing while the request was in-flight, ignore this result
-      if (isUserEditingName) return;
+      if (!force && isUserEditingName) return;
       setFilesClientSide(newFiles);
       setClassroomSymlinks(newMap);
       // Note: We don't update currentFile here to avoid triggering re-renders in Editor
@@ -63,6 +113,43 @@ export function Layout({ children }: { children: ReactNode }) {
     document.addEventListener('3compute:rename', handler as EventListener);
     return () => document.removeEventListener('3compute:rename', handler as EventListener);
   }, [files]);
+
+  // Teacher-side: keep the "Viewing X's file" header in sync with which file
+  // the teacher has open. Entering a student's project sets the banner,
+  // switching to another student's project updates it, and clicking any
+  // file outside a student's project (including in the teacher's own
+  // workspace) clears it along with the test-output panel in Editor.tsx.
+  useEffect(() => {
+    const loc = currentFile?.location;
+    if (!loc || !classroomSymlinks) {
+      if (studentView) setStudentView(undefined);
+      return;
+    }
+    const parts = loc.split('/').filter(Boolean);
+    // A teacher's in-classroom file path looks like
+    //   /{slug}/participants/{sanitized-email}/{template}/...
+    if (parts.length < 5 || parts[1] !== 'participants') {
+      if (studentView) setStudentView(undefined);
+      return;
+    }
+    const slug = parts[0];
+    const info = classroomSymlinks[slug];
+    if (!info || !info.isInstructor) {
+      if (studentView) setStudentView(undefined);
+      return;
+    }
+    const next: StudentViewContext = {
+      classroomId: info.id,
+      studentEmail: parts[2],
+      templateName: parts[3],
+    };
+    if (
+      studentView?.classroomId === next.classroomId &&
+      studentView?.studentEmail === next.studentEmail &&
+      studentView?.templateName === next.templateName
+    ) return;
+    setStudentView(next);
+  }, [currentFile?.location, classroomSymlinks, studentView]);
 
   const userData = {
     ...loaderData,

@@ -24,6 +24,17 @@ That's it. The `-v` flag removes all named volumes (uploads, classrooms, DinD st
 
 Production uses a systemd service, host Docker (not DinD), Caddy for subdomain routing, and Nginx as the reverse proxy. There's more state to clean up.
 
+### One-time host setup (skip if already done)
+
+The backend (www-data) and the container user (999:995) share files via GID 995 (`3compute-container`). If this is a fresh host, create the group and add www-data to it:
+
+```bash
+getent group 3compute-container >/dev/null || sudo groupadd -g 995 3compute-container
+sudo usermod -a -G 3compute-container www-data
+```
+
+### Fresh-restart steps
+
 ```bash
 # 1. Stop the backend service
 sudo systemctl stop 3compute
@@ -60,8 +71,13 @@ urllib.request.urlopen(req)
 print(f'Cleared {len(routes) - len(kept)} subdomain routes')
 "
 
-# 7. Fix ownership (the deploy script does this too, but just in case)
-sudo chown -R www-data:www-data /var/lib/3compute
+# 7. Fix ownership on the three top-level dirs.
+#    IMPORTANT: no -R here. User files inside are owned by the container user
+#    (999:995) and must stay that way so the terminal can write them. The
+#    three dirs are group-owned 3compute-container (GID 995) with setgid so
+#    new entries inherit the group automatically.
+sudo chown www-data:3compute-container /var/lib/3compute /var/lib/3compute/uploads /var/lib/3compute/classrooms
+sudo chmod 2775 /var/lib/3compute /var/lib/3compute/uploads /var/lib/3compute/classrooms
 
 # 8. Rebuild and restart via the deploy script
 sudo /var/www/3compute/production/opt/deploy.sh

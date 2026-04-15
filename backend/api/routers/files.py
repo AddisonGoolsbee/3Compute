@@ -300,6 +300,59 @@ def _check_participant_scope(
     return "You can only create files inside assignment folders."
 
 
+def _check_participant_remove_path(
+    abs_path: str, user_id: str, db: Session
+) -> str | None:
+    """Return an error if a participant tries to move or delete a protected
+    path inside their classroom.
+
+    Participants may not:
+      - move or delete an assignment folder (their own copy) while the
+        teacher still has the assignment published in ``assignments/``. Once
+        the teacher removes the assignment from the classroom, the student
+        can clean up or move their copy freely.
+      - move or delete the ``.templates`` symlink (or anything inside it).
+    """
+    if not abs_path.startswith(CLASSROOMS_ROOT):
+        return None
+
+    rel = abs_path[len(CLASSROOMS_ROOT) :].lstrip("/")
+    parts = rel.split("/")
+
+    # Structure we care about: {classroom_id}/participants/{email}/...
+    if len(parts) < 4 or parts[1] != "participants":
+        return None
+
+    classroom_id = parts[0]
+
+    # Instructors can do whatever they want.
+    if _is_instructor_for_classroom(db, classroom_id, str(user_id)):
+        return None
+
+    fourth = parts[3]
+
+    # The `.templates` symlink and anything under it are off-limits to move
+    # or delete — it's a read-only reference view of the teacher's folder.
+    if fourth == ".templates":
+        return "The .templates folder is a read-only reference and can't be moved or removed."
+
+    # Protect the top-level assignment folder itself (parts == 4 means the
+    # path points at {email}/{assignment_name}, not a file inside it). Once
+    # the teacher removes the assignment from `assignments/`, this check
+    # stops applying and the student can clean up.
+    if len(parts) == 4:
+        assignment_path = os.path.join(
+            CLASSROOMS_ROOT, classroom_id, "assignments", fourth
+        )
+        if os.path.isdir(assignment_path):
+            return (
+                f"\"{fourth}\" is still published in this classroom. "
+                "Ask your teacher to remove the assignment first if you want to delete or move it."
+            )
+
+    return None
+
+
 def _validate_path_within_roots(abs_path: str, upload_dir: str) -> None:
     """Raise 400 if *abs_path* escapes the allowed roots."""
     allowed_roots = [upload_dir, CLASSROOMS_ROOT]
@@ -601,8 +654,20 @@ async def list_files(
                     continue
             file_tree.append(relative_path)
 
-    if expanded_symlinks:
-        file_tree = [e for e in file_tree if e not in expanded_symlinks]
+    # Deduplicate while preserving order. We used to unconditionally drop any
+    # entry whose path also appeared in `expanded_symlinks` (i.e. the slug
+    # stub that `_append_classroom_tree_entries` inserts up front), on the
+    # theory that the child entries would imply the parent folder. That
+    # broke the empty-classroom case: a student who just joined sees only a
+    # hidden `.templates/` symlink inside their classroom, which the hidden
+    # filter strips, leaving no children to imply the parent — so the whole
+    # classroom folder disappeared from the explorer until "Show hidden
+    # files" was toggled on. Keeping every entry (but deduped) means the
+    # slug stub survives even when the classroom has no visible items yet,
+    # and folders are hidden only if their own name is hidden.
+    if file_tree:
+        seen: set[str] = set()
+        file_tree = [e for e in file_tree if not (e in seen or seen.add(e))]
 
     # Build classroom metadata from the database
     classroom_meta: dict[str, dict] = {}
@@ -689,6 +754,10 @@ async def move_file_or_folder(
             raise HTTPException(status_code=400, detail="Invalid path")
 
         err = _check_participant_scope(dst_path, user.id, db)
+        if err:
+            raise HTTPException(status_code=403, detail=err)
+
+        err = _check_participant_remove_path(src_path, user.id, db)
         if err:
             raise HTTPException(status_code=403, detail=err)
 
@@ -1189,10 +1258,17 @@ async def delete_file(
     if err:
         raise HTTPException(status_code=403, detail=err)
 
-    if not os.path.exists(abs_path):
+    err = _check_participant_remove_path(abs_path, user.id, db)
+    if err:
+        raise HTTPException(status_code=403, detail=err)
+
+    if not os.path.exists(abs_path) and not os.path.islink(abs_path):
         raise HTTPException(status_code=404, detail="File not found")
 
-    if os.path.isdir(abs_path):
+    if os.path.islink(abs_path):
+        # Don't recurse into a symlink's target when deleting.
+        os.unlink(abs_path)
+    elif os.path.isdir(abs_path):
         shutil.rmtree(abs_path)
     else:
         os.remove(abs_path)
