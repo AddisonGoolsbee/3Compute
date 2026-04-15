@@ -53,7 +53,12 @@ const runCommandMap: Partial<Record<keyof typeof languageMap, (location: string)
   javascript: (loc) => `node "/app${loc}"\n`,
 };
 
-const MAX_EDITOR_CHARS = 10_000;
+const MAX_EDITOR_LINES = 10_000;
+// Upper bound on total characters too, so a single massive-line file
+// (minified bundles, generated blobs) can't sneak past the line check.
+// ~100 chars/line × 10k lines = 1M chars, which is already comfortably
+// above anything humans write by hand.
+const MAX_EDITOR_CHARS = 1_000_000;
 
 function isImageFile(filename: string): boolean {
   const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg', 'ico'];
@@ -300,10 +305,13 @@ export default function Editor() {
         return;
       }
 
-      // Cap the editor at MAX_EDITOR_CHARS to keep Monaco responsive.
-      // Huge files (generated output, datasets) would otherwise jank the
-      // tab and can crash the browser on low-memory devices.
-      if (file.length > MAX_EDITOR_CHARS) {
+      // Cap on both line count and total size so Monaco stays responsive.
+      // Huge files (generated output, datasets) would otherwise jank the tab
+      // and can crash the browser on low-memory devices. A char cap also
+      // guards against a single massive-line file that would evade the line
+      // check.
+      const lineCount = (file.match(/\n/g)?.length ?? 0) + 1;
+      if (lineCount > MAX_EDITOR_LINES || file.length > MAX_EDITOR_CHARS) {
         setIsTooLarge(true);
         setValue('');
         return;
@@ -337,11 +345,11 @@ export default function Editor() {
         <div className="flex items-center gap-2 pl-3 p-1 m-1 lum-bg-gray-900 rounded-lum-1 min-w-0">
           <span className="text-sm flex gap-2 items-center flex-1 min-w-0" title={userData?.currentFile?.location}>
             <File size={16} className="shrink-0" />
-            <span className="truncate min-w-0 flex-1">{userData?.currentFile?.location}</span>
+            <span className="truncate min-w-0">{userData?.currentFile?.location}</span>
             {currentLanguage === 'markdown' && !isImage && (
               <>
                 <button className={getClasses({
-                  'lum-btn p-1 rounded-lum-2 gap-1 lum-bg-transparent hover:lum-bg-gray-800': true,
+                  'lum-btn p-1 rounded-lum-2 gap-1 lum-bg-transparent hover:lum-bg-gray-800 shrink-0': true,
                   'text-blue-500': mdPreview,
                 })}
                 onClick={() => setMdPreview(!mdPreview)}
@@ -350,7 +358,7 @@ export default function Editor() {
                 </button>
                 {mdPreview && (
                   <button
-                    className="lum-btn p-1 rounded-lum-2 lum-bg-transparent hover:lum-bg-gray-800 text-gray-400 hover:text-white"
+                    className="lum-btn p-1 rounded-lum-2 lum-bg-transparent hover:lum-bg-gray-800 text-gray-400 hover:text-white shrink-0"
                     title="Print"
                     onClick={() => { if (markdownRef.current) printMarkdownElement(markdownRef.current, userData.currentFile?.name ?? 'Document'); }}
                   >
@@ -476,7 +484,8 @@ export default function Editor() {
           <div className="text-center text-gray-400 max-w-sm">
             <File size={48} className="mx-auto mb-3 opacity-40" />
             <p className="text-sm">
-              This file is too large to open in the editor ({MAX_EDITOR_CHARS.toLocaleString()}-character limit).
+              This file is too large to open in the editor
+              ({MAX_EDITOR_LINES.toLocaleString()}-line / {MAX_EDITOR_CHARS.toLocaleString()}-character limit).
             </p>
             <p className="text-xs text-gray-500 mt-2">
               View it from the terminal (e.g. <code className="bg-gray-800 px-1 rounded">less</code>) or use the Download button.
