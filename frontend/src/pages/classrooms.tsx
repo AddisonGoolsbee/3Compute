@@ -1,6 +1,6 @@
 import { useEffect, useState, useContext } from 'react';
 import { Link } from 'react-router';
-import { ArrowLeft, Copy, Check, Users, ChevronRight, Plus, LogIn } from 'lucide-react';
+import { ArrowLeft, Copy, Check, Users, ChevronRight, Plus, LogIn, ExternalLink, FileText } from 'lucide-react';
 import { apiUrl, UserDataContext } from '../util/UserData';
 import CreateClassroomDialog from '../components/CreateClassroomDialog';
 import JoinClassroomDialog from '../components/JoinClassroomDialog';
@@ -15,6 +15,12 @@ interface Classroom {
   joins_paused?: boolean;
 }
 
+interface ClassroomAssignments {
+  id: string;
+  name: string;
+  templates: { name: string; files: string[] }[];
+}
+
 function formatCode(code: string) {
   return code.length === 6 ? `${code.slice(0, 3)}-${code.slice(3)}` : code;
 }
@@ -23,6 +29,7 @@ export default function ClassroomsPage() {
   const userData = useContext(UserDataContext);
   const [owned, setOwned] = useState<Classroom[]>([]);
   const [joined, setJoined] = useState<Classroom[]>([]);
+  const [assignmentsByClassroom, setAssignmentsByClassroom] = useState<Record<string, ClassroomAssignments['templates']>>({});
   const [loading, setLoading] = useState(true);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
@@ -51,6 +58,18 @@ export default function ClassroomsPage() {
   useEffect(() => {
     if (!userData?.userInfo) return;
     fetchClassrooms();
+    // Pull assignment lists for every classroom the user is in so joined
+    // (student) rows can show direct "Open in IDE" links straight into
+    // each assignment folder.
+    fetch(`${apiUrl}/classrooms/assignments`, { credentials: 'include' })
+      .then((r) => r.json())
+      .then((data) => {
+        const map: Record<string, ClassroomAssignments['templates']> = {};
+        const classrooms: ClassroomAssignments[] = Array.isArray(data.classrooms) ? data.classrooms : [];
+        for (const c of classrooms) map[c.id] = c.templates ?? [];
+        setAssignmentsByClassroom(map);
+      })
+      .catch(() => setAssignmentsByClassroom({}));
   }, [userData?.userInfo]);
 
   const copyCode = (e: React.MouseEvent, classroom: Classroom) => {
@@ -161,17 +180,43 @@ export default function ClassroomsPage() {
               {joined.length > 0 && owned.length > 0 && (
                 <div className="border-t border-gray-700/50" />
               )}
-              {joined.map((classroom) => (
-                <div
-                  key={classroom.id}
-                  className="flex items-center gap-4 px-4 py-4"
-                >
-                  <div className="flex-1 min-w-0">
-                    <h2 className="text-lg font-semibold truncate">{classroom.name}</h2>
-                    <span className="text-sm text-gray-600">Joined</span>
+              {joined.map((classroom) => {
+                const assignments = assignmentsByClassroom[classroom.id] ?? [];
+                return (
+                  <div key={classroom.id} className="px-4 py-4">
+                    <div className="flex items-center gap-4">
+                      <div className="flex-1 min-w-0">
+                        <h2 className="text-lg font-semibold truncate">{classroom.name}</h2>
+                        <span className="text-sm text-gray-600">Joined</span>
+                      </div>
+                      <Link
+                        to={`/ide?classroom=${classroom.id}`}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm bg-[#54daf4]/15 text-[#54daf4] hover:bg-[#54daf4]/25 transition-colors"
+                        title="Open this classroom in the IDE"
+                      >
+                        <ExternalLink size={14} />
+                        Open in IDE
+                      </Link>
+                    </div>
+                    {assignments.length > 0 && (
+                      <div className="mt-3 ml-0 flex flex-col gap-1">
+                        {assignments.map((t) => (
+                          <Link
+                            key={t.name}
+                            to={`/ide?classroom=${classroom.id}&folder=${encodeURIComponent(t.name)}`}
+                            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-800/30 hover:bg-gray-800/60 transition-colors group"
+                            title={`Open "${t.name}" in the IDE`}
+                          >
+                            <FileText size={14} className="text-gray-500 group-hover:text-gray-300 shrink-0" />
+                            <span className="text-sm text-gray-300 truncate flex-1">{t.name}</span>
+                            <ExternalLink size={12} className="text-gray-600 group-hover:text-gray-400 shrink-0" />
+                          </Link>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

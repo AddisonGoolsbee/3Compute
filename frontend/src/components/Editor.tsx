@@ -327,17 +327,17 @@ export default function Editor() {
   const monacoLanguage = languageMap[currentLanguage as keyof typeof languageMap]?.language || 'plaintext';
 
   return (
-    <div className="relative transition-all flex flex-col rounded-lum h-full bg-[#1e1e1e] w-full border border-lum-border/20">
+    <div className="relative transition-all flex flex-col rounded-lum h-full bg-[#1e1e1e] w-full border border-lum-border/20 overflow-hidden">
       {!userData.currentFile && (
         <div className="flex-1 flex items-center justify-center text-gray-500 text-sm">
           Click a file to view it
         </div>
       )}
       {userData.currentFile && (
-        <div className="flex items-center gap-2 pl-3 p-1 m-1 lum-bg-gray-900 rounded-lum-1">
-          <span className="text-sm flex gap-2 items-center flex-1">
-            <File size={16} />
-            {userData?.currentFile?.location}
+        <div className="flex items-center gap-2 pl-3 p-1 m-1 lum-bg-gray-900 rounded-lum-1 min-w-0">
+          <span className="text-sm flex gap-2 items-center flex-1 min-w-0" title={userData?.currentFile?.location}>
+            <File size={16} className="shrink-0" />
+            <span className="truncate min-w-0 flex-1">{userData?.currentFile?.location}</span>
             {currentLanguage === 'markdown' && !isImage && (
               <>
                 <button className={getClasses({
