@@ -1,16 +1,24 @@
 import { useContext, useState } from 'react';
-import { FolderIcon } from 'lucide-react';
+import { FolderIcon, Eye, EyeOff } from 'lucide-react';
 import { apiUrl, defaultUserData, UserDataContext } from '../util/UserData';
 import UploadButton from './ExplorerButtons/UploadButton';
 import NewButton from './ExplorerButtons/NewButton';
 import MenuItems from './MenuItems';
 import { getClasses } from '@luminescent/ui-react';
-import { StatusContext } from '../util/Files';
+import { StatusContext, getShowHidden, setShowHidden } from '../util/Files';
 import { uploadLocalFiles } from '../util/uploadLocalFiles';
 
 export default function Explorer() {
   const userData = useContext(UserDataContext);
   const [status, setStatus] = useState<string | null>(null);
+  const [showHidden, setShowHiddenState] = useState<boolean>(() => getShowHidden());
+
+  const toggleShowHidden = () => {
+    const next = !showHidden;
+    setShowHiddenState(next);
+    setShowHidden(next);
+    userData.refreshFiles();
+  };
 
   return <StatusContext value={{ status, setStatus }}>
     <div className="flex h-full w-full flex-col lum-card gap-1 p-1 lum-bg-gray-950 border-lum-border/30">
@@ -23,6 +31,15 @@ export default function Explorer() {
           <span className="ml-1">
             File Explorer
           </span>
+          <button
+            onClick={toggleShowHidden}
+            title={showHidden ? 'Hide hidden files' : 'Show hidden files'}
+            aria-label={showHidden ? 'Hide hidden files' : 'Show hidden files'}
+            className="ml-auto p-1 rounded hover:bg-gray-700/60 text-gray-400 hover:text-white transition-colors"
+            aria-pressed={showHidden}
+          >
+            {showHidden ? <Eye size={14} /> : <EyeOff size={14} />}
+          </button>
         </div>
         <div className="grid grid-cols-2 gap-1">
           <UploadButton />

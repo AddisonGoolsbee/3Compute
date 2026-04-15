@@ -133,6 +133,7 @@ def _append_classroom_tree_entries(
     slug_name: str,
     host_base: str,
     _visited_paths: set[str] | None = None,
+    show_hidden: bool = False,
 ) -> None:
     """Append directory and file entries for a classroom mount under the
     given slug name."""
@@ -155,6 +156,8 @@ def _append_classroom_tree_entries(
     # First pass: handle symlinks specially at this level
     try:
         for entry in os.listdir(host_base):
+            if not show_hidden and _is_hidden(entry):
+                continue
             full_path = os.path.join(host_base, entry)
             if os.path.islink(full_path):
                 try:
@@ -178,6 +181,7 @@ def _append_classroom_tree_entries(
                                 f"{slug_name}/{entry}",
                                 target_host,
                                 _visited_paths,
+                                show_hidden=show_hidden,
                             )
                     else:
                         file_entry = f"{slug_name}/{entry}"
@@ -194,6 +198,9 @@ def _append_classroom_tree_entries(
         prefix = slug_name if rel == "." else f"{slug_name}/{rel}"
 
         for d in list(dirs):
+            if not show_hidden and _is_hidden(d):
+                dirs.remove(d)
+                continue
             full_path = os.path.join(root, d)
             if not os.path.islink(full_path):
                 entry = f"{prefix}/{d}/"
@@ -203,6 +210,8 @@ def _append_classroom_tree_entries(
                 dirs.remove(d)
 
         for name in files_in_dir:
+            if not show_hidden and _is_hidden(name):
+                continue
             full_path = os.path.join(root, name)
             if not os.path.islink(full_path):
                 entry = f"{prefix}/{name}"
@@ -350,7 +359,7 @@ You also have a full Linux terminal below the editor. Some useful commands:
 If your teacher gave you a **join code**, go to the Classrooms page and enter it.
 Once you join, assignment folders appear in your workspace automatically.
 You can edit files inside assignment folders, but you cannot create new top-level folders in the classroom. Just work inside the assignments your teacher provides.
-You can view or copy the assignment templates in the classroom's `assignments/` folder for reference of the original files.
+You can view or copy the assignment templates in the classroom's `.templates/` folder for reference of the original files. It is hidden by default — enable **Show hidden files** in the explorer to see it.
 
 Files named `test_*.py` are **test files** written by your teacher for automated evaluation. You can see them but cannot modify them.
 
@@ -396,7 +405,7 @@ Go to the **Classrooms** page and click **Create**. Share the join code with you
 2. Your upload appears as a draft. Click **Edit in IDE** to refine it, then click **Publish** when ready.
 3. You can also manage assignments in the IDE. Drafts are synced with the classroom's `drafts/` folder. Moving a folder into the `assignments/` folder publishes it immediately.
 
-Every current student receives a copy when you publish. Students who join later also get all assignments automatically. Once published, edits to the original are not synced to existing students, but the template is updated for future students. Current students can view the modifications in the classroom's `assignments/` folder, even if it is not on their copy of the assignment by default.
+Every current student receives a copy when you publish. Students who join later also get all assignments automatically. Once published, edits to the original are not synced to existing students, but the template is updated for future students. Current students can view the modifications in their classroom's `.templates/` folder (hidden by default — they enable **Show hidden files** in the explorer to see it), even if it is not on their copy of the assignment.
 
 ### Deleting assignments
 Delete the assignment from the **Assignments** tab, or remove the folder from your classroom's `assignments/` folder in the IDE. Students keep their existing copies, but the assignment will no longer appear in the gradebook or be distributed to new students.
@@ -490,6 +499,7 @@ def _ensure_readme(upload_dir: str, user: User) -> None:
 
 @router.get("/list")
 async def list_files(
+    show_hidden: bool = False,
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -530,7 +540,9 @@ async def list_files(
                 )
                 continue
 
-            _append_classroom_tree_entries(file_tree, entry, host_base)
+            _append_classroom_tree_entries(
+                file_tree, entry, host_base, show_hidden=show_hidden
+            )
             expanded_symlinks.add(f"{entry}/")
             top_level_symlinks.add(entry)
 
@@ -543,7 +555,7 @@ async def list_files(
     for root, dirs, files_in_dir in os.walk(upload_dir):
         for d in list(dirs):
             # Skip hidden directories (dotfiles except .env*, __pycache__, etc.)
-            if _is_hidden(d):
+            if not show_hidden and _is_hidden(d):
                 dirs.remove(d)
                 continue
 
@@ -560,7 +572,7 @@ async def list_files(
                     tail = target[len("/classrooms/") :].lstrip("/")
                     host_base = os.path.join(CLASSROOMS_ROOT, tail)
                     _append_classroom_tree_entries(
-                        file_tree, relative_path, host_base
+                        file_tree, relative_path, host_base, show_hidden=show_hidden
                     )
                     expanded_symlinks.add(f"{relative_path}/")
                     if "/" not in relative_path:
@@ -572,7 +584,7 @@ async def list_files(
 
         for name in files_in_dir:
             # Skip hidden files (dotfiles except .env*, .pyc, etc.)
-            if _is_hidden(name) or name.endswith(".pyc"):
+            if (not show_hidden and _is_hidden(name)) or name.endswith(".pyc"):
                 continue
 
             full_path = os.path.join(root, name)
@@ -583,7 +595,7 @@ async def list_files(
                     tail = target[len("/classrooms/") :].lstrip("/")
                     host_base = os.path.join(CLASSROOMS_ROOT, tail)
                     _append_classroom_tree_entries(
-                        file_tree, relative_path, host_base
+                        file_tree, relative_path, host_base, show_hidden=show_hidden
                     )
                     expanded_symlinks.add(relative_path)
                     continue

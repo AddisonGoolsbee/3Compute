@@ -367,12 +367,14 @@ def spawn_container(
                 link_commands.append(
                     f"chmod 775 /classrooms/{cid}/participants/{sanitized_email} || true"
                 )
-                # create symlink to templates inside participant folder so students can access them
+                # Student-side symlink `.templates` → teacher's assignments/. Hidden
+                # (dot-prefix) so it doesn't get confused with the student's own
+                # assignment copies; enable "Show hidden files" to see it.
                 link_commands.append(
-                    f"rm -rf /classrooms/{cid}/participants/{sanitized_email}/assignments || true"
+                    f"rm -rf /classrooms/{cid}/participants/{sanitized_email}/.templates || true"
                 )
                 link_commands.append(
-                    f"ln -s /classrooms/{cid}/assignments /classrooms/{cid}/participants/{sanitized_email}/assignments || true"
+                    f"ln -s /classrooms/{cid}/assignments /classrooms/{cid}/participants/{sanitized_email}/.templates || true"
                 )
             # Create symlink inside container for immediate access
             link_commands.append(f"rm -rf /app/{slug} || true")
@@ -393,12 +395,13 @@ def spawn_container(
                 # Ensure base classroom directories exist on host
                 os.makedirs(host_target, exist_ok=True)
 
-                # For participants, mirror assignments symlink on host
+                # For participants, mirror the `.templates` symlink on host so
+                # the backend file tree can resolve it.
                 if participant_mode.get(cid):
                     templates_target = os.path.join(CLASSROOMS_ROOT, cid, "assignments")
                     os.makedirs(templates_target, exist_ok=True)
 
-                    templates_link = os.path.join(host_target, "assignments")
+                    templates_link = os.path.join(host_target, ".templates")
                     if os.path.islink(templates_link) or os.path.exists(templates_link):
                         if os.path.islink(templates_link):
                             os.unlink(templates_link)

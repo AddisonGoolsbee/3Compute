@@ -48,6 +48,26 @@ def _run_migrations(engine):
                 pass
 
 
+def _migrate_participant_templates_symlink(classrooms_root: str) -> None:
+    """One-time migration: drop any stale `participants/*/assignments` symlinks
+    so docker.py re-creates them as `.templates` on next container start.
+    Idempotent and safe to run on a fresh install (no-op)."""
+    if not os.path.isdir(classrooms_root):
+        return
+    for cid in os.listdir(classrooms_root):
+        participants = os.path.join(classrooms_root, cid, "participants")
+        if not os.path.isdir(participants):
+            continue
+        for email in os.listdir(participants):
+            stale = os.path.join(participants, email, "assignments")
+            if os.path.islink(stale):
+                try:
+                    os.unlink(stale)
+                    logger.info("Removed stale participant symlink %s", stale)
+                except OSError as e:
+                    logger.warning("Failed to remove stale symlink %s: %s", stale, e)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     engine = get_engine(settings.database_url)
@@ -71,6 +91,8 @@ async def lifespan(app: FastAPI):
             os.makedirs(d, exist_ok=True)
         except PermissionError:
             logger.warning("Could not create %s: permission denied (CI environment?)", d)
+
+    _migrate_participant_templates_symlink(CLASSROOMS_ROOT)
 
     from .terminal import discover_existing_containers, start_pollers_for_orphaned
 

@@ -220,12 +220,15 @@ export default function NewButton() {
       }
 
       const formData = new FormData();
-      let resolvedBase: 'assignments' | null = null;
+      type TemplateBase = 'assignments' | '.templates';
+      let resolvedBase: TemplateBase | null = null;
 
       const fetchFile = async (filename: string): Promise<Blob> => {
-        const baseCandidates: Array<'assignments'> = resolvedBase
+        // Teachers see the real `assignments/` dir; students see a `.templates`
+        // symlink pointing to it. Try both.
+        const baseCandidates: TemplateBase[] = resolvedBase
           ? [resolvedBase]
-          : ['assignments'];
+          : ['assignments', '.templates'];
 
         for (const base of baseCandidates) {
           const url = `${apiUrl}/files/file/${classroomSlug}/${base}/${templateName}/${filename}`;

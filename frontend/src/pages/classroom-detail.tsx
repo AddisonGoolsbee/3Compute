@@ -331,9 +331,9 @@ export default function ClassroomDetailPage() {
                   <div>
                     <p className="text-base font-semibold text-white">Students get a copy automatically</p>
                     <p className="text-sm text-gray-300 mt-1">
-                      When you publish an assignment, every current student receives their own copy. New students who join later also get all assignments automatically.
-                      Once published, changes you make to the template are not synced to existing students, but the template in{' '}
-                      <code className="text-gray-300 bg-gray-800 px-1 rounded">assignments</code> is updated for reference by current students and is synced for future students.
+                      When you publish, every current student gets their own editable copy, and future students who join pick up every published assignment automatically.
+                      You can keep editing <code className="text-gray-300 bg-gray-800 px-1 rounded">assignments/</code> freely — existing students' copies aren't touched, so their work is safe.
+                      They can always see your latest version through a hidden <code className="text-gray-300 bg-gray-800 px-1 rounded">.templates/</code> folder inside their classroom (they flip <span className="text-white font-medium">Show hidden files</span> in the file explorer to see it), which is useful when you fix a bug or they want the original files back.
                     </p>
                   </div>
                 </div>
@@ -626,9 +626,9 @@ function StudentsTab({
             <div>
               <p className="text-base font-semibold text-white">Students get a copy automatically</p>
               <p className="text-sm text-gray-300 mt-1">
-                When you publish an assignment, every current student receives their own copy. New students who join later also get all assignments automatically.
-                Once published, changes you make to the template are not synced to existing students, but the template in{' '}
-                <code className="text-gray-300 bg-gray-800 px-1 rounded">assignments</code> is updated for reference by current students and is synced for future students.
+                When you publish, every current student gets their own editable copy, and future students who join pick up every published assignment automatically.
+                You can keep editing <code className="text-gray-300 bg-gray-800 px-1 rounded">assignments/</code> freely — existing students' copies aren't touched, so their work is safe.
+                They can always see your latest version through a hidden <code className="text-gray-300 bg-gray-800 px-1 rounded">.templates/</code> folder inside their classroom (they flip <span className="text-white font-medium">Show hidden files</span> in the file explorer to see it), which is useful when you fix a bug or they want the original files back.
               </p>
             </div>
           </div>

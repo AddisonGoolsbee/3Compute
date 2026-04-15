@@ -32,7 +32,7 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
     const parts = location.split('/').filter(Boolean);
     if (parts.length < 2) return false;
     const second = parts[1];
-    return second === 'assignments' || second === 'participants';
+    return second === 'assignments' || second === '.templates' || second === 'participants';
   };
 
   const isArchiveFolder = (location?: string) => {
@@ -40,6 +40,10 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
     const parts = location.split('/').filter(Boolean);
     return parts[0] === 'archive';
   };
+
+  const isHiddenName = (name: string) => name.startsWith('.');
+  const isDimmed = (file: { name: string; location: string }) =>
+    isArchiveFolder(file.location) || isHiddenName(file.name);
 
   const isArchiveRoot = (location?: string) => {
     if (!location) return false;
@@ -212,19 +216,19 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
                 {'files' in file
                   ? (
                     openFolders.includes(file.location)
-                      ? <FolderOpen size={16} className={isArchiveFolder(file.location) ? 'text-gray-500 min-w-4' : 'text-orange-400 min-w-4'} />
-                      : <FolderClosed size={16} className={isArchiveFolder(file.location) ? 'text-gray-500 min-w-4' : 'text-orange-300 min-w-4'} />
+                      ? <FolderOpen size={16} className={isDimmed(file) ? 'text-gray-500 min-w-4' : 'text-orange-400 min-w-4'} />
+                      : <FolderClosed size={16} className={isDimmed(file) ? 'text-gray-500 min-w-4' : 'text-orange-300 min-w-4'} />
                   ) : (() => {
                     const Lang = Object.values(languageMap).find(languageMap =>
                       languageMap.extensions.includes(file.name.split('.').pop() || ''),
                     );
-                    if (Lang) return <Lang.icon size={16} className={isArchiveFolder(file.location) ? 'text-gray-500 min-w-4' : 'text-blue-300 min-w-4'} />;
-                    return <FileIcon size={16} className={isArchiveFolder(file.location) ? 'text-gray-500 min-w-4' : 'text-blue-300 min-w-4'} />;
+                    if (Lang) return <Lang.icon size={16} className={isDimmed(file) ? 'text-gray-500 min-w-4' : 'text-blue-300 min-w-4'} />;
+                    return <FileIcon size={16} className={isDimmed(file) ? 'text-gray-500 min-w-4' : 'text-blue-300 min-w-4'} />;
                   })()}
 
                 <span className={getClasses({
                   'flex-1 truncate min-w-0': true,
-                  'text-gray-500': isArchiveFolder(file.location),
+                  'text-gray-500': isDimmed(file),
                 })}>
                   {file.renaming ? (
                     <input
