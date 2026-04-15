@@ -1,5 +1,5 @@
 import { useContext, useEffect, useState, useCallback, useRef } from 'react';
-import { Link, useParams } from 'react-router';
+import { Link, useParams, useSearchParams } from 'react-router';
 import Footer from '../components/Footer';
 import MonacoEditor from '@monaco-editor/react';
 import {
@@ -48,10 +48,16 @@ interface ClassroomInfo {
 
 export default function ClassroomDetailPage() {
   const { id } = useParams();
+  const [searchParams] = useSearchParams();
   const [classroom, setClassroom] = useState<ClassroomInfo | null>(null);
   const [progress, setProgress] = useState<ProgressData | null>(null);
   const [weights, setWeights] = useState<WeightsData | null>(null);
-  const [activeTab, setActiveTab] = useState<'students' | 'gradebook' | 'assignments'>('students');
+  const [activeTab, setActiveTab] = useState<'students' | 'gradebook' | 'assignments'>(() => {
+    // Honor `?tab=assignments` so links like post-import navigation land on
+    // the right tab instead of the default Students view.
+    const initial = searchParams.get('tab');
+    return initial === 'assignments' || initial === 'gradebook' || initial === 'students' ? initial : 'students';
+  });
   const [selectedTemplate, setSelectedTemplate] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [runningTests, setRunningTests] = useState(false);

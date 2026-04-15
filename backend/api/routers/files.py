@@ -27,26 +27,28 @@ router = APIRouter()
 
 
 def set_container_ownership(path: str) -> None:
-    """Set ownership/permissions so both www-data and container user 999:995 can access.
+    """Set ownership/permissions so both www-data and container user 999:995
+    can access a path.
 
-    Directories are mode 777 so both principals can traverse and create files.
-    Files are set to 664 (group-writable) so the backend (www-data, which is a
-    member of the 3compute-container group) and the container user can both write.
-    Full chown to 999:995 requires root; if unavailable we fall back to chgrp only.
+    Directories: 2775 — setgid-group-writable so children inherit GID 995.
+    Files: 664 — group-writable so the backend (www-data, member of
+    3compute-container / GID 995) and the container user can both edit.
+    chown to 999:995 requires CAP_CHOWN; if unavailable we fall back to a
+    group-only chgrp so group access still survives.
     """
     try:
-        if os.path.isdir(path):
-            os.chmod(path, 0o777)
-        else:
+        # chown applies to both dirs and files. Try the full chown first,
+        # fall back to group-only (survives non-root).
+        try:
+            os.chown(path, CONTAINER_USER_UID, CONTAINER_USER_GID)
+        except OSError:
             try:
-                os.chown(path, CONTAINER_USER_UID, CONTAINER_USER_GID)
+                os.chown(path, -1, CONTAINER_USER_GID)
             except OSError:
-                # Not running as root — try group-only chown so www-data
-                # (a member of the container group) retains write access.
-                try:
-                    os.chown(path, -1, CONTAINER_USER_GID)
-                except OSError:
-                    pass
+                pass
+        if os.path.isdir(path):
+            os.chmod(path, 0o2775)
+        else:
             os.chmod(path, 0o664)
     except OSError as e:
         logger.warning(f"Failed to set ownership for {path}: {e}")

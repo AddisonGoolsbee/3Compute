@@ -1561,17 +1561,38 @@ async def get_student_file(
 
 
 def _set_ownership_recursive(path: str) -> None:
-    """Set container ownership on a directory tree."""
+    """Normalize ownership and permissions on a directory tree so that both
+    the backend (www-data, supplementary group 3compute-container=995) and
+    the container user (999:995) can read/write everything.
+
+    Dirs: 999:995 mode 2775 — setgid so any new child inherits GID 995 even
+    if it was created by a process with a different primary group.
+    Files: 999:995 mode 0664 — group-writable so either side can edit.
+
+    Non-root chown falls back to chgrp-only; chmod still succeeds.
+    """
     for dirpath, _dirnames, filenames in os.walk(path):
         try:
             os.chown(dirpath, CONTAINER_USER_UID, CONTAINER_USER_GID)
-            os.chmod(dirpath, 0o775)
+        except OSError:
+            try:
+                os.chown(dirpath, -1, CONTAINER_USER_GID)
+            except OSError:
+                pass
+        try:
+            os.chmod(dirpath, 0o2775)
         except OSError:
             pass
         for fn in filenames:
+            fp = os.path.join(dirpath, fn)
             try:
-                fp = os.path.join(dirpath, fn)
                 os.chown(fp, CONTAINER_USER_UID, CONTAINER_USER_GID)
+            except OSError:
+                try:
+                    os.chown(fp, -1, CONTAINER_USER_GID)
+                except OSError:
+                    pass
+            try:
                 os.chmod(fp, 0o664)
             except OSError:
                 pass

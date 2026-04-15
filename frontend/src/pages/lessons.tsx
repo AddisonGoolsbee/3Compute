@@ -211,7 +211,7 @@ export default function LessonsPage() {
       // page so they can see the new draft / published assignment right away.
       // Workspace imports stay on the lessons page.
       if (dest.kind === 'draft' || dest.kind === 'publish') {
-        setTimeout(() => navigate(`/classrooms/${dest.classroomId}`), 600);
+        setTimeout(() => navigate(`/classrooms/${dest.classroomId}?tab=assignments`), 600);
       } else {
         setTimeout(() => {
           setShowImportDialog(null);

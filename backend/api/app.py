@@ -70,6 +70,12 @@ def _migrate_participant_templates_symlink(classrooms_root: str) -> None:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Files the backend writes (drafts, uploads, lesson imports, test stage
+    # files, participant copies) should be group-writable by default so the
+    # container user (999:995) can also edit them via the terminal without
+    # the backend having to chmod every single path afterwards.
+    os.umask(0o002)
+
     engine = get_engine(settings.database_url)
     create_db_and_tables(engine)
     _run_migrations(engine)
