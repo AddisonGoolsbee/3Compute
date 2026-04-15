@@ -27,13 +27,15 @@ CLASSROOMS_ROOT = os.environ.get("CLASSROOMS_ROOT", "/var/lib/3compute/classroom
 
 
 def prepare_user_directory(user_id):
-    """Ensure user directory exists with correct ownership before container creation"""
+    """Ensure user directory exists with 33:995 ownership + setgid so files
+    created inside it (by either the backend or the container user) are both
+    group-owned by 995 and group-writable. Matches the prod permission model."""
     user_dir = f"{UPLOADS_ROOT}/{user_id}"
     os.makedirs(user_dir, exist_ok=True)
     try:
-        # Chown to ourselves first (CAP_CHOWN lets www-data do this) so chmod succeeds
-        os.chown(user_dir, os.getuid(), os.getgid())
-        os.chmod(user_dir, 0o777)
+        os.chown(user_dir, os.getuid(), CONTAINER_USER_GID)
+        # 2775 = setgid + group-writable. setgid makes new entries inherit GID 995.
+        os.chmod(user_dir, 0o2775)
     except OSError as e:
         logger.warning("[%s] Could not set permissions on user dir: %s", user_id, e)
 
@@ -338,9 +340,10 @@ def spawn_container(user_id, slave_fd, container_name, port_range=None, user_ema
         for cid, slug in slug_map.items():
             link_commands.append(f"chown 999:995 /classrooms/{cid} || true")
             link_commands.append(f"mkdir -p /classrooms/{cid}/assignments /classrooms/{cid}/participants || true")
-            # basic perms; keep participants dir traversable
-            link_commands.append(f"chmod 775 /classrooms/{cid}/assignments || true")
-            link_commands.append(f"chmod 775 /classrooms/{cid}/participants || true")
+            # Setgid (2775) so files/dirs created inside inherit GID 995 regardless
+            # of which user (backend=33 or container=999) created them.
+            link_commands.append(f"chmod 2775 /classrooms/{cid}/assignments || true")
+            link_commands.append(f"chmod 2775 /classrooms/{cid}/participants || true")
             target_path = (
                 f"/classrooms/{cid}"
                 if not participant_mode.get(cid)

@@ -36,10 +36,24 @@ services:
     networks:
       - dev-net
 
-  # Mirrors ExecStartPre=+/bin/chown -R www-data:www-data /var/lib/3compute in systemd
+  # Prepare shared storage with the same permission model prod uses:
+  # owned by www-data (33) with supplementary group 3compute-container (995),
+  # setgid bit so new files inherit GID 995, and a shallow re-chown of existing
+  # entries so re-running compose up on a stale volume self-heals.
   data-init:
     image: alpine:3
-    command: sh -c "mkdir -p /data/uploads /data/classrooms && chown -R 33:33 /data"
+    command: >-
+      sh -c "
+        addgroup -g 995 3compute-container 2>/dev/null || true &&
+        mkdir -p /data/uploads /data/classrooms &&
+        chown 33:995 /data /data/uploads /data/classrooms &&
+        chmod 2775 /data /data/uploads /data/classrooms &&
+        find /data/uploads /data/classrooms -mindepth 1 -type d -exec chown 33:995 {} + 2>/dev/null;
+        find /data/uploads /data/classrooms -mindepth 1 -type d -exec chmod 2775 {} + 2>/dev/null;
+        find /data/uploads /data/classrooms -mindepth 1 -type f -exec chown 33:995 {} + 2>/dev/null;
+        find /data/uploads /data/classrooms -mindepth 1 -type f -exec chmod 664 {} + 2>/dev/null;
+        true
+      "
     volumes:
       - 3compute-base:/data
       - 3compute-uploads:/data/uploads
@@ -51,6 +65,10 @@ services:
       context: .
       dockerfile: Dockerfile.dev
     user: "33:33"  # www-data, mirrors prod
+    group_add:
+      - "995"  # 3compute-container — supplementary group so the backend can
+               # read/write files the container user (999:995) creates, and
+               # vice versa. Mirrors prod `usermod -a -G 3compute-container www-data`.
     cap_add:
       - CHOWN  # mirrors AmbientCapabilities=CAP_CHOWN in systemd service
     environment:

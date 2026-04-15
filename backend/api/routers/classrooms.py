@@ -50,6 +50,11 @@ def _generate_access_code() -> str:
 
 
 def _ensure_classroom_dirs(classroom_id: str) -> str:
+    """Create the classroom's directory skeleton with 33:995 ownership and
+    setgid-group-writable perms (mode 2775), so that both the backend
+    (www-data / 33) and the container user (999:995) can read/write, and new
+    entries created inside inherit GID 995 automatically.
+    """
     base = os.path.join(CLASSROOMS_ROOT, classroom_id)
     templates_dir = os.path.join(base, "assignments")
     participants_dir = os.path.join(base, "participants")
@@ -59,16 +64,16 @@ def _ensure_classroom_dirs(classroom_id: str) -> str:
     os.makedirs(drafts_dir, exist_ok=True)
     try:
         for root, dirs, files in os.walk(base):
-            os.chown(root, CONTAINER_USER_UID, CONTAINER_USER_GID)
-            os.chmod(root, 0o777)
+            os.chown(root, os.getuid(), CONTAINER_USER_GID)
+            os.chmod(root, 0o2775)
             for d in dirs:
                 p = os.path.join(root, d)
-                os.chown(p, CONTAINER_USER_UID, CONTAINER_USER_GID)
-                os.chmod(p, 0o777)
+                os.chown(p, os.getuid(), CONTAINER_USER_GID)
+                os.chmod(p, 0o2775)
             for f in files:
-                os.chown(
-                    os.path.join(root, f), CONTAINER_USER_UID, CONTAINER_USER_GID
-                )
+                fp = os.path.join(root, f)
+                os.chown(fp, os.getuid(), CONTAINER_USER_GID)
+                os.chmod(fp, 0o664)
     except PermissionError as e:
         logger.warning(f"Failed chown classroom dir {base}: {e}")
     return base
