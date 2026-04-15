@@ -389,7 +389,7 @@ export default function Editor() {
                 </span>
                 <SelectMenuRaw
                   id="language-select"
-                  className="rounded-lum-2 text-xs gap-1 lum-bg-orange-700 hover:lum-bg-orange-600 w-full lum-btn-p-1"
+                  className="rounded-lum-2 text-xs gap-1 lum-bg-orange-700 hover:lum-bg-orange-600 lum-btn-p-1 shrink-0"
                   value={currentLanguage}
                   values={Object.values(languageMap).map((Lang) => ({
                     name: <div className="flex items-center gap-2">
@@ -419,7 +419,7 @@ export default function Editor() {
                 />
                 {userData.currentFile?.location && runCommandMap[currentLanguage as keyof typeof languageMap] && (
                   <button
-                    className="lum-btn rounded-lum-2 text-xs gap-1 w-full lum-btn-p-1 lum-bg-blue-700 hover:lum-bg-blue-600"
+                    className="lum-btn rounded-lum-2 text-xs gap-1 lum-btn-p-1 lum-bg-blue-700 hover:lum-bg-blue-600 shrink-0"
                     onClick={() => {
                       const buildCmd = runCommandMap[currentLanguage as keyof typeof languageMap];
                       if (!buildCmd || !userData.currentFile?.location) return;
