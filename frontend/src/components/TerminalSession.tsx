@@ -1,12 +1,12 @@
-import '@xterm/xterm/css/xterm.css';
-import { FitAddon } from '@xterm/addon-fit';
-import { Terminal } from '@xterm/xterm';
-import { WebLinksAddon } from '@xterm/addon-web-links';
-import { SearchAddon } from '@xterm/addon-search';
-import { useEffect, useRef } from 'react';
-import { io, Socket } from 'socket.io-client';
-import { backendUrl } from '../util/UserData';
-import { getClasses } from '@luminescent/ui-react';
+import "@xterm/xterm/css/xterm.css";
+import { FitAddon } from "@xterm/addon-fit";
+import { Terminal } from "@xterm/xterm";
+import { WebLinksAddon } from "@xterm/addon-web-links";
+import { SearchAddon } from "@xterm/addon-search";
+import { useEffect, useRef } from "react";
+import { io, Socket } from "socket.io-client";
+import { backendUrl } from "../util/UserData";
+import { getClasses } from "@luminescent/ui-react";
 
 interface TerminalSessionProps {
   tabId: string;
@@ -24,27 +24,41 @@ export function TerminalSession({ tabId, isActive }: TerminalSessionProps) {
     term: Terminal,
     fit: FitAddon,
     socket: Socket,
+    shouldAbort: () => boolean,
     callback: () => void,
   ) => {
+    let animationFrameId = 0;
     const check = () => {
+      if (shouldAbort()) return;
       const width = term.element?.clientWidth ?? 0;
       const height = term.element?.clientHeight ?? 0;
       if (width > 0 && height > 0) {
-        fit.fit();
-        const dims = fit.proposeDimensions();
-        if (dims) {
-          socket.emit('resize', { cols: dims.cols, rows: dims.rows });
+        try {
+          fit.fit();
+          const dims = fit.proposeDimensions();
+          if (dims) {
+            socket.emit("resize", { cols: dims.cols, rows: dims.rows });
+          }
+          callback();
+        } catch (error) {
+          console.error("Terminal fit failed during initialization:", error);
         }
-        callback();
       } else {
-        requestAnimationFrame(check);
+        animationFrameId = requestAnimationFrame(check);
       }
     };
     check();
+    return () => {
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
+    };
   };
 
   useEffect(() => {
     if (!terminalRef.current) return;
+
+    let disposed = false;
 
     const term = new Terminal({
       cursorBlink: true,
@@ -73,21 +87,25 @@ export function TerminalSession({ tabId, isActive }: TerminalSessionProps) {
     });
     socketRef.current = socket;
 
-    waitForFitReady(term, fitAddon, socket, () => {
-      term.focus();
-      term.scrollToBottom();
-    });
+    const stopWaiting = waitForFitReady(
+      term,
+      fitAddon,
+      socket,
+      () => disposed,
+      () => {
+        term.focus();
+        term.scrollToBottom();
+      },
+    );
 
     term.onData((data) => {
-      socket.emit('pty-input', { input: data });
+      socket.emit("pty-input", { input: data });
     });
 
     // Cmd+C (macOS) / Ctrl+Shift+C (Linux) copies selected text
     term.attachCustomKeyEventHandler((event) => {
-      if (event.type !== 'keydown') return true;
-      const isCopy =
-        (event.metaKey && event.key === 'c') ||
-        (event.ctrlKey && event.shiftKey && event.key === 'C');
+      if (event.type !== "keydown") return true;
+      const isCopy = (event.metaKey && event.key === "c") || (event.ctrlKey && event.shiftKey && event.key === "C");
       if (isCopy) {
         const selection = term.getSelection();
         if (selection) {
@@ -99,69 +117,76 @@ export function TerminalSession({ tabId, isActive }: TerminalSessionProps) {
     });
 
     term.onResize(({ cols, rows }) => {
-      socket.emit('resize', { cols, rows });
+      socket.emit("resize", { cols, rows });
     });
 
-    socket.on('connect', () => {
+    socket.on("connect", () => {
+      if (disposed) return;
       // Re-emit resize after socket connects (or reconnects) so the backend
       // always has the correct terminal dimensions.
       if (fitAddonRef.current) {
-        fitAddonRef.current.fit();
-        const dims = fitAddonRef.current.proposeDimensions();
-        if (dims) {
-          socket.emit('resize', { cols: dims.cols, rows: dims.rows });
+        try {
+          fitAddonRef.current.fit();
+          const dims = fitAddonRef.current.proposeDimensions();
+          if (dims) {
+            socket.emit("resize", { cols: dims.cols, rows: dims.rows });
+          }
+        } catch (error) {
+          console.error("Terminal fit failed on socket connect:", error);
         }
       }
     });
 
-    socket.on('pty-output', (data: { output: string }) => {
+    socket.on("pty-output", (data: { output: string }) => {
       term.write(data.output);
     });
 
-    socket.on('connect_error', (error) => {
-      console.error('Terminal connection error:', error);
-      if (
-        error.message.includes('Unauthorized') ||
-        error.message.includes('401')
-      ) {
-        window.location.href = '/login';
+    socket.on("connect_error", (error) => {
+      console.error("Terminal connection error:", error);
+      if (error.message.includes("Unauthorized") || error.message.includes("401")) {
+        window.location.href = "/login";
       }
     });
 
-    socket.on('error', (data) => {
-      console.error('Server error:', data);
-      if (data.message === 'Unauthorized') {
-        window.location.href = '/login';
+    socket.on("error", (data) => {
+      console.error("Server error:", data);
+      if (data.message === "Unauthorized") {
+        window.location.href = "/login";
       }
     });
 
-    socket.on('disconnect', (reason) => {
-      console.log('Terminal disconnected:', reason);
-      if (reason === 'io server disconnect') {
-        window.location.href = '/login';
+    socket.on("disconnect", (reason) => {
+      console.log("Terminal disconnected:", reason);
+      if (reason === "io server disconnect") {
+        window.location.href = "/login";
       }
     });
 
-    socket.on('files-changed', () => {
-      window.dispatchEvent(new CustomEvent('3compute:files-changed'));
+    socket.on("files-changed", () => {
+      window.dispatchEvent(new CustomEvent("3compute:files-changed"));
     });
 
     const runHandler = (e: Event) => {
       if (!wasActiveRef.current) return;
       const { command } = (e as CustomEvent<{ command: string }>).detail;
-      socket.emit('pty-input', { input: command });
+      socket.emit("pty-input", { input: command });
     };
-    window.addEventListener('3compute:run-command', runHandler);
+    window.addEventListener("3compute:run-command", runHandler);
 
     const resizeObserver = new ResizeObserver(() => {
+      if (disposed) return;
       if (fitAddonRef.current) {
-        fitAddonRef.current.fit();
-        const dims = fitAddonRef.current.proposeDimensions();
-        if (dims && socketRef.current) {
-          socketRef.current.emit('resize', {
-            cols: dims.cols,
-            rows: dims.rows,
-          });
+        try {
+          fitAddonRef.current.fit();
+          const dims = fitAddonRef.current.proposeDimensions();
+          if (dims && socketRef.current) {
+            socketRef.current.emit("resize", {
+              cols: dims.cols,
+              rows: dims.rows,
+            });
+          }
+        } catch (error) {
+          console.error("Terminal fit failed during resize:", error);
         }
       }
     });
@@ -169,7 +194,9 @@ export function TerminalSession({ tabId, isActive }: TerminalSessionProps) {
     resizeObserver.observe(terminalRef.current);
 
     return () => {
-      window.removeEventListener('3compute:run-command', runHandler);
+      disposed = true;
+      stopWaiting();
+      window.removeEventListener("3compute:run-command", runHandler);
       resizeObserver.disconnect();
       socket.disconnect();
       term.dispose();
@@ -177,12 +204,7 @@ export function TerminalSession({ tabId, isActive }: TerminalSessionProps) {
   }, [tabId]);
 
   useEffect(() => {
-    if (
-      isActive &&
-      !wasActiveRef.current &&
-      terminalInstanceRef.current &&
-      fitAddonRef.current
-    ) {
+    if (isActive && !wasActiveRef.current && terminalInstanceRef.current && fitAddonRef.current) {
       fitAddonRef.current.fit();
       terminalInstanceRef.current.focus();
     }
@@ -192,9 +214,9 @@ export function TerminalSession({ tabId, isActive }: TerminalSessionProps) {
   return (
     <div
       className={getClasses({
-        'absolute inset-0 w-full h-full': true,
+        "absolute inset-0 w-full h-full": true,
         visible: isActive,
-        'invisible pointer-events-none': !isActive,
+        "invisible pointer-events-none": !isActive,
       })}
       data-tab-id={tabId}
     >

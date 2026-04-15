@@ -69,6 +69,7 @@ def _get_db_engine():
 # Handler registration
 # ---------------------------------------------------------------------------
 
+
 def _register_handlers():
     sio.on("connect", handler=handle_connect)
     sio.on("disconnect", handler=handle_disconnect)
@@ -82,14 +83,19 @@ def _register_handlers():
 # Container discovery (sync — called once at startup)
 # ---------------------------------------------------------------------------
 
+
 def discover_existing_containers():
     """Scan Docker for user containers and restore them to tracking."""
     try:
         result = subprocess.run(
             [
-                "docker", "ps", "-a",
-                "--filter", "name=user-container-",
-                "--format", "{{.Names}}",
+                "docker",
+                "ps",
+                "-a",
+                "--filter",
+                "name=user-container-",
+                "--format",
+                "{{.Names}}",
             ],
             capture_output=True,
             text=True,
@@ -127,6 +133,7 @@ def start_pollers_for_orphaned():
 # ---------------------------------------------------------------------------
 # Auth / session helpers
 # ---------------------------------------------------------------------------
+
 
 def _get_user_id_from_environ(environ: dict) -> str | None:
     """Decode the Starlette session cookie from a WSGI-style environ dict.
@@ -178,6 +185,7 @@ def _get_user(user_id: str) -> User | None:
 # Container lifecycle (sync — run via asyncio.to_thread)
 # ---------------------------------------------------------------------------
 
+
 def _ensure_container(
     user_id: str,
     port_range: tuple | None,
@@ -196,6 +204,11 @@ def _ensure_container_locked(
     email: str | None,
 ) -> str | None:
     container_name = f"user-container-{user_id}"
+    logger.info(
+        "[DIAG] _ensure_container: user=%s tracked=%s",
+        user_id,
+        user_id in user_containers,
+    )
 
     if user_id not in user_containers:
         if container_exists(container_name):
@@ -208,9 +221,7 @@ def _ensure_container_locked(
             else:
                 logger.info("Restarting stopped container %s", container_name)
                 try:
-                    subprocess.run(
-                        ["docker", "start", container_name], check=True
-                    )
+                    subprocess.run(["docker", "start", container_name], check=True)
                     user_containers[user_id] = {
                         "container_name": container_name,
                         "port_range": port_range,
@@ -220,13 +231,9 @@ def _ensure_container_locked(
                         "Restart failed for %s, spawning new container",
                         container_name,
                     )
-                    subprocess.run(
-                        ["docker", "rm", "-f", container_name], check=False
-                    )
+                    subprocess.run(["docker", "rm", "-f", container_name], check=False)
                     try:
-                        spawn_container(
-                            user_id, None, container_name, port_range, email
-                        )
+                        spawn_container(user_id, None, container_name, port_range, email)
                         user_containers[user_id] = {
                             "container_name": container_name,
                             "port_range": port_range,
@@ -241,9 +248,7 @@ def _ensure_container_locked(
                         return None
         else:
             try:
-                spawn_container(
-                    user_id, None, container_name, port_range, email
-                )
+                spawn_container(user_id, None, container_name, port_range, email)
                 user_containers[user_id] = {
                     "container_name": container_name,
                     "port_range": port_range,
@@ -257,15 +262,14 @@ def _ensure_container_locked(
                 )
                 return None
     else:
+        logger.info("[DIAG] _ensure_container: user=%s already tracked, checking if running", user_id)
         if user_containers[user_id]["port_range"] is None:
             user_containers[user_id]["port_range"] = port_range
 
         if not container_is_running(container_name):
             logger.info("Container %s not running, restarting", container_name)
             try:
-                subprocess.run(
-                    ["docker", "start", container_name], check=True
-                )
+                subprocess.run(["docker", "start", container_name], check=True)
                 logger.info("Restarted container %s", container_name)
             except subprocess.CalledProcessError:
                 logger.warning(
@@ -274,9 +278,7 @@ def _ensure_container_locked(
                 )
                 _cleanup_user_container(user_id, container_name)
                 try:
-                    spawn_container(
-                        user_id, None, container_name, port_range, email
-                    )
+                    spawn_container(user_id, None, container_name, port_range, email)
                     user_containers[user_id] = {
                         "container_name": container_name,
                         "port_range": port_range,
@@ -292,7 +294,7 @@ def _ensure_container_locked(
     return container_name
 
 
-def _attach_container(session_info: dict) -> bool:
+def _attach_container(session_info: dict, cols: int = 80, rows: int = 24) -> bool:
     """Open a PTY into the user's container.  Updates *session_info* in place.
 
     Returns ``True`` on success, ``False`` on failure.
@@ -310,36 +312,37 @@ def _attach_container(session_info: dict) -> bool:
             subprocess.run(["docker", "start", container_name], check=True)
             logger.info("Restarted container %s", container_name)
         except subprocess.CalledProcessError:
-            logger.warning(
-                "Failed to restart %s; spawning replacement", container_name
-            )
+            logger.warning("Failed to restart %s; spawning replacement", container_name)
             port_range = session_info.get("port_range")
             email = session_info.get("email")
             try:
-                spawn_container(
-                    user_id, None, container_name, port_range, email
-                )
+                spawn_container(user_id, None, container_name, port_range, email)
                 logger.info("Spawned replacement container %s", container_name)
             except Exception:
-                logger.error(
-                    "Failed to spawn replacement %s", container_name, exc_info=True
-                )
+                logger.error("Failed to spawn replacement %s", container_name, exc_info=True)
                 return False
 
+    logger.info(
+        "[DIAG] _attach_container: about to call attach_to_container for user=%s tab=%s container=%s cols=%s rows=%s",
+        user_id,
+        tab_id,
+        container_name,
+        cols,
+        rows,
+    )
     try:
-        _proc, fd = attach_to_container(container_name, tab_id)
+        _proc, fd = attach_to_container(container_name, tab_id, cols=cols, rows=rows)
     except Exception:
-        logger.error(
-            "Failed to attach to container for user %s", user_id, exc_info=True
-        )
+        logger.error("Failed to attach to container for user %s", user_id, exc_info=True)
         return False
 
     session_info["fd"] = fd
     session_info["container_attached"] = True
     logger.info(
-        "Attached to container for user %s tab %s in handle_resize()",
+        "[DIAG] _attach_container: SUCCESS for user=%s tab=%s fd=%s",
         user_id,
         tab_id,
+        fd,
     )
     return True
 
@@ -428,9 +431,7 @@ def _start_idle_poller(user_id: str):
                 # Re-check stop_event — user may have reconnected while we were polling
                 if stop_event.is_set():
                     break
-                logger.info(
-                    "No user processes left in %s, removing it", container
-                )
+                logger.info("No user processes left in %s, removing it", container)
                 subprocess.run(["docker", "rm", "-f", container], check=False)
                 user_containers.pop(user_id, None)
                 break
@@ -450,46 +451,66 @@ def _cancel_idle_poller(user_id: str):
 # PTY read loop
 # ---------------------------------------------------------------------------
 
+
 def _blocking_pty_read(fd: int, max_read_bytes: int) -> str | None:
     """Non-blocking read from a PTY master fd.  Runs in a worker thread."""
     data_ready, _, _ = select.select([fd], [], [], 0)
     if data_ready:
         raw = os.read(fd, max_read_bytes)
-        if raw:
-            return raw.decode(errors="ignore")
+        if not raw:
+            logger.info("[DIAG] _blocking_pty_read: EOF (empty read) on fd=%s", fd)
+            raise OSError("PTY EOF — empty read")
+        return raw.decode(errors="ignore")
     return None
 
 
 async def read_and_forward_pty_output(sid: str):
     """Background coroutine: stream PTY output to the client via Socket.IO."""
     max_read_bytes = 1024 * 20
+    session = session_map.get(sid)
+    logger.info(
+        "[DIAG] read_loop: STARTED for sid=%s user=%s tab=%s",
+        sid,
+        session.get("user_id") if session else "?",
+        session.get("tab_id") if session else "?",
+    )
+    first_output = True
     try:
         while True:
             await sio.sleep(0.01)
             session = session_map.get(sid)
             if not session:
+                logger.info("[DIAG] read_loop: session gone for sid=%s, stopping", sid)
                 break
             fd = session.get("fd")
             if not fd:
                 continue
             try:
-                output = await asyncio.to_thread(
-                    _blocking_pty_read, fd, max_read_bytes
-                )
+                output = await asyncio.to_thread(_blocking_pty_read, fd, max_read_bytes)
                 if output:
+                    if first_output:
+                        logger.info(
+                            "[DIAG] read_loop: FIRST output for sid=%s, len=%d, repr=%.200r",
+                            sid,
+                            len(output),
+                            output,
+                        )
+                        first_output = False
                     await sio.emit("pty-output", {"output": output}, to=sid)
-            except (OSError, ValueError):
+            except (OSError, ValueError) as exc:
+                logger.info("[DIAG] read_loop: PTY error for sid=%s: %s", sid, exc)
                 await sio.emit("terminal-restart-required", {}, to=sid)
                 break
     except asyncio.CancelledError:
         pass
     finally:
-        logger.info("Stopping read task for %s", sid)
+        logger.info("[DIAG] read_loop: STOPPED for sid=%s", sid)
 
 
 # ---------------------------------------------------------------------------
 # Socket.IO event handlers
 # ---------------------------------------------------------------------------
+
 
 async def handle_connect(sid, environ, auth=None):
     logger.info("handle_connect called for sid=%s", sid)
@@ -512,9 +533,7 @@ async def handle_connect(sid, environ, auth=None):
 
     _cancel_idle_poller(user_id)
 
-    container_name = await asyncio.to_thread(
-        _ensure_container, user_id, port_range, email
-    )
+    container_name = await asyncio.to_thread(_ensure_container, user_id, port_range, email)
     if not container_name:
         await sio.emit(
             "error",
@@ -522,6 +541,17 @@ async def handle_connect(sid, environ, auth=None):
             to=sid,
         )
         return False
+
+    # Check for existing sessions for same user+tab (stale from prior connection)
+    existing_sids = [s for s, info in session_map.items() if info["user_id"] == user_id and info["tab_id"] == tab_id]
+    if existing_sids:
+        logger.warning(
+            "[DIAG] handle_connect: DUPLICATE session(s) for user=%s tab=%s existing_sids=%s new_sid=%s",
+            user_id,
+            tab_id,
+            existing_sids,
+            sid,
+        )
 
     session_info = {
         "fd": None,
@@ -533,57 +563,69 @@ async def handle_connect(sid, environ, auth=None):
         "email": email,
     }
     session_map[sid] = session_info
+    logger.info(
+        "[DIAG] handle_connect: session created for sid=%s user=%s tab=%s container=%s (total sessions: %d)",
+        sid,
+        user_id,
+        tab_id,
+        container_name,
+        len(session_map),
+    )
 
-    # Attach the PTY eagerly so input/output works immediately without waiting
-    # for the first resize event.  This also fixes the post-reconnect freeze:
-    # when Socket.IO silently drops and reconnects, handle_connect fires again
-    # with a fresh session (container_attached=False), but the frontend doesn't
-    # re-emit a resize, so the lazy path in handle_resize was never triggered.
-    success = await asyncio.to_thread(_attach_container, session_info)
-    if not success:
-        session_map.pop(sid, None)
-        await sio.emit(
-            "error",
-            {"message": "Failed to connect to terminal. Please try again."},
-            to=sid,
-        )
-        return False
-
-    sio.start_background_task(read_and_forward_pty_output, sid)
+    # Don't attach the PTY yet — wait for the first resize so the backend has
+    # the frontend's actual dimensions before tmux renders anything.
+    session_info["read_loop_started"] = False
+    logger.info(
+        "[DIAG] handle_connect: DONE for sid=%s, waiting for first resize to attach and start read loop",
+        sid,
+    )
 
 
 async def handle_disconnect(sid):
     session = session_map.pop(sid, None)
     if not session:
+        logger.info("[DIAG] handle_disconnect: sid=%s not in session_map, ignoring", sid)
         return
 
     user_id = session["user_id"]
+    tab_id = session.get("tab_id")
     fd = session.get("fd")
+    logger.info("[DIAG] handle_disconnect: sid=%s user=%s tab=%s fd=%s", sid, user_id, tab_id, fd)
+
     if fd:
         try:
             os.close(fd)
+            logger.info("[DIAG] handle_disconnect: closed fd=%s for sid=%s", fd, sid)
         except Exception as e:
             logger.error("Failed to close PTY for user %s: %s", user_id, e)
 
-    if not any(s["user_id"] == user_id for s in session_map.values()):
+    remaining = [s["tab_id"] for s in session_map.values() if s["user_id"] == user_id]
+    logger.info("[DIAG] handle_disconnect: remaining sessions for user=%s: %s", user_id, remaining)
+    if not remaining:
+        logger.info("[DIAG] handle_disconnect: no sessions left, starting idle poller for user=%s", user_id)
         _start_idle_poller(user_id)
 
 
 async def handle_pty_input(sid, data):
     session = session_map.get(sid)
     if not session:
+        logger.info("[DIAG] handle_pty_input: sid=%s NOT in session_map", sid)
         return
     fd = session.get("fd")
     if fd:
         await asyncio.to_thread(os.write, fd, data["input"].encode())
+    else:
+        logger.warning("[DIAG] handle_pty_input: sid=%s has NO fd, dropping input", sid)
 
 
 async def handle_resize(sid, data):
-    logger.debug("handle_resize called with data: %s", data)
+    cols = data.get("cols")
+    rows = data.get("rows")
+    logger.info("[DIAG] handle_resize: sid=%s cols=%s rows=%s", sid, cols, rows)
 
     if sid not in session_map:
         logger.warning(
-            "Session %s not found in session_map. Available: %s",
+            "[DIAG] handle_resize: sid=%s NOT in session_map (keys=%s)",
             sid,
             list(session_map.keys()),
         )
@@ -591,23 +633,40 @@ async def handle_resize(sid, data):
 
     session_info = session_map[sid]
     user_id = session_info["user_id"]
+    tab_id = session_info["tab_id"]
+    attached = session_info["container_attached"]
+    read_started = session_info.get("read_loop_started", "N/A")
 
-    if not session_info["container_attached"]:
+    logger.info(
+        "[DIAG] handle_resize: sid=%s user=%s tab=%s attached=%s read_started=%s fd=%s",
+        sid,
+        user_id,
+        tab_id,
+        attached,
+        read_started,
+        session_info.get("fd"),
+    )
+
+    if not attached:
+        logger.info("[DIAG] handle_resize: lazy-attaching for sid=%s", sid)
         try:
-            success = await asyncio.to_thread(_attach_container, session_info)
+            success = await asyncio.to_thread(
+                _attach_container,
+                session_info,
+                cols=cols,
+                rows=rows,
+            )
             if not success:
+                logger.info("[DIAG] handle_resize: lazy-attach FAILED for sid=%s", sid)
                 await sio.emit(
                     "error",
-                    {
-                        "message": "Failed to connect to terminal. Please try again."
-                    },
+                    {"message": "Failed to connect to terminal. Please try again."},
                     to=sid,
                 )
                 return
+            logger.info("[DIAG] handle_resize: lazy-attach SUCCESS for sid=%s fd=%s", sid, session_info.get("fd"))
         except Exception as e:
-            logger.error(
-                "Failed to attach to container for user %s: %s", user_id, e
-            )
+            logger.error("[DIAG] handle_resize: lazy-attach EXCEPTION for sid=%s: %s", sid, e)
             await sio.emit(
                 "error",
                 {"message": "Failed to connect to terminal. Please try again."},
@@ -615,17 +674,25 @@ async def handle_resize(sid, data):
             )
             return
 
-    cols = data.get("cols")
-    rows = data.get("rows")
     if not isinstance(cols, int) or not isinstance(rows, int) or cols <= 0 or rows <= 0:
-        logger.warning("Ignoring resize with invalid dimensions: cols=%s rows=%s", cols, rows)
+        logger.warning("[DIAG] handle_resize: INVALID dimensions cols=%s rows=%s sid=%s", cols, rows, sid)
         return
 
     fd = session_info["fd"]
     try:
         set_winsize(fd, rows, cols)
+        logger.info("[DIAG] handle_resize: set_winsize OK fd=%s rows=%s cols=%s sid=%s", fd, rows, cols, sid)
     except Exception as e:
-        logger.error("Failed to resize terminal: %s", e, exc_info=True)
+        logger.error("[DIAG] handle_resize: set_winsize FAILED: %s", e, exc_info=True)
+
+    # Start the read loop on the first resize — now the PTY has correct
+    # dimensions so tmux won't render a prompt at the wrong size.
+    if not session_info.get("read_loop_started"):
+        session_info["read_loop_started"] = True
+        logger.info("[DIAG] handle_resize: STARTING read loop for sid=%s (first resize)", sid)
+        sio.start_background_task(read_and_forward_pty_output, sid)
+    else:
+        logger.info("[DIAG] handle_resize: read loop already running for sid=%s", sid)
 
 
 async def handle_tmux_new_window(sid, data):
@@ -640,10 +707,15 @@ async def handle_tmux_new_window(sid, data):
     await asyncio.to_thread(
         subprocess.run,
         [
-            "docker", "exec", container,
-            "tmux", "new-window",
-            "-t", f"3compute:{win}",
-            "-n", str(win),
+            "docker",
+            "exec",
+            container,
+            "tmux",
+            "new-window",
+            "-t",
+            f"3compute:{win}",
+            "-n",
+            str(win),
         ],
         check=False,
     )
@@ -661,9 +733,13 @@ async def handle_tmux_select_window(sid, data):
     await asyncio.to_thread(
         subprocess.run,
         [
-            "docker", "exec", container,
-            "tmux", "select-window",
-            "-t", f"3compute:{win}",
+            "docker",
+            "exec",
+            container,
+            "tmux",
+            "select-window",
+            "-t",
+            f"3compute:{win}",
         ],
         check=False,
     )
@@ -672,6 +748,7 @@ async def handle_tmux_select_window(sid, data):
 # ---------------------------------------------------------------------------
 # Close-tab helper (invoked from the HTTP router)
 # ---------------------------------------------------------------------------
+
 
 async def close_tab(user_id: str, tab_id: str) -> tuple[str, int]:
     """Kill the tmux session for a tab.  Returns ``(message, status_code)``."""
@@ -685,8 +762,13 @@ async def close_tab(user_id: str, tab_id: str) -> tuple[str, int]:
         await asyncio.to_thread(
             subprocess.run,
             [
-                "docker", "exec", container_name,
-                "tmux", "kill-session", "-t", session_name,
+                "docker",
+                "exec",
+                container_name,
+                "tmux",
+                "kill-session",
+                "-t",
+                session_name,
             ],
             check=True,
         )

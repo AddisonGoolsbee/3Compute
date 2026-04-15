@@ -233,3 +233,151 @@ class TestFullConnectFlow:
         assert "test-sid-no-cookie" not in session_map
 
         session_map.clear()
+
+
+class TestReadLoopTiming:
+    """Verify the PTY is not attached until we know the real terminal dimensions.
+
+    Bug: handle_connect eagerly attaches the PTY at default 80x24 and starts
+    streaming output.  tmux renders a prompt at 80 columns.  When the frontend
+    sends resize with the real dimensions (e.g. 165x13), tmux redraws — but the
+    stale 80x24 prompt is already buffered in the PTY and gets sent to xterm.js.
+    Each reload adds another wrong-sized prompt to scrollback, visible as
+    repeated "3compute:~$" lines with blank gaps when scrolling up.
+
+    The fix: don't attach the PTY until the first resize event arrives with the
+    real dimensions.  Pass those dimensions to attach_to_container so the PTY is
+    created at the correct size and tmux never renders at the wrong dimensions.
+    """
+
+    @pytest.mark.asyncio
+    @patch("backend.api.terminal._ensure_container")
+    @patch("backend.api.terminal._get_user")
+    @patch("backend.api.terminal._settings")
+    async def test_pty_not_attached_during_connect(
+        self, mock_settings, mock_get_user, mock_ensure
+    ):
+        """handle_connect should NOT attach the PTY or start the read loop."""
+        mock_settings.flask_secret = FLASK_SECRET
+
+        mock_user = MagicMock()
+        mock_user.port_start = 10000
+        mock_user.port_end = 10009
+        mock_user.email = "test@test.com"
+        mock_get_user.return_value = mock_user
+
+        mock_ensure.return_value = f"user-container-{TEST_USER_ID}"
+
+        from backend.api.terminal import (
+            handle_connect,
+            session_map,
+            sio,
+            read_and_forward_pty_output,
+        )
+
+        session_map.clear()
+
+        with patch.object(sio, "start_background_task") as mock_start_task:
+            cookie_val = _make_signed_cookie(TEST_USER_ID)
+            environ = _make_wsgi_environ(cookie_val)
+
+            await handle_connect("test-sid-readloop", environ)
+
+            # PTY should not be attached yet
+            assert session_map["test-sid-readloop"]["container_attached"] is False, (
+                "BUG: PTY was attached during handle_connect before dimensions "
+                "are known.  tmux will render at wrong size."
+            )
+
+            # Read loop should not be running
+            read_loop_calls = [
+                call
+                for call in mock_start_task.call_args_list
+                if call[0][0] is read_and_forward_pty_output
+            ]
+            assert len(read_loop_calls) == 0, (
+                "BUG: read loop was started before any resize event."
+            )
+
+        session_map.clear()
+
+    @pytest.mark.asyncio
+    @patch("backend.api.terminal._ensure_container")
+    @patch("backend.api.terminal._get_user")
+    @patch("backend.api.terminal._settings")
+    async def test_attach_receives_correct_dimensions(
+        self, mock_settings, mock_get_user, mock_ensure
+    ):
+        """The first resize should attach the PTY with the frontend's dimensions."""
+        mock_settings.flask_secret = FLASK_SECRET
+
+        mock_user = MagicMock()
+        mock_user.port_start = 10000
+        mock_user.port_end = 10009
+        mock_user.email = "test@test.com"
+        mock_get_user.return_value = mock_user
+
+        mock_ensure.return_value = f"user-container-{TEST_USER_ID}"
+
+        from backend.api.terminal import (
+            handle_connect,
+            handle_resize,
+            session_map,
+            sio,
+            read_and_forward_pty_output,
+        )
+
+        def fake_attach(session_info, cols=80, rows=24):
+            session_info["fd"] = 999
+            session_info["container_attached"] = True
+            return True
+
+        session_map.clear()
+        sid = "test-sid-dims"
+
+        with (
+            patch("backend.api.terminal._attach_container", side_effect=fake_attach) as mock_attach,
+            patch.object(sio, "start_background_task") as mock_start_task,
+        ):
+            cookie_val = _make_signed_cookie(TEST_USER_ID)
+            environ = _make_wsgi_environ(cookie_val)
+
+            await handle_connect(sid, environ)
+
+            # First resize triggers attach with correct dimensions
+            await handle_resize(sid, {"cols": 165, "rows": 13})
+
+            mock_attach.assert_called_once()
+            _, kwargs = mock_attach.call_args
+            assert kwargs.get("cols") == 165, (
+                f"Expected cols=165, got cols={kwargs.get('cols')}"
+            )
+            assert kwargs.get("rows") == 13, (
+                f"Expected rows=13, got rows={kwargs.get('rows')}"
+            )
+
+            # Read loop should have started after attach
+            read_loop_calls = [
+                call
+                for call in mock_start_task.call_args_list
+                if call[0][0] is read_and_forward_pty_output
+            ]
+            assert len(read_loop_calls) == 1, (
+                "read_and_forward_pty_output should start exactly once after "
+                f"first resize, but started {len(read_loop_calls)} times"
+            )
+
+            # Second resize should NOT re-attach or start another read loop
+            mock_attach.reset_mock()
+            mock_start_task.reset_mock()
+            await handle_resize(sid, {"cols": 100, "rows": 20})
+
+            mock_attach.assert_not_called()
+            read_loop_calls = [
+                call
+                for call in mock_start_task.call_args_list
+                if call[0][0] is read_and_forward_pty_output
+            ]
+            assert len(read_loop_calls) == 0, (
+                "read loop should NOT restart on subsequent resizes"
+            )
