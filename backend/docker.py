@@ -597,13 +597,6 @@ def attach_to_container(container_name, tab_id="1"):
             cmd, stdin=slave_fd, stdout=slave_fd, stderr=slave_fd, close_fds=True
         )
         logger.info(f"[DIAG] attach_to_container: Popen started pid={proc.pid}")
-        # Close slave fd in parent process — only the child (docker exec) needs it.
-        # Leaving it open leaks an fd and prevents EOF detection on master_fd.
-        try:
-            os.close(slave_fd)
-            logger.info(f"[DIAG] attach_to_container: closed slave_fd={slave_fd} in parent")
-        except OSError as e:
-            logger.warning(f"[DIAG] attach_to_container: failed to close slave_fd: {e}")
         return proc, master_fd
     except Exception as e:
         logger.error(f"Failed to attach to container '{container_name}': {e}")
