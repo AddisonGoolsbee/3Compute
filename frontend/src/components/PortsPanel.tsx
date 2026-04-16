@@ -76,7 +76,7 @@ export default function PortsPanel({ onClose }: Props) {
         body: JSON.stringify({ subdomain, port: portNum }),
       });
       const data = await res.json();
-      if (!res.ok) { setError(data.detail || 'Failed to claim subdomain.'); return; }
+      if (!res.ok) { setError(data.detail || 'Failed to claim URL.'); return; }
       setPort('');
       setSubdomain('');
       setAvailability(null);
@@ -225,7 +225,7 @@ export default function PortsPanel({ onClose }: Props) {
                     : 'bg-gray-800 text-gray-600 cursor-not-allowed'
                 }`}
               >
-                {saving ? 'Claiming…' : 'Claim subdomain'}
+                {saving ? 'Claiming…' : 'Claim URL'}
               </button>
             </div>
           </div>
