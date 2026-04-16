@@ -195,6 +195,7 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
                 setSelectedLocation?.(file.location);
               }}
               data-explorer-item
+              data-kind={'files' in file ? 'folder' : 'file'}
             >
               <button
                 draggable={!file.renaming}
@@ -531,11 +532,29 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
             </button>
           );
 
-          // For blank-space right clicks, treat the implicit target as a
-          // directory (the nearest enclosing folder, or `/` at the root) —
-          // that's the student's `/app` in the container. We still expose
-          // Copy path and Open in terminal there.
-          const isFolder = contextMenu.blankSpace || contextMenu.targetLocation?.endsWith('/');
+          // Folder locations in our tree don't carry a trailing "/", so we
+          // can't tell folder-vs-file from the string alone — look the item
+          // up in the files tree and check for the `files` property.
+          const locationIsFolder = (loc: string): boolean => {
+            if (loc.endsWith('/')) return true;
+            const walk = (items: typeof files): boolean => {
+              if (!items) return false;
+              for (const it of items) {
+                if (it.location === loc) return 'files' in it;
+                if ('files' in it) {
+                  const found = walk(it.files);
+                  if (found) return true;
+                }
+              }
+              return false;
+            };
+            return walk(files);
+          };
+
+          // For blank-space right clicks, treat the implicit target as the
+          // enclosing folder (or `/` at the root — which maps to `/app`).
+          const isFolder = contextMenu.blankSpace
+            || (!!contextMenu.targetLocation && locationIsFolder(contextMenu.targetLocation));
           const targetDir = (() => {
             if (!contextMenu.targetLocation) return null;
             const trimmed = contextMenu.targetLocation.replace(/\/$/, '');
@@ -543,10 +562,13 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
             const parent = trimmed.split('/').slice(0, -1).join('/');
             return parent || '';
           })();
+          // Copy path yields the container-absolute path. Terminal shells
+          // and scripts expect paths rooted at /app (the user's uploads
+          // mount), so we prepend that here.
           const pathForCopy = (() => {
             if (!contextMenu.targetLocation) return null;
             const trimmed = contextMenu.targetLocation.replace(/\/$/, '');
-            return trimmed || '/';
+            return trimmed ? `/app${trimmed}` : '/app';
           })();
           const busy = isActiveTerminalBusy();
           const terminalDisabled = targetDir === null || busy;

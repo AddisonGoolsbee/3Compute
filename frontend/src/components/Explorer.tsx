@@ -75,8 +75,9 @@ export default function Explorer() {
           userData.setContextMenu?.({ visible: true, x: e.clientX, y: e.clientY, targetLocation, blankSpace: true });
         }}
         onDragOver={(e) => {
-          // Allow dropping to root only when hovering blank space (not over an item)
-          if ((e.target as HTMLElement).closest('[data-explorer-item]')) return;
+          // Only bow out when hovering a folder row (which handles the drop
+          // itself). File rows and blank space both mean "drop at root".
+          if ((e.target as HTMLElement).closest('[data-kind="folder"]')) return;
           e.preventDefault();
           e.dataTransfer.dropEffect = e.dataTransfer.types.includes('Files') ? 'copy' : 'move';
           (e.currentTarget as HTMLElement).classList.add('ring-1', 'ring-blue-400/30');
@@ -88,21 +89,35 @@ export default function Explorer() {
           (e.currentTarget as HTMLElement).classList.remove('ring-1', 'ring-blue-400/30');
         }}
         onDrop={async (e) => {
-          // Only handle drop to root if not dropped on an item
-          if ((e.target as HTMLElement).closest('[data-explorer-item]')) return;
+          // Drops on folder rows are handled by the folder itself; anything
+          // else (file rows, blank space) falls through to this handler.
+          if ((e.target as HTMLElement).closest('[data-kind="folder"]')) return;
           e.preventDefault();
           (e.currentTarget as HTMLElement).classList.remove('ring-1', 'ring-blue-400/30');
+          // Determine the destination folder: if the drop target is inside a
+          // folder's contents container (e.g. between two sibling files in an
+          // expanded folder), use that folder; otherwise fall back to root.
+          const folderTarget = (e.target as HTMLElement).closest('[data-folder-location]') as HTMLElement | null;
+          const parentLocation = folderTarget?.dataset.folderLocation || '/';
+          const parentBase = parentLocation === '/' || parentLocation === ''
+            ? ''
+            : parentLocation.replace(/\/$/, '');
           // Handle OS file drops
           if (e.dataTransfer.files.length > 0) {
-            await uploadLocalFiles(e.dataTransfer.files, '/', apiUrl, setStatus, userData.refreshFiles);
+            const uploadBase = parentLocation === '/' || parentLocation === ''
+              ? '/'
+              : `${parentBase}/`;
+            await uploadLocalFiles(e.dataTransfer.files, uploadBase, apiUrl, setStatus, userData.refreshFiles);
             return;
           }
           let source = e.dataTransfer.getData('text/x-3compute-source');
           if (!source) source = e.dataTransfer.getData('text/plain');
           if (!source) return;
           const srcName = source.split('/').filter(Boolean).pop() || '';
-          const destination = `/${srcName}${source.endsWith('/') ? '/' : ''}`;
+          const destination = `${parentBase}/${srcName}${source.endsWith('/') ? '/' : ''}`;
           if (destination === source) return;
+          // Don't let a folder be moved into itself or its own subtree.
+          if (source.endsWith('/') && (parentBase + '/').startsWith(source)) return;
           // Update open editor file path if it is the moved item or within it
           if (userData.currentFile?.location) {
             const currentLoc = userData.currentFile.location;
@@ -122,7 +137,8 @@ export default function Explorer() {
             body: JSON.stringify({ source, destination }),
           });
           if (res.status === 409) {
-            const confirmed = window.confirm(`A file or folder named "${srcName}" already exists at root. Replace it? This cannot be undone.`);
+            const where = parentLocation === '/' || parentLocation === '' ? 'at root' : `in "${parentLocation}"`;
+            const confirmed = window.confirm(`A file or folder named "${srcName}" already exists ${where}. Replace it? This cannot be undone.`);
             if (!confirmed) return;
             res = await fetch(`${apiUrl}/files/move`, {
               method: 'POST',

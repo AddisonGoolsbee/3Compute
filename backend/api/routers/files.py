@@ -1177,22 +1177,57 @@ async def download_file(
     if not os.path.exists(abs_path):
         raise HTTPException(status_code=404, detail="Not found")
 
-    if os.path.isfile(abs_path):
+    # Resolve a top-level symlink to its target so "isfile" vs "folder" works
+    # consistently whether the user clicks on a direct file, a symlinked file,
+    # a folder, or a symlinked folder (e.g. a classroom slug or `.templates`).
+    real_path = os.path.realpath(abs_path)
+    if os.path.isfile(real_path):
         filename = os.path.basename(abs_path)
         return FileResponse(
-            abs_path,
+            real_path,
             headers={"Content-Disposition": f'attachment; filename="{filename}"'},
         )
 
-    # Folder — zip it in memory and stream back
+    # Folder — zip it in memory and stream back. Resolve symlinks recursively
+    # so the archive contains real content (the common case here is a
+    # classroom slug folder that's itself a symlink, plus `.templates/`
+    # inside it which links to the teacher's assignments). Broken links are
+    # skipped instead of crashing the whole download, and we track visited
+    # real paths to prevent cycles.
     folder_name = os.path.basename(abs_path.rstrip("/")) or "download"
+    visited: set[str] = set()
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
-        for root, _dirs, files_in_dir in os.walk(abs_path):
+        for root, dirs, files_in_dir in os.walk(real_path, followlinks=True):
+            try:
+                root_real = os.path.realpath(root)
+            except OSError:
+                dirs[:] = []
+                continue
+            if root_real in visited:
+                dirs[:] = []
+                continue
+            visited.add(root_real)
+
+            rel_root = os.path.relpath(root, real_path)
             for name in files_in_dir:
                 full = os.path.join(root, name)
-                arcname = os.path.join(folder_name, os.path.relpath(full, abs_path))
-                zf.write(full, arcname)
+                try:
+                    target = os.path.realpath(full)
+                    if not os.path.exists(target) or not os.path.isfile(target):
+                        # Broken link or a dir-link masquerading as a file — skip.
+                        continue
+                except OSError:
+                    continue
+                arcname = os.path.join(
+                    folder_name,
+                    name if rel_root == "." else os.path.join(rel_root, name),
+                )
+                try:
+                    zf.write(target, arcname)
+                except (OSError, ValueError) as e:
+                    logger.warning("Skipping %s in download: %s", full, e)
+                    continue
     buf.seek(0)
     return StreamingResponse(
         iter([buf.read()]),
