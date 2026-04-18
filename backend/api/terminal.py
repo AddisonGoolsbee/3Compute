@@ -331,18 +331,23 @@ def _attach_container(session_info: dict, cols: int = 80, rows: int = 24) -> boo
         rows,
     )
     try:
-        _proc, fd = attach_to_container(container_name, tab_id, cols=cols, rows=rows)
+        proc, fd = attach_to_container(container_name, tab_id, cols=cols, rows=rows)
     except Exception:
         logger.error("Failed to attach to container for user %s", user_id, exc_info=True)
         return False
 
     session_info["fd"] = fd
+    # Track the docker exec subprocess so disconnect can terminate it —
+    # otherwise the `docker exec -it ... tmux attach` process orphans and
+    # holds a connection to dockerd (additional fds) until its stdin EOFs.
+    session_info["proc"] = proc
     session_info["container_attached"] = True
     logger.info(
-        "[DIAG] _attach_container: SUCCESS for user=%s tab=%s fd=%s",
+        "[DIAG] _attach_container: SUCCESS for user=%s tab=%s fd=%s pid=%s",
         user_id,
         tab_id,
         fd,
+        proc.pid,
     )
     return True
 
@@ -359,6 +364,41 @@ def _cleanup_user_container(user_id: str, container_name: str):
 def set_winsize(fd, row, col, xpix=0, ypix=0):
     winsize = struct.pack("HHHH", row, col, xpix, ypix)
     fcntl.ioctl(fd, termios.TIOCSWINSZ, winsize)
+
+
+def _release_session_resources(sid: str, session: dict) -> None:
+    """Close the PTY master fd and terminate the docker-exec subprocess
+    associated with a session. Safe to call more than once.
+
+    Fd leak history: slave_fd (in attach_to_container) and the docker exec
+    subprocess both used to leak on every terminal attach, accumulating until
+    the backend hit EMFILE. This helper is the single cleanup
+    path. Call it from every code path that drops a session.
+    """
+    fd = session.pop("fd", None)
+    if fd is not None:
+        try:
+            os.close(fd)
+            logger.info("[DIAG] released fd=%s for sid=%s", fd, sid)
+        except OSError as e:
+            logger.warning("os.close(fd=%s) for sid=%s failed: %s", fd, sid, e)
+
+    proc = session.pop("proc", None)
+    if proc is not None:
+        try:
+            if proc.poll() is None:
+                proc.terminate()
+                try:
+                    proc.wait(timeout=2)
+                except subprocess.TimeoutExpired:
+                    proc.kill()
+                    proc.wait(timeout=2)
+            logger.info(
+                "[DIAG] released proc pid=%s exit=%s for sid=%s",
+                proc.pid, proc.returncode, sid,
+            )
+        except Exception as e:
+            logger.warning("Failed to terminate proc for sid=%s: %s", sid, e)
 
 
 # ---------------------------------------------------------------------------
@@ -542,16 +582,25 @@ async def handle_connect(sid, environ, auth=None):
         )
         return False
 
-    # Check for existing sessions for same user+tab (stale from prior connection)
+    # Check for existing sessions for same user+tab (stale from prior connection).
+    # A reconnect (page refresh, engine-io ping timeout, network blip) fires
+    # a fresh connect before socket.io ever fires disconnect on the old sid,
+    # so the old session's pty + subprocess are still live. Release them
+    # proactively — otherwise every reconnect leaks one pty pair + one docker
+    # exec subprocess until the backend exhausts fds.
     existing_sids = [s for s, info in session_map.items() if info["user_id"] == user_id and info["tab_id"] == tab_id]
     if existing_sids:
         logger.warning(
-            "[DIAG] handle_connect: DUPLICATE session(s) for user=%s tab=%s existing_sids=%s new_sid=%s",
+            "[DIAG] handle_connect: DUPLICATE session(s) for user=%s tab=%s existing_sids=%s new_sid=%s; releasing old sessions",
             user_id,
             tab_id,
             existing_sids,
             sid,
         )
+        for stale_sid in existing_sids:
+            stale = session_map.pop(stale_sid, None)
+            if stale is not None:
+                await asyncio.to_thread(_release_session_resources, stale_sid, stale)
 
     session_info = {
         "fd": None,
@@ -589,15 +638,14 @@ async def handle_disconnect(sid):
 
     user_id = session["user_id"]
     tab_id = session.get("tab_id")
-    fd = session.get("fd")
-    logger.info("[DIAG] handle_disconnect: sid=%s user=%s tab=%s fd=%s", sid, user_id, tab_id, fd)
+    logger.info(
+        "[DIAG] handle_disconnect: sid=%s user=%s tab=%s fd=%s",
+        sid, user_id, tab_id, session.get("fd"),
+    )
 
-    if fd:
-        try:
-            os.close(fd)
-            logger.info("[DIAG] handle_disconnect: closed fd=%s for sid=%s", fd, sid)
-        except Exception as e:
-            logger.error("Failed to close PTY for user %s: %s", user_id, e)
+    # Offload close + terminate to a thread — proc.wait() blocks up to a few
+    # seconds, which would stall the event loop.
+    await asyncio.to_thread(_release_session_resources, sid, session)
 
     remaining = [s["tab_id"] for s in session_map.values() if s["user_id"] == user_id]
     logger.info("[DIAG] handle_disconnect: remaining sessions for user=%s: %s", user_id, remaining)

@@ -575,11 +575,31 @@ def attach_to_container(container_name, tab_id="1", cols=80, rows=24):
     logger.info(f"[DIAG] attach_to_container: starting docker exec for '{container_name}' tmux='{session_name}'")
     try:
         proc = subprocess.Popen(cmd, stdin=slave_fd, stdout=slave_fd, stderr=slave_fd, close_fds=True)
-        logger.info(f"[DIAG] attach_to_container: Popen started pid={proc.pid}")
-        return proc, master_fd
     except Exception as e:
+        # Popen failed — close BOTH sides of the pty before re-raising,
+        # otherwise the caller has no way to reclaim them.
+        try:
+            os.close(master_fd)
+        except OSError:
+            pass
+        try:
+            os.close(slave_fd)
+        except OSError:
+            pass
         logger.error(f"Failed to attach to container '{container_name}': {e}")
         raise
+
+    # The child has its own copy (dup'd to fd 0/1/2). The parent must close
+    # its slave_fd here — otherwise it stays open forever and also prevents
+    # read() on master_fd from returning EOF when the child exits, because
+    # the kernel sees the slave side as still referenced.
+    # This is the primary fd leak that exhausted the per-process limit in prod.
+    try:
+        os.close(slave_fd)
+    except OSError as e:
+        logger.warning(f"Failed to close slave_fd {slave_fd} after Popen: {e}")
+    logger.info(f"[DIAG] attach_to_container: Popen started pid={proc.pid}")
+    return proc, master_fd
 
 
 __all__ = [

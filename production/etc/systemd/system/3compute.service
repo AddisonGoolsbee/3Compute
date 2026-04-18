@@ -22,6 +22,12 @@ User=www-data
 Group=www-data
 SupplementaryGroups=3compute-container
 AmbientCapabilities=CAP_CHOWN
+# systemd's default soft fd limit is 1024. The backend opens pty + dockerd
+# connection fds per terminal attach, and a leak in that path exhausted the
+# limit in prod (EMFILE cascade → 500s on saves/reads/login). The leak is
+# fixed in code but 1024 is too tight for a busy class anyway; 65536 gives
+# comfortable headroom.
+LimitNOFILE=65536
 
 [Install]
 WantedBy=multi-user.target

@@ -53,12 +53,13 @@ def mock_docker():
     with (
         patch("subprocess.run") as mock_run,
         patch("backend.docker.pty.openpty") as mock_pty,
+        patch("backend.docker.os.close") as mock_close,
         patch("subprocess.Popen") as mock_popen,
     ):
         mock_run.return_value = Mock(returncode=0, stdout="running\n")
         mock_pty.return_value = (5, 6)
         mock_popen.return_value = Mock()
-        yield {"run": mock_run, "pty": mock_pty, "popen": mock_popen}
+        yield {"run": mock_run, "pty": mock_pty, "popen": mock_popen, "close": mock_close}
 
 
 @pytest.fixture(autouse=True)

@@ -86,9 +86,10 @@ class TestDockerModule:
 
             assert result is False
 
+    @patch("backend.docker.os.close")
     @patch("backend.docker.pty.openpty")
     @patch("subprocess.Popen")
-    def test_attach_to_container_success(self, mock_popen, mock_openpty):
+    def test_attach_to_container_success(self, mock_popen, mock_openpty, mock_close):
         """Test successful container attachment"""
         from backend.docker import attach_to_container
 
@@ -105,6 +106,9 @@ class TestDockerModule:
 
             assert proc == mock_proc
             assert fd == 5
+
+            # Parent must close slave_fd after Popen — otherwise it leaks.
+            mock_close.assert_any_call(6)
 
             # Verify correct command was called
             mock_popen.assert_called_once()
@@ -124,9 +128,10 @@ class TestDockerModule:
             ):
                 attach_to_container("test-container", "1")
 
+    @patch("backend.docker.os.close")
     @patch("backend.docker.pty.openpty")
     @patch("subprocess.Popen")
-    def test_attach_to_container_with_tab_id(self, mock_popen, mock_openpty):
+    def test_attach_to_container_with_tab_id(self, mock_popen, mock_openpty, _mock_close):
         """Test container attachment with specific tab ID"""
         from backend.docker import attach_to_container
 
@@ -249,6 +254,7 @@ class TestContainerLifecycle:
         with (
             patch("backend.docker.container_is_running", return_value=True),
             patch("backend.docker.pty.openpty", return_value=(5, 6)),
+            patch("backend.docker.os.close"),
             patch("subprocess.Popen") as mock_popen,
         ):
             mock_popen.return_value = Mock()
