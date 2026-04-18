@@ -129,13 +129,13 @@ export default function AdminUsersPage() {
             <table className="w-full text-sm">
               <thead className="text-left bg-gray-900/60 text-gray-400 uppercase text-[10px] tracking-wide">
                 <tr>
-                  <th className="px-3 py-2">Email</th>
-                  <th className="px-3 py-2">Role</th>
-                  <th className="px-3 py-2">Ports</th>
-                  <th className="px-3 py-2">Container</th>
-                  <th className="px-3 py-2">Classes</th>
-                  <th className="px-3 py-2">Last login</th>
-                  <th className="px-3 py-2">First login</th>
+                  <th className="pl-3! pr-3 py-2">Email</th>
+                  <th className="pl-3! pr-3 py-2">Role</th>
+                  <th className="pl-3! pr-3 py-2">Ports</th>
+                  <th className="pl-3! pr-3 py-2">Container</th>
+                  <th className="pl-3! pr-3 py-2">Classes</th>
+                  <th className="pl-3! pr-3 py-2">Last login</th>
+                  <th className="pl-3! pr-3 py-2">First login</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-800/80">
@@ -152,7 +152,7 @@ export default function AdminUsersPage() {
                         <span className="ml-1 text-yellow-400" title="Port range overlaps another user">⚠</span>
                       )}
                     </td>
-                    <td className="px-3 py-2">
+                    <td className="pl-3! pr-3 py-2">
                       {u.container_running ? (
                         <span className="inline-flex items-center gap-1 text-green-400">
                           <span className="w-1.5 h-1.5 rounded-full bg-green-400" /> running

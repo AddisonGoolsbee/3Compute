@@ -110,11 +110,11 @@ export default function AdminContainersPage() {
             <table className="w-full text-sm">
               <thead className="text-left bg-gray-900/60 text-gray-400 uppercase text-[10px] tracking-wide">
                 <tr>
-                  <th className="px-3 py-2">User</th>
-                  <th className="px-3 py-2">State</th>
-                  <th className="px-3 py-2">Status</th>
-                  <th className="px-3 py-2">Uptime</th>
-                  <th className="px-3 py-2">Ports</th>
+                  <th className="pl-3! pr-3 py-2">User</th>
+                  <th className="pl-3! pr-3 py-2">State</th>
+                  <th className="pl-3! pr-3 py-2">Status</th>
+                  <th className="pl-3! pr-3 py-2">Uptime</th>
+                  <th className="pl-3! pr-3 py-2">Ports</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-800/80">
@@ -123,7 +123,7 @@ export default function AdminContainersPage() {
                     <td className="px-3 py-2 font-mono text-xs">
                       {c.user_email || <span className="text-gray-500">{c.user_id || c.name}</span>}
                     </td>
-                    <td className="px-3 py-2">
+                    <td className="pl-3! pr-3 py-2">
                       {c.state === 'running' ? (
                         <span className="inline-flex items-center gap-1 text-green-400">
                           <span className="w-1.5 h-1.5 rounded-full bg-green-400" /> running

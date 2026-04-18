@@ -75,8 +75,11 @@ pytest backend/test_docker.py::test_name  # Single test
 - `frontend/src/components/Explorer.tsx` — File tree with drag-and-drop, rename, context menus
 - `frontend/src/components/PortsPanel.tsx` — Subdomain/port management UI
 - `frontend/src/components/Nav.tsx` — Top navigation bar (role-aware: teacher vs student)
-- `frontend/src/pages/` — `landing.tsx`, `classrooms.tsx` (teacher), `lessons.tsx` (teacher), `terms.tsx`
+- `frontend/src/pages/` — `landing.tsx`, `classrooms.tsx` (teacher), `lessons.tsx` (teacher), `terms.tsx`, `admin*.tsx` (birdflop admins)
 - `frontend/src/util/` — `UserData.ts` (auth context + clientLoader), `Files.ts` (file tree parsing), `uploadLocalFiles.ts`, `languageMap.ts`, `printMarkdown.ts`
+
+### Frontend gotchas
+- **Table cell left padding**: `@luminescent/ui-react` globally zeroes `th`/`td` left padding, so plain Tailwind utilities like `px-3` or `pl-3` silently drop. Use the Tailwind 4 `!important` modifier (`pl-3!`, `pl-8!`, etc.) on every `th` and `td` — see `pages/classroom-detail.tsx` gradebook and `pages/admin-*.tsx` for the pattern. Right padding works without `!`.
 
 ### User isolation
 - Each user gets 10 ports (base 10000, allocated sequentially)

@@ -96,27 +96,27 @@ export default function AdminClassroomsPage() {
             <table className="w-full text-sm">
               <thead className="text-left bg-gray-900/60 text-gray-400 uppercase text-[10px] tracking-wide">
                 <tr>
-                  <th className="px-3 py-2">Name</th>
-                  <th className="px-3 py-2">Code</th>
-                  <th className="px-3 py-2">Owner</th>
-                  <th className="px-3 py-2">Instructors</th>
-                  <th className="px-3 py-2">Students</th>
-                  <th className="px-3 py-2">Assignments</th>
-                  <th className="px-3 py-2">Grading</th>
-                  <th className="px-3 py-2">Joins</th>
+                  <th className="pl-3! pr-3 py-2">Name</th>
+                  <th className="pl-3! pr-3 py-2">Code</th>
+                  <th className="pl-3! pr-3 py-2">Owner</th>
+                  <th className="pl-3! pr-3 py-2">Instructors</th>
+                  <th className="pl-3! pr-3 py-2">Students</th>
+                  <th className="pl-3! pr-3 py-2">Assignments</th>
+                  <th className="pl-3! pr-3 py-2">Grading</th>
+                  <th className="pl-3! pr-3 py-2">Joins</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-800/80">
                 {rows.map((c) => (
                   <tr key={c.id} className="hover:bg-gray-800/30">
-                    <td className="px-3 py-2">{c.name}</td>
+                    <td className="pl-3! pr-3 py-2">{c.name}</td>
                     <td className="px-3 py-2 font-mono text-gray-400">{c.access_code}</td>
                     <td className="px-3 py-2 font-mono text-gray-300">{c.created_by_email || <span className="text-gray-500">—</span>}</td>
                     <td className="px-3 py-2 text-gray-300">{c.instructor_count}</td>
                     <td className="px-3 py-2 text-gray-300">{c.participant_count}</td>
                     <td className="px-3 py-2 text-gray-300">{c.assignment_count}</td>
                     <td className="px-3 py-2 text-gray-400">{c.grading_mode}</td>
-                    <td className="px-3 py-2">
+                    <td className="pl-3! pr-3 py-2">
                       {c.joins_paused
                         ? <span className="text-yellow-400">paused</span>
                         : <span className="text-gray-500">open</span>}
