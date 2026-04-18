@@ -5,15 +5,20 @@ Run with: python test_game.py
 Work through the functions in order - later tests depend on earlier ones!
 """
 
+EXPECTED_TOTAL = 20  # total number of checks in this file
+
+import atexit, os
+passed = 0
+failed = 0
+if os.environ.get("TCOMPUTE_SCORE"):
+    atexit.register(lambda: print(f"{passed}/{EXPECTED_TOTAL}"))
+
 import sys
 
 from main import (
     check_winner, is_board_full, minimax, get_best_move,
     EMPTY
 )
-
-passed = 0
-failed = 0
 
 
 def check(description, got, expected):
@@ -162,7 +167,5 @@ else:
     print(f"{failed} test(s) failed. Keep working on your implementation!")
     print("Tip: implement functions in order - later ones depend on earlier ones.")
 print("=" * 40)
-
-print(f"\n###3COMPUTE_RESULTS:{passed}/{total}###")
 
 sys.exit(0 if failed == 0 else 1)

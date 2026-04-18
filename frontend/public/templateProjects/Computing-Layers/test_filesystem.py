@@ -12,6 +12,14 @@ file_system.py in order — the tests are grouped to match.
 A final summary shows how many tests passed.
 """
 
+EXPECTED_TOTAL = 36  # total number of checks in this file
+
+import atexit, os
+passed = 0
+failed = 0
+if os.environ.get("TCOMPUTE_SCORE"):
+    atexit.register(lambda: print(f"{passed}/{EXPECTED_TOTAL}"))
+
 import traceback
 from file_system import MiniFS
 
@@ -25,17 +33,21 @@ _results = []
 
 def test(name: str, fn):
     """Run fn(); record and print a pass or fail result."""
+    global passed, failed
     try:
         fn()
         _results.append((name, True, None))
+        passed += 1
         print(f"  PASS  {name}")
     except AssertionError as e:
         _results.append((name, False, str(e)))
+        failed += 1
         print(f"  FAIL  {name}")
         if str(e):
             print(f"        {e}")
     except Exception as e:
         _results.append((name, False, f"{type(e).__name__}: {e}"))
+        failed += 1
         print(f"  FAIL  {name}")
         print(f"        {type(e).__name__}: {e}")
 
@@ -477,12 +489,8 @@ test("is_dir: root path is a directory", _test_is_dir_root)
 # SUMMARY
 # =============================================================================
 
-total = len(_results)
-passed = sum(1 for _, ok, _ in _results if ok)
-failed = total - passed
-
 print(f"\n{'=' * 40}")
-print(f"Results: {passed}/{total} tests passed")
+print(f"Results: {passed}/{EXPECTED_TOTAL} tests passed")
 
 if failed > 0:
     print(f"\nFailing tests:")
@@ -497,5 +505,3 @@ else:
     print("All tests pass. Try running the shell: python main.py")
 
 print("=" * 40)
-
-print(f"\n###3COMPUTE_RESULTS:{passed}/{total}###")

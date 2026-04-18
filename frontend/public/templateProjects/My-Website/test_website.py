@@ -14,6 +14,14 @@ NOTE: The quote test (Section 5) requires an internet connection and will
 be skipped automatically if the network is unavailable.
 """
 
+EXPECTED_TOTAL = 15  # total number of checks in this file
+
+import atexit, os
+passed = 0
+failed = 0
+if os.environ.get("TCOMPUTE_SCORE"):
+    atexit.register(lambda: print(f"{passed}/{EXPECTED_TOTAL}"))
+
 import sys
 import json
 import unittest
@@ -21,12 +29,7 @@ import unittest
 # ---------------------------------------------------------------------------
 # Import the Flask app
 # ---------------------------------------------------------------------------
-try:
-    from app import app
-except ImportError as e:
-    print(f"ERROR: Could not import app.py: {e}")
-    sys.exit(1)
-
+from app import app
 app.config["TESTING"] = True
 
 
@@ -276,6 +279,8 @@ class TestSection7Visitors(unittest.TestCase):
 
 def run_tests():
     """Run tests and print a clean summary."""
+    global passed, failed
+
     loader = unittest.TestLoader()
     suite = unittest.TestSuite()
 
@@ -294,20 +299,19 @@ def run_tests():
     runner = unittest.TextTestRunner(verbosity=2)
     result = runner.run(suite)
 
+    n_failed = len(result.failures) + len(result.errors)
+    n_skipped = len(result.skipped)
+    passed = result.testsRun - n_failed - n_skipped
+    failed = n_failed
+
     print()
     print("=" * 60)
     if result.wasSuccessful():
         print("All tests passed!")
     else:
-        failed = len(result.failures) + len(result.errors)
-        skipped = len(result.skipped)
-        print(f"{result.testsRun - failed - skipped} passed, "
-              f"{failed} failed, {skipped} skipped")
+        print(f"{passed} passed, "
+              f"{n_failed} failed, {n_skipped} skipped")
     print("=" * 60)
-
-    effective_total = result.testsRun - len(result.skipped)
-    effective_passed = effective_total - len(result.failures) - len(result.errors)
-    print(f"\n###3COMPUTE_RESULTS:{effective_passed}/{effective_total}###")
 
     return result.wasSuccessful()
 

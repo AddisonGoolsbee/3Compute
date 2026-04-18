@@ -120,7 +120,7 @@ export default function AdminContainersPage() {
               <tbody className="divide-y divide-gray-800/80">
                 {rows.map((c) => (
                   <tr key={c.name} className="hover:bg-gray-800/30">
-                    <td className="px-3 py-2 font-mono text-xs">
+                    <td className="pl-3! pr-3 py-2 font-mono text-xs">
                       {c.user_email || <span className="text-gray-500">{c.user_id || c.name}</span>}
                     </td>
                     <td className="pl-3! pr-3 py-2">
@@ -132,13 +132,13 @@ export default function AdminContainersPage() {
                         <span className="text-gray-500">{c.state}</span>
                       )}
                     </td>
-                    <td className="px-3 py-2 text-gray-400">{c.status}</td>
-                    <td className="px-3 py-2 text-gray-300">{c.running_for}</td>
-                    <td className="px-3 py-2 font-mono text-[10px] text-gray-400">{c.ports || <span className="text-gray-600">—</span>}</td>
+                    <td className="pl-3! pr-3 py-2 text-gray-400">{c.status}</td>
+                    <td className="pl-3! pr-3 py-2 text-gray-300">{c.running_for}</td>
+                    <td className="pl-3! pr-3 py-2 font-mono text-[10px] text-gray-400">{c.ports || <span className="text-gray-600">—</span>}</td>
                   </tr>
                 ))}
                 {rows.length === 0 && !loading && (
-                  <tr><td colSpan={5} className="px-3 py-6 text-center text-gray-500">No containers.</td></tr>
+                  <tr><td colSpan={5} className="pl-3! pr-3 py-6 text-center text-gray-500">No containers.</td></tr>
                 )}
               </tbody>
             </table>

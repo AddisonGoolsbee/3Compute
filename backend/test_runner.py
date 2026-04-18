@@ -100,19 +100,34 @@ def _parse_unittest_output(output: str) -> tuple[int, int]:
 
 
 _RESULTS_MARKER = "###3COMPUTE_RESULTS:"
+# Env var the backend sets when running a test as the grading host. Test
+# scripts register an atexit handler that emits the score to stdout only
+# when this is set, so students running the script locally don't see the
+# raw "N/M" dump — they just see the human-readable summary.
+TEST_ENV_SIGNAL = "TCOMPUTE_SCORE"
 
 
 def _parse_structured_output(output: str) -> tuple[int, int]:
-    """Parse the structured marker emitted by 3Compute test scripts.
+    """Pull ``passed/total`` from a test script's stdout.
 
-    All 3Compute test scripts emit a line like::
-
-        ###3COMPUTE_RESULTS:passed/total###
-
-    at the very end. This is the authoritative source of truth — no
-    heuristic output parsing needed.
+    Primary format is the last non-empty line of the form ``N/M`` — emitted
+    by an atexit handler in the test script so the score is always reported
+    even if the script crashed mid-way. Legacy tests that still use the
+    ``###3COMPUTE_RESULTS:N/M###`` marker are also supported.
     """
-    for line in reversed(output.split("\n")):
+    lines = output.split("\n")
+    for line in reversed(lines):
+        stripped = line.strip()
+        if not stripped:
+            continue
+        m = re.fullmatch(r"(\d+)/(\d+)", stripped)
+        if m:
+            return int(m.group(1)), int(m.group(2))
+        # First non-empty trailing line that isn't the plain score — fall
+        # through to the legacy marker scan below.
+        break
+
+    for line in reversed(lines):
         if _RESULTS_MARKER in line:
             m = re.search(
                 re.escape(_RESULTS_MARKER) + r"(\d+)/(\d+)###", line
@@ -232,6 +247,7 @@ def run_tests_for_student_with_output(
         py_tests = [f for f in test_files if f.endswith(".py")]
         passed, total = 0, 0
 
+        test_env = {**os.environ, TEST_ENV_SIGNAL: "1"}
         if py_tests:
             for tf in py_tests:
                 try:
@@ -241,6 +257,7 @@ def run_tests_for_student_with_output(
                         text=True,
                         timeout=30,
                         cwd=student_dir,
+                        env=test_env,
                     )
                     output = result.stdout + result.stderr
                     all_output += output
@@ -260,6 +277,7 @@ def run_tests_for_student_with_output(
                         text=True,
                         timeout=30,
                         cwd=student_dir,
+                        env=test_env,
                     )
                     output = result.stdout + result.stderr
                     all_output += output
@@ -354,6 +372,7 @@ def run_tests_for_student(
 
         passed, total = 0, 0
 
+        test_env = {**os.environ, TEST_ENV_SIGNAL: "1"}
         if py_tests:
             # Strategy 1: Run test files as scripts (most templates are designed
             # as standalone runners with their own output parsing)
@@ -366,6 +385,7 @@ def run_tests_for_student(
                         text=True,
                         timeout=30,
                         cwd=student_dir,
+                        env=test_env,
                     )
                     output = result.stdout + result.stderr
                     logger.info(
@@ -397,6 +417,7 @@ def run_tests_for_student(
                         text=True,
                         timeout=30,
                         cwd=student_dir,
+                        env=test_env,
                     )
                     output = result.stdout + result.stderr
                     logger.info(

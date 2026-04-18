@@ -9,6 +9,14 @@ Implement the functions in main.py in order -- later tests depend on
 earlier ones working correctly.
 """
 
+EXPECTED_TOTAL = 34  # total number of checks in this file
+
+import atexit, os
+passed = 0
+failed = 0
+if os.environ.get("TCOMPUTE_SCORE"):
+    atexit.register(lambda: print(f"{passed}/{EXPECTED_TOTAL}"))
+
 import math
 from main import load_data, average, group_by, ascii_bar_chart, correlation
 
@@ -16,9 +24,6 @@ from main import load_data, average, group_by, ascii_bar_chart, correlation
 # =============================================================================
 # TEST RUNNER
 # =============================================================================
-
-passed = 0
-failed = 0
 
 
 def check(description, condition, hint=""):
@@ -40,7 +45,11 @@ def check(description, condition, hint=""):
 
 print("\n--- Testing load_data() ---")
 
-data = load_data("student_survey.csv")
+try:
+    data = load_data("student_survey.csv") if load_data else None
+except Exception as _e:
+    print(f"  FAIL  load_data() raised an exception: {_e}")
+    data = None
 
 check(
     "load_data returns a list",
@@ -294,5 +303,3 @@ if failed == 0:
 else:
     print("  Fix the failing tests before running the full analysis.")
 print("=" * 60)
-
-print(f"\n###3COMPUTE_RESULTS:{passed}/{passed + failed}###")

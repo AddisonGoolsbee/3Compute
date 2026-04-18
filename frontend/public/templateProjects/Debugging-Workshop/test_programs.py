@@ -12,6 +12,14 @@ A summary at the end shows your total score.
 Once you fix a bug in buggy_programs.py, re-run this file to confirm.
 """
 
+EXPECTED_TOTAL = 49  # total number of checks in this file
+
+import atexit, os
+passed = 0
+failed = 0
+if os.environ.get("TCOMPUTE_SCORE"):
+    atexit.register(lambda: print(f"{passed}/{EXPECTED_TOTAL}"))
+
 from buggy_programs import (
     calculate_grade,
     count_vowels,
@@ -19,9 +27,6 @@ from buggy_programs import (
     reverse_words,
     is_prime,
 )
-
-passed = 0
-failed = 0
 
 
 def check(label: str, got, expected):
@@ -169,8 +174,6 @@ if failed == 0:
 else:
     print(f"{failed} test(s) still failing. Keep going.")
 print("=" * 40)
-
-print(f"\n###3COMPUTE_RESULTS:{passed}/{total}###")
 
 
 # =============================================================================

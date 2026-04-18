@@ -51,23 +51,17 @@ Files named `test_*.py` inside an assignment are run for automated grading. Stud
 
 ### Writing your own tests
 
-Each test file must:
-
-1. Be named `test_*.py` (e.g. `test_math.py`, `test_strings.py`).
-2. Be runnable as a standalone Python script.
-3. Print its score on the **last line of stdout** in this exact format:
-
-   ```
-   ###3COMPUTE_RESULTS:passed/total###
-   ```
-
-   For example, `###3COMPUTE_RESULTS:4/5###` means 4 of 5 tests passed. Everything before that line can be whatever you want: print tables, diffs, logs, whatever helps the student debug.
-
-Here's the pattern used by the built-in lessons. Drop it into a `test_*.py` and adapt the checks to the assignment:
+Each test file must be named `test_*.py` and runnable as a standalone Python script. Drop the following snippet at the top of every test file so the gradebook gets a consistent score even if the student's code crashes partway through:
 
 ```python
+EXPECTED_TOTAL = 2  # total number of checks in this file
+
+import atexit, os
 passed = 0
 failed = 0
+if os.environ.get("TCOMPUTE_SCORE"):
+    atexit.register(lambda: print(f"{passed}/{EXPECTED_TOTAL}"))
+
 
 def check(description, got, expected):
     global passed, failed
@@ -80,15 +74,16 @@ def check(description, got, expected):
         print(f"          got:      {got!r}")
         failed += 1
 
+
 from main import add, multiply  # import the student's code
 
 check("add(2, 3) == 5", add(2, 3), 5)
 check("multiply(4, 5) == 20", multiply(4, 5), 20)
 
-total = passed + failed
-print(f"Results: {passed}/{total} tests passed")
-print(f"###3COMPUTE_RESULTS:{passed}/{total}###")
+print(f"Results: {passed}/{EXPECTED_TOTAL} tests passed")
 ```
+
+Set `EXPECTED_TOTAL` to the number of `check(...)` calls in your file. Students see the `Results: N/M tests passed` line when they run the test script themselves; the gradebook reads the score separately.
 
 If an assignment has multiple `test_*.py` files their results are summed into a single score.
 

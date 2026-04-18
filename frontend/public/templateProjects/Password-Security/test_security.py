@@ -9,6 +9,14 @@ Each test will show a checkmark if passing or an X if failing.
 Work through the functions in order: later tests depend on earlier ones!
 """
 
+EXPECTED_TOTAL = 6  # total number of checks in this file
+
+import atexit, os
+passed = 0
+failed = 0
+if os.environ.get("TCOMPUTE_SCORE"):
+    atexit.register(lambda: print(f"{passed}/{EXPECTED_TOTAL}"))
+
 from main import (
     hash_password,
     verify_password,
@@ -392,30 +400,41 @@ def test_check_password_strength():
     return tests_passed == total_tests
 
 
+def _safe_run(label, fn):
+    """Run a test function, returning False if it raises."""
+    try:
+        return fn()
+    except Exception as e:
+        print(f"\n  [!!] {label} raised an error: {e}")
+        return False
+
+
 def run_all_tests():
     """Run the complete test suite."""
+    global passed, failed
+
     print("\n" + "=" * 30)
     print("  PASSWORD SECURITY TEST SUITE")
     print("=" * 30)
 
     results = []
 
-    results.append(("hash_password", test_hash_password()))
-    results.append(("verify_password", test_verify_password()))
-    results.append(("generate_salt", test_generate_salt()))
-    results.append(("hash_with_salt", test_hash_with_salt()))
-    results.append(("dictionary_attack", test_dictionary_attack()))
-    results.append(("check_password_strength", test_check_password_strength()))
+    results.append(("hash_password", _safe_run("hash_password", test_hash_password)))
+    results.append(("verify_password", _safe_run("verify_password", test_verify_password)))
+    results.append(("generate_salt", _safe_run("generate_salt", test_generate_salt)))
+    results.append(("hash_with_salt", _safe_run("hash_with_salt", test_hash_with_salt)))
+    results.append(("dictionary_attack", _safe_run("dictionary_attack", test_dictionary_attack)))
+    results.append(("check_password_strength", _safe_run("check_password_strength", test_check_password_strength)))
 
     print("\n" + "=" * 50)
     print("SUMMARY")
     print("=" * 50)
 
     all_passed = True
-    for name, passed in results:
-        status = "PASS" if passed else "FAIL"
+    for name, ok in results:
+        status = "PASS" if ok else "FAIL"
         print(f"  {name}: {status}")
-        if not passed:
+        if not ok:
             all_passed = False
 
     print()
@@ -426,8 +445,8 @@ def run_all_tests():
         print("Tip: each function builds on the ones before it.")
     print()
 
-    func_passed = sum(1 for _, p in results if p)
-    print(f"###3COMPUTE_RESULTS:{func_passed}/{len(results)}###")
+    passed = sum(1 for _, p in results if p)
+    failed = len(results) - passed
 
 
 if __name__ == "__main__":

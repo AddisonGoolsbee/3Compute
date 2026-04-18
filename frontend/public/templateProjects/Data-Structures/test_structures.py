@@ -12,11 +12,15 @@ Implement the TODOs in main.py in order. Tests are arranged so that
 later tests depend on earlier ones working correctly.
 """
 
-from main import Stack, Queue, is_balanced, simulate_print_queue, BrowserHistory
+EXPECTED_TOTAL = 60  # total number of checks in this file
 
-
+import atexit, os
 passed = 0
 failed = 0
+if os.environ.get("TCOMPUTE_SCORE"):
+    atexit.register(lambda: print(f"{passed}/{EXPECTED_TOTAL}"))
+
+from main import Stack, Queue, is_balanced, simulate_print_queue, BrowserHistory
 
 
 def _safe_str(obj):
@@ -305,5 +309,3 @@ total = passed + failed
 print(f"\n{'=' * 40}")
 print(f"  {passed}/{total} tests passed")
 print(f"{'=' * 40}\n")
-
-print(f"###3COMPUTE_RESULTS:{passed}/{total}###")

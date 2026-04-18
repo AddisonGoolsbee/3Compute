@@ -12,11 +12,19 @@ interface LogsResponse {
 }
 
 const LINE_COUNT_OPTIONS = [100, 200, 500, 1000];
+const LEVEL_OPTIONS = ['debug', 'info', 'warn', 'error', 'fatal'] as const;
+type LogLevel = typeof LEVEL_OPTIONS[number];
+
+const DEFAULT_LEVELS: LogLevel[] = ['info', 'warn', 'error', 'fatal'];
 
 export default function AdminLogsPage() {
   const userData = useContext(UserDataContext);
-  const [level, setLevel] = useState<'all' | 'errors'>('all');
+  const [levels, setLevels] = useState<LogLevel[]>(DEFAULT_LEVELS);
   const [lineCount, setLineCount] = useState(200);
+
+  const toggleLevel = (l: LogLevel) => {
+    setLevels((prev) => (prev.includes(l) ? prev.filter((x) => x !== l) : [...prev, l]));
+  };
   const [lines, setLines] = useState<string[]>([]);
   const [available, setAvailable] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -37,7 +45,7 @@ export default function AdminLogsPage() {
     setRefreshing(true);
     try {
       const res = await fetch(
-        `${apiUrl}/admin/logs?level=${level}&lines=${lineCount}`,
+        `${apiUrl}/admin/logs?levels=${levels.join(',')}&lines=${lineCount}`,
         { credentials: 'include' },
       );
       if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
@@ -52,7 +60,7 @@ export default function AdminLogsPage() {
       setRefreshing(false);
       setLoading(false);
     }
-  }, [level, lineCount]);
+  }, [levels, lineCount]);
 
   useEffect(() => {
     if (!isAdmin) return;
@@ -101,18 +109,25 @@ export default function AdminLogsPage() {
             </div>
             <div className="flex items-center gap-2 text-sm">
               <div className="flex items-center rounded overflow-hidden border border-gray-700">
-                <button
-                  onClick={() => setLevel('all')}
-                  className={`px-3 py-1 ${level === 'all' ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'}`}
-                >
-                  All
-                </button>
-                <button
-                  onClick={() => setLevel('errors')}
-                  className={`px-3 py-1 ${level === 'errors' ? 'bg-red-600 text-white' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'}`}
-                >
-                  Warn+
-                </button>
+                {LEVEL_OPTIONS.map((l) => {
+                  const active = levels.includes(l);
+                  const activeColor =
+                    l === 'debug' ? 'bg-gray-500' :
+                    l === 'info' ? 'bg-blue-600' :
+                    l === 'warn' ? 'bg-yellow-600' :
+                    l === 'error' ? 'bg-red-600' :
+                    'bg-red-800';
+                  return (
+                    <button
+                      key={l}
+                      onClick={() => toggleLevel(l)}
+                      title={active ? `Hide ${l}` : `Show ${l}`}
+                      className={`px-3 py-1 capitalize ${active ? `${activeColor} text-white` : 'bg-gray-800 text-gray-500 hover:bg-gray-700'}`}
+                    >
+                      {l}
+                    </button>
+                  );
+                })}
               </div>
               <select
                 value={lineCount}

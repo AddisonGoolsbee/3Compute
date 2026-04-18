@@ -9,7 +9,14 @@ Each test prints  for a pass or  for a fail.
 At the end you'll see a summary: "N/M tests passed".
 """
 
-import os
+EXPECTED_TOTAL = 30  # total number of checks in this file
+
+import atexit, os
+passed = 0
+failed = 0
+if os.environ.get("TCOMPUTE_SCORE"):
+    atexit.register(lambda: print(f"{passed}/{EXPECTED_TOTAL}"))
+
 import csv
 import tempfile
 
@@ -23,9 +30,6 @@ from main import (
 # =============================================================================
 # Test helpers
 # =============================================================================
-
-passed = 0
-failed = 0
 
 
 def check(description, condition, hint=""):
@@ -313,13 +317,12 @@ finally:
 # Summary
 # =============================================================================
 
-total = passed + failed
 print()
 print("=" * 55)
-print(f"  {passed}/{total} tests passed")
+print(f"  {passed}/{EXPECTED_TOTAL} tests passed")
 print("=" * 55)
 
-if failed == 0:
+if passed == EXPECTED_TOTAL:
     print()
     print("All tests pass. Run 'python main.py' to see the simulation.")
 else:
@@ -327,5 +330,3 @@ else:
     print("Some tests failed. Read the hints above and check your code.")
     print("Implement functions in order: simulate_step first, then the rest.")
 print()
-
-print(f"###3COMPUTE_RESULTS:{passed}/{passed + failed}###")

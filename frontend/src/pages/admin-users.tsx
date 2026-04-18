@@ -141,12 +141,12 @@ export default function AdminUsersPage() {
               <tbody className="divide-y divide-gray-800/80">
                 {users.map((u) => (
                   <tr key={u.id} className="hover:bg-gray-800/30">
-                    <td className="px-3 py-2 font-mono">
+                    <td className="pl-3! pr-3 py-2 font-mono">
                       {u.email}
                       {u.name && <span className="text-gray-500 ml-1">({u.name})</span>}
                     </td>
-                    <td className="px-3 py-2 text-gray-300">{u.role || <span className="text-gray-500">—</span>}</td>
-                    <td className="px-3 py-2 font-mono text-gray-300">
+                    <td className="pl-3! pr-3 py-2 text-gray-300">{u.role || <span className="text-gray-500">—</span>}</td>
+                    <td className="pl-3! pr-3 py-2 font-mono text-gray-300">
                       {u.port_start}–{u.port_end}
                       {u.port_conflict && (
                         <span className="ml-1 text-yellow-400" title="Port range overlaps another user">⚠</span>
@@ -161,13 +161,13 @@ export default function AdminUsersPage() {
                         <span className="text-gray-500">stopped</span>
                       )}
                     </td>
-                    <td className="px-3 py-2 text-gray-300">{u.classroom_count}</td>
-                    <td className="px-3 py-2 text-gray-400" title={u.last_login || ''}>{fmtRelative(u.last_login)}</td>
-                    <td className="px-3 py-2 text-gray-500" title={u.first_login || ''}>{fmtRelative(u.first_login)}</td>
+                    <td className="pl-3! pr-3 py-2 text-gray-300">{u.classroom_count}</td>
+                    <td className="pl-3! pr-3 py-2 text-gray-400" title={u.last_login || ''}>{fmtRelative(u.last_login)}</td>
+                    <td className="pl-3! pr-3 py-2 text-gray-500" title={u.first_login || ''}>{fmtRelative(u.first_login)}</td>
                   </tr>
                 ))}
                 {users.length === 0 && !loading && (
-                  <tr><td colSpan={7} className="px-3 py-6 text-center text-gray-500">No users.</td></tr>
+                  <tr><td colSpan={7} className="pl-3! pr-3 py-6 text-center text-gray-500">No users.</td></tr>
                 )}
               </tbody>
             </table>

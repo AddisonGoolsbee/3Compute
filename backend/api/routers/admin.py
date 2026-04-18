@@ -332,11 +332,71 @@ async def admin_classrooms(
     }
 
 
+import re as _re_admin_logs
+
+_KNOWN_LEVELS = ("debug", "info", "warn", "error", "fatal")
+
+# Per-level classification regexes. Each line is classified into exactly one
+# level (the highest matching one). systemd stores all Python/uvicorn stdout
+# at priority INFO, so journalctl --priority can't distinguish our levels —
+# we match against the message body (``[WARNING]``, ``[ERROR]``, Traceback,
+# 5xx HTTP, etc.) instead.
+_CRITICAL_RE = _re_admin_logs.compile(r"\[CRITICAL\]")
+_ERROR_RE = _re_admin_logs.compile(r"\[ERROR\]|Traceback|\bOSError\b|\b\w+Error:|\b\w+Exception\b|HTTP/1\.1\" 5\d{2}")
+_WARN_RE = _re_admin_logs.compile(r"\[(WARNING|WARN)\]|HTTP/1\.1\" 4\d{2}")
+_DEBUG_RE = _re_admin_logs.compile(r"\[DEBUG\]")
+
+
+def _classify_line(line: str) -> str:
+    """Best-effort classification of a single journalctl line into one of
+    the five levels. Falls back to 'info' for uvicorn access logs and
+    anything we don't otherwise recognise."""
+    if _CRITICAL_RE.search(line):
+        return "fatal"
+    if _ERROR_RE.search(line):
+        return "error"
+    if _WARN_RE.search(line):
+        return "warn"
+    if _DEBUG_RE.search(line):
+        return "debug"
+    return "info"
+
+
+def _filter_log_lines(raw_lines: list[str], selected: set[str]) -> list[str]:
+    """Keep lines whose classified level is in *selected*. Traceback
+    continuation lines (indented frame lines or the final exception line)
+    are treated as part of the Traceback block that started them, so a
+    matched traceback is shown in full."""
+    if not selected:
+        return []
+    out: list[str] = []
+    traceback_active = False
+    for line in raw_lines:
+        if traceback_active:
+            if _re_admin_logs.search(r"(^|\]: )\s+File \"| in | line \d+", line) or \
+               _re_admin_logs.search(r"(^|\]: )\s{2,}", line) or \
+               _re_admin_logs.search(r"(^|\]: )(\w+Error|\w+Exception): ", line) or \
+               "Traceback" in line:
+                if "error" in selected or "fatal" in selected:
+                    out.append(line)
+                continue
+            traceback_active = False
+        if "Traceback" in line:
+            traceback_active = True
+            if "error" in selected or "fatal" in selected:
+                out.append(line)
+            continue
+        level = _classify_line(line)
+        if level in selected:
+            out.append(line)
+    return out
+
+
 @router.get("/logs")
 async def admin_logs(
     _user: User = Depends(require_birdflop_admin),
     lines: int = 200,
-    level: str = "all",
+    levels: str = "info,warn,error,fatal",
 ):
     """Recent entries from the systemd journal for the 3compute service.
 
@@ -345,18 +405,32 @@ async def admin_logs(
     group once: ``usermod -aG systemd-journal www-data``. Without that, this
     endpoint returns a permission error and a hint.
 
-    level=errors filters to priority 3 (err) and above.
+    ``levels`` is a comma-separated subset of ``debug,info,warn,error,fatal``.
+    Lines are classified from their message body (``[WARNING] ...``,
+    ``Traceback ...``, etc.) because systemd stores all our stdout at
+    priority INFO — ``journalctl --priority`` can't tell our levels apart.
     """
+    selected = {l.strip().lower() for l in levels.split(",") if l.strip()}
+    selected = {l for l in selected if l in _KNOWN_LEVELS}
+    if not selected:
+        selected = {"info", "warn", "error", "fatal"}
+
     lines = max(1, min(int(lines), 2000))
+
+    # Pull a larger window than `lines` when we're excluding a level, so
+    # we have enough material after filtering. Capped at 5000.
+    if selected == set(_KNOWN_LEVELS):
+        scan_lines = lines
+    else:
+        scan_lines = min(max(lines * 10, 1000), 5000)
+
     cmd = [
         "journalctl",
         "-u", "3compute",
-        "-n", str(lines),
+        "-n", str(scan_lines),
         "--no-pager",
         "--output=short-iso",
     ]
-    if level == "errors":
-        cmd += ["--priority=warning"]
 
     try:
         result = subprocess.run(
@@ -385,9 +459,17 @@ async def admin_logs(
             "lines": [],
         }
 
-    # Split on newlines; drop the last empty element from trailing \n.
     raw_lines = result.stdout.splitlines()
-    return {"available": True, "lines": raw_lines, "count": len(raw_lines), "level": level}
+    filtered = _filter_log_lines(raw_lines, selected)
+    # Keep the last `lines` after filtering.
+    tail = filtered[-lines:]
+    return {
+        "available": True,
+        "lines": tail,
+        "count": len(tail),
+        "scanned": len(raw_lines),
+        "levels": sorted(selected),
+    }
 
 
 @router.get("/containers")

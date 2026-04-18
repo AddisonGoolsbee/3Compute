@@ -3,6 +3,14 @@ Test suite for Data Encoding project.
 Run with: python test_encoding.py
 """
 
+EXPECTED_TOTAL = 78  # total number of checks in this file
+
+import atexit, os
+passed = 0
+failed = 0
+if os.environ.get("TCOMPUTE_SCORE"):
+    atexit.register(lambda: print(f"{passed}/{EXPECTED_TOTAL}"))
+
 import sys
 
 from main import (
@@ -15,9 +23,6 @@ from main import (
     rgb_to_hex,
     hex_to_rgb,
 )
-
-passed = 0
-failed = 0
 
 
 def check(description, got, expected):
@@ -183,7 +188,5 @@ if failed == 0:
 else:
     print(f"{failed} test(s) failed. Review the output above for details.")
 print("=" * 50)
-
-print(f"\n###3COMPUTE_RESULTS:{passed}/{total}###")
 
 sys.exit(0 if failed == 0 else 1)

@@ -110,12 +110,12 @@ export default function AdminClassroomsPage() {
                 {rows.map((c) => (
                   <tr key={c.id} className="hover:bg-gray-800/30">
                     <td className="pl-3! pr-3 py-2">{c.name}</td>
-                    <td className="px-3 py-2 font-mono text-gray-400">{c.access_code}</td>
-                    <td className="px-3 py-2 font-mono text-gray-300">{c.created_by_email || <span className="text-gray-500">—</span>}</td>
-                    <td className="px-3 py-2 text-gray-300">{c.instructor_count}</td>
-                    <td className="px-3 py-2 text-gray-300">{c.participant_count}</td>
-                    <td className="px-3 py-2 text-gray-300">{c.assignment_count}</td>
-                    <td className="px-3 py-2 text-gray-400">{c.grading_mode}</td>
+                    <td className="pl-3! pr-3 py-2 font-mono text-gray-400">{c.access_code}</td>
+                    <td className="pl-3! pr-3 py-2 font-mono text-gray-300">{c.created_by_email || <span className="text-gray-500">—</span>}</td>
+                    <td className="pl-3! pr-3 py-2 text-gray-300">{c.instructor_count}</td>
+                    <td className="pl-3! pr-3 py-2 text-gray-300">{c.participant_count}</td>
+                    <td className="pl-3! pr-3 py-2 text-gray-300">{c.assignment_count}</td>
+                    <td className="pl-3! pr-3 py-2 text-gray-400">{c.grading_mode}</td>
                     <td className="pl-3! pr-3 py-2">
                       {c.joins_paused
                         ? <span className="text-yellow-400">paused</span>
@@ -124,7 +124,7 @@ export default function AdminClassroomsPage() {
                   </tr>
                 ))}
                 {rows.length === 0 && !loading && (
-                  <tr><td colSpan={8} className="px-3 py-6 text-center text-gray-500">No classrooms.</td></tr>
+                  <tr><td colSpan={8} className="pl-3! pr-3 py-6 text-center text-gray-500">No classrooms.</td></tr>
                 )}
               </tbody>
             </table>

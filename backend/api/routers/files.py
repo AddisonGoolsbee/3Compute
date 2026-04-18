@@ -471,17 +471,17 @@ Files named `test_*.py` are used for automated grading. Students can see them bu
 You can also import lessons with pre-written tests from the **Lessons** page.
 
 ### Writing your own tests
-Test files must be named `test_*.py` (e.g. `test_math.py`). Each file is run as a standalone Python script. The last line of output must be:
-
-```
-###3COMPUTE_RESULTS:passed/total###
-```
-
-For example, `###3COMPUTE_RESULTS:4/5###` means 4 out of 5 tests passed. 3Compute reads this line to determine the score. As long as your script prints this line at the end, you can structure the rest however you like. Here is a simple pattern used by our built-in lessons:
+Test files must be named `test_*.py` (e.g. `test_math.py`) and be runnable as a standalone Python script. Drop the following snippet at the top of every test file so the gradebook gets a consistent score even if the student's code crashes partway through:
 
 ```python
+EXPECTED_TOTAL = 2  # total number of checks in this file
+
+import atexit, os
 passed = 0
 failed = 0
+if os.environ.get("TCOMPUTE_SCORE"):
+    atexit.register(lambda: print(f"{passed}/{EXPECTED_TOTAL}"))
+
 
 def check(description, got, expected):
     global passed, failed
@@ -494,15 +494,16 @@ def check(description, got, expected):
         print(f"          got:      {got!r}")
         failed += 1
 
+
 from main import add, multiply  # import student code
 
 check("add(2, 3) == 5", add(2, 3), 5)
 check("multiply(4, 5) == 20", multiply(4, 5), 20)
 
-total = passed + failed
-print(f"Results: {passed}/{total} tests passed")
-print(f"###3COMPUTE_RESULTS:{passed}/{total}###")
+print(f"Results: {passed}/{EXPECTED_TOTAL} tests passed")
 ```
+
+Set `EXPECTED_TOTAL` to the number of `check(...)` calls in the file. Students running the script locally see only the `Results: N/M tests passed` line; the gradebook reads the score separately.
 
 If an assignment has multiple `test_*.py` files, their results are combined into a single score.
 

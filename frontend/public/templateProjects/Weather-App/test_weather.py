@@ -13,6 +13,14 @@ API is temporarily unavailable.
 Tests marked [UNIT] run without any network access.
 """
 
+EXPECTED_TOTAL = 3  # total number of checks in this file
+
+import atexit, os
+passed = 0
+failed = 0
+if os.environ.get("TCOMPUTE_SCORE"):
+    atexit.register(lambda: print(f"{passed}/{EXPECTED_TOTAL}"))
+
 import sys
 
 
@@ -234,6 +242,8 @@ def test_get_weather():
 # =============================================================================
 
 def main():
+    global passed, failed
+
     print("=" * 50)
     print("  Weather App Test Suite")
     print("=" * 50)
@@ -268,25 +278,25 @@ def main():
         print("       Make sure you have implemented it in weather_api.py")
         func_results.append(False)
 
-    passed = sum(1 for r in all_results if r)
+    unit_passed = sum(1 for r in all_results if r)
     total = len(all_results)
 
     print()
     print("=" * 50)
-    print(f"  Results: {passed}/{total} tests passed")
+    print(f"  Results: {unit_passed}/{total} tests passed")
     print("=" * 50)
 
-    if passed == total:
+    if unit_passed == total:
         print("  All tests pass. Try running: python main.py \"New York\"")
     else:
-        print(f"  {total - passed} test(s) failed. Review the hints above.")
+        print(f"  {total - unit_passed} test(s) failed. Review the hints above.")
 
     print()
 
-    func_passed = sum(1 for r in func_results if r)
-    print(f"###3COMPUTE_RESULTS:{func_passed}/{len(func_results)}###")
+    passed = sum(1 for r in func_results if r)
+    failed = len(func_results) - passed
 
-    return 0 if passed == total else 1
+    return 0 if unit_passed == total else 1
 
 
 if __name__ == "__main__":

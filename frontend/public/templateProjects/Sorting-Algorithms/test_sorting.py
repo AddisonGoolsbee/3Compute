@@ -15,10 +15,15 @@ Each test prints:
 A summary line at the end shows how many tests passed.
 """
 
-from main import bubble_sort, insertion_sort, merge_sort, linear_search, binary_search
+EXPECTED_TOTAL = 37  # total number of checks in this file
 
+import atexit, os
 passed = 0
 failed = 0
+if os.environ.get("TCOMPUTE_SCORE"):
+    atexit.register(lambda: print(f"{passed}/{EXPECTED_TOTAL}"))
+
+from main import bubble_sort, insertion_sort, merge_sort, linear_search, binary_search
 
 
 def check(description, got, expected):
@@ -313,5 +318,3 @@ if failed == 0:
     print("All tests passed. Run 'python main.py' to see the performance comparison.")
 else:
     print(f"{failed} test(s) failed. Review the output above and check your implementations.")
-
-print(f"\n###3COMPUTE_RESULTS:{passed}/{total}###")
