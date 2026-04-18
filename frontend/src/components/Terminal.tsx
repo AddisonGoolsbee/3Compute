@@ -222,7 +222,7 @@ export default function TerminalTabs() {
             <Globe size={14} />
             <span className="hidden sm:inline">Ports</span>
           </button>
-          {showPorts && <PortsPanel onClose={() => setShowPorts(false)} />}
+          <PortsPanel open={showPorts} onClose={() => setShowPorts(false)} />
         </div>
       </div>
       <div className="flex-1 relative">

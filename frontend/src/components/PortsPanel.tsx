@@ -8,10 +8,11 @@ interface SubdomainRecord {
 }
 
 interface Props {
+  open: boolean;
   onClose: () => void;
 }
 
-export default function PortsPanel({ onClose }: Props) {
+export default function PortsPanel({ open, onClose }: Props) {
   const { userInfo } = useContext(UserDataContext);
   const [records, setRecords] = useState<SubdomainRecord[]>([]);
   const [port, setPort] = useState('');
@@ -23,8 +24,8 @@ export default function PortsPanel({ onClose }: Props) {
   const checkTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    loadRecords();
-  }, []);
+    if (open) loadRecords();
+  }, [open]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
@@ -103,12 +104,15 @@ export default function PortsPanel({ onClose }: Props) {
     : availability?.available ? 'text-green-400' : 'text-red-400';
 
   return (
-    <div className="fixed inset-0 z-50 flex">
+    <div className={`fixed inset-0 z-50 flex transition-all duration-300 ${open ? 'pointer-events-auto' : 'pointer-events-none'}`}>
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+      <div
+        className={`absolute inset-0 bg-black/50 transition-opacity duration-300 ${open ? 'opacity-100' : 'opacity-0'}`}
+        onClick={onClose}
+      />
 
       {/* Panel — slides in from the right */}
-      <div className="relative ml-auto w-full max-w-sm bg-gray-900 border-l border-gray-700 flex flex-col h-full overflow-hidden shadow-2xl">
+      <div className={`relative ml-auto w-full max-w-sm bg-gray-900 border-l border-gray-700 flex flex-col h-full overflow-hidden shadow-2xl transition-transform duration-300 ease-in-out ${open ? 'translate-x-0' : 'translate-x-full'}`}>
         {/* Header */}
         <div className="px-6 py-4 border-b border-gray-700 flex items-center justify-between flex-shrink-0">
           <div className="flex items-center gap-2">
