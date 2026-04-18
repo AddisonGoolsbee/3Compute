@@ -20,10 +20,11 @@ pnpm test:coverage
 
 ### Backend
 ```bash
-python -m backend.api               # Run FastAPI (uvicorn on :5555)
-python -m backend.api --reload      # With hot reload
-pytest backend/                     # All backend tests
-pytest backend/test_docker.py::test_name  # Single test
+# Use .venv/bin/ directly — `source .venv/bin/activate` doesn't persist across shell invocations
+.venv/bin/python -m backend.api               # Run FastAPI (uvicorn on :5555)
+.venv/bin/python -m backend.api --reload      # With hot reload
+.venv/bin/pytest backend/                     # All backend tests
+.venv/bin/pytest backend/test_docker.py::test_name  # Single test
 ```
 
 ### Full test suite
