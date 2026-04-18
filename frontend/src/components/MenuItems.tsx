@@ -1,6 +1,6 @@
 import { ChevronRight, ClipboardCopy, Copy, ClipboardPaste, Download, FileIcon, Folder, FolderClosed, FolderOpen, LayoutTemplate, MoreHorizontal, Pencil, Plus, Terminal as TerminalIcon, Trash, X } from 'lucide-react';
 import { getClasses } from '@luminescent/ui-react';
-import { useContext, Fragment, useEffect } from 'react';
+import { useContext, Fragment, useEffect, useRef } from 'react';
 import { apiUrl, UserData, UserDataContext } from '../util/UserData';
 import { languageMap } from '../util/languageMap';
 import { uploadLocalFiles } from '../util/uploadLocalFiles';
@@ -27,6 +27,29 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
     setClipboardLocation,
   } = useContext(UserDataContext);
   const { setStatus } = useContext(StatusContext);
+
+  // Auto-expand a closed folder after dragging over it for a moment, so
+  // users can drag-navigate into nested folders without having to click to
+  // expand first. Cleared on drop/leave.
+  const expandTimerRef = useRef<{ timer: ReturnType<typeof setTimeout>; location: string } | null>(null);
+  const HOVER_EXPAND_MS = 500;
+  const cancelExpandTimer = () => {
+    if (expandTimerRef.current) {
+      clearTimeout(expandTimerRef.current.timer);
+      expandTimerRef.current = null;
+    }
+  };
+  const scheduleExpand = (location: string) => {
+    if (expandTimerRef.current?.location === location) return;
+    cancelExpandTimer();
+    expandTimerRef.current = {
+      location,
+      timer: setTimeout(() => {
+        expandTimerRef.current = null;
+        setOpenFolders((prev) => (prev.includes(location) ? prev : [...prev, location]));
+      }, HOVER_EXPAND_MS),
+    };
+  };
 
   const isProtectedLocation = (location?: string) => {
     if (!location) return false;
@@ -83,11 +106,13 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
               className={getClasses({
                 'lum-btn': !file.renaming,
                 'flex items-center justify-between': file.renaming,
-                'p-0 gap-0 rounded-lum-1': true,
+                'p-0 gap-0 rounded-lum-1 relative': true,
                 'lum-bg-gray-900 hover:lum-bg-gray-800':
                   currentFile?.location === file.location || selectedLocation === file.location,
                 'lum-bg-transparent hover:lum-bg-gray-900/50':
                   currentFile?.location !== file.location && selectedLocation !== file.location,
+                'ring-2 ring-blue-400 lum-bg-blue-500/15!':
+                  dragOverLocation === file.location && 'files' in file,
               })}
               onContextMenu={(e) => {
                 e.preventDefault();
@@ -114,22 +139,31 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
                 if ('files' in file && !file.renaming) {
                   e.preventDefault();
                   setDragOverLocation?.(file.location);
+                  // Auto-expand closed folders after a short hover.
+                  if (!openFolders.includes(file.location)) {
+                    scheduleExpand(file.location);
+                  }
                 }
               }}
               onDragLeave={(e) => {
                 if ('files' in file && !file.renaming) {
                   if (!e.currentTarget.contains(e.relatedTarget as Node)) {
                     setDragOverLocation?.(undefined);
+                    if (expandTimerRef.current?.location === file.location) {
+                      cancelExpandTimer();
+                    }
                   }
                 }
               }}
               onDragEnd={() => {
                 setDragOverLocation?.(undefined);
+                cancelExpandTimer();
               }}
               onDrop={async (e) => {
                 if (!('files' in file)) return; // only drop into folders
                 e.preventDefault();
                 setDragOverLocation?.(undefined);
+                cancelExpandTimer();
                 // Handle OS file drops into this folder
                 if (e.dataTransfer.files.length > 0) {
                   await uploadLocalFiles(e.dataTransfer.files, file.location, apiUrl, setStatus, refreshFiles);
@@ -223,7 +257,6 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
                 className={getClasses({
                   'flex flex-1 lum-btn-p-1 rounded-lum-1 rounded-r-none items-center gap-2 w-full min-w-0 text-left lum-bg-transparent': true,
                   'cursor-pointer': !('files' in file),
-                  'ring-1 ring-blue-400/40': dragOverLocation === file.location && 'files' in file,
                 })}
                 style={{
                   paddingLeft: `calc(0.5rem + ${count * 0.5}rem)`,

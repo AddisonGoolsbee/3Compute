@@ -355,10 +355,20 @@ def spawn_container(user_id, slave_fd, container_name, port_range=None, user_ema
             # of which user (backend=33 or container=999) created them.
             link_commands.append(f"chmod 2775 /classrooms/{cid}/assignments || true")
             link_commands.append(f"chmod 2775 /classrooms/{cid}/participants || true")
+            # Relative target so the symlink resolves correctly from both
+            # the container's namespace (/classrooms/ bind mount) and the
+            # host backend's namespace (/var/lib/3compute/classrooms/...).
+            # /app/{slug} → ../../classrooms/... gives:
+            #   container: /app/../../classrooms/{cid} → /classrooms/{cid}
+            #   host:      uploads/{uid}/../../classrooms/{cid}
+            #              → /var/lib/3compute/classrooms/{cid}
+            # Absolute "/classrooms/{cid}" used to break write paths on the
+            # host (os.makedirs under the symlink followed the dangling
+            # target and 404'd/500'd on uploads).
             target_path = (
-                f"/classrooms/{cid}"
+                f"../../classrooms/{cid}"
                 if not participant_mode.get(cid)
-                else f"/classrooms/{cid}/participants/{sanitized_email}"
+                else f"../../classrooms/{cid}/participants/{sanitized_email}"
             )
             if participant_mode.get(cid):
                 # create personal participant folder
@@ -394,32 +404,29 @@ def spawn_container(user_id, slave_fd, container_name, port_range=None, user_ema
             link_commands.append(f"ln -s {target_path} /app/{slug} || true")
 
             # Also create symlink on HOST filesystem so backend can detect it
-            # Map container paths to host paths
+            host_source = f"{UPLOADS_ROOT}/{user_id}/{slug}"
+            # Same relative target as the shell block above, so the symlink
+            # resolves correctly from both namespaces. host_target_absolute
+            # is only used for makedirs on the classroom side.
             if participant_mode.get(cid):
-                # Student: link to participant folder on host
-                host_source = f"{UPLOADS_ROOT}/{user_id}/{slug}"
-                host_target = f"{CLASSROOMS_ROOT}/{cid}/participants/{sanitized_email}"
+                host_target = f"../../classrooms/{cid}/participants/{sanitized_email}"
+                host_target_absolute = f"{CLASSROOMS_ROOT}/{cid}/participants/{sanitized_email}"
             else:
-                # Instructor: link to classroom root on host
-                host_source = f"{UPLOADS_ROOT}/{user_id}/{slug}"
-                host_target = f"{CLASSROOMS_ROOT}/{cid}"
+                host_target = f"../../classrooms/{cid}"
+                host_target_absolute = f"{CLASSROOMS_ROOT}/{cid}"
 
             try:
                 # Ensure base classroom directories exist on host
-                os.makedirs(host_target, exist_ok=True)
+                os.makedirs(host_target_absolute, exist_ok=True)
 
-                # For participants, mirror the `.templates` symlink on host so
-                # the backend file tree can resolve it. Use a relative target
-                # (../../assignments) so the same symlink file works both in
-                # the container's namespace (target resolves under /classrooms/)
-                # and the host's namespace (target resolves under CLASSROOMS_ROOT).
-                # An absolute target would only work from one side. The shell
-                # block below runs `ln -s` again with the same relative target,
-                # which is fine — it's idempotent.
+                # For participants, mirror the `.templates` symlink on host.
+                # Relative target so the same symlink file resolves correctly
+                # from both the container (/classrooms/...) and host
+                # (CLASSROOMS_ROOT/...) namespaces.
                 if participant_mode.get(cid):
                     os.makedirs(os.path.join(CLASSROOMS_ROOT, cid, "assignments"), exist_ok=True)
 
-                    templates_link = os.path.join(host_target, ".templates")
+                    templates_link = os.path.join(host_target_absolute, ".templates")
                     if os.path.islink(templates_link) or os.path.exists(templates_link):
                         if os.path.islink(templates_link):
                             os.unlink(templates_link)

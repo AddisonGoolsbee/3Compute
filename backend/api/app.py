@@ -48,6 +48,51 @@ def _run_migrations(engine):
                 pass
 
 
+def _migrate_uploads_classroom_symlinks(uploads_root: str) -> None:
+    """Repoint any ``UPLOADS_ROOT/{uid}/{slug}`` symlink that uses the
+    container-namespace absolute target (``/classrooms/...``) to the
+    namespace-agnostic relative target (``../../classrooms/...``).
+
+    Same pattern as the ``.templates`` migration: the old absolute form
+    works inside the container (bind mount) but is a broken link on the
+    host, which 500'd file uploads into classroom subdirs because
+    ``os.makedirs`` followed the dangling target.
+    """
+    if not os.path.isdir(uploads_root):
+        return
+    for uid in os.listdir(uploads_root):
+        user_dir = os.path.join(uploads_root, uid)
+        if not os.path.isdir(user_dir):
+            continue
+        try:
+            entries = os.listdir(user_dir)
+        except OSError:
+            continue
+        for entry in entries:
+            link = os.path.join(user_dir, entry)
+            if not os.path.islink(link):
+                continue
+            try:
+                current = os.readlink(link)
+            except OSError:
+                continue
+            if not current.startswith("/classrooms/"):
+                continue
+            # "/classrooms/foo/bar" → "../../classrooms/foo/bar"
+            new_target = "../.." + current
+            try:
+                os.unlink(link)
+                os.symlink(new_target, link)
+                logger.info(
+                    "Repointed classroom symlink %s (was %r, now %r)",
+                    link, current, new_target,
+                )
+            except OSError as e:
+                logger.warning(
+                    "Failed to repoint classroom symlink %s: %s", link, e,
+                )
+
+
 def _migrate_participant_templates_symlink(classrooms_root: str) -> None:
     """One-time migration: drop any stale `participants/*/assignments` symlinks
     so docker.py re-creates them as `.templates` on next container start.
@@ -126,6 +171,7 @@ async def lifespan(app: FastAPI):
             logger.warning("Could not create %s: permission denied (CI environment?)", d)
 
     _migrate_participant_templates_symlink(CLASSROOMS_ROOT)
+    _migrate_uploads_classroom_symlinks(UPLOADS_ROOT)
 
     from .terminal import discover_existing_containers, start_pollers_for_orphaned
 
