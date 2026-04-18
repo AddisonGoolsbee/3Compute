@@ -324,10 +324,21 @@ def spawn_container(user_id, slave_fd, container_name, port_range=None, user_ema
     logger.info(f"[{user_id}] Docker run building with {len(slug_map)} classroom mounts")
 
     try:
-        subprocess.run(cmd, check=True)
+        # Capture stderr so "docker run" failures (exit 125 is the common one:
+        # name collision, port already bound, image missing, bad flag) are
+        # actually diagnosable. Without this we just see "exit 125" and can't
+        # tell what docker was complaining about.
+        result = subprocess.run(cmd, check=True, capture_output=True, text=True)
         logger.info(f"[{user_id}] Started container '{container_name}'")
+        if result.stdout.strip():
+            logger.debug(f"[{user_id}] docker run stdout: {result.stdout.strip()}")
     except subprocess.CalledProcessError as e:
-        logger.error(f"[{user_id}] Failed to start container '{container_name}': {e}")
+        stderr = (e.stderr or "").strip()
+        stdout = (e.stdout or "").strip()
+        logger.error(
+            f"[{user_id}] Failed to start container '{container_name}': "
+            f"exit={e.returncode} stderr={stderr!r} stdout={stdout!r}"
+        )
         raise
 
     # Create symlinks: instructor -> /classrooms/<id>; participant -> /classrooms/<id>/participants/<email>

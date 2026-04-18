@@ -254,13 +254,33 @@ def _ensure_container_locked(
                     "port_range": port_range,
                 }
                 logger.info("Spawned new container for user %s", user_id)
-            except Exception:
-                logger.error(
-                    "Failed to spawn container for user %s",
-                    user_id,
-                    exc_info=True,
+            except Exception as first_err:
+                # Most common cause of spawn failure is a stale container
+                # with the same name lingering in some state (created but not
+                # yet fully registered, or removed but not yet cleaned up).
+                # Automate one attempt here so a page refresh suffices.
+                logger.warning(
+                    "First spawn attempt failed for user %s: %s; force-removing and retrying",
+                    user_id, first_err,
                 )
-                return None
+                subprocess.run(
+                    ["docker", "rm", "-f", container_name],
+                    check=False, capture_output=True,
+                )
+                try:
+                    spawn_container(user_id, None, container_name, port_range, email)
+                    user_containers[user_id] = {
+                        "container_name": container_name,
+                        "port_range": port_range,
+                    }
+                    logger.info("Retry spawn succeeded for user %s", user_id)
+                except Exception:
+                    logger.error(
+                        "Retry spawn also failed for user %s — see prior log line for docker's stderr",
+                        user_id,
+                        exc_info=True,
+                    )
+                    return None
     else:
         logger.info("[DIAG] _ensure_container: user=%s already tracked, checking if running", user_id)
         if user_containers[user_id]["port_range"] is None:

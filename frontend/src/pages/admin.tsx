@@ -228,7 +228,7 @@ export default function AdminPage() {
                       ? `${stats.process.fds.open} / ${stats.process.fds.soft_limit}`
                       : 'unknown'
                   }
-                  sub={`hard limit ${stats.process.fds.hard_limit}`}
+                  sub={`soft ${stats.process.fds.soft_limit} · hard ${stats.process.fds.hard_limit}`}
                 />
                 {stats.process.fds.open != null && (
                   <Bar percent={fdPercent} tone={fdTone} />
@@ -298,6 +298,9 @@ export default function AdminPage() {
                   sub={`${stats.users.total > 0 ? Math.round((stats.users.onboarded / stats.users.total) * 100) : 0}% of total`}
                 />
                 <Stat label="Active (24h)" value={stats.users.active_24h} />
+                <Link to="/admin/users" className="text-xs text-blue-400 hover:text-blue-300 mt-1">
+                  View all users →
+                </Link>
               </Card>
 
               <Card title="User containers" icon={<Boxes size={16} />}>
@@ -310,11 +313,17 @@ export default function AdminPage() {
                     <Stat label="Total" value={stats.containers.total ?? '—'} />
                   </>
                 )}
+                <Link to="/admin/containers" className="text-xs text-blue-400 hover:text-blue-300 mt-1">
+                  View all containers →
+                </Link>
               </Card>
 
               <Card title="Classrooms" icon={<School size={16} />}>
                 <Stat label="Total" value={stats.classrooms.total} />
                 <Stat label="Memberships" value={stats.classrooms.memberships} />
+                <Link to="/admin/classrooms" className="text-xs text-blue-400 hover:text-blue-300 mt-1">
+                  View all classrooms →
+                </Link>
               </Card>
 
               <Card title="Subdomains + ports" icon={<Network size={16} />}>
