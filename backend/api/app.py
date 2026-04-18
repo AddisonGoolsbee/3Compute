@@ -51,7 +51,13 @@ def _run_migrations(engine):
 def _migrate_participant_templates_symlink(classrooms_root: str) -> None:
     """One-time migration: drop any stale `participants/*/assignments` symlinks
     so docker.py re-creates them as `.templates` on next container start.
-    Idempotent and safe to run on a fresh install (no-op)."""
+    Idempotent and safe to run on a fresh install (no-op).
+
+    Also repoints any `.templates` symlink that uses the container-namespace
+    absolute target (``/classrooms/...``) to the namespace-agnostic relative
+    target (``../../assignments``). The old absolute form resolves inside the
+    container but is a broken link on the host, which made student
+    view/download of `.templates/*` 404 on the backend side."""
     if not os.path.isdir(classrooms_root):
         return
     for cid in os.listdir(classrooms_root):
@@ -59,13 +65,34 @@ def _migrate_participant_templates_symlink(classrooms_root: str) -> None:
         if not os.path.isdir(participants):
             continue
         for email in os.listdir(participants):
-            stale = os.path.join(participants, email, "assignments")
+            participant_dir = os.path.join(participants, email)
+            stale = os.path.join(participant_dir, "assignments")
             if os.path.islink(stale):
                 try:
                     os.unlink(stale)
                     logger.info("Removed stale participant symlink %s", stale)
                 except OSError as e:
                     logger.warning("Failed to remove stale symlink %s: %s", stale, e)
+
+            templates_link = os.path.join(participant_dir, ".templates")
+            if os.path.islink(templates_link):
+                try:
+                    current = os.readlink(templates_link)
+                except OSError:
+                    continue
+                if current != "../../assignments":
+                    try:
+                        os.unlink(templates_link)
+                        os.symlink("../../assignments", templates_link)
+                        logger.info(
+                            "Repointed .templates symlink %s (was %r)",
+                            templates_link, current,
+                        )
+                    except OSError as e:
+                        logger.warning(
+                            "Failed to repoint .templates symlink %s: %s",
+                            templates_link, e,
+                        )
 
 
 @asynccontextmanager

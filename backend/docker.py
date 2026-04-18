@@ -374,11 +374,20 @@ def spawn_container(user_id, slave_fd, container_name, port_range=None, user_ema
                 # Student-side symlink `.templates` → teacher's assignments/. Hidden
                 # (dot-prefix) so it doesn't get confused with the student's own
                 # assignment copies; enable "Show hidden files" to see it.
+                #
+                # Target MUST be relative (../../assignments). The symlink lives
+                # inside a participant dir that's bind-mounted into the container,
+                # so both the host backend (/var/lib/3compute/classrooms/...) and
+                # the container (/classrooms/...) see the same symlink file. An
+                # absolute target like "/classrooms/..." works inside the
+                # container but breaks on the host — and the file read/download
+                # code follows the symlink via the host's namespace, so students
+                # got 404 when viewing anything under .templates.
                 link_commands.append(
                     f"rm -rf /classrooms/{cid}/participants/{sanitized_email}/.templates || true"
                 )
                 link_commands.append(
-                    f"ln -s /classrooms/{cid}/assignments /classrooms/{cid}/participants/{sanitized_email}/.templates || true"
+                    f"ln -s ../../assignments /classrooms/{cid}/participants/{sanitized_email}/.templates || true"
                 )
             # Create symlink inside container for immediate access
             link_commands.append(f"rm -rf /app/{slug} || true")
@@ -400,10 +409,15 @@ def spawn_container(user_id, slave_fd, container_name, port_range=None, user_ema
                 os.makedirs(host_target, exist_ok=True)
 
                 # For participants, mirror the `.templates` symlink on host so
-                # the backend file tree can resolve it.
+                # the backend file tree can resolve it. Use a relative target
+                # (../../assignments) so the same symlink file works both in
+                # the container's namespace (target resolves under /classrooms/)
+                # and the host's namespace (target resolves under CLASSROOMS_ROOT).
+                # An absolute target would only work from one side. The shell
+                # block below runs `ln -s` again with the same relative target,
+                # which is fine — it's idempotent.
                 if participant_mode.get(cid):
-                    templates_target = os.path.join(CLASSROOMS_ROOT, cid, "assignments")
-                    os.makedirs(templates_target, exist_ok=True)
+                    os.makedirs(os.path.join(CLASSROOMS_ROOT, cid, "assignments"), exist_ok=True)
 
                     templates_link = os.path.join(host_target, ".templates")
                     if os.path.islink(templates_link) or os.path.exists(templates_link):
@@ -413,7 +427,7 @@ def spawn_container(user_id, slave_fd, container_name, port_range=None, user_ema
                             shutil.rmtree(templates_link)
                         else:
                             os.remove(templates_link)
-                    os.symlink(templates_target, templates_link)
+                    os.symlink("../../assignments", templates_link)
 
                 # Remove existing symlink or file if any
                 if os.path.islink(host_source) or os.path.exists(host_source):

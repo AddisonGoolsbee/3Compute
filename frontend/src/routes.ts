@@ -13,5 +13,6 @@ export default [
   route('/admin/users', 'pages/admin-users.tsx'),
   route('/admin/classrooms', 'pages/admin-classrooms.tsx'),
   route('/admin/containers', 'pages/admin-containers.tsx'),
+  route('/admin/logs', 'pages/admin-logs.tsx'),
   route('*?', 'main.tsx'),
 ] satisfies RouteConfig;

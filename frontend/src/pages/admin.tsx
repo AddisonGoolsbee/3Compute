@@ -1,6 +1,6 @@
 import { useContext, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router';
-import { ArrowLeft, RefreshCw, AlertTriangle, Server, Cpu, HardDrive, Users, Boxes, School, Network, Activity } from 'lucide-react';
+import { ArrowLeft, RefreshCw, AlertTriangle, Server, Cpu, HardDrive, Users, Boxes, School, Network, Activity, ScrollText } from 'lucide-react';
 import { apiUrl, UserDataContext } from '../util/UserData';
 import Footer from '../components/Footer';
 
@@ -194,9 +194,17 @@ export default function AdminPage() {
                 )}
               </p>
             </div>
-            <div className="flex items-center gap-2 text-sm text-gray-400">
-              <RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} />
-              {refreshing ? 'Refreshing…' : 'Idle'}
+            <div className="flex items-center gap-3">
+              <Link
+                to="/admin/logs"
+                className="inline-flex items-center gap-1 px-3 py-1.5 rounded bg-gray-800 border border-gray-700 text-gray-200 hover:bg-gray-700 text-sm"
+              >
+                <ScrollText size={14} /> Logs
+              </Link>
+              <div className="flex items-center gap-2 text-sm text-gray-400">
+                <RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} />
+                {refreshing ? 'Refreshing…' : 'Idle'}
+              </div>
             </div>
           </div>
         </div>
@@ -293,7 +301,7 @@ export default function AdminPage() {
               <Card title="Users" icon={<Users size={16} />}>
                 <Stat label="Total accounts" value={stats.users.total} />
                 <Stat
-                  label="Onboarded"
+                  label="Picked a role"
                   value={stats.users.onboarded}
                   sub={`${stats.users.total > 0 ? Math.round((stats.users.onboarded / stats.users.total) * 100) : 0}% of total`}
                 />

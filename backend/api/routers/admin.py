@@ -332,6 +332,64 @@ async def admin_classrooms(
     }
 
 
+@router.get("/logs")
+async def admin_logs(
+    _user: User = Depends(require_birdflop_admin),
+    lines: int = 200,
+    level: str = "all",
+):
+    """Recent entries from the systemd journal for the 3compute service.
+
+    On hosts without systemd (dev / docker-compose), returns an error. The
+    production deployment needs www-data added to the ``systemd-journal``
+    group once: ``usermod -aG systemd-journal www-data``. Without that, this
+    endpoint returns a permission error and a hint.
+
+    level=errors filters to priority 3 (err) and above.
+    """
+    lines = max(1, min(int(lines), 2000))
+    cmd = [
+        "journalctl",
+        "-u", "3compute",
+        "-n", str(lines),
+        "--no-pager",
+        "--output=short-iso",
+    ]
+    if level == "errors":
+        cmd += ["--priority=warning"]
+
+    try:
+        result = subprocess.run(
+            cmd, capture_output=True, text=True, check=False, timeout=10,
+        )
+    except FileNotFoundError:
+        return {
+            "available": False,
+            "error": (
+                "journalctl not available on this host (likely dev / docker-compose). "
+                "In dev, view logs with `docker compose logs -f backend`."
+            ),
+            "lines": [],
+        }
+    except subprocess.TimeoutExpired:
+        return {"available": False, "error": "journalctl timed out after 10s", "lines": []}
+
+    if result.returncode != 0:
+        stderr = (result.stderr or "").strip()
+        hint = ""
+        if "Hint:" in stderr or "permission" in stderr.lower() or "No journal files were opened" in stderr:
+            hint = " (Add www-data to the systemd-journal group: `usermod -aG systemd-journal www-data && systemctl restart 3compute`.)"
+        return {
+            "available": False,
+            "error": f"journalctl exit {result.returncode}: {stderr}{hint}",
+            "lines": [],
+        }
+
+    # Split on newlines; drop the last empty element from trailing \n.
+    raw_lines = result.stdout.splitlines()
+    return {"available": True, "lines": raw_lines, "count": len(raw_lines), "level": level}
+
+
 @router.get("/containers")
 async def admin_containers(
     _user: User = Depends(require_birdflop_admin),
