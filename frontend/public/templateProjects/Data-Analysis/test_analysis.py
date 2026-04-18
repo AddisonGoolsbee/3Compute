@@ -17,7 +17,6 @@ failed = 0
 if os.environ.get("TCOMPUTE_SCORE"):
     atexit.register(lambda: print(f"{passed}/{EXPECTED_TOTAL}"))
 
-import math
 from main import load_data, average, group_by, ascii_bar_chart, correlation
 
 

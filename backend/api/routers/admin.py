@@ -334,61 +334,22 @@ async def admin_classrooms(
 
 import re as _re_admin_logs
 
-_KNOWN_LEVELS = ("debug", "info", "warn", "error", "fatal")
-
-# Per-level classification regexes. Each line is classified into exactly one
-# level (the highest matching one). systemd stores all Python/uvicorn stdout
-# at priority INFO, so journalctl --priority can't distinguish our levels —
-# we match against the message body (``[WARNING]``, ``[ERROR]``, Traceback,
-# 5xx HTTP, etc.) instead.
-_CRITICAL_RE = _re_admin_logs.compile(r"\[CRITICAL\]")
-_ERROR_RE = _re_admin_logs.compile(r"\[ERROR\]|Traceback|\bOSError\b|\b\w+Error:|\b\w+Exception\b|HTTP/1\.1\" 5\d{2}")
-_WARN_RE = _re_admin_logs.compile(r"\[(WARNING|WARN)\]|HTTP/1\.1\" 4\d{2}")
 _DEBUG_RE = _re_admin_logs.compile(r"\[DEBUG\]")
+# Both Python-logger INFO lines ("[INFO]") and uvicorn's access log lines
+# ("INFO:     172.x.x.x:0 - ...") count as info.
+_INFO_RE = _re_admin_logs.compile(r"\[INFO\]|: INFO: ")
 
 
-def _classify_line(line: str) -> str:
-    """Best-effort classification of a single journalctl line into one of
-    the five levels. Falls back to 'info' for uvicorn access logs and
-    anything we don't otherwise recognise."""
-    if _CRITICAL_RE.search(line):
-        return "fatal"
-    if _ERROR_RE.search(line):
-        return "error"
-    if _WARN_RE.search(line):
-        return "warn"
-    if _DEBUG_RE.search(line):
-        return "debug"
-    return "info"
-
-
-def _filter_log_lines(raw_lines: list[str], selected: set[str]) -> list[str]:
-    """Keep lines whose classified level is in *selected*. Traceback
-    continuation lines (indented frame lines or the final exception line)
-    are treated as part of the Traceback block that started them, so a
-    matched traceback is shown in full."""
-    if not selected:
-        return []
+def _filter_log_lines(raw_lines: list[str], hide_debug: bool, hide_info: bool) -> list[str]:
+    if not hide_debug and not hide_info:
+        return raw_lines
     out: list[str] = []
-    traceback_active = False
     for line in raw_lines:
-        if traceback_active:
-            if _re_admin_logs.search(r"(^|\]: )\s+File \"| in | line \d+", line) or \
-               _re_admin_logs.search(r"(^|\]: )\s{2,}", line) or \
-               _re_admin_logs.search(r"(^|\]: )(\w+Error|\w+Exception): ", line) or \
-               "Traceback" in line:
-                if "error" in selected or "fatal" in selected:
-                    out.append(line)
-                continue
-            traceback_active = False
-        if "Traceback" in line:
-            traceback_active = True
-            if "error" in selected or "fatal" in selected:
-                out.append(line)
+        if hide_debug and _DEBUG_RE.search(line):
             continue
-        level = _classify_line(line)
-        if level in selected:
-            out.append(line)
+        if hide_info and _INFO_RE.search(line):
+            continue
+        out.append(line)
     return out
 
 
@@ -396,33 +357,27 @@ def _filter_log_lines(raw_lines: list[str], selected: set[str]) -> list[str]:
 async def admin_logs(
     _user: User = Depends(require_birdflop_admin),
     lines: int = 200,
-    levels: str = "info,warn,error,fatal",
+    hide_debug: bool = False,
+    hide_info: bool = False,
 ):
     """Recent entries from the systemd journal for the 3compute service.
 
     On hosts without systemd (dev / docker-compose), returns an error. The
     production deployment needs www-data added to the ``systemd-journal``
-    group once: ``usermod -aG systemd-journal www-data``. Without that, this
-    endpoint returns a permission error and a hint.
+    group once: ``usermod -aG systemd-journal www-data``.
 
-    ``levels`` is a comma-separated subset of ``debug,info,warn,error,fatal``.
-    Lines are classified from their message body (``[WARNING] ...``,
-    ``Traceback ...``, etc.) because systemd stores all our stdout at
-    priority INFO — ``journalctl --priority`` can't tell our levels apart.
+    ``hide_debug`` drops ``[DEBUG]`` lines, ``hide_info`` drops both
+    Python-logger ``[INFO]`` and uvicorn ``INFO:`` access lines. Both
+    independent; both can be true.
     """
-    selected = {l.strip().lower() for l in levels.split(",") if l.strip()}
-    selected = {l for l in selected if l in _KNOWN_LEVELS}
-    if not selected:
-        selected = {"info", "warn", "error", "fatal"}
-
     lines = max(1, min(int(lines), 2000))
 
-    # Pull a larger window than `lines` when we're excluding a level, so
-    # we have enough material after filtering. Capped at 5000.
-    if selected == set(_KNOWN_LEVELS):
-        scan_lines = lines
-    else:
+    # If we're hiding anything, scan a larger window so we still have ~lines
+    # of material after filtering. Capped at 5000.
+    if hide_debug or hide_info:
         scan_lines = min(max(lines * 10, 1000), 5000)
+    else:
+        scan_lines = lines
 
     cmd = [
         "journalctl",
@@ -460,7 +415,7 @@ async def admin_logs(
         }
 
     raw_lines = result.stdout.splitlines()
-    filtered = _filter_log_lines(raw_lines, selected)
+    filtered = _filter_log_lines(raw_lines, hide_debug=hide_debug, hide_info=hide_info)
     # Keep the last `lines` after filtering.
     tail = filtered[-lines:]
     return {
@@ -468,7 +423,8 @@ async def admin_logs(
         "lines": tail,
         "count": len(tail),
         "scanned": len(raw_lines),
-        "levels": sorted(selected),
+        "hide_debug": hide_debug,
+        "hide_info": hide_info,
     }
 
 
