@@ -9,5 +9,6 @@ export default [
   route('/terms', 'pages/terms.tsx'),
   route('/classrooms', 'pages/classrooms.tsx'),
   route('/classrooms/:id', 'pages/classroom-detail.tsx'),
+  route('/admin', 'pages/admin.tsx'),
   route('*?', 'main.tsx'),
 ] satisfies RouteConfig;

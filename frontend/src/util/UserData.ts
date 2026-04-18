@@ -7,6 +7,7 @@ export interface UserInfo {
   port_start: number;
   port_end: number;
   needs_onboarding: boolean;
+  is_admin?: boolean;
 }
 
 export type StudentViewContext = {

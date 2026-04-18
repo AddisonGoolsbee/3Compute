@@ -109,4 +109,5 @@ async def me(user: User | None = Depends(get_optional_user)):
         "port_start": user.port_start,
         "port_end": user.port_end,
         "needs_onboarding": user.role is None,
+        "is_admin": (user.email or "").lower().endswith("@birdflop.com"),
     }

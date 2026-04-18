@@ -1,5 +1,5 @@
 import { Nav, LogoBirdflop } from '@luminescent/ui-react';
-import { LogOut, BookOpen, School, Terminal } from 'lucide-react';
+import { LogOut, BookOpen, School, Terminal, ShieldCheck } from 'lucide-react';
 import { useContext } from 'react';
 import { Link } from 'react-router';
 import { apiUrl, UserDataContext } from '../util/UserData';
@@ -15,6 +15,7 @@ export default function NavComponent() {
   const userData = useContext(UserDataContext);
   const isTeacher = userData?.userInfo?.role === 'teacher';
   const isLoggedIn = !!userData?.userInfo;
+  const isAdmin = !!userData?.userInfo?.is_admin;
 
   return (
     <Nav
@@ -54,6 +55,15 @@ export default function NavComponent() {
             >
               <School size={16} className="opacity-80" />
               <span>Classrooms</span>
+            </Link>
+          )}
+          {isAdmin && (
+            <Link
+              to="/admin"
+              className="lum-btn lum-bg-transparent hover:lum-bg-nav-bg flex items-center gap-1 text-sm font-medium transition-colors px-3 py-2"
+            >
+              <ShieldCheck size={16} className="opacity-80" />
+              <span>Admin</span>
             </Link>
           )}
           {userData?.userInfo && (
