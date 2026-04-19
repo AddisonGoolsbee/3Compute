@@ -4,12 +4,14 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlmodel import Session, select
 
+from ..config import Settings
 from ..database import PortSubdomain, User
 from ..dependencies import get_current_user, get_db
 from ..subdomain_caddy import RESERVED, add_subdomain, is_valid_subdomain, remove_subdomain
 
 logger = logging.getLogger("subdomains")
 router = APIRouter()
+_settings = Settings()
 
 
 class ClaimRequest(BaseModel):
@@ -74,10 +76,11 @@ async def claim_subdomain(
     if existing_port:
         if existing_port.user_id != user.id:
             raise HTTPException(409, "That port already has a subdomain assigned.")
-        try:
-            remove_subdomain(existing_port.subdomain)
-        except Exception as e:
-            logger.warning("Failed to remove old Caddy route for %s: %s", existing_port.subdomain, e)
+        if _settings.is_production:
+            try:
+                remove_subdomain(existing_port.subdomain)
+            except Exception as e:
+                logger.warning("Failed to remove old Caddy route for %s: %s", existing_port.subdomain, e)
         db.delete(existing_port)
         db.commit()
 
@@ -85,19 +88,17 @@ async def claim_subdomain(
     db.add(record)
     db.commit()
 
-    try:
-        add_subdomain(subdomain, port)
-    except Exception as e:
-        logger.error("Failed to add Caddy route for %s: %s", subdomain, e)
-        db.delete(record)
-        db.commit()
-        raise HTTPException(500, "Failed to configure subdomain routing. Check server logs.")
+    if _settings.is_production:
+        try:
+            add_subdomain(subdomain, port)
+        except Exception as e:
+            logger.error("Failed to add Caddy route for %s: %s", subdomain, e)
+            db.delete(record)
+            db.commit()
+            raise HTTPException(500, "Failed to configure subdomain routing. Check server logs.")
 
-    return {
-        "subdomain": subdomain,
-        "port": port,
-        "url": f"https://{subdomain}.app.3compute.org",
-    }
+    url = f"https://{subdomain}.{_settings.app_domain}" if _settings.is_production else f"http://localhost:{port}"
+    return {"subdomain": subdomain, "port": port, "url": url}
 
 
 @router.delete("/{subdomain}")
@@ -114,11 +115,12 @@ async def release_subdomain(
     if record.user_id != user.id:
         raise HTTPException(403, "That subdomain belongs to a different user.")
 
-    try:
-        remove_subdomain(subdomain)
-    except Exception as e:
-        logger.error("Failed to remove Caddy route for %s: %s", subdomain, e)
-        raise HTTPException(500, "Failed to remove subdomain routing.")
+    if _settings.is_production:
+        try:
+            remove_subdomain(subdomain)
+        except Exception as e:
+            logger.error("Failed to remove Caddy route for %s: %s", subdomain, e)
+            raise HTTPException(500, "Failed to remove subdomain routing.")
 
     db.delete(record)
     db.commit()
