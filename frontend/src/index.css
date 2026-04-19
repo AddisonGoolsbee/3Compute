@@ -34,6 +34,11 @@ body {
   background-color: #666;
 }
 
+/* Clip language dropdown so a partial item peeks, hinting at scrollability */
+.lum-scroll {
+  max-height: 260px !important;
+}
+
 /* Hide scrollbar utility */
 .scrollbar-hide {
   scrollbar-width: none;

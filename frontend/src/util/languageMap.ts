@@ -2,6 +2,28 @@ import { SiCplusplus, SiCss, SiGo, SiHtml5, SiJavascript, SiJson, SiLess, SiLinu
 import { Text } from 'lucide-react';
 
 export const languageMap = {
+  'markdown': {
+    icon: SiMarkdown,
+    name: 'Markdown',
+    language: 'markdown',
+    extensions: [
+      'md', 'markdown', 'mdown', 'mkd', 'mkdn', 'mdx', 'mdtxt', 'mdtext', 'mdml', 'mdhtml',
+    ],
+  },
+  'text': {
+    icon: Text,
+    name: 'Text',
+    language: 'plaintext',
+    extensions: [] as string[],
+  },
+  'python': {
+    icon: SiPython,
+    name: 'Python',
+    language: 'python',
+    extensions: [
+      'py', 'pyw', 'pyi', 'pyx', 'pyd', 'pyo', 'pyz', 'pyc', 'pyd', 'pypi', 'pypm', 'pypk', 'pypx',
+    ],
+  },
   'javascript': {
     icon: SiJavascript,
     name: 'JavaScript',
@@ -16,14 +38,6 @@ export const languageMap = {
     language: 'typescript',
     extensions: [
       'ts', 'tsx', 'mts', 'cts', 'd.ts', 'd.mts', 'd.cts', 'd.mtsx', 'd.ctsx', 'd.mjs', 'd.cjs',
-    ],
-  },
-  'python': {
-    icon: SiPython,
-    name: 'Python',
-    language: 'python',
-    extensions: [
-      'py', 'pyw', 'pyi', 'pyx', 'pyd', 'pyo', 'pyz', 'pyc', 'pyd', 'pypi', 'pypm', 'pypk', 'pypx',
     ],
   },
   'html': {
@@ -42,22 +56,6 @@ export const languageMap = {
       'css',
     ],
   },
-  'scss': {
-    icon: SiSass,
-    name: 'SCSS',
-    language: 'scss',
-    extensions: [
-      'scss',
-    ],
-  },
-  'xml': {
-    icon: SiXml,
-    name: 'XML',
-    language: 'xml',
-    extensions: [
-      'xml', 'xsl', 'xslt', 'svg', 'xhtml', 'xsd', 'wsdl', 'xjb', 'xhtml', 'xul', 'xbl', 'xaml', 'xlf', 'xliff',
-    ],
-  },
   'json': {
     icon: SiJson,
     name: 'JSON',
@@ -74,22 +72,6 @@ export const languageMap = {
       'yaml', 'yml', 'ymlc', 'yml5', 'ymlnet', 'ymlld', 'ymljson', 'ymljsonc',
     ],
   },
-  'markdown': {
-    icon: SiMarkdown,
-    name: 'Markdown',
-    language: 'markdown',
-    extensions: [
-      'md', 'markdown', 'mdown', 'mkd', 'mkdn', 'mdx', 'mdtxt', 'mdtext', 'mdml', 'mdhtml',
-    ],
-  },
-  'php': {
-    icon: SiPhp,
-    name: 'PHP',
-    language: 'php',
-    extensions: [
-      'php', 'php3', 'php4', 'php5', 'phtml', 'phps', 'php7', 'php8', 'phar', 'inc',
-    ],
-  },
   'java': {
     icon: SiLinux,
     name: 'Java',
@@ -98,12 +80,12 @@ export const languageMap = {
       'java', 'jav', 'jvm', 'jsh', 'jsp', 'jspx', 'jhtml', 'jhtm', 'jws', 'jwsdl',
     ],
   },
-  'c++': {
-    icon: SiCplusplus,
-    name: 'C++',
-    language: 'cpp',
+  'go': {
+    icon: SiGo,
+    name: 'Go',
+    language: 'go',
     extensions: [
-      'cpp', 'cxx', 'cc', 'c++', 'h', 'hpp', 'hxx', 'hh', 'h++', 'c',
+      'go',
     ],
   },
   'rust': {
@@ -114,12 +96,60 @@ export const languageMap = {
       'rs', 'rlib',
     ],
   },
-  'go': {
-    icon: SiGo,
-    name: 'Go',
-    language: 'go',
+  'c++': {
+    icon: SiCplusplus,
+    name: 'C/C++',
+    language: 'cpp',
     extensions: [
-      'go',
+      'cpp', 'cxx', 'cc', 'c++', 'h', 'hpp', 'hxx', 'hh', 'h++', 'c',
+    ],
+  },
+  'sql': {
+    icon: SiSqlite,
+    name: 'SQL',
+    language: 'sql',
+    extensions: [
+      'sql', 'sqlite', 'sqlite3',
+    ],
+  },
+  'php': {
+    icon: SiPhp,
+    name: 'PHP',
+    language: 'php',
+    extensions: [
+      'php', 'php3', 'php4', 'php5', 'phtml', 'phps', 'php7', 'php8', 'phar', 'inc',
+    ],
+  },
+  'scss': {
+    icon: SiSass,
+    name: 'SCSS',
+    language: 'scss',
+    extensions: [
+      'scss',
+    ],
+  },
+  'sass': {
+    icon: SiSass,
+    name: 'Sass',
+    language: 'scss',
+    extensions: [
+      'sass', 'styl', 'pcss', 'postcss',
+    ],
+  },
+  'less': {
+    icon: SiLess,
+    name: 'Less',
+    language: 'less',
+    extensions: [
+      'less',
+    ],
+  },
+  'xml': {
+    icon: SiXml,
+    name: 'XML',
+    language: 'xml',
+    extensions: [
+      'xml', 'xsl', 'xslt', 'svg', 'xhtml', 'xsd', 'wsdl', 'xjb', 'xhtml', 'xul', 'xbl', 'xaml', 'xlf', 'xliff',
     ],
   },
   'vue': {
@@ -138,30 +168,6 @@ export const languageMap = {
       'liquid',
     ],
   },
-  'less': {
-    icon: SiLess,
-    name: 'Less',
-    language: 'less',
-    extensions: [
-      'less',
-    ],
-  },
-  'sass': {
-    icon: SiSass,
-    name: 'Sass',
-    language: 'scss',
-    extensions: [
-      'sass', 'styl', 'pcss', 'postcss',
-    ],
-  },
-  'sql': {
-    icon: SiSqlite,
-    name: 'SQL',
-    language: 'sql',
-    extensions: [
-      'sql', 'sqlite', 'sqlite3',
-    ],
-  },
   'wast': {
     icon: SiWebassembly,
     name: 'wast',
@@ -177,11 +183,5 @@ export const languageMap = {
     extensions: [
       'jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg', 'ico', 'tiff', 'tif', 'heic', 'heif',
     ],
-  },
-  'text': {
-    icon: Text,
-    name: 'Text',
-    language: 'plaintext',
-    extensions: [] as string[],
   },
 };

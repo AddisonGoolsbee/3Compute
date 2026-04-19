@@ -337,22 +337,21 @@ export default function Editor() {
   return (
     <div className="relative transition-all flex flex-col rounded-lum h-full bg-[#1e1e1e] w-full border border-lum-border/20 overflow-hidden">
       {!userData.currentFile && (
-        <div className="flex-1 flex items-center justify-center text-gray-500 text-sm">
-          Click a file to view it
-        </div>
+        <div className="flex-1 flex items-center justify-center text-gray-500 text-sm">Click a file to view it</div>
       )}
       {userData.currentFile && (
         <div className="flex items-center gap-2 pl-3 p-1 m-1 lum-bg-gray-900 rounded-lum-1 min-w-0">
           <span className="text-sm flex gap-2 items-center flex-1 min-w-0" title={userData?.currentFile?.location}>
             <File size={16} className="shrink-0" />
             <span className="truncate min-w-0">{userData?.currentFile?.location}</span>
-            {currentLanguage === 'markdown' && !isImage && (
+            {currentLanguage === "markdown" && !isImage && (
               <>
-                <button className={getClasses({
-                  'lum-btn p-1 rounded-lum-2 gap-1 lum-bg-transparent hover:lum-bg-gray-800 shrink-0': true,
-                  'text-blue-500': mdPreview,
-                })}
-                onClick={() => setMdPreview(!mdPreview)}
+                <button
+                  className={getClasses({
+                    "lum-btn p-1 rounded-lum-2 gap-1 lum-bg-transparent hover:lum-bg-gray-800 shrink-0": true,
+                    "text-blue-500": mdPreview,
+                  })}
+                  onClick={() => setMdPreview(!mdPreview)}
                 >
                   <SiMarkdown size={16} />
                 </button>
@@ -360,7 +359,10 @@ export default function Editor() {
                   <button
                     className="lum-btn p-1 rounded-lum-2 lum-bg-transparent hover:lum-bg-gray-800 text-gray-400 hover:text-white shrink-0"
                     title="Print"
-                    onClick={() => { if (markdownRef.current) printMarkdownElement(markdownRef.current, userData.currentFile?.name ?? 'Document'); }}
+                    onClick={() => {
+                      if (markdownRef.current)
+                        printMarkdownElement(markdownRef.current, userData.currentFile?.name ?? "Document");
+                    }}
                   >
                     <Printer size={16} />
                   </button>
@@ -373,32 +375,29 @@ export default function Editor() {
               <>
                 <span
                   className={getClasses({
-                    // Fixed-width slot so the leading "Sav" overlaps regardless
-                    // of whether we're showing Saving…/Saved/Save failed —
-                    // the text stays left-aligned instead of jumping as the
-                    // label length changes.
-                    'text-xs px-2 select-none whitespace-nowrap inline-block text-left w-20': true,
-                    'text-gray-500': saveStatus === 'saving' || saveStatus === 'saved' || saveStatus === 'idle',
-                    'text-red-400': saveStatus === 'error',
+                    "text-xs px-1 select-none whitespace-nowrap": true,
+                    "text-gray-500": saveStatus === "saving" || saveStatus === "saved" || saveStatus === "idle",
+                    "text-red-400": saveStatus === "error",
                   })}
                   aria-live="polite"
                 >
-                  {saveStatus === 'saving' && 'Saving…'}
-                  {saveStatus === 'saved' && 'Saved'}
-                  {saveStatus === 'error' && 'Save failed'}
+                  {saveStatus === "saving" && "Saving…"}
+                  {saveStatus === "saved" && "Saved"}
+                  {saveStatus === "error" && "Save failed"}
                 </span>
                 <SelectMenuRaw
                   id="language-select"
-                  className="rounded-lum-2 text-xs gap-1 lum-bg-orange-700 hover:lum-bg-orange-600 lum-btn-p-1 shrink-0"
+                  className="rounded-lum-2 text-xs gap-1 lum-bg-purple-950 hover:lum-bg-purple-900 lum-btn-p-1 shrink-0"
+                  align="right"
                   value={currentLanguage}
-                  values={Object.values(languageMap).map((Lang) => ({
-                    name: <div className="flex items-center gap-2">
-                      <Lang.icon size={16} />
-                      <span className="font-mono">
-                        {Lang.name}
-                      </span>
-                    </div>,
-                    value: Lang.name.toLowerCase(),
+                  values={Object.entries(languageMap).map(([key, Lang]) => ({
+                    name: (
+                      <div className="flex items-center gap-2">
+                        <Lang.icon size={16} />
+                        <span className="font-mono">{Lang.name}</span>
+                      </div>
+                    ),
+                    value: key,
                   }))}
                   onChange={(e: ChangeEvent<HTMLSelectElement>) => {
                     const languageName = e.target.value as keyof typeof languageMap;
@@ -424,7 +423,7 @@ export default function Editor() {
                       const buildCmd = runCommandMap[currentLanguage as keyof typeof languageMap];
                       if (!buildCmd || !userData.currentFile?.location) return;
                       const command = buildCmd(userData.currentFile.location);
-                      window.dispatchEvent(new CustomEvent('3compute:run-command', { detail: { command } }));
+                      window.dispatchEvent(new CustomEvent("3compute:run-command", { detail: { command } }));
                     }}
                   >
                     <Play size={16} />
@@ -440,13 +439,16 @@ export default function Editor() {
         <div className="flex items-center gap-2 px-3 py-1.5 mx-1 mb-1 rounded-lum-1 bg-blue-950/40 border border-blue-800/30">
           <span className="text-xs text-blue-300 flex-1 truncate">
             Viewing <span className="font-medium">{studentView.studentEmail}</span>
-            {' \u2014 '}
+            {" \u2014 "}
             <span className="text-blue-400">{studentView.templateName}</span>
           </span>
           {testOutput !== null ? (
             <button
               className="flex items-center gap-1 text-xs text-blue-300 hover:text-white transition-colors"
-              onClick={() => { setTestOutput(null); setTestResult(null); }}
+              onClick={() => {
+                setTestOutput(null);
+                setTestResult(null);
+              }}
             >
               <ArrowLeft size={12} />
               Back to file
@@ -458,7 +460,7 @@ export default function Editor() {
               disabled={testRunning}
             >
               {testRunning ? <RefreshCw size={12} className="animate-spin" /> : <FlaskConical size={12} />}
-              {testRunning ? 'Running...' : 'Run Tests'}
+              {testRunning ? "Running..." : "Run Tests"}
             </button>
           )}
         </div>
@@ -466,7 +468,9 @@ export default function Editor() {
       {!userData.currentFile ? null : testOutput !== null ? (
         <div className="flex-1 overflow-auto p-4 font-mono text-sm">
           {testResult && (
-            <div className={`mb-3 text-sm font-sans ${testResult.total > 0 && testResult.passed === testResult.total ? 'text-green-400' : 'text-gray-400'}`}>
+            <div
+              className={`mb-3 text-sm font-sans ${testResult.total > 0 && testResult.passed === testResult.total ? "text-green-400" : "text-gray-400"}`}
+            >
               Result: {testResult.passed}/{testResult.total} tests passed
             </div>
           )}
@@ -484,11 +488,12 @@ export default function Editor() {
           <div className="text-center text-gray-400 max-w-sm">
             <File size={48} className="mx-auto mb-3 opacity-40" />
             <p className="text-sm">
-              This file is too large to open in the editor
-              ({MAX_EDITOR_LINES.toLocaleString()}-line / {MAX_EDITOR_CHARS.toLocaleString()}-character limit).
+              This file is too large to open in the editor ({MAX_EDITOR_LINES.toLocaleString()}-line /{" "}
+              {MAX_EDITOR_CHARS.toLocaleString()}-character limit).
             </p>
             <p className="text-xs text-gray-500 mt-2">
-              View it from the terminal (e.g. <code className="bg-gray-800 px-1 rounded">less</code>) or use the Download button.
+              View it from the terminal (e.g. <code className="bg-gray-800 px-1 rounded">less</code>) or use the
+              Download button.
             </p>
             <a
               href={`${apiUrl}/files/download${userData.currentFile?.location}`}
@@ -517,10 +522,10 @@ export default function Editor() {
             src={`${apiUrl}/files/file${userData.currentFile?.location}`}
             alt={userData.currentFile?.name}
             className="max-w-full max-h-full object-contain"
-            style={{ imageRendering: 'auto' }}
+            style={{ imageRendering: "auto" }}
           />
         </div>
-      ) : mdPreview && currentLanguage === 'markdown' ? (
+      ) : mdPreview && currentLanguage === "markdown" ? (
         <div className="flex-1 overflow-auto p-4">
           <div className="markdown-content" ref={markdownRef}>
             <Markdown
@@ -535,9 +540,11 @@ export default function Editor() {
                 // checkbox. The list item also carries reliable source
                 // position info for locating the right `[ ]` in the text.
                 li: ({ node, children, ...props }) => {
-                  const hast = node as { properties?: { className?: string[] }; position?: { start?: { line?: number } } } | undefined;
+                  const hast = node as
+                    | { properties?: { className?: string[] }; position?: { start?: { line?: number } } }
+                    | undefined;
                   const classNames = hast?.properties?.className ?? [];
-                  const isTaskItem = Array.isArray(classNames) && classNames.includes('task-list-item');
+                  const isTaskItem = Array.isArray(classNames) && classNames.includes("task-list-item");
                   if (!isTaskItem) return <li {...props}>{children}</li>;
                   const line = hast?.position?.start?.line;
                   const childArray = Array.isArray(children) ? children : [children];
@@ -545,15 +552,13 @@ export default function Editor() {
                   let inputIndex = -1;
                   for (let i = 0; i < childArray.length; i++) {
                     const c = childArray[i] as React.ReactElement<{ type?: string; checked?: boolean }> | undefined;
-                    if (c && typeof c === 'object' && 'props' in c && c.props?.type === 'checkbox') {
+                    if (c && typeof c === "object" && "props" in c && c.props?.type === "checkbox") {
                       checked = !!c.props.checked;
                       inputIndex = i;
                       break;
                     }
                   }
-                  const rest = inputIndex >= 0
-                    ? childArray.filter((_, i) => i !== inputIndex)
-                    : childArray;
+                  const rest = inputIndex >= 0 ? childArray.filter((_, i) => i !== inputIndex) : childArray;
                   return (
                     <li {...props}>
                       <button
@@ -564,11 +569,11 @@ export default function Editor() {
                         onClick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
-                          if (typeof line !== 'number') return;
+                          if (typeof line !== "number") return;
                           handleMarkdownCheckboxToggle(line, !checked);
                         }}
                       >
-                        {checked ? '✓' : ''}
+                        {checked ? "✓" : ""}
                       </button>
                       {rest}
                     </li>
@@ -591,11 +596,11 @@ export default function Editor() {
           options={{
             minimap: { enabled: true },
             fontSize: 14,
-            wordWrap: 'on',
+            wordWrap: "on",
             scrollBeyondLastLine: false,
             automaticLayout: true,
             tabSize: 2,
-            renderWhitespace: 'selection',
+            renderWhitespace: "selection",
             bracketPairColorization: { enabled: true },
             padding: { top: 8 },
           }}
