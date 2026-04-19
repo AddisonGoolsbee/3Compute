@@ -38,6 +38,7 @@ def main():
         host=args.host,
         port=args.port,
         reload=args.reload,
+        reload_dirs=["backend"] if args.reload else None,
         log_level="info",
     )
 
