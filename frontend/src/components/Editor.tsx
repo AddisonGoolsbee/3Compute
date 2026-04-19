@@ -344,12 +344,12 @@ export default function Editor() {
           <span className="text-sm flex gap-2 items-center flex-1 min-w-0" title={userData?.currentFile?.location}>
             <File size={16} className="shrink-0" />
             <span className="truncate min-w-0">{userData?.currentFile?.location}</span>
-            {currentLanguage === "markdown" && !isImage && (
+            {currentLanguage === 'markdown' && !isImage && (
               <>
                 <button
                   className={getClasses({
-                    "lum-btn p-1 rounded-lum-2 gap-1 lum-bg-transparent hover:lum-bg-gray-800 shrink-0": true,
-                    "text-blue-500": mdPreview,
+                    'lum-btn p-1 rounded-lum-2 gap-1 lum-bg-transparent hover:lum-bg-gray-800 shrink-0': true,
+                    'text-blue-500': mdPreview,
                   })}
                   onClick={() => setMdPreview(!mdPreview)}
                 >
@@ -361,7 +361,7 @@ export default function Editor() {
                     title="Print"
                     onClick={() => {
                       if (markdownRef.current)
-                        printMarkdownElement(markdownRef.current, userData.currentFile?.name ?? "Document");
+                        printMarkdownElement(markdownRef.current, userData.currentFile?.name ?? 'Document');
                     }}
                   >
                     <Printer size={16} />
@@ -375,15 +375,15 @@ export default function Editor() {
               <>
                 <span
                   className={getClasses({
-                    "text-xs px-1 select-none whitespace-nowrap": true,
-                    "text-gray-500": saveStatus === "saving" || saveStatus === "saved" || saveStatus === "idle",
-                    "text-red-400": saveStatus === "error",
+                    'text-xs px-1 select-none whitespace-nowrap': true,
+                    'text-gray-500': saveStatus === 'saving' || saveStatus === 'saved' || saveStatus === 'idle',
+                    'text-red-400': saveStatus === 'error',
                   })}
                   aria-live="polite"
                 >
-                  {saveStatus === "saving" && "Saving…"}
-                  {saveStatus === "saved" && "Saved"}
-                  {saveStatus === "error" && "Save failed"}
+                  {saveStatus === 'saving' && 'Saving…'}
+                  {saveStatus === 'saved' && 'Saved'}
+                  {saveStatus === 'error' && 'Save failed'}
                 </span>
                 <SelectMenuRaw
                   id="language-select"
@@ -423,7 +423,7 @@ export default function Editor() {
                       const buildCmd = runCommandMap[currentLanguage as keyof typeof languageMap];
                       if (!buildCmd || !userData.currentFile?.location) return;
                       const command = buildCmd(userData.currentFile.location);
-                      window.dispatchEvent(new CustomEvent("3compute:run-command", { detail: { command } }));
+                      window.dispatchEvent(new CustomEvent('3compute:run-command', { detail: { command } }));
                     }}
                   >
                     <Play size={16} />
@@ -439,7 +439,7 @@ export default function Editor() {
         <div className="flex items-center gap-2 px-3 py-1.5 mx-1 mb-1 rounded-lum-1 bg-blue-950/40 border border-blue-800/30">
           <span className="text-xs text-blue-300 flex-1 truncate">
             Viewing <span className="font-medium">{studentView.studentEmail}</span>
-            {" \u2014 "}
+            {' \u2014 '}
             <span className="text-blue-400">{studentView.templateName}</span>
           </span>
           {testOutput !== null ? (
@@ -460,7 +460,7 @@ export default function Editor() {
               disabled={testRunning}
             >
               {testRunning ? <RefreshCw size={12} className="animate-spin" /> : <FlaskConical size={12} />}
-              {testRunning ? "Running..." : "Run Tests"}
+              {testRunning ? 'Running...' : 'Run Tests'}
             </button>
           )}
         </div>
@@ -469,7 +469,7 @@ export default function Editor() {
         <div className="flex-1 overflow-auto p-4 font-mono text-sm">
           {testResult && (
             <div
-              className={`mb-3 text-sm font-sans ${testResult.total > 0 && testResult.passed === testResult.total ? "text-green-400" : "text-gray-400"}`}
+              className={`mb-3 text-sm font-sans ${testResult.total > 0 && testResult.passed === testResult.total ? 'text-green-400' : 'text-gray-400'}`}
             >
               Result: {testResult.passed}/{testResult.total} tests passed
             </div>
@@ -488,7 +488,7 @@ export default function Editor() {
           <div className="text-center text-gray-400 max-w-sm">
             <File size={48} className="mx-auto mb-3 opacity-40" />
             <p className="text-sm">
-              This file is too large to open in the editor ({MAX_EDITOR_LINES.toLocaleString()}-line /{" "}
+              This file is too large to open in the editor ({MAX_EDITOR_LINES.toLocaleString()}-line /{' '}
               {MAX_EDITOR_CHARS.toLocaleString()}-character limit).
             </p>
             <p className="text-xs text-gray-500 mt-2">
@@ -522,10 +522,10 @@ export default function Editor() {
             src={`${apiUrl}/files/file${userData.currentFile?.location}`}
             alt={userData.currentFile?.name}
             className="max-w-full max-h-full object-contain"
-            style={{ imageRendering: "auto" }}
+            style={{ imageRendering: 'auto' }}
           />
         </div>
-      ) : mdPreview && currentLanguage === "markdown" ? (
+      ) : mdPreview && currentLanguage === 'markdown' ? (
         <div className="flex-1 overflow-auto p-4">
           <div className="markdown-content" ref={markdownRef}>
             <Markdown
@@ -544,7 +544,7 @@ export default function Editor() {
                     | { properties?: { className?: string[] }; position?: { start?: { line?: number } } }
                     | undefined;
                   const classNames = hast?.properties?.className ?? [];
-                  const isTaskItem = Array.isArray(classNames) && classNames.includes("task-list-item");
+                  const isTaskItem = Array.isArray(classNames) && classNames.includes('task-list-item');
                   if (!isTaskItem) return <li {...props}>{children}</li>;
                   const line = hast?.position?.start?.line;
                   const childArray = Array.isArray(children) ? children : [children];
@@ -552,7 +552,7 @@ export default function Editor() {
                   let inputIndex = -1;
                   for (let i = 0; i < childArray.length; i++) {
                     const c = childArray[i] as React.ReactElement<{ type?: string; checked?: boolean }> | undefined;
-                    if (c && typeof c === "object" && "props" in c && c.props?.type === "checkbox") {
+                    if (c && typeof c === 'object' && 'props' in c && c.props?.type === 'checkbox') {
                       checked = !!c.props.checked;
                       inputIndex = i;
                       break;
@@ -569,11 +569,11 @@ export default function Editor() {
                         onClick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
-                          if (typeof line !== "number") return;
+                          if (typeof line !== 'number') return;
                           handleMarkdownCheckboxToggle(line, !checked);
                         }}
                       >
-                        {checked ? "✓" : ""}
+                        {checked ? '✓' : ''}
                       </button>
                       {rest}
                     </li>
@@ -596,11 +596,11 @@ export default function Editor() {
           options={{
             minimap: { enabled: true },
             fontSize: 14,
-            wordWrap: "on",
+            wordWrap: 'on',
             scrollBeyondLastLine: false,
             automaticLayout: true,
             tabSize: 2,
-            renderWhitespace: "selection",
+            renderWhitespace: 'selection',
             bracketPairColorization: { enabled: true },
             padding: { top: 8 },
           }}

@@ -32,7 +32,7 @@ Birdflop service for free educational server usage, with templates such as disco
 cd backend && pytest --cov=. --cov-report=term-missing
 
 # Frontend tests only
-cd frontend && pnpm test:coverage
+cd frontend && pnpm lint && pnpm test:coverage
 ```
 
 If you want to identically test the github action workflows, use act (brew install act)

@@ -50,7 +50,7 @@ export default function PortsPanel({ open, onClose }: Props) {
       const usedPorts = new Set(records.map(r => r.port));
       const lowest = Array.from(
         { length: userInfo.port_end - userInfo.port_start + 1 },
-        (_, i) => userInfo.port_start + i
+        (_, i) => userInfo.port_start + i,
       ).find(p => !usedPorts.has(p)) ?? userInfo.port_start;
       setPort(String(lowest));
     }
