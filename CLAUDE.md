@@ -109,7 +109,8 @@ Dynamic subdomain routes live in `srv0` — the Caddyfile-managed `:443` server.
 - Caddy manages TLS with wildcard cert `*.app.3compute.org` via Cloudflare DNS-01 challenge (for user subdomain routing only)
 - Requires `caddy-dns/cloudflare` plugin built into Caddy binary (see the patched build using `ogerman/cloudflare` fork that supports `cfat_` tokens)
 - Uploads: `/var/lib/3compute/uploads/`, classrooms: `/var/lib/3compute/classrooms/`
-- Deploy: GitHub webhook triggers `production/opt/deploy.sh` — rebuilds frontend, pip deps, Docker image, restarts service
+- Deploy: GitHub webhook triggers `/opt/deploy.sh` (copied from `production/opt/deploy.sh` in the repo). The script runs outside the repo so `git reset --hard` doesn't corrupt it mid-execution; it self-updates `/opt/deploy.sh` from the repo at the end of each run.
+- Deploy logs: `/var/log/3compute-deploy.log` (appended each run, includes timestamps)
 - Config files: `production/etc/systemd/system/3compute.service`, `production/etc/nginx/sites-available/3compute.org`
 
 ### One-time server setup (run once on a fresh host, not part of deploy script)

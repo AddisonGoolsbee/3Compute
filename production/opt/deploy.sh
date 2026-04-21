@@ -8,8 +8,8 @@ if ! flock -n 200; then
   exit 0
 fi
 
-# Log all output
-exec >> /var/log/3compute-deploy.log 2>&1
+# Log all output to file AND stdout (so manual runs still show output)
+exec > >(tee -a /var/log/3compute-deploy.log) 2>&1
 echo ""
 echo "=========================================="
 echo "Deploy started at $(date '+%Y-%m-%d %H:%M:%S')"
