@@ -118,7 +118,13 @@ export function TerminalSession({ tabId, isActive }: TerminalSessionProps) {
     );
 
     term.onData((data) => {
-      socket.emit('pty-input', { input: data });
+      // xterm.js auto-responds to ESC[6n (cursor position query) with
+      // ESC[row;colR.  When ash handles SIGWINCH on dtach reattach, it sends
+      // ESC[6n and the CPR response arrives at the PTY as input.  While a
+      // child process is running (cooked mode), the terminal echoes it as
+      // ^[[row;colR literal text.  Filter these out before forwarding.
+      const filtered = data.replace(/\x1b\[\d+;\d+R/g, '');
+      if (filtered) socket.emit('pty-input', { input: filtered });
     });
 
     // Cmd+C (macOS) / Ctrl+Shift+C (Linux) copies selected text

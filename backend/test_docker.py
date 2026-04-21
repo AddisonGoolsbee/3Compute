@@ -116,7 +116,7 @@ class TestDockerModule:
             assert "docker" in args
             assert "exec" in args
             assert "test-container" in args
-            assert "3compute-tab1" in " ".join(args)  # tmux session name
+            assert "3compute-tab1" in " ".join(args)  # dtach session name
 
     def test_attach_to_container_not_running(self):
         """Test attach_to_container fails when container not running"""
@@ -141,7 +141,7 @@ class TestDockerModule:
         with patch("backend.docker.container_is_running", return_value=True):
             attach_to_container("test-container", "5")
 
-            # Verify tmux session name includes tab ID
+            # Verify dtach session name includes tab ID
             args = mock_popen.call_args[0][0]
             command_str = " ".join(args)
             assert "3compute-tab5" in command_str
@@ -241,8 +241,8 @@ class TestContainerLifecycle:
             command_str = " ".join(args)
             assert "8000-8010:8000-8010" in command_str
 
-    def test_tmux_session_naming(self):
-        """Test tmux session naming with different tab IDs"""
+    def test_dtach_session_naming(self):
+        """Test dtach session naming with different tab IDs"""
         from backend.docker import attach_to_container
 
         test_cases = [

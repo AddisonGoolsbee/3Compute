@@ -54,6 +54,10 @@ POLL_INTERVAL = 4
 _cleanup_timers: dict[str, threading.Event] = {}
 # per-user lock to prevent simultaneous container spawns from multiple tabs
 _spawn_locks: dict[str, threading.Lock] = {}
+# Ring buffer of recent PTY output per (user_id, tab_id).
+# Used to replay terminal content on reconnect (dtach has no screen buffer).
+_MAX_OUTPUT_BUFFER = 80 * 1024  # 80 KB
+_tab_output_buffers: dict[tuple[str, str], str] = {}
 _engine = None
 
 
@@ -75,8 +79,6 @@ def _register_handlers():
     sio.on("disconnect", handler=handle_disconnect)
     sio.on("pty-input", handler=handle_pty_input)
     sio.on("resize", handler=handle_resize)
-    sio.on("tmux-new-window", handler=handle_tmux_new_window)
-    sio.on("tmux-select-window", handler=handle_tmux_select_window)
 
 
 # ---------------------------------------------------------------------------
@@ -358,7 +360,7 @@ def _attach_container(session_info: dict, cols: int = 80, rows: int = 24) -> boo
 
     session_info["fd"] = fd
     # Track the docker exec subprocess so disconnect can terminate it —
-    # otherwise the `docker exec -it ... tmux attach` process orphans and
+    # otherwise the `docker exec -it ... dtach` process orphans and
     # holds a connection to dockerd (additional fds) until its stdin EOFs.
     session_info["proc"] = proc
     session_info["container_attached"] = True
@@ -420,6 +422,38 @@ def _release_session_resources(sid: str, session: dict) -> None:
         except Exception as e:
             logger.warning("Failed to terminate proc for sid=%s: %s", sid, e)
 
+    # Kill the orphaned dtach *client* inside the container.
+    # proc.terminate() kills the docker CLI, but the containerised dtach
+    # client process survives and leaks.  The dtach *server* (which keeps
+    # the shell alive) is in a different session (setsid) and is NOT
+    # affected — only the now-detached client is killed.
+    container_name = session.get("container_name")
+    tab_id = session.get("tab_id")
+    if container_name and tab_id:
+        sock_path = f"/tmp/3compute-tab{tab_id}.sock"
+        try:
+            subprocess.run(
+                [
+                    "docker", "exec", container_name, "sh", "-c",
+                    # Find dtach client PIDs for this socket.  The server is
+                    # the parent of the shell — skip it.  Clients have no
+                    # child processes, so we kill PIDs whose only matching
+                    # entry is the dtach -A line itself.
+                    f"for pid in $(ps -o pid,args 2>/dev/null "
+                    f"| grep '[d]tach -A {sock_path}' "
+                    f"| awk '{{print $1}}'); do "
+                    f"  children=$(ps -o ppid 2>/dev/null | grep -c \"^\\s*$pid$\"); "
+                    f"  [ \"$children\" -eq 0 ] && kill \"$pid\" 2>/dev/null; "
+                    f"done",
+                ],
+                check=False,
+                timeout=5,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+        except Exception as e:
+            logger.debug("dtach client cleanup for sid=%s: %s", sid, e)
+
 
 # ---------------------------------------------------------------------------
 # Idle poller (daemon threads — identical logic to Flask version)
@@ -427,7 +461,7 @@ def _release_session_resources(sid: str, session: dict) -> None:
 
 _INFRA_PREFIXES = (
     "/sbin/tini",
-    "tmux ",
+    "dtach ",
     "-sh",
     "sh",
     "-ash",
@@ -494,6 +528,9 @@ def _start_idle_poller(user_id: str):
                 logger.info("No user processes left in %s, removing it", container)
                 subprocess.run(["docker", "rm", "-f", container], check=False)
                 user_containers.pop(user_id, None)
+                # Clear all output buffers for this user
+                for key in [k for k in _tab_output_buffers if k[0] == user_id]:
+                    _tab_output_buffers.pop(key, None)
                 break
 
             time.sleep(POLL_INTERVAL)
@@ -557,6 +594,32 @@ async def read_and_forward_pty_output(sid: str):
                         )
                         first_output = False
                     await sio.emit("pty-output", {"output": output}, to=sid)
+                    # After the first output (shell's SIGWINCH clear-screen),
+                    # replay the stashed buffer so old content reappears on
+                    # top of the now-cleared terminal.
+                    pending = session.pop("_pending_replay", None)
+                    if pending:
+                        logger.info(
+                            "[DIAG] read_loop: replaying %d bytes after first output for sid=%s",
+                            len(pending), sid,
+                        )
+                        await sio.emit("pty-output", {"output": pending}, to=sid)
+                        # Replace the buffer with the replayed content so history
+                        # accumulates across reloads.  We intentionally skip
+                        # buffering `output` (the SIGWINCH clear-screen) — adding
+                        # it would embed a mid-stream clear that wipes history on
+                        # the next reload.
+                        buf_key = (session["user_id"], session["tab_id"])
+                        if len(pending) > _MAX_OUTPUT_BUFFER:
+                            pending = pending[-_MAX_OUTPUT_BUFFER:]
+                        _tab_output_buffers[buf_key] = pending
+                    else:
+                        buf_key = (session["user_id"], session["tab_id"])
+                        prev = _tab_output_buffers.get(buf_key, "")
+                        combined = prev + output
+                        if len(combined) > _MAX_OUTPUT_BUFFER:
+                            combined = combined[-_MAX_OUTPUT_BUFFER:]
+                        _tab_output_buffers[buf_key] = combined
             except (OSError, ValueError) as exc:
                 logger.info("[DIAG] read_loop: PTY error for sid=%s: %s", sid, exc)
                 await sio.emit("terminal-restart-required", {}, to=sid)
@@ -642,7 +705,7 @@ async def handle_connect(sid, environ, auth=None):
     )
 
     # Don't attach the PTY yet — wait for the first resize so the backend has
-    # the frontend's actual dimensions before tmux renders anything.
+    # the frontend's actual dimensions before the shell renders anything.
     session_info["read_loop_started"] = False
     logger.info(
         "[DIAG] handle_connect: DONE for sid=%s, waiting for first resize to attach and start read loop",
@@ -754,63 +817,25 @@ async def handle_resize(sid, data):
         logger.error("[DIAG] handle_resize: set_winsize FAILED: %s", e, exc_info=True)
 
     # Start the read loop on the first resize — now the PTY has correct
-    # dimensions so tmux won't render a prompt at the wrong size.
+    # dimensions so the terminal won't render at the wrong size.
     if not session_info.get("read_loop_started"):
         session_info["read_loop_started"] = True
         logger.info("[DIAG] handle_resize: STARTING read loop for sid=%s (first resize)", sid)
+        # Stash buffered output for replay AFTER the first dtach output.
+        # dtach -r winch sends SIGWINCH on reattach, which makes the shell
+        # clear the screen (ESC[H ESC[J).  If we replayed before that,
+        # the clear would immediately wipe the replayed content.
+        buf_key = (user_id, tab_id)
+        buffered = _tab_output_buffers.get(buf_key)
+        if buffered:
+            session_info["_pending_replay"] = buffered
+            logger.info(
+                "[DIAG] handle_resize: stashed %d bytes for post-attach replay sid=%s",
+                len(buffered), sid,
+            )
         sio.start_background_task(read_and_forward_pty_output, sid)
     else:
         logger.info("[DIAG] handle_resize: read loop already running for sid=%s", sid)
-
-
-async def handle_tmux_new_window(sid, data):
-    session = session_map.get(sid)
-    if not session:
-        return
-    container_info = user_containers.get(session["user_id"])
-    if not container_info:
-        return
-    container = container_info["container_name"]
-    win = data["windowIndex"]
-    await asyncio.to_thread(
-        subprocess.run,
-        [
-            "docker",
-            "exec",
-            container,
-            "tmux",
-            "new-window",
-            "-t",
-            f"3compute:{win}",
-            "-n",
-            str(win),
-        ],
-        check=False,
-    )
-
-
-async def handle_tmux_select_window(sid, data):
-    session = session_map.get(sid)
-    if not session:
-        return
-    container_info = user_containers.get(session["user_id"])
-    if not container_info:
-        return
-    container = container_info["container_name"]
-    win = data["windowIndex"]
-    await asyncio.to_thread(
-        subprocess.run,
-        [
-            "docker",
-            "exec",
-            container,
-            "tmux",
-            "select-window",
-            "-t",
-            f"3compute:{win}",
-        ],
-        check=False,
-    )
 
 
 # ---------------------------------------------------------------------------
@@ -819,30 +844,34 @@ async def handle_tmux_select_window(sid, data):
 
 
 async def close_tab(user_id: str, tab_id: str) -> tuple[str, int]:
-    """Kill the tmux session for a tab.  Returns ``(message, status_code)``."""
+    """Kill the dtach session for a tab.  Returns ``(message, status_code)``."""
+    _tab_output_buffers.pop((user_id, tab_id), None)
     container_info = user_containers.get(user_id)
     if not container_info:
         return "No container for user", 404
 
     container_name = container_info["container_name"]
     session_name = f"3compute-tab{tab_id}"
+    sock_path = f"/tmp/{session_name}.sock"
     try:
+        # Find the dtach server process for this socket and kill it.
+        # When dtach dies, the child shell receives SIGHUP and exits.
         await asyncio.to_thread(
             subprocess.run,
             [
                 "docker",
                 "exec",
                 container_name,
-                "tmux",
-                "kill-session",
-                "-t",
-                session_name,
+                "sh", "-c",
+                f"pid=$(ps -o pid,args 2>/dev/null | grep '[d]tach.*{session_name}' | awk '{{print $1}}' | head -1); "
+                f"[ -n \"$pid\" ] && kill \"$pid\" 2>/dev/null; "
+                f"rm -f {sock_path}",
             ],
-            check=True,
+            check=False,
         )
     except subprocess.CalledProcessError as e:
         logger.warning(
-            "Failed to kill tmux session %s in %s: %s",
+            "Failed to kill dtach session %s in %s: %s",
             session_name,
             container_name,
             e,

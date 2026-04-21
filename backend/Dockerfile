@@ -1,10 +1,10 @@
 FROM python:3.12-alpine
 
-# Install tini, tmux, and other dependencies using Alpine's package manager
+# Install tini, dtach, and other dependencies using Alpine's package manager
 USER root
 RUN apk update && apk add --no-cache \
     tini \
-    tmux \
+    dtach \
     python3 \
     py3-pip \
     shadow \
@@ -18,9 +18,6 @@ RUN addgroup -g 995 3compute-container \
     && mkdir /app \
     && chown 999:995 /app
 
-# Copy our tmux config for the myuser home
-COPY tmux.conf /home/myuser/.tmux.conf
-RUN chown 999:995 /home/myuser/.tmux.conf
 
 RUN echo 'umask 002' >> /etc/profile \
  && echo 'export PATH="$HOME/.local/bin:$PATH"' >> /etc/profile

@@ -14,7 +14,7 @@ from backend.docker import CLASSROOMS_ROOT, UPLOADS_ROOT, CONTAINER_USER_UID, CO
 
 from ..database import Classroom, ClassroomMember, User
 from ..dependencies import get_current_user, get_db
-from ..terminal import notify_files_changed
+from ..terminal import notify_files_changed, session_map
 
 logger = logging.getLogger("files")
 
@@ -1107,25 +1107,18 @@ async def upload_folder(
 
     move_into = form.get("move-into")
     if move_into and not classroom_id:
-        container_name = f"user-container-{user.id}"
-        try:
-            subprocess.run(
-                [
-                    "docker", "exec", container_name,
-                    "tmux", "send-keys", "-t", "3compute", "Enter",
-                ],
-                check=True,
-            )
-            subprocess.run(
-                [
-                    "docker", "exec", container_name,
-                    "tmux", "send-keys", "-t", "3compute",
-                    f"cd '/app/{move_into}'", "Enter",
-                ],
-                check=True,
-            )
-        except subprocess.CalledProcessError:
-            pass
+        # Auto-cd the first active terminal tab to the target directory.
+        # Write directly to the PTY master fd — Ctrl+U clears any in-progress
+        # input, then the cd command is sent.
+        for session in session_map.values():
+            if session.get("user_id") == str(user.id):
+                fd = session.get("fd")
+                if fd:
+                    try:
+                        os.write(fd, f"\x15cd '/app/{move_into}'\r".encode())
+                    except OSError:
+                        pass
+                break
 
     # Push to student workspaces if files landed in assignments (teacher drag-drop)
     await _push_classroom_templates_to_participants(classroom_templates_written, db)

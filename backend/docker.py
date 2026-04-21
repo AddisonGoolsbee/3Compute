@@ -582,7 +582,7 @@ def attach_to_container(container_name, tab_id="1", cols=80, rows=24):
 
     master_fd, slave_fd = pty.openpty()
     logger.info(f"[DIAG] attach_to_container: openpty master_fd={master_fd} slave_fd={slave_fd}")
-    # Initialize the PTY size so tmux renders at the frontend's dimensions.
+    # Initialize the PTY size so the shell renders at the frontend's dimensions.
     try:
         import struct, fcntl, termios
 
@@ -591,20 +591,21 @@ def attach_to_container(container_name, tab_id="1", cols=80, rows=24):
         logger.info(f"[DIAG] attach_to_container: set PTY size to {cols}x{rows}")
     except OSError as e:
         logger.info(f"[DIAG] attach_to_container: set PTY size failed: {e}")
-    # Create unique tmux session for each tab
+    # Create unique dtach session for each tab.  dtach provides session
+    # persistence (survives page refresh) without tmux's output coalescing
+    # that swallowed scrollback lines during fast output (e.g. seq 50).
     session_name = f"3compute-tab{tab_id}"
-    tmux_conf = "/home/myuser/.tmux.conf"
-    # Source the config after attaching to ensure settings are applied even if server was already running
+    sock_path = f"/tmp/{session_name}.sock"
     cmd = [
         "docker",
         "exec",
         "-it",
         container_name,
-        "sh",
-        "-lc",
-        f"tmux -f {tmux_conf} new-session -d -A -s {session_name}; tmux source-file {tmux_conf} 2>/dev/null; tmux attach -t {session_name}",
+        "dtach", "-A", sock_path,
+        "-r", "winch",
+        "sh", "-l",
     ]
-    logger.info(f"[DIAG] attach_to_container: starting docker exec for '{container_name}' tmux='{session_name}'")
+    logger.info(f"[DIAG] attach_to_container: starting docker exec for '{container_name}' dtach='{session_name}'")
     try:
         proc = subprocess.Popen(cmd, stdin=slave_fd, stdout=slave_fd, stderr=slave_fd, close_fds=True)
     except Exception as e:
