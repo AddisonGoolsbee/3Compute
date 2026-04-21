@@ -1,6 +1,20 @@
 #!/bin/bash
 set -e
 
+# Prevent concurrent deploys
+exec 200>/tmp/3compute-deploy.lock
+if ! flock -n 200; then
+  echo "$(date '+%Y-%m-%d %H:%M:%S') Deploy already running, skipping" >> /var/log/3compute-deploy.log
+  exit 0
+fi
+
+# Log all output
+exec >> /var/log/3compute-deploy.log 2>&1
+echo ""
+echo "=========================================="
+echo "Deploy started at $(date '+%Y-%m-%d %H:%M:%S')"
+echo "=========================================="
+
 cd /var/www/3compute
 
 echo "Fetching latest main"
@@ -33,7 +47,11 @@ mkdir -p /var/lib/3compute/uploads /var/lib/3compute/classrooms
 chown www-data:3compute-container /var/lib/3compute /var/lib/3compute/uploads /var/lib/3compute/classrooms
 chmod 2775 /var/lib/3compute /var/lib/3compute/uploads /var/lib/3compute/classrooms
 
+echo "Updating /opt/deploy.sh from repo"
+cp /var/www/3compute/production/opt/deploy.sh /opt/deploy.sh
+chmod +x /opt/deploy.sh
+
 echo "Restarting backend service"
 systemctl restart 3compute
 
-echo "All done"
+echo "Deploy finished at $(date '+%Y-%m-%d %H:%M:%S')"
