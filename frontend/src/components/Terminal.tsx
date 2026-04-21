@@ -41,10 +41,10 @@ export default function TerminalTabs() {
         return;
       }
 
-      console.log('Saving tab state:', {
-        tabs: tabsToSave,
-        active_tab: activeTabToSave,
-      }); // Debug log
+      // console.log('Saving tab state:', {
+      //   tabs: tabsToSave,
+      //   active_tab: activeTabToSave,
+      // }); // Debug log
 
       try {
         const response = await fetch(`${apiUrl}/tabs/`, {
@@ -66,7 +66,7 @@ export default function TerminalTabs() {
             response.statusText,
           );
         } else {
-          console.log('Successfully saved tab state'); // Debug log
+          // console.log('Successfully saved tab state'); // Debug log
         }
       } catch (error) {
         console.error('Failed to save tab state:', error);
@@ -90,7 +90,7 @@ export default function TerminalTabs() {
 
       if (response.ok) {
         const data = await response.json();
-        console.log('Loaded tab state:', data); // Debug log
+        // console.log('Loaded tab state:', data); // Debug log
         if (data.tabs && data.active_tab) {
           setTabs(data.tabs);
           setActiveTab(data.active_tab);
@@ -179,7 +179,7 @@ export default function TerminalTabs() {
 
   const handleSelectTab = useCallback(
     (tabId: string) => {
-      console.log('Selecting tab:', tabId, 'Current tabs:', tabs); // Debug log
+      // console.log('Selecting tab:', tabId, 'Current tabs:', tabs); // Debug log
       setActiveTab(tabId);
       // saveTabState will be called automatically by the effect
     },
