@@ -85,7 +85,7 @@ export default function App() {
       openParentFolders(targetLocation);
       setSearchParams({}, { replace: true });
     }
-  }, [searchParams, userData]);
+  }, [searchParams, userData]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Deep-link: open a folder (e.g. draft) in the IDE, or just a classroom
   // root, selecting README.md if present and cd'ing the terminal.
@@ -138,7 +138,7 @@ export default function App() {
     }
 
     setSearchParams({}, { replace: true });
-  }, [searchParams, userData]);
+  }, [searchParams, userData]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!userData.userInfo) {
     return <Login />;

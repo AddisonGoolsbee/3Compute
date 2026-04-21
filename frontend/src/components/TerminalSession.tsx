@@ -123,6 +123,7 @@ export function TerminalSession({ tabId, isActive }: TerminalSessionProps) {
       // ESC[6n and the CPR response arrives at the PTY as input.  While a
       // child process is running (cooked mode), the terminal echoes it as
       // ^[[row;colR literal text.  Filter these out before forwarding.
+      // eslint-disable-next-line no-control-regex
       const filtered = data.replace(/\x1b\[\d+;\d+R/g, '');
       if (filtered) socket.emit('pty-input', { input: filtered });
     });
