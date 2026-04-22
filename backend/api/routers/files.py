@@ -442,10 +442,6 @@ Files named `test_*.py` are **test files** written by your teacher for automated
 - **Editor** (center): edit code with syntax highlighting. Use the Save button or the language selector to change highlighting mode. Toggle Markdown preview for `.md` files.
 - **Terminal** (bottom): full shell access. This is where you will type commands. Open multiple tabs; closing a tab stops its processes.
 
-## Nice to know
-
-Your 3Compute terminal is a window into a session running on the server. You can close the browser and your tabs will keep running. A consequence of this is that the terminal can only display as many lines as the screen is tall. If a command prints more output than fits on screen in a single burst, it will appear to overwrite some of the previous contents. The best approach for large output is to pipe it into a file (e.g. `python run_tests.py > output.txt`), then open that file in the editor.
-
 ## Learn more
 
 Open any template's `README.md` after creating it for project-specific instructions.
@@ -538,10 +534,6 @@ Students can only create and edit files inside their assignment folders. They ca
 - **File Explorer** (left): browse, upload, create, and delete files.
 - **Editor** (center): edit code with syntax highlighting. Use the Save button or the language selector to change highlighting mode. Toggle Markdown preview for `.md` files.
 - **Terminal** (bottom): full shell access. Open multiple tabs; closing a tab stops its processes.
-
-## Nice to know
-
-The 3Compute terminal is a window into a session running on the server. You can close the browser and your tabs will keep running. A consequence of this is that the terminal can only display as many lines as the screen is tall. If a command prints more output than fits on screen in a single burst, it will appear to overwrite some of the previous contents. The best approach for large output is to pipe it into a file (e.g. `python run_tests.py > output.txt`), then open that file in the editor.
 
 ## Learn more
 
