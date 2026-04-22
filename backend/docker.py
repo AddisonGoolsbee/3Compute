@@ -225,7 +225,11 @@ def spawn_container(user_id, slave_fd, container_name, port_range=None, user_ema
             elif os.path.islink(entry_path):
                 target = os.readlink(entry_path)
                 # Check if it's a classroom symlink
-                if target.startswith(CLASSROOMS_ROOT) or target.startswith("/classrooms/"):
+                if (
+                    target.startswith(CLASSROOMS_ROOT)
+                    or target.startswith("/classrooms/")
+                    or target.startswith("../../classrooms/")
+                ):
                     os.unlink(entry_path)
                     logger.debug(f"[{user_id}] Removed old classroom symlink: {entry}")
     except Exception as e:

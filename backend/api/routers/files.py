@@ -82,11 +82,8 @@ def _resolve_classroom_path(upload_dir: str, rel_path: str) -> str | None:
         if not os.path.islink(top_abs):
             return None
         target = os.readlink(top_abs)
-        if target.startswith("/classrooms/"):
-            tail = target[len("/classrooms/") :].lstrip("/")
-        elif target.startswith(CLASSROOMS_ROOT):
-            tail = target[len(CLASSROOMS_ROOT) :].lstrip("/")
-        else:
+        tail = _classroom_tail_from_symlink(top_abs, target)
+        if not tail:
             return None
         host_base = os.path.join(CLASSROOMS_ROOT, tail)
         candidate = os.path.join(host_base, remainder) if remainder else host_base
@@ -128,6 +125,27 @@ def _is_hidden(name: str) -> bool:
     if name.startswith(".") and not name.startswith(".env") and not name.startswith(".git"):
         return True
     return False
+
+
+def _classroom_tail_from_symlink(link_path: str, target: str) -> str | None:
+    """If *target* (raw readlink output) points into CLASSROOMS_ROOT, return
+    the path suffix beneath CLASSROOMS_ROOT. Handles all three forms:
+    absolute host (``/var/lib/3compute/classrooms/...``), container-namespace
+    absolute (``/classrooms/...``), and relative (``../../classrooms/...``)
+    — docker.py switched to the relative form so symlinks resolve correctly
+    from both namespaces, and the listing code has to mirror that.
+    """
+    if target.startswith(CLASSROOMS_ROOT):
+        return target[len(CLASSROOMS_ROOT):].lstrip("/")
+    if target.startswith("/classrooms/"):
+        return target[len("/classrooms/"):].lstrip("/")
+    resolved = os.path.normpath(
+        os.path.join(os.path.dirname(link_path), target)
+    )
+    prefix = CLASSROOMS_ROOT.rstrip("/") + "/"
+    if resolved.startswith(prefix):
+        return resolved[len(prefix):]
+    return None
 
 
 def _append_classroom_tree_entries(
@@ -578,14 +596,7 @@ async def list_files(
                 continue
 
             target = os.readlink(full_path)
-            tail: str | None = None
-            if target.startswith(CLASSROOMS_ROOT):
-                tail = target[len(CLASSROOMS_ROOT) :].lstrip("/")
-            elif target.startswith("/classrooms/"):
-                tail = target[len("/classrooms/") :].lstrip("/")
-            else:
-                continue
-
+            tail = _classroom_tail_from_symlink(full_path, target)
             if not tail:
                 continue
 
@@ -624,8 +635,8 @@ async def list_files(
 
             if os.path.islink(full_path):
                 target = os.readlink(full_path)
-                if target.startswith("/classrooms/"):
-                    tail = target[len("/classrooms/") :].lstrip("/")
+                tail = _classroom_tail_from_symlink(full_path, target)
+                if tail:
                     host_base = os.path.join(CLASSROOMS_ROOT, tail)
                     _append_classroom_tree_entries(
                         file_tree, relative_path, host_base, show_hidden=show_hidden
@@ -647,8 +658,8 @@ async def list_files(
             relative_path = os.path.relpath(full_path, upload_dir)
             if os.path.islink(full_path):
                 target = os.readlink(full_path)
-                if target.startswith("/classrooms/"):
-                    tail = target[len("/classrooms/") :].lstrip("/")
+                tail = _classroom_tail_from_symlink(full_path, target)
+                if tail:
                     host_base = os.path.join(CLASSROOMS_ROOT, tail)
                     _append_classroom_tree_entries(
                         file_tree, relative_path, host_base, show_hidden=show_hidden
