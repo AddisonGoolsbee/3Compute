@@ -1,9 +1,10 @@
 import { useEffect, useState, useContext } from 'react';
 import { Link } from 'react-router';
-import { ArrowLeft, Copy, Check, Users, ChevronRight, Plus, LogIn, ExternalLink, FileText } from 'lucide-react';
+import { ArrowLeft, Copy, Check, Users, ChevronRight, Plus, LogIn, ExternalLink, FileText, FolderOpen } from 'lucide-react';
 import { apiUrl, UserDataContext } from '../util/UserData';
 import CreateClassroomDialog from '../components/CreateClassroomDialog';
 import JoinClassroomDialog from '../components/JoinClassroomDialog';
+import AssignmentBrowserDialog from '../components/AssignmentBrowserDialog';
 import Footer from '../components/Footer';
 
 interface Classroom {
@@ -34,6 +35,9 @@ export default function ClassroomsPage() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [joinOpen, setJoinOpen] = useState(false);
+  const [browsingAssignment, setBrowsingAssignment] = useState<
+    { classroomId: string; templateName: string; files: string[] } | null
+  >(null);
 
   const isTeacher = userData?.userInfo?.role === 'teacher';
 
@@ -201,16 +205,34 @@ export default function ClassroomsPage() {
                     {assignments.length > 0 && (
                       <div className="mt-3 ml-0 flex flex-col gap-1">
                         {assignments.map((t) => (
-                          <Link
+                          <div
                             key={t.name}
-                            to={`/ide?classroom=${classroom.id}&folder=${encodeURIComponent(t.name)}`}
-                            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-800/30 hover:bg-gray-800/60 transition-colors group"
-                            title={`Open "${t.name}" in the IDE`}
+                            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-800/30 hover:bg-gray-800/60 transition-colors group cursor-pointer"
+                            onClick={() =>
+                              setBrowsingAssignment({
+                                classroomId: classroom.id,
+                                templateName: t.name,
+                                files: t.files,
+                              })
+                            }
+                            title={`Browse "${t.name}" files and restore originals`}
                           >
                             <FileText size={14} className="text-gray-500 group-hover:text-gray-300 shrink-0" />
                             <span className="text-sm text-gray-300 truncate flex-1">{t.name}</span>
-                            <ExternalLink size={12} className="text-gray-600 group-hover:text-gray-400 shrink-0" />
-                          </Link>
+                            <span className="text-xs text-gray-600">
+                              {t.files.length} {t.files.length === 1 ? 'file' : 'files'}
+                            </span>
+                            <FolderOpen size={13} className="text-gray-600 group-hover:text-gray-400 shrink-0" />
+                            <Link
+                              to={`/ide?classroom=${classroom.id}&folder=${encodeURIComponent(t.name)}`}
+                              onClick={(e) => e.stopPropagation()}
+                              className="flex items-center gap-1 px-2 py-1 rounded text-xs text-gray-400 hover:text-[#54daf4] hover:bg-[#54daf4]/10"
+                              title={`Open "${t.name}" in the IDE`}
+                            >
+                              <ExternalLink size={11} />
+                              IDE
+                            </Link>
+                          </div>
                         ))}
                       </div>
                     )}
@@ -232,6 +254,15 @@ export default function ClassroomsPage() {
         open={joinOpen}
         onClose={() => { setJoinOpen(false); fetchClassrooms(); }}
       />
+      {browsingAssignment && (
+        <AssignmentBrowserDialog
+          open={true}
+          classroomId={browsingAssignment.classroomId}
+          templateName={browsingAssignment.templateName}
+          files={browsingAssignment.files}
+          onClose={() => setBrowsingAssignment(null)}
+        />
+      )}
     </div>
   );
 }

@@ -1016,6 +1016,156 @@ async def upload_classroom_assignment(
 
 
 # ---------------------------------------------------------------------------
+# Student assignment browser / restore
+# ---------------------------------------------------------------------------
+
+
+def _safe_join_under(base: str, rel: str) -> str | None:
+    """Join *rel* onto *base* and ensure the result stays within *base*.
+    Returns the absolute joined path, or None if *rel* would escape."""
+    if not rel:
+        return None
+    candidate = os.path.normpath(os.path.join(base, rel))
+    base_norm = os.path.normpath(base)
+    if candidate != base_norm and not candidate.startswith(base_norm + os.sep):
+        return None
+    return candidate
+
+
+@router.get("/{classroom_id}/assignments/{template_name}/file")
+async def get_assignment_template_file(
+    classroom_id: str,
+    template_name: str,
+    path: str,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Return the teacher's template version of *path* under *template_name*.
+    Any classroom member (instructor or participant) can read. Binary files
+    are returned base64-encoded with ``binary: true``."""
+    _require_classroom(db, classroom_id)
+    member = db.exec(
+        select(ClassroomMember).where(
+            ClassroomMember.classroom_id == classroom_id,
+            ClassroomMember.user_id == str(user.id),
+        )
+    ).first()
+    if not member:
+        raise HTTPException(status_code=403, detail="Not a member of this classroom")
+
+    template_dir = os.path.join(
+        CLASSROOMS_ROOT, classroom_id, "assignments", template_name
+    )
+    if not os.path.isdir(template_dir):
+        raise HTTPException(status_code=404, detail="Template not found")
+
+    file_path = _safe_join_under(template_dir, path)
+    if not file_path or not os.path.isfile(file_path):
+        raise HTTPException(status_code=404, detail="File not found")
+
+    try:
+        with open(file_path, "rb") as fh:
+            raw = fh.read()
+    except OSError as e:
+        raise HTTPException(status_code=500, detail=f"Read failed: {e}")
+
+    try:
+        return {"content": raw.decode("utf-8"), "binary": False}
+    except UnicodeDecodeError:
+        import base64
+        return {"content": base64.b64encode(raw).decode("ascii"), "binary": True}
+
+
+class RestoreAssignmentRequest(BaseModel):
+    paths: list[str] | None = None  # None or empty list ⇒ restore everything
+
+
+@router.post("/{classroom_id}/assignments/{template_name}/restore")
+async def restore_assignment_files(
+    classroom_id: str,
+    template_name: str,
+    body: RestoreAssignmentRequest,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Copy template file(s) over the participant's working copy so they can
+    start fresh after breaking something. Only participants can restore
+    their own files."""
+    _require_classroom(db, classroom_id)
+    membership = db.exec(
+        select(ClassroomMember).where(
+            ClassroomMember.classroom_id == classroom_id,
+            ClassroomMember.user_id == str(user.id),
+            ClassroomMember.role == "participant",
+        )
+    ).first()
+    if not membership:
+        raise HTTPException(
+            status_code=403,
+            detail="Only participants can restore assignment files",
+        )
+
+    template_dir = os.path.join(
+        CLASSROOMS_ROOT, classroom_id, "assignments", template_name
+    )
+    if not os.path.isdir(template_dir):
+        raise HTTPException(status_code=404, detail="Template not found")
+
+    sanitized_email = (user.email or "participant").replace("/", "_")
+    participant_template_dir = os.path.join(
+        CLASSROOMS_ROOT,
+        classroom_id,
+        "participants",
+        sanitized_email,
+        template_name,
+    )
+
+    # Build the list of relative paths to restore.
+    if body.paths:
+        rel_paths: list[str] = []
+        for p in body.paths:
+            # Validate each path is inside the template.
+            if not _safe_join_under(template_dir, p):
+                continue
+            rel_paths.append(p)
+    else:
+        rel_paths = []
+        for root, _dirs, filenames in os.walk(template_dir):
+            for filename in filenames:
+                rel_paths.append(
+                    os.path.relpath(os.path.join(root, filename), template_dir)
+                )
+
+    os.makedirs(participant_template_dir, exist_ok=True)
+
+    restored: list[str] = []
+    for rel in rel_paths:
+        src = _safe_join_under(template_dir, rel)
+        dst = _safe_join_under(participant_template_dir, rel)
+        if not src or not dst or not os.path.isfile(src):
+            continue
+        os.makedirs(os.path.dirname(dst), exist_ok=True)
+        try:
+            shutil.copy2(src, dst)
+        except OSError as e:
+            logger.warning("Failed to restore %s for %s: %s", rel, user.id, e)
+            continue
+        try:
+            os.chown(dst, CONTAINER_USER_UID, CONTAINER_USER_GID)
+            os.chmod(dst, 0o664)
+        except OSError:
+            pass
+        restored.append(rel)
+
+    try:
+        await notify_files_changed(str(user.id))
+    except Exception:
+        pass
+
+    return {"restored": restored, "count": len(restored)}
+
+
+# ---------------------------------------------------------------------------
 # Progress / Test results
 # ---------------------------------------------------------------------------
 
