@@ -324,7 +324,59 @@ bridge IPs.
   `MemoryMax`, no `CPUQuota`, no `TasksMax`. A runaway backend process
   can starve the whole node.
 
-### 2.9 Nginx front
+### 2.9 File descriptor limits
+
+Four different fd ceilings stack:
+
+| Layer | Limit | Source | Room we have |
+|---|---|---|---|
+| Backend process | **65536** | `production/etc/systemd/system/3compute.service:30` (`LimitNOFILE=65536`) | ~20k concurrent tabs |
+| Docker daemon | distro default (Ubuntu/Debian `docker.service` ships `LimitNOFILE=infinity`) | not managed by us | effectively unlimited |
+| Kernel global (`fs.file-max`) | auto-tuned on 64 GiB → ~6M+ | `/proc/sys/fs/file-max` | effectively unlimited |
+| Inside container | inherits dockerd (~1M) | not overridden in `spawn_container` | unbounded per student |
+
+**Per-active-tab backend cost**: ~2 fds (PTY master + WebSocket). The slave
+side of the PTY is closed immediately after `Popen`
+(`backend/docker.py:634-637`), and the `docker exec` subprocess has no
+pipes open in the backend. Transient subprocess fds (`docker top` in the
+idle poller, `docker rm`, `docker ps`) are created and closed by each
+`subprocess.run` call.
+
+**Ceiling**: at 65536 / ~3 fds per tab, the backend can hold ~20,000
+concurrent active tabs before EMFILE. Real target is ≤ a few hundred —
+this is not a current bottleneck.
+
+**History**: we were bitten once. The comment in the systemd unit file
+confirms that the default `LimitNOFILE=1024` caused an EMFILE cascade
+(500s on saves/reads/login) when a PTY leak in the attach path
+accumulated. Fix: `_release_session_resources`
+(`backend/api/terminal.py:391-423`) is now the single cleanup path, called
+from `handle_disconnect` and from the reconnect / duplicate-session cleanup
+(lines 668-686).
+
+**The live risk**: regression. Any new code path that opens a PTY or
+keeps a `Popen` without routing cleanup through `_release_session_resources`
+will leak. At 65536 it would accumulate ~8× longer than the 1024 default
+before crashing — long enough to pass dev testing, short enough to bite a
+busy classroom.
+
+**Inside the container**, fd and process limits inherit from dockerd and
+are effectively unbounded. A student process can open ~1M fds before
+anything stops them. Not a host-level capacity issue (the kernel copes),
+but pairs with `--pids-limit` (§5.1 item 2) as "how much can one
+student waste."
+
+Recommendations (added to §5.1 list):
+
+- **Monitor** `/proc/$backend_pid/fd` count — expose it on
+  `/admin/stats` or `/admin/health`, alert at 50% of `LimitNOFILE`. Cheap
+  early warning against the next regression.
+- **Add `--ulimit nofile=8192:16384`** to `spawn_container`. Bounds
+  per-student fd spend inside the container without touching the backend.
+- **Do not raise `LimitNOFILE` further.** 65536 is plenty; going higher
+  just lets a leak accumulate silently for longer.
+
+### 2.10 Nginx front
 
 `production/etc/nginx/sites-available/3compute.org`:
 
@@ -334,7 +386,7 @@ bridge IPs.
   10 minutes.
 - No connection or rate limits (`limit_conn`, `limit_req`).
 
-### 2.10 Deploy
+### 2.11 Deploy
 
 `production/opt/deploy.sh`:
 1. `git reset --hard origin/main`, rebuild frontend, rebuild `3compute:latest`

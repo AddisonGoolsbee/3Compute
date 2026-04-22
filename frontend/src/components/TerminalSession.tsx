@@ -194,6 +194,14 @@ export function TerminalSession({ tabId, isActive }: TerminalSessionProps) {
       window.dispatchEvent(new CustomEvent('3compute:files-changed'));
     });
 
+    socket.on('terminal-restart-required', () => {
+      window.dispatchEvent(
+        new CustomEvent('terminal-restart-required', {
+          detail: { reason: 'pty-died' },
+        }),
+      );
+    });
+
     const runHandler = (e: Event) => {
       if (!wasActiveRef.current) return;
       const { command } = (e as CustomEvent<{ command: string }>).detail;

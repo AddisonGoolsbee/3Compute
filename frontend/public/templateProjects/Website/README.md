@@ -1,31 +1,50 @@
 # Simple Website
 
-A fun, personal website template built with Flask. Perfect for creating your own little corner of the internet with a casual, friendly vibe. Once it's live, anyone can access it!
+A small personal website built with Flask. You edit one HTML file, one CSS file, and run a Python script. Once it is running, anyone with the link can visit it.
 
-## Quick setup
+This README covers background knowledge that may be necessary or helpful for this lesson. Read through it once before you start coding.
 
-1. **Install dependencies:** `pip install -r requirements.txt`
-2. **Run the website:** `python main.py`
-3. **Access your website:** The terminal will display a link to your website, paste that in your browser and you're done!
+## What the Files Do
 
-## How does this work?
+- **`main.py`** starts a small Python web server using Flask. When a visitor opens your site, Flask hands them the files in this folder.
+- **`index.html`** is the page visitors see. Your name, greeting, fun facts, and social links all live in this file.
+- **`style.css`** controls the colors, fonts, rounded corners, and hover animations. Edit this file to change how the site looks.
 
-When you run `main.py`, you're starting a tiny web server using Flask (a Python library). This server's job is simple: whenever someone visits your site, it hands them the files in this folder—like your HTML, CSS, and images. The main page (`index.html`) is what people see first, and it's set up with sections for your name, a greeting, some fun facts, and links to your socials.
+Take a minute to open those three files before running anything. It will save you time later.
 
-The look and feel comes from `style.css`. This file gives your site its pink gradient background, rounded corners, playful fonts, and makes sure it looks good on both phones and computers. If you hover over buttons or links, you'll notice little animations—those are thanks to the CSS too.
+## Running the Site
 
-## Customizing your site
+Right-click the `Website` folder in the file explorer on the left and select **Open in Terminal**. This executes `cd` (change directory) in your terminal to the project folder so the commands below will work.
 
-**Edit `index.html` to personalize your website:**
+Install the dependencies and start the server:
 
-1. **Replace `[Your Name]`** with your actual name
-2. **Update the fun facts** with things that are true about you
-3. **Change the "Fun Stuff"** to hobbies and interests you actually have
-4. **Add your real social media links** in the footer
+```bash
+pip install -r requirements.txt
+python main.py
+```
+
+The terminal prints a link. Paste it into your browser. Leave the server running while you work. When you save a file, refresh the browser to see the changes.
+
+## What This README Covers
+
+- What each file does (`main.py`, `index.html`, `style.css`)
+- How to make the site your own, including changing colors
+- Adding JavaScript and adding more pages
+- Troubleshooting port conflicts and missing modules
+- Learning resources and further challenges
+
+## Making the Site Your Own
+
+Open `index.html` and:
+
+1. Replace `[Your Name]` with your actual name.
+2. Change the fun facts to things that are actually true about you.
+3. Replace the "Fun Stuff" section with hobbies you actually have.
+4. Put real social links in the footer, or delete the section if you prefer not to share any.
 
 ### Changing the Colors
 
-**The `style.css` file uses a pink theme. To change colors:**
+The default palette is pink. To pick different colors, edit this line in `style.css`:
 
 ```css
 body {
@@ -33,32 +52,36 @@ body {
 }
 ```
 
+Search "hex color picker" online to find codes for any color you want.
+
 ### Adding More Sections
 
-Want to add more about yourself? Create new sections like:
+Some ideas for additional sections:
 
-- **Projects**: Show off things you've built
-- **Photos**: Add a gallery of your life
-- **Blog**: Share your thoughts and experiences
-- **Contact**: Let people get in touch with you
+- **Projects**: things you have built
+- **Photos**: a small gallery
+- **Blog**: short posts
+- **Contact**: ways for visitors to reach you
 
-## Advanced Customization
+Each one is just another `<section>` in `index.html`. Copy an existing section and change the content.
 
-### Adding JavaScript
+## Adding JavaScript
 
-**Include JavaScript for cool effects:**
+To add buttons or animations that react to clicks, create a `script.js` file next to `index.html` and load it at the end of your page:
 
 ```html
 <body>
-  <!-- Your content -->
+  <!-- page content -->
   <script src="script.js"></script>
 </body>
 ```
 
-### Adding More Pages
+## Adding More Pages
 
-1. **Create new HTML files** (e.g., `projects.html`, `blog.html`)
-2. **Add routes to `main.py`:**
+Each additional page needs two things: an HTML file and a route in `main.py` that tells Flask how to serve it.
+
+1. Create the new HTML file (for example, `projects.html` or `blog.html`).
+2. Add routes in `main.py`:
 
 ```python
 @app.route("/projects")
@@ -70,63 +93,62 @@ def blog():
     return send_from_directory(".", "blog.html")
 ```
 
+Now `/projects` and `/blog` on your site will serve those files.
+
 ## Troubleshooting
 
-### Port Already in Use / Permission Denied
+### Port Already in Use or Permission Denied
 
-If you get a "port already in use" error:
+If you see a "port already in use" error, edit `main.py` and change the port number. 3Compute gives each user a specific range of ports, listed near the terminal. To kill whatever is using the port instead:
 
-1. Change the port number in `main.py`. You only have a narrow range of ports available to you, find them listed near the terminal
-2. Or kill the process using the port: `lsof -ti:<port_number> | xargs kill -9`
+```bash
+lsof -ti:<port_number> | xargs kill -9
+```
 
 ### Module Not Found
 
-1. Make sure you've installed requirements: `pip install -r requirements.txt`
+Run the install command again:
+
+```bash
+pip install -r requirements.txt
+```
 
 ## Learning Resources
 
-Want to learn more about web development? Check out these resources:
+### HTML and CSS
 
-### HTML & CSS
-
-Learn how to include content and style your website.
-
-- **[MDN Web Docs - HTML](https://developer.mozilla.org/en-US/docs/Web/HTML)** - Complete HTML reference and tutorials
-- **[MDN Web Docs - CSS](https://developer.mozilla.org/en-US/docs/Web/CSS)** - CSS documentation and guides
-- **[W3Schools HTML Tutorial](https://www.w3schools.com/html/)** - Interactive HTML learning
-- **[CSS-Tricks](https://css-tricks.com/)** - CSS tips, tricks, and techniques
+- [MDN Web Docs: HTML](https://developer.mozilla.org/en-US/docs/Web/HTML)
+- [MDN Web Docs: CSS](https://developer.mozilla.org/en-US/docs/Web/CSS)
+- [W3Schools HTML Tutorial](https://www.w3schools.com/html/)
+- [CSS-Tricks](https://css-tricks.com/)
 
 ### JavaScript
 
-Inject dynamic behavior into your website by writing JavaScript code.
+- [MDN Web Docs: JavaScript](https://developer.mozilla.org/en-US/docs/Web/JavaScript)
+- [JavaScript.info](https://javascript.info/)
+- [Eloquent JavaScript](https://eloquentjavascript.net/)
 
-- **[MDN Web Docs - JavaScript](https://developer.mozilla.org/en-US/docs/Web/JavaScript)** - JavaScript reference and tutorials
-- **[JavaScript.info](https://javascript.info/)** - Modern JavaScript tutorial
-- **[Eloquent JavaScript](https://eloquentjavascript.net/)** - Free online book
+### Flask and Python
 
-### Flask & Python
-
-Learn how the web server works, add additional pages, a database, or even an API.
-
-- **[Flask Documentation](https://flask.palletsprojects.com/)** - Official Flask docs
-- **[Real Python - Flask Tutorial](https://realpython.com/tutorials/flask/)** - Flask tutorials
-- **[Python.org](https://www.python.org/doc/)** - Official Python documentation
+- [Flask Documentation](https://flask.palletsprojects.com/)
+- [Real Python Flask Tutorials](https://realpython.com/tutorials/flask/)
+- [Python Documentation](https://www.python.org/doc/)
 
 ## Challenges
 
-Once you're comfortable with this template, see if you can:
+Once the basics work, try:
 
-- Add a photo gallery
-- Create a blog page
-- Add a projects page to showcase your work
-- Add animations with CSS
-- Add Google Analytics to see who visits your site
-- Add a browser icon to your website
+- A photo gallery
+- A blog page
+- A projects page for things you have built
+- CSS animations
+- A favicon (the small icon in the browser tab)
+- Google Analytics to see who visits the site
 
 ## For Instructors
 
-Want to share this template with your classroom?
+To share this template with a class:
 
-1. Copy this template folder into your classroom's `assignments/` directory
-2. Customize it for your course (add starter code, modify instructions, etc.)
-3. Students can access it via **Templates → Classroom Assignments** or browse the `assignments/` folder in their classroom
+1. Copy this folder into your classroom's `assignments/` directory.
+2. Edit the starter files for your course.
+3. Students can find it under **Templates > Classroom Assignments**, or by browsing the `assignments/` folder in their classroom.

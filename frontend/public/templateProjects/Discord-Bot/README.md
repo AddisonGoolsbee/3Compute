@@ -1,33 +1,66 @@
 # Discord Bot
 
-A Discord bot template built with discord.py. Perfect for creating interactive bots that can respond to commands, moderate servers, and add fun features to your Discord community.
+A starter Discord bot built with discord.py. Once it is running, the bot can respond to slash commands, moderate a server, or do anything else you program it to do.
 
-## Quick Setup
+This README covers background knowledge that may be necessary or helpful for this lesson. Read through it once before you start coding.
 
-1. **Create a Discord Application:** Go to <https://discord.com/developers> and create a new application
-2. **Get your token:** In the left sidebar, click "Bot", click "Reset Token" and then copy the token (token format: something.something.something)
-3. **Configure environment:** In your `.env` file, fill `DISCORD_TOKEN` with your bot token (paste it after the =)
-4. **Invite bot to server:** Back in the Discord developer website, go to "OAuth2" in the left sidebar, scroll down to the scopes section and select "bot" and "applications.commands", scroll down to the bot permissions section and select "Send Messages", scroll down, copy the generated URL and paste it in your browser to invite the bot to your server
-5. **Get Discord server ID:** To see the bot work immediately you'll need your Discord server's ID. In Discord, go to User Settings → Advanced and turn Developer Mode on. Then, right click your server icon click copy server ID, then in your `.env` file, fill `GUILD_ID` with your server ID (paste it after the =)
-6. **Install dependencies:** `pip install -r requirements.txt`
-7. **Run your bot:** `python main.py`
+## What a Discord Bot Is
 
-## How does this work?
+A Discord bot is a Python program that logs into Discord using a special token, listens for events in your server, and sends responses back. Discord validates the token every time the bot connects, so keeping the token private is important.
 
-The setup steps you just completed were about getting Discord's permission to run a bot. Discord requires all bots to be registered through their developer portal and get proper authentication. Here's what you accomplished:
+Before the bot can do anything, Discord needs to know about it. That means registering the bot in Discord's developer portal, granting it the permissions it needs, and inviting it to a server. The steps below walk through all of that.
 
-- **Created a Discord Application:** This registers your bot with Discord and gives it a unique identity
-- **Got a Bot Token:** This is like a password that lets your code control the bot securely
-- **Set up OAuth2 Permissions:** This tells Discord what your bot is allowed to do (send messages, read channels, etc.)
-- **Invited the Bot to Your Server:** This gives your bot access to your specific Discord server
+## Setup
 
-**What's a .env file?** A `.env` file is a special file that stores sensitive information like passwords and tokens. It's kept separate from your main code (`main.py`) for security reasons. If you accidentally share your code on GitHub or somewhere public, you don't want your bot token exposed (someone could use it to control your bot!). The `.env` file is usually ignored by version control systems, so your secrets stay private.
+Right-click the `Discord-Bot` folder in the file explorer on the left and select **Open in Terminal**. This executes `cd` (change directory) in your terminal to the project folder so the commands below will work.
 
-When you run `main.py`, your bot connects to Discord using your token and starts listening for events in your server—such as messages, slash commands, or members joining. The main functionality is in `main.py`, which sets up the bot, defines its commands, and handles these events. The bot uses Discord's slash command system, so users can type `/` followed by a command name to interact with it. The bot can respond by sending messages, moderating content, or performing other actions.
+Follow the steps in order. The first five happen on Discord's website, not in your code.
 
-## Customizing your bot
+1. **Create a Discord application.** Go to <https://discord.com/developers> and click "New Application".
+2. **Get the bot token.** In the left sidebar, click "Bot", click "Reset Token", and copy the token that appears. It looks like `something.something.something`.
+3. **Save the token.** Open the `.env` file in this folder and paste the token after `DISCORD_TOKEN=` with nothing else on the line.
+4. **Invite the bot to a server.** On the developer site, open "OAuth2" in the left sidebar. Under "Scopes", check **bot** and **applications.commands**. Under "Bot Permissions", check **Send Messages**. Copy the URL at the bottom and open it in your browser to add the bot to a server you own.
+5. **Get your server ID.** In Discord, open **User Settings > Advanced** and enable **Developer Mode**. Right-click your server icon and select **Copy Server ID**. Paste it into `.env` after `GUILD_ID=`.
+6. **Install dependencies.**
 
-**Edit `main.py` to add new commands:**
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+7. **Start the bot.**
+
+   ```bash
+   python main.py
+   ```
+
+If everything is working, the terminal prints a "logged in" message and the bot appears online in your server.
+
+## What This README Covers
+
+- What a Discord bot actually is and why the token must stay private
+- Step-by-step setup through Discord's developer portal
+- What the `.env` file is for
+- How to add slash commands, event handlers, and parameterized commands
+- Advanced patterns: cogs for grouping commands, SQLite storage, moderation commands
+- Troubleshooting, learning resources, challenges, and instructor notes
+
+## What the `.env` File Is For
+
+The `.env` file holds values that should not be shared, such as your bot token. Your main code (`main.py`) reads these values at startup. Keeping them in a separate file means that if you post your code on GitHub or send it to someone, the token does not go with it. Anyone who obtains the token can control your bot.
+
+`.env` is normally listed in `.gitignore` so it is never committed to version control.
+
+## How the Bot Works
+
+When you run `main.py`, the program connects to Discord using the token and starts listening for events: messages being sent, slash commands being run, members joining the server, and so on. The code in `main.py` configures the bot, registers its commands, and responds to those events.
+
+The bot uses Discord's slash command system. Users type `/` in Discord, see a list of available commands, and the bot runs the matching Python function when one is selected.
+
+## Adding Your Own Commands
+
+### A Simple Slash Command
+
+Add this to `main.py`:
 
 ```python
 @bot.tree.command(name="hello", description="Say hello!")
@@ -35,7 +68,11 @@ async def hello(interaction: discord.Interaction):
     await interaction.response.send_message("Hello there!")
 ```
 
-**Add event handlers:**
+Restart the bot and type `/hello` in your server. The bot should reply.
+
+### Reacting to Events
+
+Commands run when a user types them. Events run when something happens in the server, such as a new member joining:
 
 ```python
 @bot.event
@@ -44,7 +81,9 @@ async def on_member_join(member):
     await channel.send(f"Welcome {member.mention} to the server!")
 ```
 
-**Create slash commands:**
+Replace `YOUR_CHANNEL_ID` with an actual channel ID. Right-click a channel and select **Copy Channel ID** (with Developer Mode enabled).
+
+### A Slash Command That Uses Data
 
 ```python
 @bot.tree.command(name="ping", description="Check bot latency")
@@ -55,9 +94,9 @@ async def ping(interaction: discord.Interaction):
 
 ## Advanced Customization
 
-### Adding Cogs (Command Groups)
+### Cogs (Grouping Commands)
 
-**Organize commands into categories:**
+Once you have more than a few commands, organize them into categories. Each category is called a "cog":
 
 ```python
 class Fun(commands.Cog):
@@ -72,9 +111,9 @@ async def setup(bot):
     await bot.add_cog(Fun(bot))
 ```
 
-### Adding Database Support
+### Saving Data with SQLite
 
-**Store user data or settings:**
+To make the bot remember data between restarts (such as user points), use a database:
 
 ```python
 import sqlite3
@@ -88,9 +127,7 @@ def setup_database():
     conn.close()
 ```
 
-### Adding Moderation Features
-
-**Create moderation commands:**
+### Moderation Commands
 
 ```python
 @app_commands.command(name="kick", description="Kick a user")
@@ -105,60 +142,53 @@ async def kick(interaction: discord.Interaction, user: discord.Member, reason: s
 
 ## Troubleshooting
 
-### Bot Not Responding
+### The Bot Is Not Responding
 
-**Check these common issues:**
+Check these in order:
 
-1. **Token is invalid:** Make sure your bot token is correct and hasn't been reset
-2. **Bot doesn't have permissions:** Ensure the bot has the necessary permissions in your server
-3. **Bot is offline:** Check that your Python script is running and connected to Discord
-4. **Commands not syncing:** Run the sync command or restart your bot
+1. The token in `.env` is correct and has not been reset. If you reset the token on Discord's site, the old one no longer works.
+2. The bot has the correct permissions in the server. Check the role settings for the bot's role.
+3. Your Python script is running. If the terminal shows no output, the bot is offline.
+4. Commands are not syncing. Restart the bot to re-register the slash commands with Discord.
 
 ### Permission Errors
 
-**If you get permission errors:**
-
-1. Check that your bot has the required permissions in the server
-2. Make sure you're using the bot token, not the application token
-3. Verify the bot is in the server you're trying to use it in
+1. Confirm the bot has the required permissions in the server.
+2. Verify you copied the bot token, not the application ID or client secret.
+3. Confirm the bot is in the server you are testing in.
 
 ### Import Errors
 
-**If you get module not found errors:**
+Install the requirements:
 
-1. Install requirements: `pip install -r requirements.txt`
+```bash
+pip install -r requirements.txt
+```
 
 ## Learning Resources
 
-Want to learn more about Discord bot development? Check out these resources:
-
-### Discord Documentation
-
-Learn how to use the discord.py library effectively, and understand Discord's developer API
-
-- **[Discord.py Guide](https://discordpy.readthedocs.io/en/stable/)** - Getting started guide
-- **[Discord.py Documentation](https://discordpy.readthedocs.io/)** - Official discord.py docs
-- **[Discord Developer Portal](https://discord.com/developers/docs)** - Official Discord API docs
-- **[Discord API Guide](https://discord.com/developers/docs/intro)** - API introduction and concepts
-
+- [Discord.py Guide](https://discordpy.readthedocs.io/en/stable/)
+- [Discord.py Documentation](https://discordpy.readthedocs.io/)
+- [Discord Developer Portal](https://discord.com/developers/docs)
+- [Discord API Introduction](https://discord.com/developers/docs/intro)
 
 ## Challenges
 
-Once you're comfortable with this template, try these challenges:
+Once you are comfortable with the template, try one of these:
 
-- Add a leveling system for users
-- Create a music bot that plays songs from YouTube
-- Add a moderation system with auto-moderation features
-- Create a game bot with mini-games like trivia or hangman
-- Add a welcome system that DMs new members
-- Create a ticket system for support requests
-- Add a reaction role system
-- Create a poll/voting system
+- A leveling system that tracks how much each user types
+- A music bot that plays songs from YouTube links
+- Automated moderation that warns users for banned words
+- Mini-games such as trivia or hangman
+- A welcome DM for new members
+- A ticket system for support requests
+- Reaction roles (react with an emoji to receive a role)
+- A poll or voting command
 
 ## For Instructors
 
-Want to share this template with your classroom?
+To share this template with a class:
 
-1. Copy this template folder into your classroom's `assignments/` directory
-2. Customize it for your course (pre-configure the .env, add starter commands, etc.)
-3. Students can access it via **Templates → Classroom Assignments** or browse the `assignments/` folder in their classroom
+1. Copy this folder into your classroom's `assignments/` directory.
+2. Pre-configure the `.env` file or add starter commands as needed.
+3. Students can find it under **Templates > Classroom Assignments**, or by browsing the `assignments/` folder in their classroom.

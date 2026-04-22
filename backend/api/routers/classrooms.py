@@ -1032,50 +1032,6 @@ def _safe_join_under(base: str, rel: str) -> str | None:
     return candidate
 
 
-@router.get("/{classroom_id}/assignments/{template_name}/file")
-async def get_assignment_template_file(
-    classroom_id: str,
-    template_name: str,
-    path: str,
-    user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
-    """Return the teacher's template version of *path* under *template_name*.
-    Any classroom member (instructor or participant) can read. Binary files
-    are returned base64-encoded with ``binary: true``."""
-    _require_classroom(db, classroom_id)
-    member = db.exec(
-        select(ClassroomMember).where(
-            ClassroomMember.classroom_id == classroom_id,
-            ClassroomMember.user_id == str(user.id),
-        )
-    ).first()
-    if not member:
-        raise HTTPException(status_code=403, detail="Not a member of this classroom")
-
-    template_dir = os.path.join(
-        CLASSROOMS_ROOT, classroom_id, "assignments", template_name
-    )
-    if not os.path.isdir(template_dir):
-        raise HTTPException(status_code=404, detail="Template not found")
-
-    file_path = _safe_join_under(template_dir, path)
-    if not file_path or not os.path.isfile(file_path):
-        raise HTTPException(status_code=404, detail="File not found")
-
-    try:
-        with open(file_path, "rb") as fh:
-            raw = fh.read()
-    except OSError as e:
-        raise HTTPException(status_code=500, detail=f"Read failed: {e}")
-
-    try:
-        return {"content": raw.decode("utf-8"), "binary": False}
-    except UnicodeDecodeError:
-        import base64
-        return {"content": base64.b64encode(raw).decode("ascii"), "binary": True}
-
-
 class RestoreAssignmentRequest(BaseModel):
     paths: list[str] | None = None  # None or empty list ⇒ restore everything
 

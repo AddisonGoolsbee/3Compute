@@ -1,64 +1,75 @@
 # Debugging Workshop
 
-This project contains 5 Python programs that have bugs. Your job is to find and fix them.
+This project contains five Python functions that all have bugs. Your job is to find the bugs and fix them.
 
-Each function works for some inputs but returns the wrong answer for others. The bugs are
-not typos and Python will not point them out for you. You will need to read the logic,
-test with specific inputs, and think carefully about what the code is actually doing vs.
-what it is supposed to do.
+Each function works correctly for some inputs but returns the wrong answer for others. The bugs are not typos, so Python will not point them out for you. You have to read the logic, test with specific inputs, and think carefully about what the code is actually doing compared to what it is supposed to do.
 
-## Quick Start
+This README covers background knowledge that may be necessary or helpful for this lesson. Read through it once before you start coding.
 
-1. **Read the code:** Open `buggy_programs.py` and read each function and its docstring
-2. **Run the tests:**
+## Setup
+
+Right-click the `Debugging-Workshop` folder in the file explorer on the left and select **Open in Terminal**. This executes `cd` (change directory) in your terminal to the project folder so the commands below will work.
+
+Install the dependencies:
 
 ```bash
 pip install -r requirements.txt
-python test_programs.py
 ```
-3. **Pick a failing function:** Read the test output to understand what went wrong
-4. **Debug it:** Use the process below
-5. **Document it:** Fill in `debugging_notes.md` as you go
-6. **Repeat** until all tests pass
 
----
+## What This README Covers
+
+- The five buggy functions and what each is supposed to do
+- A four-step systematic debugging process
+- Common bug categories: off-by-one, wrong operator, bad initial value, unhandled edge cases
+- Print debugging and the rubber duck method
+- How to write good test cases
+- An extension challenge for adding a new function
+
+## How to Work Through It
+
+1. Open `buggy_programs.py` and read each function along with its docstring. The docstring describes what the function is supposed to do.
+2. Run the tests:
+
+   ```bash
+   python test_programs.py
+   ```
+
+3. Pick a failing function. The test output tells you what input broke it and what output was expected.
+4. Debug it using the process below.
+5. Record what you found in `debugging_notes.md` as you go.
+6. Repeat until every test passes.
 
 ## The Functions
 
-| Function | What it does |
-|----------|-------------|
+| Function | What It Should Do |
+|----------|-------------------|
 | `calculate_grade(score)` | Returns a letter grade (A/B/C/D/F) for a numeric score |
 | `count_vowels(text)` | Counts vowels in a string, case-insensitive |
 | `find_max(numbers)` | Returns the largest number in a list |
 | `reverse_words(sentence)` | Reverses the order of words in a sentence |
 | `is_prime(n)` | Returns True if n is prime, False otherwise |
 
----
-
-## Systematic Debugging Process
+## A Systematic Debugging Process
 
 When a test fails, work through these four steps before changing any code.
 
-### Step 1: Read the failing test carefully
+### Step 1: Read the Failing Test Carefully
 
-The test tells you the exact input that caused the problem and what output was expected.
-That is your starting point. Do not guess.
+The test tells you the exact input that caused the problem and what was expected. Start there; do not guess.
 
 ```
-❌ score 80 -> B
+score 80 -> B
      expected: 'B'
      got:      'C'
 ```
 
-This tells you: `calculate_grade(80)` returned `'C'` but should return `'B'`.
+That tells you that `calculate_grade(80)` returned `'C'` but should have returned `'B'`.
 
-### Step 2: Isolate the problem
+### Step 2: Isolate the Problem
 
-Trace through the function by hand for that specific input. Use the simplest failing
-input, not a complicated one. For `calculate_grade(80)`, walk through each `if`/`elif`
-condition one by one and check which branch runs.
+Trace through the function by hand for that one failing input. Use the simplest failing case, not a complicated one. For `calculate_grade(80)`, walk through each `if` and `elif` condition in order and check which branch actually runs.
 
-You can also add a quick print statement to confirm what the code is doing:
+You can also add a temporary print statement to confirm what the code is doing:
 
 ```python
 def calculate_grade(score):
@@ -72,30 +83,25 @@ def calculate_grade(score):
     ...
 ```
 
-Remove the print statements once you have found the bug.
+Remove the prints once you find the bug.
 
-### Step 3: Form a hypothesis
+### Step 3: Form a Hypothesis
 
-Before making any change, state clearly what you think the bug is. Write it in
-`debugging_notes.md`. A hypothesis like "the B boundary is wrong, it should be 80
-not 79" is specific enough to test. "Something is off with the conditions" is not.
+Before changing anything, write down what you think the bug is. Put it in `debugging_notes.md`. A specific hypothesis like "the B boundary is wrong; it should be 80, not 79" is something you can test. "Something is off with the conditions" is not.
 
-### Step 4: Test your hypothesis
+### Step 4: Test Your Hypothesis
 
-Make the change you think will fix it, then run `python test_programs.py` again.
-If the tests you expected to pass now pass, and no new tests broke, you are done
-with that function.
+Make the change you think will fix it, then run `python test_programs.py` again. If the tests you expected to pass now pass, and no other tests broke, the function is done.
 
-If the tests still fail, your hypothesis was wrong. Go back to step 2 with new
-information.
-
----
+If the tests still fail, your hypothesis was wrong. Return to Step 2 with what you learned.
 
 ## Common Bug Types
 
-Knowing the categories helps you spot them faster.
+Knowing the categories makes them easier to spot.
 
-**Off-by-one error:** A boundary condition is one too high or one too low.
+### Off-by-One Errors
+
+A boundary is one too high or one too low.
 
 ```python
 # Supposed to include 80, but 80 >= 81 is False
@@ -103,32 +109,37 @@ if score >= 81:
     return "B"
 ```
 
-**Wrong operator or variable:** The right logic, but using the wrong thing.
+### Wrong Operator or Variable
+
+The right logic, but referring to the wrong thing.
 
 ```python
-# Checks for uppercase C but lowercase is also a vowel
+# Checks only uppercase, but lowercase c is also a vowel
 if char in "AEIOU":
     count += 1
 ```
 
-**Bad initial value:** A variable is initialized to the wrong starting value,
-which makes the function fail for certain input ranges.
+### Bad Initial Value
+
+A variable starts at the wrong value, causing the function to fail for certain inputs.
 
 ```python
-# If all numbers in the list are negative, this will never update
+# If every number in the list is negative, this never updates
 max_val = 0
 ```
 
-**Wrong argument:** Calling a method or function with an argument that is close
-to right but not quite.
+### Wrong Argument
+
+A function is called with an argument that is close but not quite correct.
 
 ```python
-# split("") raises an error; split() or split(" ") is what was meant
+# split("") raises an error. split() or split(" ") is what was meant.
 words = sentence.split("")
 ```
 
-**Edge case not handled:** The function works for typical inputs but a certain
-category of input (empty list, zero, negative number) was not considered.
+### Unhandled Edge Case
+
+The function works for normal inputs but breaks on empty lists, zero, negatives, or similar.
 
 ```python
 # n=1 should return False, but the code never checks for it
@@ -136,12 +147,9 @@ def is_prime(n):
     for i in range(2, n): ...
 ```
 
----
-
 ## Print Debugging
 
-Adding temporary print statements is one of the most straightforward debugging
-techniques. The goal is to confirm what values the code actually sees at each step.
+Adding temporary print statements is one of the simplest debugging tools available. The goal is to confirm what values the code actually sees at each step.
 
 ```python
 def find_max(numbers):
@@ -156,51 +164,37 @@ def find_max(numbers):
     return max_val
 ```
 
-Run it with the input that fails and read the trace. The bug will usually become
-visible.
+Run the function with the failing input and read the trace. The bug usually becomes obvious.
 
-Remember to remove print statements when you are done.
-
----
+Delete the print statements once you are finished.
 
 ## The Rubber Duck Method
 
-If you are stuck, explain the function out loud as if you are teaching it to
-someone who has never seen code. Say every step: "First it checks if the length
-is zero. Then it sets max_val to 0. Then it loops through each number..."
+If you are stuck, explain the function aloud as if you were teaching it to someone who has never seen code. Describe every step: "First it checks if the length is zero. Then it sets max_val to 0. Then it loops through each number..."
 
-You will often catch the problem yourself mid-sentence. The act of putting it into
-words forces your brain to actually process each line rather than skim over it.
+You will often notice the bug mid-sentence. Saying it aloud forces your brain to actually read each line instead of skimming.
 
-If no rubber duck is available, write the explanation in your debugging notes.
-
----
+If no rubber duck is available, write the explanation in your debugging notes instead.
 
 ## Writing Good Test Cases
 
-After you fix each bug, add test cases to the "Your Tests" section of
-`test_programs.py`. A good test case:
+After you fix a bug, add test cases to the "Your Tests" section of `test_programs.py`. A good test case:
 
-- Uses a specific input you can reason about manually
+- Uses a specific input you can reason about by hand
 - Focuses on the boundaries of the function's behavior
-- Covers cases that are easy to get wrong (zero, negative, empty, uppercase)
+- Covers cases that are easy to get wrong, such as zero, negatives, empty values, or uppercase
 
-For example, if a function works on ranges, always test the exact boundary values:
+For a function that behaves differently across ranges, always test the exact boundary values:
 
 ```python
 check("score 80 -> B", calculate_grade(80), "B")   # lowest B
 check("score 79 -> C", calculate_grade(79), "C")   # highest C
 ```
 
----
-
 ## Extension Challenge
 
-Once all five bugs are fixed, try this extension. Details are in `debugging_notes.md`.
+Once all five bugs are fixed, try this. Details are in `debugging_notes.md`.
 
-Add a `get_grade_points(grade: str) -> float` function that maps a letter grade to
-GPA points (A=4.0, B=3.0, C=2.0, D=1.0, F=0.0).
+Add a `get_grade_points(grade: str) -> float` function that maps a letter grade to GPA points (A=4.0, B=3.0, C=2.0, D=1.0, F=0.0).
 
-Before writing the function, answer the design questions in your notes. After writing
-it, add test cases in `test_programs.py` and reflect on what implications adding this
-new function has on the existing code.
+Before writing the function, answer the design questions in your notes. After writing it, add test cases in `test_programs.py` and reflect on how the new function affects the existing code.

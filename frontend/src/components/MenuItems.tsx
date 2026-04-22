@@ -1,4 +1,4 @@
-import { ChevronRight, ClipboardCopy, Copy, ClipboardPaste, Download, FileIcon, Folder, FolderClosed, FolderOpen, LayoutTemplate, MoreHorizontal, Pencil, Plus, Terminal as TerminalIcon, Trash, X } from 'lucide-react';
+import { ChevronRight, ClipboardCopy, Copy, ClipboardPaste, Download, FileIcon, Folder, FolderClosed, FolderOpen, LayoutTemplate, MoreHorizontal, Pencil, Plus, RotateCcw, Terminal as TerminalIcon, Trash, X } from 'lucide-react';
 import { getClasses } from '@luminescent/ui-react';
 import { useContext, Fragment, useEffect, useRef } from 'react';
 import { apiUrl, UserData, UserDataContext } from '../util/UserData';
@@ -690,6 +690,92 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
               {CopyPathButton}
               {TerminalButton}
             </>
+          );
+        })()}
+        {(() => {
+          // Student-only: right-click an assignment folder (depth 2) or any
+          // file inside an assignment (depth 3+) to restore it from the
+          // teacher's original version. Instructors never see this.
+          const loc = contextMenu.targetLocation;
+          if (!loc || contextMenu.blankSpace) return null;
+          const parts = loc.split('/').filter(Boolean);
+          if (parts.length < 2) return null;
+          const slug = parts[0];
+          const classroom = classroomSymlinks?.[slug];
+          if (!classroom || classroom.isInstructor || classroom.archived) return null;
+
+          const targetIsFolder = (() => {
+            if (loc.endsWith('/')) return true;
+            const walk = (items: typeof files): boolean => {
+              if (!items) return false;
+              for (const it of items) {
+                if (it.location === loc) return 'files' in it;
+                if ('files' in it) {
+                  const found = walk(it.files);
+                  if (found) return true;
+                }
+              }
+              return false;
+            };
+            return walk(files);
+          })();
+
+          let mode: 'all' | 'file' | null = null;
+          let relPath = '';
+          const template = parts[1];
+          if (parts.length === 2 && targetIsFolder) {
+            mode = 'all';
+          } else if (parts.length >= 3 && !targetIsFolder) {
+            mode = 'file';
+            relPath = parts.slice(2).join('/');
+          }
+          if (!mode) return null;
+
+          const label = mode === 'all'
+            ? `Restore all files in "${template}"`
+            : `Restore "${relPath.split('/').pop()}"`;
+          const confirmMsg = mode === 'all'
+            ? `Restore every file in "${template}" from the original version? Your current changes will be overwritten. This cannot be undone.`
+            : `Restore "${relPath}" from the original version? Your current changes to this file will be overwritten. This cannot be undone.`;
+
+          return (
+            <button
+              className="lum-btn lum-btn-p-1 rounded-lum-1 gap-0.5 w-full text-left lum-bg-transparent"
+              onClick={async () => {
+                if (!window.confirm(confirmMsg)) return;
+                try {
+                  const res = await fetch(
+                    `${apiUrl}/classrooms/${classroom.id}/assignments/${encodeURIComponent(template)}/restore`,
+                    {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      credentials: 'include',
+                      body: JSON.stringify({ paths: mode === 'all' ? null : [relPath] }),
+                    },
+                  );
+                  if (!res.ok) {
+                    const body = await res.text().catch(() => '');
+                    let reason = body;
+                    try {
+                      const parsed = JSON.parse(body);
+                      reason = parsed.detail ?? parsed.error ?? body;
+                    } catch {
+                      /* use raw body */
+                    }
+                    alert(reason || `Restore failed (${res.status})`);
+                    return;
+                  }
+                  setContentVersion?.((v) => (v ?? 0) + 1);
+                  await refreshFiles();
+                } catch {
+                  alert('Restore failed');
+                }
+                setContextMenu({ ...contextMenu, visible: false });
+              }}
+            >
+              <RotateCcw size={16} className="inline mr-2" />
+              {label}
+            </button>
           );
         })()}
         {!contextMenu.blankSpace && (
