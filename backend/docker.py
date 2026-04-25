@@ -641,7 +641,7 @@ def attach_to_container(container_name, tab_id="1", cols=80, rows=24):
         logger.error(f"Failed to attach to container '{container_name}': {e}")
         raise
 
-    # The chi ld has its own copy (dup'd to fd 0/1/2). The parent must close
+    # The child has its own copy (dup'd to fd 0/1/2). The parent must close
     # its slave_fd here — otherwise it stays open forever and also prevents
     # read() on master_fd from returning EOF when the child exits, because
     # the kernel sees the slave side as still referenced.
