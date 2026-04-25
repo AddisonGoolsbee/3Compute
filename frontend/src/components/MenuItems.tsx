@@ -1,4 +1,4 @@
-import { ChevronRight, ClipboardCopy, Copy, ClipboardPaste, Download, FileIcon, Folder, FolderClosed, FolderOpen, LayoutTemplate, MoreHorizontal, Pencil, Plus, RotateCcw, Terminal as TerminalIcon, Trash, X } from 'lucide-react';
+import { ChevronRight, ClipboardCopy, Copy, ClipboardPaste, Download, FileIcon, Folder, FolderClosed, FolderOpen, MoreHorizontal, Pencil, Plus, RotateCcw, Terminal as TerminalIcon, Trash, X } from 'lucide-react';
 import { getClasses } from '@luminescent/ui-react';
 import { useContext, Fragment, useEffect, useRef } from 'react';
 import { apiUrl, UserData, UserDataContext } from '../util/UserData';
@@ -472,7 +472,7 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
             const idx = loc.lastIndexOf('/');
             return idx >= 0 ? loc.slice(0, idx + 1) || '/' : '/';
           })();
-          const dispatchNew = (kind: 'file' | 'folder' | 'template') => {
+          const dispatchNew = (kind: 'file' | 'folder') => {
             window.dispatchEvent(new CustomEvent('3compute:new-at', {
               detail: { kind, base: newBase },
             }));
@@ -512,13 +512,6 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
                 >
                   <Folder size={16} className="inline mr-2" />
                   Folder
-                </button>
-                <button
-                  className="lum-btn lum-btn-p-1 rounded-lum-1 gap-0.5 w-full text-left lum-bg-transparent"
-                  onClick={() => dispatchNew('template')}
-                >
-                  <LayoutTemplate size={16} className="inline mr-2" />
-                  Template
                 </button>
               </div>
             </div>

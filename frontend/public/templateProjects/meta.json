@@ -1,4 +1,74 @@
 {
+    "Welcome-to-3compute": {
+        "files": [
+            "README.md",
+            "part3/hello.py",
+            "part4/journal.py",
+            "part5/app.py",
+            "part5/requirements.txt"
+        ],
+        "description": "First day on 3compute: use the terminal, run Python, and publish a live webpage",
+        "duration": "2-3 class periods",
+        "lessonPlanDoc": "/docs/welcome-to-3compute/lesson-plan.md",
+        "standards": [
+            {
+                "id": "3A-CS-02",
+                "description": "Compare levels of abstraction, analogy, and paradigm for the interactions between application software, system software, and hardware."
+            },
+            {
+                "id": "3A-AP-16",
+                "description": "Design and iteratively develop computational artifacts for practical intent, personal expression, or to address a societal need while evaluating intended and unintended consequences."
+            },
+            {
+                "id": "3A-AP-13",
+                "description": "Create prototypes that use algorithms to solve computational problems by leveraging prior student knowledge and personal interests."
+            },
+            {
+                "id": "3A-CS-03",
+                "description": "Develop guidelines that convey systematic troubleshooting strategies that others can use to identify and fix errors."
+            }
+        ],
+        "testCount": 0
+    },
+    "Shell-Scavenger-Hunt": {
+        "files": [
+            "README.md",
+            "start.txt",
+            "mansion/hallway/sign-1.txt",
+            "mansion/hallway/sign-2.txt",
+            "mansion/hallway/sign-3.txt",
+            "mansion/bedroom/pillow.txt",
+            "mansion/bedroom/wardrobe/coat.txt",
+            "mansion/bedroom/nightstand/book.txt",
+            "mansion/bedroom/nightstand/note.txt",
+            "mansion/kitchen/stove.txt",
+            "mansion/kitchen/fridge/milk.txt",
+            "mansion/kitchen/fridge/freezer/ice-cubes.txt",
+            "mansion/kitchen/fridge/freezer/ice-tray.txt",
+            "mansion/basement/chest-iron.txt",
+            "mansion/basement/chest-wooden.txt",
+            "mansion/basement/chest-rusted.txt",
+            "mansion/basement/.vault/coin-pile-a.txt",
+            "mansion/basement/.vault/coin-pile-b.txt",
+            "mansion/basement/.vault/coin-pile-d.txt",
+            "mansion/basement/.vault/.coin-pile-c.txt",
+            "mansion/basement/.vault/.coin-pile-e.txt"
+        ],
+        "description": "A one-hour terminal puzzle. Follow clues through a nested filesystem to find the real treasure, avoiding traps that teach ls, ls -a, and ls -l.",
+        "duration": "1 class period",
+        "lessonPlanDoc": "/docs/shell-scavenger-hunt/lesson-plan.md",
+        "standards": [
+            {
+                "id": "3A-CS-03",
+                "description": "Develop guidelines that convey systematic troubleshooting strategies that others can use to identify and fix errors."
+            },
+            {
+                "id": "3A-CS-02",
+                "description": "Compare levels of abstraction, analogy, and paradigm for the interactions between application software, system software, and hardware."
+            }
+        ],
+        "testCount": 0
+    },
     "Website": {
         "files": [
             "main.py",

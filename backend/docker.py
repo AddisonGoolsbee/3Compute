@@ -600,14 +600,29 @@ def attach_to_container(container_name, tab_id="1", cols=80, rows=24):
     # that swallowed scrollback lines during fast output (e.g. seq 50).
     session_name = f"3compute-tab{tab_id}"
     sock_path = f"/tmp/{session_name}.sock"
+    # dtach -A prints "Address in use" and exits when the socket file exists
+    # on disk but no server is bound — e.g. the previous dtach was killed
+    # before it could unlink (SIGKILL race in _release_session_resources, or
+    # abnormal shell exit). Probe /proc/net/unix (the kernel's list of live
+    # unix sockets) first: if the path is there, a server is alive and we
+    # attach as normal; if the path only exists as a file on disk, it's
+    # stale, so rm it before dtach -A creates a fresh session. Pass the
+    # path via env var (not string interpolation) so a crafted tab_id can't
+    # inject shell.
+    probe_and_exec = (
+        'if [ -e "$TAB_SOCK" ] && ! awk -v s="$TAB_SOCK" '
+        "'NR>1 && $NF==s {f=1} END {exit !f}' /proc/net/unix; then "
+        'rm -f "$TAB_SOCK"; '
+        'fi; '
+        'exec dtach -A "$TAB_SOCK" -r winch sh -l'
+    )
     cmd = [
         "docker",
         "exec",
         "-it",
+        "-e", f"TAB_SOCK={sock_path}",
         container_name,
-        "dtach", "-A", sock_path,
-        "-r", "winch",
-        "sh", "-l",
+        "sh", "-c", probe_and_exec,
     ]
     logger.info(f"[DIAG] attach_to_container: starting docker exec for '{container_name}' dtach='{session_name}'")
     try:
@@ -626,7 +641,7 @@ def attach_to_container(container_name, tab_id="1", cols=80, rows=24):
         logger.error(f"Failed to attach to container '{container_name}': {e}")
         raise
 
-    # The child has its own copy (dup'd to fd 0/1/2). The parent must close
+    # The chi ld has its own copy (dup'd to fd 0/1/2). The parent must close
     # its slave_fd here — otherwise it stays open forever and also prevents
     # read() on master_fd from returning EOF when the child exits, because
     # the kernel sees the slave side as still referenced.
