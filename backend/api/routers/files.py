@@ -908,6 +908,8 @@ async def upload(
     if not files:
         raise HTTPException(status_code=400, detail="No files provided")
 
+    MAX_UPLOAD_BYTES = 1_000_000_000  # 1 GB
+
     destination = destination.strip("/")
 
     if destination:
@@ -927,9 +929,13 @@ async def upload(
     else:
         target_dir = upload_dir
 
+    total_size = 0
     for f in files:
         file_path = os.path.join(target_dir, os.path.basename(f.filename))
         content = await f.read()
+        total_size += len(content)
+        if total_size > MAX_UPLOAD_BYTES:
+            raise HTTPException(status_code=413, detail="Upload exceeds 1 GB limit")
         with open(file_path, "wb") as fh:
             fh.write(content)
         set_container_ownership(file_path)
@@ -1028,6 +1034,8 @@ async def upload_folder(
     if not files:
         raise HTTPException(status_code=400, detail="No files provided")
 
+    MAX_UPLOAD_BYTES = 1_000_000_000  # 1 GB
+
     # When classroom_id is provided, import into that classroom's templates dir
     form = await request.form()
     classroom_id = form.get("classroom_id")
@@ -1051,6 +1059,7 @@ async def upload_folder(
     # Track (classroom_id, template_name) pairs written to assignments
     classroom_templates_written: set[tuple[str, str]] = set()
 
+    total_size = 0
     for f in files:
         safe_path = os.path.normpath(os.path.join(target_base, f.filename))
         if not safe_path.startswith(target_base):
@@ -1103,6 +1112,9 @@ async def upload_folder(
                 p = os.path.dirname(p)
         os.makedirs(dir_path, exist_ok=True)
         content = await f.read()
+        total_size += len(content)
+        if total_size > MAX_UPLOAD_BYTES:
+            raise HTTPException(status_code=413, detail="Upload exceeds 1 GB limit")
         with open(dest_path, "wb") as fh:
             fh.write(content)
         set_container_ownership(dir_path)
