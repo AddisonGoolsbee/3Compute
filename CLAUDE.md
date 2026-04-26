@@ -6,7 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### Development
 ```bash
-docker compose up --build   # Start full stack (frontend :5173, backend :5555)
+./dev.sh                    # Recommended: backend in Docker, frontend native (fast HMR)
+docker compose up --build   # Alternative: full stack in Docker (slower frontend HMR on macOS)
 ```
 
 ### Frontend (in `frontend/`)
