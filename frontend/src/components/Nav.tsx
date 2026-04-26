@@ -1,5 +1,5 @@
 import { Nav, LogoBirdflop } from '@luminescent/ui-react';
-import { LogOut, BookOpen, School, Terminal, ShieldCheck } from 'lucide-react';
+import { LogOut, LogIn, BookOpen, School, Terminal, ShieldCheck } from 'lucide-react';
 import { useContext } from 'react';
 import { Link } from 'react-router';
 import { apiUrl, UserDataContext } from '../util/UserData';
@@ -66,7 +66,7 @@ export default function NavComponent() {
               <span>Admin</span>
             </Link>
           )}
-          {userData?.userInfo && (
+          {isLoggedIn ? (
             <button
               onClick={handleLogout}
               className="lum-btn lum-bg-transparent hover:lum-bg-red-700 flex items-center gap-1 cursor-pointer select-none text-sm font-medium transition-colors px-3 py-2 text-red-300"
@@ -74,6 +74,14 @@ export default function NavComponent() {
               <LogOut size={20} />
               Log out
             </button>
+          ) : (
+            <a
+              href={`${apiUrl}/auth/login`}
+              className="lum-btn lum-bg-transparent hover:lum-bg-nav-bg flex items-center gap-1 cursor-pointer select-none text-sm font-medium transition-colors px-3 py-2"
+            >
+              <LogIn size={20} />
+              Log in
+            </a>
           )}
         </>
       }
