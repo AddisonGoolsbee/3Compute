@@ -2,7 +2,7 @@
 set -e
 
 # Prevent concurrent deploys
-exec 200>/tmp/3compute-deploy.lock
+exec 200>/var/lock/3compute-deploy.lock
 if ! flock -n 200; then
   echo "$(date '+%Y-%m-%d %H:%M:%S') Deploy already running, skipping" >> /var/log/3compute-deploy.log
   exit 0

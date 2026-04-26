@@ -45,6 +45,6 @@ async def github_webhook(request: Request):
     # copies the latest repo version to /opt/deploy.sh at the end of
     # each run so it stays current.
     script_path = "/opt/deploy.sh"
-    subprocess.Popen([script_path])
+    subprocess.Popen(["sudo", script_path])
     logger.info("Deployment script triggered (%s)", script_path)
     return {"message": "Deployment triggered"}
