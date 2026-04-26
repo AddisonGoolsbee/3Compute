@@ -1,7 +1,8 @@
 import { useContext, useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router';
+import { Link, Navigate } from 'react-router';
 import { ArrowLeft, AlertTriangle, RefreshCw } from 'lucide-react';
 import { apiUrl, UserDataContext } from '../util/UserData';
+import AdminRestricted from '../components/AdminRestricted';
 
 interface AdminContainer {
   name: string;
@@ -22,6 +23,7 @@ export default function AdminContainersPage() {
   const [refreshing, setRefreshing] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  const isLoggedIn = !!userData?.userInfo;
   const isAdmin = !!userData?.userInfo?.is_admin;
 
   useEffect(() => {
@@ -54,15 +56,12 @@ export default function AdminContainersPage() {
     return () => { cancelled = true; if (timerRef.current) clearInterval(timerRef.current); };
   }, [isAdmin]);
 
+  if (!isLoggedIn) {
+    return <Navigate to="/" replace />;
+  }
+
   if (!isAdmin) {
-    return (
-      <div className="-mt-20 text-white min-h-screen">
-        <div className="pt-32 px-6 max-w-3xl mx-auto">
-          <h1 className="text-2xl font-bold mb-2">Admin</h1>
-          <p className="text-gray-400">Restricted to Birdflop administrators.</p>
-        </div>
-      </div>
-    );
+    return <AdminRestricted />;
   }
 
   const runningCount = rows.filter((r) => r.state === 'running').length;

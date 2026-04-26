@@ -1,5 +1,5 @@
 import { useEffect, useState, useContext } from 'react';
-import { Link } from 'react-router';
+import { Link, Navigate } from 'react-router';
 import {
   ArrowLeft,
   Copy,
@@ -97,6 +97,10 @@ export default function ClassroomsPage() {
       2000,
     );
   };
+
+  if (!userData?.userInfo) {
+    return <Navigate to="/" replace />;
+  }
 
   const hasAny = owned.length + joined.length > 0;
 

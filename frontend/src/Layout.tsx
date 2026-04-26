@@ -1,38 +1,11 @@
 import Editor from './components/Editor';
-import { useContext, useState, useEffect, ReactNode } from 'react';
-import { UserDataContext } from './util/UserData';
+import { ReactNode } from 'react';
 import Explorer from './components/Explorer';
-import { getClasses } from '@luminescent/ui-react';
 import { Group as PanelGroup, Panel, Separator as PanelResizeHandle } from 'react-resizable-panels';
 
 export default function Layout({ children }: { children?: ReactNode }) {
-  const userData = useContext(UserDataContext);
-  const [showOverlay, setShowOverlay] = useState(true);
-  const [isVisible, setIsVisible] = useState(true);
-
-  useEffect(() => {
-    if (userData.userInfo) {
-      setIsVisible(false);
-      const timer = setTimeout(() => {
-        setShowOverlay(false);
-      }, 200);
-      return () => clearTimeout(timer);
-    } else {
-      setShowOverlay(true);
-      setIsVisible(true);
-    }
-  }, [userData]);
-
   return (
     <>
-      {showOverlay && (
-        <div
-          className={getClasses({
-            'h-screen w-screen fixed top-0 left-0 backdrop-blur-lg bg-gray-900/50 z-10 transition-opacity duration-200': true,
-            'opacity-0': !isVisible,
-          })}
-        />
-      )}
       <div className="h-[calc(100svh-5.5rem)] w-full flex flex-col px-1 pb-1">
         <PanelGroup orientation="vertical" className="flex-1">
           <Panel minSize="25%" defaultSize="62%">
@@ -57,11 +30,7 @@ export default function Layout({ children }: { children?: ReactNode }) {
           </PanelResizeHandle>
           <Panel minSize="10%" defaultSize="38%">
             <div className="h-full">
-              {userData?.userInfo && children ? (
-                children
-              ) : (
-                <div className="lum-card lum-bg-black border-lum-border/40 h-full" />
-              )}
+              {children ?? <div className="lum-card lum-bg-black border-lum-border/40 h-full" />}
             </div>
           </Panel>
         </PanelGroup>

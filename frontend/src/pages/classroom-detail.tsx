@@ -1,5 +1,5 @@
 import { useContext, useEffect, useState, useCallback, useRef } from 'react';
-import { Link, useParams, useSearchParams } from 'react-router';
+import { Link, Navigate, useParams, useSearchParams } from 'react-router';
 import Footer from '../components/Footer';
 import MonacoEditor from '@monaco-editor/react';
 import {
@@ -47,6 +47,7 @@ interface ClassroomInfo {
 }
 
 export default function ClassroomDetailPage() {
+  const userData = useContext(UserDataContext);
   const { id } = useParams();
   const [searchParams] = useSearchParams();
   const [classroom, setClassroom] = useState<ClassroomInfo | null>(null);
@@ -180,6 +181,10 @@ export default function ClassroomDetailPage() {
       }
     } catch { /* ignore */ }
   };
+
+  if (!userData?.userInfo) {
+    return <Navigate to="/" replace />;
+  }
 
   if (loading) {
     return (

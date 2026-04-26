@@ -1,9 +1,8 @@
 import TerminalTabs from './components/Terminal';
-import Login from './components/Login';
 import Onboarding from './components/Onboarding';
 import Layout from './Layout';
 import { useContext, useEffect, useRef } from 'react';
-import { useSearchParams } from 'react-router';
+import { useSearchParams, Navigate } from 'react-router';
 import { UserDataContext } from './util/UserData';
 import type { Files, FileType } from './util/Files';
 
@@ -141,7 +140,7 @@ export default function App() {
   }, [searchParams, userData]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!userData.userInfo) {
-    return <Login />;
+    return <Navigate to="/" replace />;
   }
 
   if (userData.userInfo.needs_onboarding) {

@@ -1,7 +1,8 @@
 import { useContext, useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router';
+import { Link, Navigate } from 'react-router';
 import { ArrowLeft, RefreshCw, AlertTriangle, Server, Cpu, HardDrive, Users, Boxes, School, Network, Activity, ScrollText } from 'lucide-react';
 import { apiUrl, UserDataContext } from '../util/UserData';
+import AdminRestricted from '../components/AdminRestricted';
 import Footer from '../components/Footer';
 
 interface Stats {
@@ -145,25 +146,11 @@ export default function AdminPage() {
   }, [isAdmin]);
 
   if (!isLoggedIn) {
-    return (
-      <div className="-mt-20 text-white min-h-screen flex flex-col">
-        <div className="pt-32 px-6 max-w-3xl mx-auto w-full">
-          <h1 className="text-2xl font-bold mb-2">Admin</h1>
-          <p className="text-gray-400">You must be logged in to view this page.</p>
-        </div>
-      </div>
-    );
+    return <Navigate to="/" replace />;
   }
 
   if (!isAdmin) {
-    return (
-      <div className="-mt-20 text-white min-h-screen flex flex-col">
-        <div className="pt-32 px-6 max-w-3xl mx-auto w-full">
-          <h1 className="text-2xl font-bold mb-2">Admin</h1>
-          <p className="text-gray-400">This page is restricted to Birdflop administrators.</p>
-        </div>
-      </div>
-    );
+    return <AdminRestricted />;
   }
 
   const fdPercent = stats && stats.process.fds.open != null
