@@ -16,6 +16,7 @@ memory_mb = psutil.virtual_memory().total // (1024 * 1024)
 
 cpu_per_user = 1.0
 memory_per_user = round(memory_mb / MAX_USERS, 2)
+memory_hard_limit = round(memory_mb / 8, 2)  # hard cap: 12.5% of total RAM
 
 # Container user UID/GID that matches the dedicated system user
 CONTAINER_USER_UID = 999
@@ -263,6 +264,8 @@ def spawn_container(user_id, slave_fd, container_name, port_range=None, user_ema
         "--cpus",
         str(cpu_per_user),
         "--memory",
+        f"{memory_hard_limit}m",
+        "--memory-reservation",
         f"{memory_per_user}m",
         "-v",
         mount_spec,
