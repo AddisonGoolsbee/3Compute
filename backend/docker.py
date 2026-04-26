@@ -267,6 +267,8 @@ def spawn_container(user_id, slave_fd, container_name, port_range=None, user_ema
         f"{memory_hard_limit}m",
         "--memory-reservation",
         f"{memory_per_user}m",
+        "--pids-limit",
+        "256",
         "-v",
         mount_spec,
     ]
