@@ -87,17 +87,6 @@ Set `EXPECTED_TOTAL` to the number of `check(...)` calls in your file. Students 
 
 If an assignment has multiple `test_*.py` files their results are summed into a single score.
 
-## Publishing a Web App (custom subdomain)
-
-If your project runs a web server (Flask, FastAPI, etc.), you can expose it publicly:
-
-1. Start your app on any port in your assigned range (shown in the Ports panel).
-2. Click the **Globe** icon in the terminal tab bar to open the **Ports** panel.
-3. Enter a subdomain name (e.g. `myapp`) and the port your app is listening on.
-4. Your app will be live at `https://myapp.app.3compute.org`.
-
-Subdomains must be 3–32 lowercase letters, numbers, or hyphens.
-
 ## Archiving this classroom
 
 If you no longer need this classroom visible in your file explorer:

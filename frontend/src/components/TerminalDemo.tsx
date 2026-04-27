@@ -299,8 +299,8 @@ export default function TerminalDemo() {
 
       {/* Code pane */}
       <div
-        className="bg-ide-bg px-5 pt-4 pb-3 font-mono text-[13px] overflow-y-auto"
-        style={{ lineHeight: '24px', height: 260 }}
+        className="bg-ide-bg px-5 pt-4 pb-3 font-mono text-[13px] overflow-x-auto"
+        style={{ lineHeight: '24px' }}
       >
         {program.code.map((line, i) => (
           <div

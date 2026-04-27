@@ -48,7 +48,7 @@ export function PrimaryButton({
       type={type}
       onClick={onClick}
       disabled={disabled}
-      className={`${PRIMARY_BG[color]} text-white font-semibold ${sizeClasses} rounded-md inline-flex items-center gap-2 shadow-cta cursor-pointer whitespace-nowrap transition-[transform,filter] duration-150 hover:-translate-y-px hover:brightness-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:brightness-100 ${className}`}
+      className={`${PRIMARY_BG[color]} text-white font-semibold ${sizeClasses} rounded-md inline-flex items-center gap-2 shadow-cta cursor-pointer whitespace-nowrap transition-[filter] duration-150 hover:brightness-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:brightness-100 ${className}`}
       {...rest}
     >
       {icon && <span className="inline-flex">{icon}</span>}

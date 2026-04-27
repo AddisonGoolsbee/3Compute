@@ -2,7 +2,6 @@ import { useContext, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import {
   ArrowRight,
-  BookOpen,
   Heart,
   Terminal,
   Globe,
@@ -49,38 +48,20 @@ const FEATURES: FeatureCell[] = [
   {
     icon: <Terminal size={22} />,
     color: 'navy',
-    title: 'A real Python workspace',
-    body: 'A persistent Linux environment with editor, file explorer, and terminal.',
-  },
-  {
-    icon: <Globe size={22} />,
-    color: 'forest',
-    title: 'Public web addresses',
-    body: 'Run any server and publish to name.app.3compute.org. Share with classmates or family.',
-  },
-  {
-    icon: <FlaskConical size={22} />,
-    color: 'plum',
-    title: 'Auto-graded tests',
-    body: 'Lessons ship with tests. Students see what\'s passing as they work; teachers see the same view in the gradebook.',
-  },
-  {
-    icon: <BookOpen size={22} />,
-    color: 'ochre',
-    title: 'An open lesson library',
-    body: 'Modify any community lesson, or write your own using Markdown plus a tests directory.',
+    title: 'Full IDE in your browser',
+    body: 'A full coding environment with no installation. Open a browser and start writing code.',
   },
   {
     icon: <Users size={22} />,
-    color: 'tomato',
+    color: 'forest',
     title: 'Classroom management',
     body: 'Create a classroom, share an access code, and students join with one click. See everyone\'s work in one place.',
   },
   {
     icon: <LayoutTemplate size={22} />,
     color: 'ochre',
-    title: 'Import, modify, or write lessons',
-    body: 'Pull from the open library, adapt a lesson to your class, or write a new one from scratch.',
+    title: 'Import, modify, or create lessons',
+    body: 'Import pre-built lessons, modify them to fit your class, or build your own from scratch.',
   },
 ];
 
@@ -668,7 +649,7 @@ export default function LandingPage() {
               href="https://www.paypal.com/US/fundraiser/charity/5036975"
               target="_blank"
               rel="noopener noreferrer"
-              className="bg-tomato border-none px-6 py-3 rounded-md font-semibold text-[15px] inline-flex items-center gap-2 cursor-pointer transition-[transform,filter] duration-150 hover:-translate-y-px hover:brightness-105 no-underline"
+              className="bg-tomato border-none px-6 py-3 rounded-md font-semibold text-[15px] inline-flex items-center gap-2 cursor-pointer transition-[filter] duration-150 hover:brightness-105 no-underline"
               style={{ color: '#fff', boxShadow: '0 6px 20px -4px rgba(232,93,63,0.5)' }}
             >
               <Heart size={16} /> Donate

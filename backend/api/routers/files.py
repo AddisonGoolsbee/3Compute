@@ -442,6 +442,17 @@ Files named `test_*.py` are **test files** written by your teacher for automated
 - **Editor** (center): edit code with syntax highlighting. Use the Save button or the language selector to change highlighting mode. Toggle Markdown preview for `.md` files.
 - **Terminal** (bottom): full shell access. This is where you will type commands. Open multiple tabs; closing a tab stops its processes.
 
+## Publishing a Web App (custom subdomain)
+
+If your project runs a web server (Flask, FastAPI, etc.), you can expose it publicly:
+
+1. Start your app on any port in your assigned range (shown in the Ports panel).
+2. Click the **Globe** icon in the terminal tab bar to open the **Ports** panel.
+3. Enter a subdomain name (e.g. `myapp`) and the port your app is listening on.
+4. Your app will be live at `https://myapp.app.3compute.org`.
+
+Subdomains must be 3-32 lowercase letters, numbers, or hyphens.
+
 ## Learn more
 
 Open any template's `README.md` after creating it for project-specific instructions.

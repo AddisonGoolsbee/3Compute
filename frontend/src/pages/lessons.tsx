@@ -775,7 +775,7 @@ function ImportDialog({
             </p>
             <a
               href={`${apiUrl}/auth/login`}
-              className="bg-navy text-white font-semibold px-5 py-[11px] rounded-md inline-flex items-center justify-center gap-2 shadow-cta hover:-translate-y-px hover:brightness-105 transition-[transform,filter] duration-150"
+              className="bg-navy text-white font-semibold px-5 py-[11px] rounded-md inline-flex items-center justify-center gap-2 shadow-cta hover:brightness-105 transition-[filter] duration-150"
             >
               <LogIn size={16} />
               Continue with Google
