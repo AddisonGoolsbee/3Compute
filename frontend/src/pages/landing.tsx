@@ -655,7 +655,7 @@ export default function LandingPage() {
         />
         <div className="max-w-[760px] mx-auto text-center relative">
           <div className="eyebrow mb-5" style={{ color: '#f4a948' }}>
-            Why we built this
+            Why we build
           </div>
           <h2 className="heading-2" style={{ color: '#fff' }}>
             Every classroom should have access
