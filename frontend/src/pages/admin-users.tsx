@@ -1,8 +1,11 @@
 import { useContext, useEffect, useRef, useState } from 'react';
-import { Link, Navigate } from 'react-router';
-import { ArrowLeft, AlertTriangle, RefreshCw } from 'lucide-react';
+import { Link, Navigate, useLocation } from 'react-router';
+import { AlertTriangle, RefreshCw } from 'lucide-react';
 import { apiUrl, UserDataContext } from '../util/UserData';
 import AdminRestricted from '../components/AdminRestricted';
+import Footer from '../components/Footer';
+import { GhostButton, Pill } from '../components/ui/Buttons';
+import { cn } from '../util/cn';
 
 interface AdminUser {
   id: string;
@@ -18,6 +21,40 @@ interface AdminUser {
   classroom_count: number;
 }
 
+const SUB_NAV: Array<{ label: string; to: string }> = [
+  { label: 'Overview', to: '/admin' },
+  { label: 'Users', to: '/admin/users' },
+  { label: 'Classrooms', to: '/admin/classrooms' },
+  { label: 'Containers', to: '/admin/containers' },
+  { label: 'Logs', to: '/admin/logs' },
+];
+
+function SubNav({ active }: { active: string }) {
+  return (
+    <div className="flex gap-1 mb-7 border-b border-rule-soft">
+      {SUB_NAV.map((tab) => {
+        const isActive = tab.to === active;
+        return (
+          <Link
+            key={tab.to}
+            to={tab.to}
+            className={cn(
+              'px-4 py-2.5 border-b-2 -mb-px text-sm font-semibold transition-colors',
+              isActive
+                ? 'border-navy text-ink-strong'
+                : 'border-transparent text-ink-muted hover:text-ink-strong',
+            )}
+          >
+            {tab.label}
+          </Link>
+        );
+      })}
+    </div>
+  );
+}
+
+const AVATAR_BG: string[] = ['bg-tomato', 'bg-navy', 'bg-forest', 'bg-ochre', 'bg-plum'];
+
 function fmtRelative(iso: string | null): string {
   if (!iso) return '—';
   const t = new Date(iso).getTime();
@@ -30,13 +67,35 @@ function fmtRelative(iso: string | null): string {
   return `${Math.floor(diffSec / 86400)}d ago`;
 }
 
+function initials(email: string, name: string | null): string {
+  if (name) {
+    const parts = name.trim().split(/\s+/);
+    return (parts[0]?.[0] || '').concat(parts[1]?.[0] || '').toUpperCase().slice(0, 2);
+  }
+  const handle = email.split('@')[0] || email;
+  return handle.slice(0, 2).toUpperCase();
+}
+
+type RoleColor = 'navy' | 'forest' | 'plum' | 'ochre';
+
+function roleColor(role: string | null): RoleColor {
+  if (!role) return 'ochre';
+  const r = role.toLowerCase();
+  if (r === 'teacher' || r === 'instructor') return 'navy';
+  if (r === 'student' || r === 'participant') return 'forest';
+  if (r === 'admin') return 'plum';
+  return 'ochre';
+}
+
 export default function AdminUsersPage() {
   const userData = useContext(UserDataContext);
+  const location = useLocation();
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const loadRef = useRef<() => Promise<void>>(() => Promise.resolve());
 
   const isLoggedIn = !!userData?.userInfo;
   const isAdmin = !!userData?.userInfo?.is_admin;
@@ -65,6 +124,7 @@ export default function AdminUsersPage() {
         if (!cancelled) { setRefreshing(false); setLoading(false); }
       }
     };
+    loadRef.current = load;
     load();
     timerRef.current = setInterval(load, 10_000);
     return () => { cancelled = true; if (timerRef.current) clearInterval(timerRef.current); };
@@ -81,98 +141,133 @@ export default function AdminUsersPage() {
   const conflictUsers = users.filter((u) => u.port_conflict);
 
   return (
-    <div className="-mt-20 text-white min-h-screen flex flex-col">
-      <header className="pt-24 pb-4 px-6">
-        <div className="max-w-6xl mx-auto">
-          <Link to="/admin" className="inline-flex items-center gap-2 text-gray-400 hover:text-white transition-colors mb-4">
-            <ArrowLeft size={18} /> Back to admin
-          </Link>
-          <div className="flex items-center justify-between flex-wrap gap-3">
+    <div className="min-h-screen flex flex-col">
+      <main className="flex-1">
+        <div className="max-w-[1200px] mx-auto px-7 py-10">
+          <div className="flex items-start justify-between flex-wrap gap-4 mb-7">
             <div>
-              <h1 className="text-3xl font-bold mb-1">Users ({users.length})</h1>
-              <p className="text-gray-400 text-sm">Auto-refreshes every 10s.</p>
+              <h1 className="heading-1">Users</h1>
+              <p className="body-sm mt-1.5">
+                {users.length} account{users.length === 1 ? '' : 's'}. Auto-refreshes every 10s.
+              </p>
             </div>
-            <div className="flex items-center gap-2 text-sm text-gray-400">
-              <RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} />
-              {refreshing ? 'Refreshing…' : 'Idle'}
-            </div>
+            <GhostButton
+              icon={<RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} />}
+              onClick={() => loadRef.current()}
+            >
+              Refresh
+            </GhostButton>
           </div>
-        </div>
-      </header>
 
-      <main className="flex-1 px-6 pb-12">
-        <div className="max-w-6xl mx-auto">
-          {loading && users.length === 0 && <div className="text-gray-500">Loading…</div>}
+          <SubNav active={location.pathname} />
+
+          {loading && users.length === 0 && (
+            <div className="body text-ink-muted text-center py-10">Loading…</div>
+          )}
           {error && (
-            <div className="mb-4 rounded-lg border border-red-700/50 bg-red-950/30 p-3 text-sm text-red-300 flex items-start gap-2">
-              <AlertTriangle size={16} className="mt-0.5 shrink-0" />
+            <div className="mb-4 bg-tomato-soft border border-tomato/30 rounded-md px-4 py-3 text-tomato text-sm flex items-center gap-2">
+              <AlertTriangle size={16} className="shrink-0" />
               <span>{error}</span>
             </div>
           )}
 
           {conflictUsers.length > 0 && (
-            <div className="mb-4 rounded-lg border border-yellow-700/50 bg-yellow-950/20 p-3 text-sm text-yellow-200 flex items-start gap-2">
+            <div className="mb-4 bg-ochre-soft border border-ochre/30 rounded-md px-4 py-3 text-ochre text-sm flex items-start gap-2">
               <AlertTriangle size={16} className="mt-0.5 shrink-0" />
               <div>
-                <div className="font-medium">Port range overlap detected</div>
-                <div className="text-yellow-300/80 text-xs mt-1">
+                <div className="font-semibold">Port range overlap detected</div>
+                <div className="text-ochre/90 text-xs mt-1">
                   {conflictUsers.map((u) => u.email).join(', ')}.
-                  Fix via <code className="bg-black/30 px-1 rounded">fix-stuck-user.md</code> — a signup race can
-                  produce this and the second container will fail to spawn.
+                  Fix via{' '}
+                  <code className="bg-paper-deeper text-ink-default font-mono px-1.5 py-0.5 rounded-sm">
+                    fix-stuck-user.md
+                  </code>{' '}
+                  — a signup race can produce this and the second container will fail to spawn.
                 </div>
               </div>
             </div>
           )}
 
-          <div className="overflow-x-auto rounded-lg border border-gray-800 bg-gray-900/40">
-            <table className="w-full text-sm">
-              <thead className="text-left bg-gray-900/60 text-gray-400 uppercase text-[10px] tracking-wide">
-                <tr>
-                  <th className="pl-3! pr-3 py-2">Email</th>
-                  <th className="pl-3! pr-3 py-2">Role</th>
-                  <th className="pl-3! pr-3 py-2">Ports</th>
-                  <th className="pl-3! pr-3 py-2">Container</th>
-                  <th className="pl-3! pr-3 py-2">Classes</th>
-                  <th className="pl-3! pr-3 py-2">Last login</th>
-                  <th className="pl-3! pr-3 py-2">First login</th>
+          <div className="overflow-x-auto">
+            <table className="w-full bg-paper-elevated border border-rule-soft rounded-xl overflow-hidden border-collapse">
+              <thead>
+                <tr className="bg-paper-tinted">
+                  <th className="pl-4! pr-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-ink-strong">User</th>
+                  <th className="pl-3! pr-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-ink-strong">Role</th>
+                  <th className="pl-3! pr-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-ink-strong">Ports</th>
+                  <th className="pl-3! pr-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-ink-strong">Container</th>
+                  <th className="pl-3! pr-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-ink-strong">Classes</th>
+                  <th className="pl-3! pr-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-ink-strong">Last login</th>
+                  <th className="pl-3! pr-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-ink-strong">First login</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-800/80">
-                {users.map((u) => (
-                  <tr key={u.id} className="hover:bg-gray-800/30">
-                    <td className="pl-3! pr-3 py-2 font-mono">
-                      {u.email}
-                      {u.name && <span className="text-gray-500 ml-1">({u.name})</span>}
-                    </td>
-                    <td className="pl-3! pr-3 py-2 text-gray-300">{u.role || <span className="text-gray-500">—</span>}</td>
-                    <td className="pl-3! pr-3 py-2 font-mono text-gray-300">
-                      {u.port_start}–{u.port_end}
-                      {u.port_conflict && (
-                        <span className="ml-1 text-yellow-400" title="Port range overlaps another user">⚠</span>
-                      )}
-                    </td>
-                    <td className="pl-3! pr-3 py-2">
-                      {u.container_running ? (
-                        <span className="inline-flex items-center gap-1 text-green-400">
-                          <span className="w-1.5 h-1.5 rounded-full bg-green-400" /> running
-                        </span>
-                      ) : (
-                        <span className="text-gray-500">stopped</span>
-                      )}
-                    </td>
-                    <td className="pl-3! pr-3 py-2 text-gray-300">{u.classroom_count}</td>
-                    <td className="pl-3! pr-3 py-2 text-gray-400" title={u.last_login || ''}>{fmtRelative(u.last_login)}</td>
-                    <td className="pl-3! pr-3 py-2 text-gray-500" title={u.first_login || ''}>{fmtRelative(u.first_login)}</td>
-                  </tr>
-                ))}
+              <tbody>
+                {users.map((u, i) => {
+                  const avatarColor = AVATAR_BG[i % AVATAR_BG.length];
+                  return (
+                    <tr key={u.id} className="border-t border-rule-soft hover:bg-paper-tinted/50 transition-colors">
+                      <td className="pl-4! pr-3 py-2.5">
+                        <div className="flex items-center gap-3">
+                          <span className={cn(
+                            'w-8 h-8 rounded-full text-white font-bold text-[11px] inline-flex items-center justify-center flex-shrink-0',
+                            avatarColor,
+                          )}>
+                            {initials(u.email, u.name)}
+                          </span>
+                          <div className="min-w-0">
+                            <div className="text-sm font-semibold text-ink-strong truncate">
+                              {u.name || u.email.split('@')[0]}
+                            </div>
+                            <div className="text-[12.5px] text-ink-subtle font-mono truncate">{u.email}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="pl-3! pr-3 py-2.5 text-sm">
+                        {u.role
+                          ? <Pill color={roleColor(u.role)}>{u.role}</Pill>
+                          : <span className="text-ink-faint text-sm">—</span>}
+                      </td>
+                      <td className="pl-3! pr-3 py-2.5 text-sm font-mono text-ink-default">
+                        {u.port_start}–{u.port_end}
+                        {u.port_conflict && (
+                          <span
+                            className="ml-1 text-ochre"
+                            title="Port range overlaps another user"
+                            aria-label="Port range overlaps another user"
+                          >
+                            <AlertTriangle size={12} className="inline-block -mt-0.5" />
+                          </span>
+                        )}
+                      </td>
+                      <td className="pl-3! pr-3 py-2.5 text-sm">
+                        {u.container_running
+                          ? <Pill color="forest">running</Pill>
+                          : <Pill color="ochre">stopped</Pill>}
+                      </td>
+                      <td className="pl-3! pr-3 py-2.5 text-sm text-ink-default">{u.classroom_count}</td>
+                      <td className="pl-3! pr-3 py-2.5 text-sm text-ink-muted" title={u.last_login || ''}>
+                        {fmtRelative(u.last_login)}
+                      </td>
+                      <td className="pl-3! pr-3 py-2.5 text-sm text-ink-subtle" title={u.first_login || ''}>
+                        {fmtRelative(u.first_login)}
+                      </td>
+                    </tr>
+                  );
+                })}
                 {users.length === 0 && !loading && (
-                  <tr><td colSpan={7} className="pl-3! pr-3 py-6 text-center text-gray-500">No users.</td></tr>
+                  <tr>
+                    <td colSpan={7} className="pl-3! pr-3 py-6 text-center text-sm text-ink-muted">
+                      No users.
+                    </td>
+                  </tr>
                 )}
               </tbody>
             </table>
           </div>
         </div>
       </main>
+
+      <Footer />
     </div>
   );
 }

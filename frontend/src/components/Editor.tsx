@@ -1,14 +1,27 @@
-import { ChangeEvent, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { useCallback, useContext, useEffect, useRef, useState } from 'react';
 import MonacoEditor, { type OnMount } from '@monaco-editor/react';
-import { File, Play, Printer, FlaskConical, RefreshCw, ArrowLeft } from 'lucide-react';
+import { setupDaylightTheme, DAYLIGHT_THEME } from '../util/monacoTheme';
+import {
+  ArrowLeft,
+  Check,
+  ChevronDown,
+  Eye,
+  File,
+  FileText,
+  FlaskConical,
+  Play,
+  Printer,
+  RefreshCw,
+  X,
+} from 'lucide-react';
 import { printMarkdownElement } from '../util/printMarkdown';
 import { apiUrl, UserDataContext } from '../util/UserData';
-import { getClasses, SelectMenuRaw } from '@luminescent/ui-react';
 import { languageMap } from '../util/languageMap';
-import { SiMarkdown } from '@icons-pack/react-simple-icons';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Files, FileType } from '../util/Files';
+import { PrimaryButton } from './ui/Buttons';
+import { cn } from '../util/cn';
 
 function findDefaultFile(files: Files): FileType | undefined {
   const defaultFileNames = ['readme', 'index.'];
@@ -91,8 +104,10 @@ export default function Editor() {
   const [testOutput, setTestOutput] = useState<string | null>(null);
   const [testRunning, setTestRunning] = useState(false);
   const [testResult, setTestResult] = useState<{ passed: number; total: number } | null>(null);
-  const editorRef = useRef<any>(null);
+  const [langMenuOpen, setLangMenuOpen] = useState(false);
+  const editorRef = useRef<unknown>(null);
   const markdownRef = useRef<HTMLDivElement>(null);
+  const langMenuRef = useRef<HTMLDivElement>(null);
   const autosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const currentFileLocationRef = useRef<string | undefined>(undefined);
   const lastSavedValueRef = useRef<string>('');
@@ -231,6 +246,23 @@ export default function Editor() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Close language menu on outside click / escape
+  useEffect(() => {
+    if (!langMenuOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (langMenuRef.current && !langMenuRef.current.contains(e.target as Node)) {
+        setLangMenuOpen(false);
+      }
+    };
+    const escHandler = (e: KeyboardEvent) => { if (e.key === 'Escape') setLangMenuOpen(false); };
+    document.addEventListener('mousedown', handler);
+    document.addEventListener('keydown', escHandler);
+    return () => {
+      document.removeEventListener('mousedown', handler);
+      document.removeEventListener('keydown', escHandler);
+    };
+  }, [langMenuOpen]);
+
   const [initialFileSet, setInitialFileSet] = useState(false);
 
   useEffect(() => {
@@ -333,200 +365,312 @@ export default function Editor() {
   }, [userData.currentFile?.location, userData.contentVersion]);
 
   const monacoLanguage = languageMap[currentLanguage as keyof typeof languageMap]?.language || 'plaintext';
+  const currentFile = userData.currentFile;
+  const currentLanguageInfo = languageMap[currentLanguage as keyof typeof languageMap];
+  const lineCount = value ? value.split('\n').length : 0;
+  const eolStyle = value.includes('\r\n') ? 'CRLF' : 'LF';
+  const runCommandFn = runCommandMap[currentLanguage as keyof typeof languageMap];
+  const canRun = !!(currentFile?.location && runCommandFn && !isImage && !isBinary && !isTooLarge && !loadError);
 
   return (
-    <div className="relative transition-all flex flex-col rounded-lum h-full bg-[#1e1e1e] w-full border border-lum-border/20 overflow-hidden">
-      {!userData.currentFile && (
-        <div className="flex-1 flex items-center justify-center text-gray-500 text-sm">Click a file to view it</div>
+    <div className="relative flex flex-col h-full bg-ide-bg border border-ide-rule rounded-lg overflow-hidden w-full">
+      {!currentFile && (
+        <div className="flex-1 flex items-center justify-center text-ink-muted body">Click a file to view it</div>
       )}
-      {userData.currentFile && (
-        <div className="flex items-center gap-2 pl-3 p-1 m-1 lum-bg-gray-900 rounded-lum-1 min-w-0">
-          <span className="text-sm flex gap-2 items-center flex-1 min-w-0" title={userData?.currentFile?.location}>
-            <File size={16} className="shrink-0" />
-            <span className="truncate min-w-0">{userData?.currentFile?.location}</span>
-            {currentLanguage === 'markdown' && !isImage && (
-              <>
-                <button
-                  className={getClasses({
-                    'lum-btn p-1 rounded-lum-2 gap-1 lum-bg-transparent hover:lum-bg-gray-800 shrink-0': true,
-                    'text-blue-500': mdPreview,
-                  })}
-                  onClick={() => setMdPreview(!mdPreview)}
+
+      {currentFile && (
+        <>
+          {/* Tab bar */}
+          <div className="flex bg-ide-elevated border-b border-ide-rule overflow-x-auto shrink-0">
+            {userData.openFiles.map((tab) => {
+              const isActive = tab.location === currentFile.location;
+              const tabExt = tab.name.split('.').pop()?.toLowerCase() || '';
+              const tabLang = Object.values(languageMap).find((l) => l.extensions.includes(tabExt));
+              const TabIcon = tabLang?.icon ?? FileText;
+              const closeTab = () => {
+                const idx = userData.openFiles.findIndex((f) => f.location === tab.location);
+                const remaining = userData.openFiles.filter((f) => f.location !== tab.location);
+                userData.setOpenFiles(remaining);
+                if (isActive) {
+                  const next = remaining[idx - 1] ?? remaining[idx] ?? undefined;
+                  userData.setCurrentFile(next);
+                  userData.setSelectedLocation?.(next?.location);
+                }
+              };
+              return (
+                <div
+                  key={tab.location}
+                  className={cn(
+                    'group/tab inline-flex items-center gap-2 pl-3.5 pr-1.5 py-1.5 border-r border-ide-rule cursor-pointer font-mono text-[13px] transition-colors shrink-0',
+                    isActive
+                      ? 'bg-ide-bg border-b-2 border-ochre text-ink-strong'
+                      : 'border-b-2 border-transparent text-ink-muted hover:bg-ide-bg/50 hover:text-ink-strong',
+                  )}
+                  title={`~${tab.location}`}
+                  onClick={() => {
+                    if (isActive) return;
+                    userData.setCurrentFile(tab);
+                    userData.setSelectedLocation?.(tab.location);
+                  }}
+                  onMouseDown={(e) => {
+                    if (e.button === 1) {
+                      e.preventDefault();
+                      closeTab();
+                    }
+                  }}
                 >
-                  <SiMarkdown size={16} />
-                </button>
-                {mdPreview && (
+                  <TabIcon size={12} className="shrink-0" />
+                  <span className="truncate max-w-[200px]">{tab.name}</span>
                   <button
-                    className="lum-btn p-1 rounded-lum-2 lum-bg-transparent hover:lum-bg-gray-800 text-gray-400 hover:text-white shrink-0"
-                    title="Print"
-                    onClick={() => {
-                      if (markdownRef.current)
-                        printMarkdownElement(markdownRef.current, userData.currentFile?.name ?? 'Document');
+                    type="button"
+                    aria-label={`Close ${tab.name}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      closeTab();
                     }}
+                    className="ml-1 p-0.5 rounded-sm text-ink-subtle hover:bg-paper-tinted hover:text-ink-strong transition-colors"
                   >
-                    <Printer size={16} />
+                    <X size={12} />
                   </button>
-                )}
-              </>
-            )}
-          </span>
-          <div className="flex items-center gap-1">
-            {!isImage && (
-              <>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Toolbar: file path + actions */}
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-ide-elevated border-b border-ide-rule shrink-0 min-h-10">
+            <span
+              className="text-[12px] flex gap-2 items-center flex-1 min-w-0 text-ink-muted font-mono"
+              title={`~${currentFile.location}`}
+            >
+              <File size={14} className="shrink-0 text-ink-subtle" />
+              <span className="truncate min-w-0">~{currentFile.location}</span>
+            </span>
+
+            <div className="flex items-center gap-1.5 shrink-0">
+              {!isImage && (
                 <span
-                  className={getClasses({
-                    'text-xs px-1 select-none whitespace-nowrap': true,
-                    'text-gray-500': saveStatus === 'saving' || saveStatus === 'saved' || saveStatus === 'idle',
-                    'text-red-400': saveStatus === 'error',
-                  })}
+                  className={cn(
+                    'text-[11.5px] px-1 select-none whitespace-nowrap font-mono',
+                    saveStatus === 'error' ? 'text-tomato' : 'text-ink-subtle',
+                  )}
                   aria-live="polite"
                 >
                   {saveStatus === 'saving' && 'Saving…'}
                   {saveStatus === 'saved' && 'Saved'}
                   {saveStatus === 'error' && 'Save failed'}
                 </span>
-                <SelectMenuRaw
-                  id="language-select"
-                  className="rounded-lum-2 text-xs gap-1 lum-bg-purple-950 hover:lum-bg-purple-900 lum-btn-p-1 shrink-0"
-                  align="right"
-                  value={currentLanguage}
-                  values={Object.entries(languageMap).map(([key, Lang]) => ({
-                    name: (
-                      <div className="flex items-center gap-2">
-                        <Lang.icon size={16} />
-                        <span className="font-mono">{Lang.name}</span>
-                      </div>
-                    ),
-                    value: key,
-                  }))}
-                  onChange={(e: ChangeEvent<HTMLSelectElement>) => {
-                    const languageName = e.target.value as keyof typeof languageMap;
-                    setCurrentLanguage(languageName);
-                  }}
-                  customDropdown
-                  dropdown={
-                    <div className="flex items-center gap-2">
-                      {(() => {
-                        const LanguageIcon = languageMap[currentLanguage as keyof typeof languageMap]?.icon;
-                        return <LanguageIcon size={16} />;
-                      })()}
-                      <span className="font-mono">
-                        {languageMap[currentLanguage as keyof typeof languageMap]?.name}
-                      </span>
-                    </div>
-                  }
-                />
-                {userData.currentFile?.location && runCommandMap[currentLanguage as keyof typeof languageMap] && (
+              )}
+
+              {currentLanguage === 'markdown' && !isImage && (
+                <>
+                  {mdPreview && (
+                    <button
+                      title="Print"
+                      aria-label="Print"
+                      className="inline-flex items-center justify-center p-1.5 rounded-sm transition-colors cursor-pointer shrink-0 text-ink-muted hover:text-ink-strong hover:bg-paper-tinted"
+                      onClick={() => {
+                        if (markdownRef.current)
+                          printMarkdownElement(markdownRef.current, currentFile.name ?? 'Document');
+                      }}
+                    >
+                      <Printer size={14} />
+                    </button>
+                  )}
                   <button
-                    className="lum-btn rounded-lum-2 text-xs gap-1 lum-btn-p-1 lum-bg-blue-700 hover:lum-bg-blue-600 shrink-0"
-                    onClick={() => {
-                      const buildCmd = runCommandMap[currentLanguage as keyof typeof languageMap];
-                      if (!buildCmd || !userData.currentFile?.location) return;
-                      const command = buildCmd(userData.currentFile.location);
-                      window.dispatchEvent(new CustomEvent('3compute:run-command', { detail: { command } }));
-                    }}
+                    title={mdPreview ? 'Show source' : 'Show preview'}
+                    aria-label={mdPreview ? 'Show source' : 'Show preview'}
+                    className={cn(
+                      'inline-flex items-center justify-center p-1.5 rounded-sm transition-colors cursor-pointer shrink-0',
+                      mdPreview
+                        ? 'text-navy bg-navy-soft hover:brightness-105'
+                        : 'text-ink-muted hover:text-ink-strong hover:bg-paper-tinted',
+                    )}
+                    onClick={() => setMdPreview(!mdPreview)}
                   >
-                    <Play size={16} />
-                    Run
+                    <Eye size={14} />
                   </button>
-                )}
-              </>
-            )}
+                </>
+              )}
+
+              {!isImage && (
+                <div ref={langMenuRef} className="relative">
+                  <button
+                    onClick={() => setLangMenuOpen((v) => !v)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-xs font-mono text-ink-muted hover:bg-paper-tinted hover:text-ink-strong transition-colors cursor-pointer"
+                  >
+                    {currentLanguageInfo?.icon && <currentLanguageInfo.icon size={14} />}
+                    <span>{currentLanguageInfo?.name ?? currentLanguage}</span>
+                    <ChevronDown size={14} />
+                  </button>
+                  {langMenuOpen && (
+                    <ul className="absolute right-0 top-full mt-1 max-h-[260px] overflow-y-auto bg-paper-elevated border border-rule-soft rounded-md shadow-md py-1 min-w-[180px] z-50">
+                      {Object.entries(languageMap).map(([key, lang]) => {
+                        const isActive = key === currentLanguage;
+                        const Icon = lang.icon;
+                        return (
+                          <li
+                            key={key}
+                            onClick={() => {
+                              setCurrentLanguage(key as keyof typeof languageMap);
+                              setLangMenuOpen(false);
+                            }}
+                            className={cn(
+                              'flex items-center gap-2 px-3 py-1.5 text-sm cursor-pointer font-mono',
+                              isActive
+                                ? 'text-ink-strong bg-paper-tinted'
+                                : 'text-ink-default hover:bg-paper-tinted hover:text-ink-strong',
+                            )}
+                          >
+                            {isActive ? (
+                              <Check size={12} className="text-navy shrink-0" />
+                            ) : (
+                              <span className="w-3 shrink-0" />
+                            )}
+                            <Icon size={14} className="shrink-0" />
+                            <span>{lang.name}</span>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+                </div>
+              )}
+
+              {canRun && (
+                <PrimaryButton
+                  color="forest"
+                  icon={<Play size={14} />}
+                  onClick={() => {
+                    if (!runCommandFn || !currentFile.location) return;
+                    const command = runCommandFn(currentFile.location);
+                    window.dispatchEvent(new CustomEvent('3compute:run-command', { detail: { command } }));
+                  }}
+                  className="px-3! py-1.5! text-xs! gap-1.5!"
+                >
+                  Run
+                </PrimaryButton>
+              )}
+            </div>
           </div>
-        </div>
+        </>
       )}
+
       {studentView && (
-        <div className="flex items-center gap-2 px-3 py-1.5 mx-1 mb-1 rounded-lum-1 bg-blue-950/40 border border-blue-800/30">
-          <span className="text-xs text-blue-300 flex-1 truncate">
-            Viewing <span className="font-medium">{studentView.studentEmail}</span>
-            {' \u2014 '}
-            <span className="text-blue-400">{studentView.templateName}</span>
+        <div className="flex items-center gap-2 bg-tomato-soft border-b border-tomato/30 px-4 py-2 text-tomato shrink-0">
+          <span className="text-[13px] flex-1 truncate">
+            Viewing <span className="font-semibold">{studentView.studentEmail}</span>
+            {' — '}
+            <span>{studentView.templateName}</span>
           </span>
           {testOutput !== null ? (
             <button
-              className="flex items-center gap-1 text-xs text-blue-300 hover:text-white transition-colors"
+              className="inline-flex items-center gap-1.5 text-tomato hover:bg-tomato/10 rounded-sm p-1 px-2 text-[13px] transition-colors cursor-pointer"
               onClick={() => {
                 setTestOutput(null);
                 setTestResult(null);
               }}
             >
-              <ArrowLeft size={12} />
+              <ArrowLeft size={14} />
               Back to file
             </button>
-          ) : (
-            <button
-              className="flex items-center gap-1 text-xs text-blue-300 hover:text-white transition-colors"
-              onClick={runStudentTests}
-              disabled={testRunning}
+          ) : testRunning ? (
+            <PrimaryButton
+              color="plum"
+              icon={<RefreshCw size={14} className="animate-spin" />}
+              disabled
+              className="px-3! py-1.5! text-[12px]!"
             >
-              {testRunning ? <RefreshCw size={12} className="animate-spin" /> : <FlaskConical size={12} />}
-              {testRunning ? 'Running...' : 'Run Tests'}
-            </button>
+              Running…
+            </PrimaryButton>
+          ) : (
+            <PrimaryButton
+              color="plum"
+              icon={<FlaskConical size={14} />}
+              onClick={runStudentTests}
+              className="px-3! py-1.5! text-[12px]!"
+            >
+              Tests
+            </PrimaryButton>
           )}
         </div>
       )}
-      {!userData.currentFile ? null : testOutput !== null ? (
-        <div className="flex-1 overflow-auto p-4 font-mono text-sm">
+
+      {/* Body */}
+      {!currentFile ? null : testOutput !== null ? (
+        <div className="flex-1 overflow-auto p-6 bg-paper-elevated">
           {testResult && (
             <div
-              className={`mb-3 text-sm font-sans ${testResult.total > 0 && testResult.passed === testResult.total ? 'text-green-400' : 'text-gray-400'}`}
+              className={cn(
+                'mb-3 text-sm font-sans',
+                testResult.total > 0 && testResult.passed === testResult.total
+                  ? 'text-forest font-semibold'
+                  : 'text-ink-muted',
+              )}
             >
               Result: {testResult.passed}/{testResult.total} tests passed
             </div>
           )}
-          <pre className="whitespace-pre-wrap text-gray-300 text-xs leading-relaxed">{testOutput}</pre>
+          <pre className="whitespace-pre-wrap text-ink-default text-xs leading-relaxed font-mono bg-ide-bg border border-ide-rule rounded-md p-4">
+            {testOutput}
+          </pre>
         </div>
       ) : isBinary ? (
-        <div className="flex-1 flex items-center justify-center p-4">
-          <div className="text-center text-gray-400">
+        <div className="flex-1 flex items-center justify-center p-8 bg-paper">
+          <div className="text-center text-ink-muted">
             <File size={48} className="mx-auto mb-3 opacity-40" />
-            <p className="text-sm">This file cannot be displayed in the editor.</p>
+            <p className="body">This file cannot be displayed in the editor.</p>
           </div>
         </div>
       ) : isTooLarge ? (
-        <div className="flex-1 flex items-center justify-center p-4">
-          <div className="text-center text-gray-400 max-w-sm">
+        <div className="flex-1 flex items-center justify-center p-8 bg-paper">
+          <div className="text-center text-ink-muted max-w-sm">
             <File size={48} className="mx-auto mb-3 opacity-40" />
-            <p className="text-sm">
+            <p className="body">
               This file is too large to open in the editor ({MAX_EDITOR_LINES.toLocaleString()}-line /{' '}
               {MAX_EDITOR_CHARS.toLocaleString()}-character limit).
             </p>
-            <p className="text-xs text-gray-500 mt-2">
-              View it from the terminal (e.g. <code className="bg-gray-800 px-1 rounded">less</code>) or use the
+            <p className="body-sm mt-2">
+              View it from the terminal (e.g.{' '}
+              <code className="bg-paper-tinted text-navy px-1.5 py-0.5 rounded-sm font-mono text-[12px]">less</code>) or use the
               Download button.
             </p>
             <a
-              href={`${apiUrl}/files/download${userData.currentFile?.location}`}
-              className="mt-3 inline-block text-xs lum-btn lum-bg-gray-800 hover:lum-bg-gray-700 rounded-lum-2 lum-btn-p-1"
+              href={`${apiUrl}/files/download${currentFile?.location}`}
+              className="mt-4 inline-block text-navy hover:text-navy/80 font-semibold text-sm underline-offset-2 hover:underline"
             >
               Download
             </a>
           </div>
         </div>
       ) : loadError ? (
-        <div className="flex-1 flex items-center justify-center p-4">
-          <div className="text-center text-gray-400">
+        <div className="flex-1 flex items-center justify-center p-8 bg-paper">
+          <div className="text-center text-ink-muted">
             <File size={48} className="mx-auto mb-3 opacity-40" />
-            <p className="text-sm">{loadError}</p>
+            <p className="body">{loadError}</p>
             <button
-              className="mt-3 text-xs lum-btn lum-bg-gray-800 hover:lum-bg-gray-700 rounded-lum-2 lum-btn-p-1"
+              className="mt-4 inline-flex items-center gap-1.5 text-navy hover:text-navy/80 font-semibold text-sm cursor-pointer"
               onClick={() => userData.setContentVersion?.((v) => (v ?? 0) + 1)}
             >
+              <RefreshCw size={14} />
               Retry
             </button>
           </div>
         </div>
       ) : isImage ? (
-        <div className="flex-1 overflow-auto p-4 flex items-center justify-center">
-          <img
-            src={`${apiUrl}/files/file${userData.currentFile?.location}`}
-            alt={userData.currentFile?.name}
-            className="max-w-full max-h-full object-contain"
-            style={{ imageRendering: 'auto' }}
-          />
+        <div className="flex-1 flex items-center justify-center p-8 bg-paper overflow-auto">
+          <div className="bg-paper-elevated border border-rule-soft rounded-md p-4 shadow-sm max-w-full max-h-full inline-flex flex-col items-center">
+            <img
+              src={`${apiUrl}/files/file${currentFile?.location}`}
+              alt={currentFile?.name}
+              className="max-w-full max-h-full object-contain"
+              style={{ imageRendering: 'auto' }}
+            />
+            <div className="body-sm text-ink-muted mt-3 text-center">{currentFile?.name}</div>
+          </div>
         </div>
       ) : mdPreview && currentLanguage === 'markdown' ? (
-        <div className="flex-1 overflow-auto p-4">
+        <div className="flex-1 overflow-auto p-6 bg-ide-bg">
           <div className="markdown-content" ref={markdownRef}>
             <Markdown
               remarkPlugins={[remarkGfm]}
@@ -565,7 +709,7 @@ export default function Editor() {
                         type="button"
                         role="checkbox"
                         aria-checked={checked}
-                        className="mr-1.5 align-middle cursor-pointer inline-flex items-center justify-center w-4 h-4 rounded border border-gray-500 text-gray-200 bg-gray-900 hover:border-gray-300"
+                        className="mr-1.5 align-middle cursor-pointer inline-flex items-center justify-center w-4 h-4 rounded-sm border border-rule text-ink-strong bg-paper-elevated hover:border-ink-strong transition-colors"
                         onClick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
@@ -573,7 +717,7 @@ export default function Editor() {
                           handleMarkdownCheckboxToggle(line, !checked);
                         }}
                       >
-                        {checked ? '✓' : ''}
+                        {checked ? <Check size={12} /> : ''}
                       </button>
                       {rest}
                     </li>
@@ -586,28 +730,41 @@ export default function Editor() {
           </div>
         </div>
       ) : isClient ? (
-        <MonacoEditor
-          height="100%"
-          language={monacoLanguage}
-          value={value}
-          onChange={onChange}
-          onMount={handleEditorMount}
-          theme="vs-dark"
-          options={{
-            minimap: { enabled: true },
-            fontSize: 14,
-            wordWrap: 'on',
-            scrollBeyondLastLine: false,
-            automaticLayout: true,
-            tabSize: 2,
-            renderWhitespace: 'selection',
-            bracketPairColorization: { enabled: true },
-            padding: { top: 8 },
-          }}
-        />
+        <div className="flex-1 overflow-hidden bg-ide-bg">
+          <MonacoEditor
+            height="100%"
+            language={monacoLanguage}
+            value={value}
+            onChange={onChange}
+            onMount={handleEditorMount}
+            beforeMount={setupDaylightTheme}
+            theme={DAYLIGHT_THEME}
+            options={{
+              minimap: { enabled: true },
+              fontSize: 14,
+              wordWrap: 'on',
+              scrollBeyondLastLine: false,
+              automaticLayout: true,
+              tabSize: 2,
+              renderWhitespace: 'selection',
+              bracketPairColorization: { enabled: true },
+              padding: { top: 8 },
+            }}
+          />
+        </div>
       ) : (
-        <div className="flex-1 flex items-center justify-center">
-          <div className="lum-loading w-6 h-6 border-2" />
+        <div className="flex-1 flex items-center justify-center bg-ide-bg">
+          <RefreshCw size={20} className="animate-spin text-ink-muted" />
+        </div>
+      )}
+
+      {/* Status bar — only meaningful when a real file is open and we're not in a sub-view */}
+      {currentFile && !isImage && !isBinary && !isTooLarge && !loadError && testOutput === null && (
+        <div className="flex items-center gap-4 px-3.5 py-1.5 bg-ide-elevated border-t border-ide-rule text-[11.5px] text-ink-muted font-mono shrink-0 leading-snug whitespace-nowrap">
+          <span>{lineCount} lines</span>
+          <span>UTF-8</span>
+          <span>{eolStyle}</span>
+          <span className="ml-auto">{currentLanguageInfo?.name ?? 'Plaintext'}</span>
         </div>
       )}
     </div>

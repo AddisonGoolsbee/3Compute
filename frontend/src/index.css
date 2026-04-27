@@ -1,12 +1,101 @@
 @import "tailwindcss";
 
-@import "@luminescent/ui";
-@import "@luminescent/ui/formatting";
-@source "../node_modules/@luminescent/ui-react";
+@import url('https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600;6..72,700&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=DM+Mono:wght@400;500&display=swap');
+
+/* Daylight tokens — see .design-system/colors_and_type.css.
+   Keep these as plain CSS vars so any inline `var(--paper)` references
+   from the kit work without going through Tailwind. */
+:root {
+  --paper:           #fdfaf2;
+  --paper-elevated:  #ffffff;
+  --paper-tinted:    #f5f0e3;
+  --paper-deeper:    #ebe4d2;
+  --rule:            #d8cfb8;
+  --rule-soft:       #e8e1ce;
+
+  --ink-strong:  #1a1a1f;
+  --ink-default: #2d2d35;
+  --ink-muted:   #6b6a6e;
+  --ink-subtle:  #908e8a;
+  --ink-faint:   #b8b4a8;
+
+  --c-navy:        #1f4e79;
+  --c-navy-soft:   #d8e3ee;
+  --c-tomato:      #e85d3f;
+  --c-tomato-soft: #fbe1da;
+  --c-ochre:       #e09733;
+  --c-ochre-soft:  #fbecd0;
+  --c-forest:      #2d6a4f;
+  --c-forest-soft: #d6e6dc;
+  --c-plum:        #6d3aed;
+  --c-plum-soft:   #e5dafa;
+
+  --ide-bg:       #fdfaf2;
+  --ide-elevated: #f3edd8;
+  --ide-deep:     #ece4cb;
+  --ide-rule:     #d8cfb8;
+
+  --code-keyword:   #6d3aed;
+  --code-string:    #2d6a4f;
+  --code-number:    #d24e32;
+  --code-comment:   #908e8a;
+  --code-decorator: #e09733;
+  --code-ident:     #1a1a1f;
+  --code-other:     #1f4e79;
+
+  --r-sm: 4px;  --r-md: 10px; --r-lg: 14px; --r-xl: 20px; --r-2xl: 28px; --r-pill: 999px;
+
+  --shadow-cta: 0 6px 20px -4px rgba(31, 78, 121, 0.35);
+}
 
 @theme {
-  --color-bg: var(--color-gray-800);
-  --lum-border-radius: var(--radius-xl);
+  --font-display: 'Newsreader', Georgia, serif;
+  --font-sans: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'DM Mono', ui-monospace, Menlo, monospace;
+
+  --color-paper:          var(--paper);
+  --color-paper-elevated: var(--paper-elevated);
+  --color-paper-tinted:   var(--paper-tinted);
+  --color-paper-deeper:   var(--paper-deeper);
+  --color-rule:           var(--rule);
+  --color-rule-soft:      var(--rule-soft);
+
+  --color-ink-strong:  var(--ink-strong);
+  --color-ink-default: var(--ink-default);
+  --color-ink-muted:   var(--ink-muted);
+  --color-ink-subtle:  var(--ink-subtle);
+  --color-ink-faint:   var(--ink-faint);
+
+  --color-navy:        var(--c-navy);
+  --color-navy-soft:   var(--c-navy-soft);
+  --color-tomato:      var(--c-tomato);
+  --color-tomato-soft: var(--c-tomato-soft);
+  --color-ochre:       var(--c-ochre);
+  --color-ochre-soft:  var(--c-ochre-soft);
+  --color-forest:      var(--c-forest);
+  --color-forest-soft: var(--c-forest-soft);
+  --color-plum:        var(--c-plum);
+  --color-plum-soft:   var(--c-plum-soft);
+
+  --color-ide-bg:       var(--ide-bg);
+  --color-ide-elevated: var(--ide-elevated);
+  --color-ide-deep:     var(--ide-deep);
+  --color-ide-rule:     var(--ide-rule);
+
+  /* Override Tailwind's default radius scale to match Daylight. Existing
+     rounded-md/lg/xl usages across the app silently take on the new values. */
+  --radius-sm:   var(--r-sm);
+  --radius-md:   var(--r-md);
+  --radius-lg:   var(--r-lg);
+  --radius-xl:   var(--r-xl);
+  --radius-2xl:  var(--r-2xl);
+  --radius-pill: var(--r-pill);
+
+  /* Warm-tinted shadows */
+  --shadow-sm:  0 1px 2px rgba(48, 32, 8, 0.08);
+  --shadow-md:  0 6px 18px rgba(48, 32, 8, 0.08);
+  --shadow-lg:  0 18px 40px rgba(48, 32, 8, 0.12);
+  --shadow-cta: var(--shadow-cta);
 }
 
 html,
@@ -14,10 +103,40 @@ body {
   overflow-y: hidden;
 }
 
-/* Global dark scrollbar */
+body {
+  background: var(--paper);
+  color: var(--ink-default);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, p { text-wrap: pretty; }
+
+/* Type utility classes (mirror .design-system/colors_and_type.css).
+   Wrapped in @layer components so Tailwind utility classes (mb-N, m-0,
+   text-white, etc.) reliably override these baseline values. Default
+   bottom margins give every heading visible breathing room without
+   every author having to add an explicit `mb-N`. */
+@layer components {
+  .heading-display { font: 600 72px/1.02 var(--font-display); letter-spacing: -0.02em; color: var(--ink-strong); margin-bottom: 0.5em; }
+  .heading-1       { font: 600 48px/1.08 var(--font-display); letter-spacing: -0.018em; color: var(--ink-strong); margin-bottom: 0.55em; }
+  .heading-2       { font: 600 34px/1.15 var(--font-display); letter-spacing: -0.012em; color: var(--ink-strong); margin-bottom: 1.2em; }
+  .heading-3       { font: 600 22px/1.3  var(--font-sans); letter-spacing: -0.008em; color: var(--ink-strong); margin-bottom: 0.5em; }
+  .heading-4       { font: 600 17px/1.4  var(--font-sans); color: var(--ink-strong); margin-bottom: 0.4em; }
+
+  .body-lg   { font: 400 19px/1.6  var(--font-sans); color: var(--ink-default); }
+  .body      { font: 400 16px/1.6  var(--font-sans); color: var(--ink-default); }
+  .body-sm   { font: 400 14px/1.55 var(--font-sans); color: var(--ink-muted); }
+  .caption   { font: 500 12px/1.4  var(--font-sans); color: var(--ink-muted); letter-spacing: 0.01em; }
+  .eyebrow   { font: 600 11px/1.3  var(--font-sans); letter-spacing: 0.1em; text-transform: uppercase; }
+}
+
+/* Light scrollbars on Daylight surfaces */
 * {
   scrollbar-width: thin;
-  scrollbar-color: #444 transparent;
+  scrollbar-color: var(--rule) transparent;
 }
 *::-webkit-scrollbar {
   width: 8px;
@@ -27,16 +146,11 @@ body {
   background: transparent;
 }
 *::-webkit-scrollbar-thumb {
-  background-color: #444;
+  background-color: var(--rule);
   border-radius: 4px;
 }
 *::-webkit-scrollbar-thumb:hover {
-  background-color: #666;
-}
-
-/* Clip language dropdown so a partial item peeks, hinting at scrollability */
-.lum-scroll {
-  max-height: 260px !important;
+  background-color: var(--ink-faint);
 }
 
 /* Hide scrollbar utility */
@@ -48,141 +162,183 @@ body {
   display: none;
 }
 
-/* xterm.js scrollbar styling */
+/* xterm.js scrollbar — light terminal variant. */
 .xterm-viewport {
-  background-color: black !important;
+  background-color: var(--ide-bg) !important;
   scrollbar-width: thin;
-  scrollbar-color: #444 black;
+  scrollbar-color: var(--rule) var(--ide-bg);
 }
 .xterm-viewport::-webkit-scrollbar {
   width: 8px;
-  background-color: black;
+  background-color: var(--ide-bg);
 }
 .xterm-viewport::-webkit-scrollbar-thumb {
-  background-color: #444;
+  background-color: var(--rule);
   border-radius: 4px;
 }
 .xterm-viewport::-webkit-scrollbar-thumb:hover {
-  background-color: #666;
+  background-color: var(--ink-faint);
 }
 
-@keyframes fadeIn {
+@keyframes slideInRight {
   from {
-    opacity: 0;
-    transform: translateY(20px);
+    transform: translateX(100%);
   }
   to {
-    opacity: 1;
-    transform: translateY(0);
+    transform: translateX(0);
   }
 }
 
-.fade-in {
-  animation: fadeIn 0.6s ease-out forwards;
+.slide-in-right {
+  animation: slideInRight 0.3s ease-in-out forwards;
 }
 
-.fade-in-fast {
-  animation: fadeIn 0.1s ease-out forwards;
-}
-
-.fade-in-delayed {
-  animation: fadeIn 0.6s ease-out 0.2s forwards;
-  opacity: 0;
-}
-
-/* Markdown styles for better rendering */
+/* Markdown rendering on cream paper */
 .markdown-content {
-  @apply text-white;
+  color: var(--ink-default);
 }
 
 .markdown-content h1 {
-  @apply text-3xl font-bold mb-2 mt-4 text-white;
+  font: 600 48px/1.08 var(--font-display);
+  letter-spacing: -0.018em;
+  color: var(--ink-strong);
+  margin: 16px 0 12px;
 }
 
 .markdown-content h2 {
-  @apply text-2xl font-bold mb-2 mt-4 text-white;
+  font: 600 34px/1.15 var(--font-display);
+  letter-spacing: -0.012em;
+  color: var(--ink-strong);
+  margin: 16px 0 10px;
 }
 
 .markdown-content h3 {
-  @apply text-xl font-bold mb-1 mt-3 text-white;
+  font: 600 22px/1.3 var(--font-sans);
+  letter-spacing: -0.008em;
+  color: var(--ink-strong);
+  margin: 12px 0 8px;
 }
 
 .markdown-content h4 {
-  @apply text-lg font-bold mb-1 mt-2 text-white;
+  font: 600 17px/1.4 var(--font-sans);
+  color: var(--ink-strong);
+  margin: 10px 0 6px;
 }
 
 .markdown-content p {
-  @apply mb-2 leading-relaxed;
+  margin-bottom: 0.75rem;
+  line-height: 1.6;
 }
 
 .markdown-content ol {
-  @apply list-decimal list-outside pl-0;
+  list-style: decimal outside;
+  padding-left: 1.5rem;
+  margin-bottom: 0.75rem;
 }
 
 .markdown-content ul {
-  @apply list-disc list-outside pl-0;
+  list-style: disc outside;
+  padding-left: 1.5rem;
+  margin-bottom: 0.75rem;
 }
 
-/* Tighter indentation for nested lists */
 .markdown-content li > ul,
 .markdown-content li > ol,
 .markdown-content ul ul,
 .markdown-content ul ol,
 .markdown-content ol ul,
 .markdown-content ol ol {
-  @apply ml-4 pl-0 mt-1 mb-2;
+  margin-left: 1rem;
+  padding-left: 0;
+  margin-top: 0.25rem;
+  margin-bottom: 0.5rem;
 }
 
 .markdown-content li {
-  @apply leading-relaxed mb-1;
+  line-height: 1.6;
+  margin-bottom: 0.25rem;
   display: list-item;
 }
 
 .markdown-content li > p {
-  @apply mb-1;
+  margin-bottom: 0.25rem;
 }
 
 .markdown-content blockquote {
-  @apply border-l-4 border-gray-600 pl-4 italic my-4 text-gray-300;
+  border-left: 4px solid var(--rule);
+  padding-left: 1rem;
+  font-style: italic;
+  margin: 1rem 0;
+  color: var(--ink-muted);
 }
 
 .markdown-content code {
-  @apply bg-gray-800 px-1 py-0.5 rounded text-sm font-mono select-text;
+  background: var(--paper-tinted);
+  color: var(--c-navy);
+  padding: 1px 6px;
+  border-radius: var(--r-sm);
+  font-size: 0.9em;
+  font-family: var(--font-mono);
+  user-select: text;
 }
 
 .markdown-content pre {
-  @apply bg-gray-800 p-4 rounded-lg overflow-x-auto mb-4;
+  background: var(--ide-bg);
+  border: 1px solid var(--ide-rule);
+  padding: 16px;
+  border-radius: var(--r-md);
+  overflow-x: auto;
+  margin-bottom: 1rem;
+  color: var(--ink-default);
 }
 
 .markdown-content pre code {
-  @apply bg-transparent p-0;
+  background: transparent;
+  color: inherit;
+  padding: 0;
 }
 
 .markdown-content a {
-  @apply text-blue-400 hover:text-blue-300 underline;
+  color: var(--c-navy);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.markdown-content a:hover {
+  text-decoration: underline;
 }
 
 .markdown-content strong {
-  @apply font-bold;
+  font-weight: 700;
+  color: var(--ink-strong);
 }
 
 .markdown-content em {
-  @apply italic;
+  font-style: italic;
 }
 
 .markdown-content hr {
-  @apply border-gray-600 my-6;
+  border: 0;
+  border-top: 1px solid var(--rule-soft);
+  margin: 1.5rem 0;
 }
 
 .markdown-content table {
-  @apply w-full border-collapse border border-gray-600 mb-4;
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid var(--rule);
+  margin-bottom: 1rem;
 }
 
 .markdown-content th,
 .markdown-content td {
-  @apply border border-gray-600 px-3 py-2 text-left;
+  border: 1px solid var(--rule-soft);
+  padding: 8px 12px;
+  text-align: left;
 }
 
 .markdown-content th {
-  @apply bg-gray-800 font-bold;
+  background: var(--paper-tinted);
+  font-weight: 700;
+  color: var(--ink-strong);
 }

@@ -1,6 +1,8 @@
 import { useContext, useEffect, useRef, useState } from 'react';
-import { ExternalLink, Globe, Trash2, X } from 'lucide-react';
+import { Check, ExternalLink, Globe, Loader2, Trash2, X } from 'lucide-react';
 import { apiUrl, UserDataContext } from '../util/UserData';
+import { PrimaryButton } from './ui/Buttons';
+import { cn } from '../util/cn';
 
 const isDev = import.meta.env.VITE_ENVIRONMENT !== 'production';
 
@@ -130,30 +132,36 @@ export default function PortsPanel({ open, onClose }: Props) {
   const portOutOfRange = port !== '' && !isNaN(portNum) && userInfo && (portNum < userInfo.port_start || portNum > userInfo.port_end);
   const portValid = userInfo && !isNaN(portNum) && portNum >= userInfo.port_start && portNum <= userInfo.port_end;
   const conflictingRecord = portValid ? records.find(r => r.port === portNum) : undefined;
-  const canClaim = portValid && subdomain.length >= 3 && availability?.available && !saving;
-  const subdomainIndicatorClass = checking
-    ? 'text-gray-500'
-    : availability?.available ? 'text-green-400' : 'text-red-400';
+  const canClaim = !!(portValid && subdomain.length >= 3 && availability?.available && !saving);
+
+  const inputClasses = 'w-full bg-paper border border-rule rounded-md px-3 py-2 text-sm text-ink-default placeholder:text-ink-subtle focus:outline-none focus:ring-2 focus:ring-navy/30 font-mono';
 
   return (
-    <div className={`fixed inset-0 z-50 flex transition-all duration-300 ${open ? 'pointer-events-auto' : 'pointer-events-none'}`}>
+    <div className={cn('fixed inset-0 z-50 flex transition-all duration-300', open ? 'pointer-events-auto' : 'pointer-events-none')}>
       {/* Backdrop */}
       <div
-        className={`absolute inset-0 bg-black/50 transition-opacity duration-300 ${open ? 'opacity-100' : 'opacity-0'}`}
+        className={cn(
+          'absolute inset-0 bg-ink-strong/40 transition-opacity duration-300',
+          open ? 'opacity-100' : 'opacity-0',
+        )}
         onClick={onClose}
       />
 
       {/* Panel — slides in from the right */}
-      <div className={`relative ml-auto w-full max-w-sm bg-gray-900 border-l border-gray-700 flex flex-col h-full overflow-hidden shadow-2xl transition-transform duration-300 ease-in-out ${open ? 'translate-x-0' : 'translate-x-full'}`}>
+      <div className={cn(
+        'relative ml-auto w-full max-w-sm bg-paper-elevated border-l border-rule-soft flex flex-col h-full overflow-hidden shadow-lg transition-transform duration-300 ease-in-out',
+        open ? 'translate-x-0' : 'translate-x-full',
+      )}>
         {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-700 flex items-center justify-between flex-shrink-0">
+        <div className="px-6 py-4 border-b border-rule-soft flex items-center justify-between flex-shrink-0">
           <div className="flex items-center gap-2">
-            <Globe size={16} className="text-[#54daf4]" />
-            <span className="font-semibold">Public URLs</span>
+            <Globe size={18} className="text-navy" />
+            <span className="heading-3">Public URLs</span>
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-lg hover:bg-gray-800 transition-colors text-gray-400 hover:text-white"
+            className="p-1 rounded hover:bg-paper-tinted text-ink-muted hover:text-ink-strong transition-colors cursor-pointer"
+            aria-label="Close"
           >
             <X size={18} />
           </button>
@@ -163,39 +171,44 @@ export default function PortsPanel({ open, onClose }: Props) {
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
           {/* Port range info */}
           {userInfo && (
-            <div className="text-sm text-gray-400 bg-gray-800/50 rounded-lg px-4 py-3">
+            <div className="text-sm text-ink-muted bg-paper-tinted rounded-md px-4 py-3">
               Your port range is{' '}
-              <span className="text-white font-mono">{userInfo.port_start}–{userInfo.port_end}</span>.
+              <span className="text-ink-strong font-mono">{userInfo.port_start}–{userInfo.port_end}</span>.
               Bind your app to a port in this range, then give it a public URL below.
             </div>
           )}
+
           {/* Claim form */}
           <div>
-            <h3 className="text-xs text-gray-400 font-medium mb-3">Claim a URL</h3>
+            <h3 className="eyebrow text-ink-muted mb-3">Claim a URL</h3>
             <div className="space-y-3">
               <div>
-                <label className="text-xs text-gray-400 mb-1 block">Port</label>
+                <label className="text-xs text-ink-muted mb-1 block font-medium">Port</label>
                 <input
                   type="number"
                   placeholder={userInfo ? `${userInfo.port_start}` : 'Port'}
                   value={port}
                   onChange={(e) => { setPortTouched(true); setPort(e.target.value); }}
-                  className="w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:border-[#54daf4]/60 placeholder:text-gray-600 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  className={cn(
+                    inputClasses,
+                    '[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none',
+                  )}
                 />
                 {portOutOfRange && (
-                  <p className="text-xs mt-1 text-red-400!">
+                  <p className="text-xs mt-1 text-tomato">
                     Must be between <span className="font-mono">{userInfo!.port_start}</span> and <span className="font-mono">{userInfo!.port_end}</span>.
                   </p>
                 )}
                 {conflictingRecord && (
-                  <p className="text-xs mt-1 text-yellow-400!">
+                  <p className="text-xs mt-1 text-ochre">
                     Port {portNum} is already mapped to{' '}
                     <span className="font-mono">{appUrlLabel(conflictingRecord.subdomain, conflictingRecord.port)}</span> — claiming will replace it.
                   </p>
                 )}
               </div>
+
               <div>
-                <label className="text-xs text-gray-400 mb-1 block">Subdomain</label>
+                <label className="text-xs text-ink-muted mb-1 block font-medium">Subdomain</label>
                 <div className="relative">
                   <input
                     type="text"
@@ -203,16 +216,27 @@ export default function PortsPanel({ open, onClose }: Props) {
                     value={subdomain}
                     onChange={(e) => handleSubdomainInput(e.target.value)}
                     maxLength={32}
-                    className="w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:border-[#54daf4]/60 placeholder:text-gray-500"
+                    className={inputClasses}
                   />
                   {subdomain.length >= 3 && (
-                    <span className={`absolute right-3 top-1/2 -translate-y-1/2 text-xs ${subdomainIndicatorClass}`}>
-                      {checking ? '…' : availability?.available ? '✓' : '✗'}
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 inline-flex items-center">
+                      {checking ? (
+                        <Loader2 size={14} className="animate-spin text-ink-muted" />
+                      ) : availability?.available ? (
+                        <Check size={14} className="text-forest" />
+                      ) : (
+                        <X size={14} className="text-tomato" />
+                      )}
                     </span>
                   )}
                 </div>
+                {subdomain.length >= 3 && checking && (
+                  <p className="text-xs mt-1 text-ink-muted inline-flex items-center gap-1">
+                    Checking…
+                  </p>
+                )}
                 {subdomain.length >= 3 && !checking && availability && (
-                  <p className={`text-xs mt-1 ${availability.available ? 'text-green-400!' : 'text-red-400!'}`}>
+                  <p className={cn('text-xs mt-1', availability.available ? 'text-forest' : 'text-tomato')}>
                     {availability.available
                       ? `${appUrlLabel(subdomain, portNum)} is available`
                       : availability.reason || 'Already taken'}
@@ -220,36 +244,34 @@ export default function PortsPanel({ open, onClose }: Props) {
                 )}
               </div>
 
-              {error && <p className="text-xs text-red-400">{error}</p>}
+              {error && <p className="text-tomato text-sm">{error}</p>}
 
-              <button
+              <PrimaryButton
+                color="navy"
+                size="md"
                 onClick={handleClaim}
                 disabled={!canClaim}
-                className={`w-full py-2 rounded-lg text-sm font-semibold transition-colors ${
-                  canClaim
-                    ? 'bg-[#2a9bb8] hover:bg-[#238da8] text-white cursor-pointer'
-                    : 'bg-gray-800 text-gray-600 cursor-not-allowed'
-                }`}
+                className="w-full justify-center"
               >
-                {saving ? 'Claiming…' : 'Claim URL'}
-              </button>
+                {saving ? 'Claiming…' : 'Add subdomain'}
+              </PrimaryButton>
             </div>
           </div>
 
           {/* Existing mappings */}
           {records.length > 0 && (
             <div>
-              <h3 className="text-xs text-gray-400 font-medium mb-3">Active</h3>
-              <div className="space-y-2">
+              <h3 className="eyebrow text-ink-muted mb-3">Active</h3>
+              <div className="space-y-1">
                 {records.map((r) => (
-                  <div key={r.subdomain} className="flex items-center gap-3 bg-gray-800/50 rounded-lg px-4 py-3">
+                  <div key={r.subdomain} className="flex items-center gap-3 py-2 px-3 rounded-md hover:bg-paper-tinted transition-colors">
                     <div className="flex-1 min-w-0">
-                      <div className="text-xs text-gray-500 font-mono mb-0.5">port {r.port}</div>
+                      <div className="text-xs text-ink-muted font-mono mb-0.5">port {r.port}</div>
                       <a
                         href={appUrl(r.subdomain, r.port)}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-sm text-[#54daf4] hover:underline font-mono break-all"
+                        className="text-sm text-navy hover:text-navy/80 hover:underline font-mono break-all"
                       >
                         {appUrlLabel(r.subdomain, r.port)}
                       </a>
@@ -258,15 +280,16 @@ export default function PortsPanel({ open, onClose }: Props) {
                       href={appUrl(r.subdomain, r.port)}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-gray-500 hover:text-white transition-colors flex-shrink-0 p-1"
+                      className="text-navy hover:text-navy/80 transition-colors flex-shrink-0 p-1.5 rounded hover:bg-paper-deeper"
                       title="Open"
                     >
                       <ExternalLink size={14} />
                     </a>
                     <button
                       onClick={() => handleRelease(r.subdomain)}
-                      className="text-gray-600 hover:text-red-400 transition-colors flex-shrink-0 p-1"
+                      className="text-tomato hover:bg-tomato/10 transition-colors flex-shrink-0 p-1.5 rounded cursor-pointer"
                       title="Remove"
+                      aria-label={`Remove ${r.subdomain}`}
                     >
                       <Trash2 size={14} />
                     </button>
@@ -275,7 +298,6 @@ export default function PortsPanel({ open, onClose }: Props) {
               </div>
             </div>
           )}
-
         </div>
       </div>
     </div>

@@ -6,7 +6,7 @@ import { Group as PanelGroup, Panel, Separator as PanelResizeHandle } from 'reac
 export default function Layout({ children }: { children?: ReactNode }) {
   return (
     <>
-      <div className="h-[calc(100svh-5.5rem)] w-full flex flex-col px-1 pb-1">
+      <div className="h-[calc(100svh-5.5rem)] w-full flex flex-col bg-paper p-2 gap-2">
         <PanelGroup orientation="vertical" className="flex-1">
           <Panel minSize="25%" defaultSize="62%">
             <PanelGroup orientation="horizontal" className="h-full">
@@ -20,7 +20,7 @@ export default function Layout({ children }: { children?: ReactNode }) {
                 </div>
               </Panel>
               <PanelResizeHandle className="w-2 flex items-center justify-center group cursor-col-resize">
-                <div className="w-px h-full bg-gray-700 group-hover:bg-blue-500/60 transition-colors duration-150" />
+                <div className="w-px h-full bg-rule group-hover:bg-navy/60 transition-colors duration-150" />
               </PanelResizeHandle>
               <Panel minSize="30%">
                 <div className="h-full">
@@ -30,11 +30,11 @@ export default function Layout({ children }: { children?: ReactNode }) {
             </PanelGroup>
           </Panel>
           <PanelResizeHandle className="h-2 flex items-center justify-center group cursor-row-resize">
-            <div className="h-px w-full bg-gray-700 group-hover:bg-blue-500/60 transition-colors duration-150" />
+            <div className="h-px w-full bg-rule group-hover:bg-navy/60 transition-colors duration-150" />
           </PanelResizeHandle>
           <Panel minSize="10%" defaultSize="38%">
             <div className="h-full">
-              {children ?? <div className="lum-card lum-bg-black border-lum-border/40 h-full" />}
+              {children ?? <div className="h-full bg-ide-bg border border-ide-rule rounded-lg" />}
             </div>
           </Panel>
         </PanelGroup>

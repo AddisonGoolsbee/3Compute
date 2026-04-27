@@ -39,6 +39,7 @@ export function Layout({ children }: { children: ReactNode }) {
   const loaderData = useLoaderData<UserData>();
   const [openFolders, setOpenFolders] = useState<string[]>(() => loadPersistedOpenFolders());
   const [currentFile, setCurrentFile] = useState<FileType | undefined>();
+  const [openFiles, setOpenFiles] = useState<FileType[]>([]);
   const [files, setFilesClientSide] = useState<Files | undefined>(loaderData?.files);
   const [classroomSymlinks, setClassroomSymlinks] = useState(loaderData?.classroomSymlinks || {});
   const [isUserEditingName, setIsUserEditingName] = useState(false);
@@ -65,6 +66,15 @@ export function Layout({ children }: { children: ReactNode }) {
       // quota or unavailable — ignore
     }
   }, [openFolders]);
+
+  // Any time the active file changes, ensure it's present in the open-tabs
+  // list. Callsites just call setCurrentFile — opening a tab is a side effect.
+  useEffect(() => {
+    if (!currentFile) return;
+    setOpenFiles((prev) =>
+      prev.some((f) => f.location === currentFile.location) ? prev : [...prev, currentFile],
+    );
+  }, [currentFile]);
 
   // Prune persisted open-folder entries that no longer exist in the current
   // file tree (renamed, deleted, archived classroom, etc.). Runs every time
@@ -159,6 +169,8 @@ export function Layout({ children }: { children: ReactNode }) {
     setOpenFolders,
     currentFile,
     setCurrentFile,
+    openFiles,
+    setOpenFiles,
     refreshFiles,
     isUserEditingName,
     setIsUserEditingName,
@@ -370,7 +382,7 @@ export function Layout({ children }: { children: ReactNode }) {
         <Links />
         <title>3Compute</title>
       </head>
-      <body className="bg-bg text-lum-text mt-20">
+      <body className="bg-paper text-ink-default">
         <UserDataContext value={userData}>
           <NavComponent />
           {children}

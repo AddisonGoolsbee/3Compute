@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
+import { LogIn, X } from 'lucide-react';
 import { apiUrl } from '../util/UserData';
+import { GhostButton, PrimaryButton } from './ui/Buttons';
 
 interface Props {
   open: boolean;
@@ -77,21 +79,39 @@ export default function JoinClassroomDialog({ open, onClose }: Props) {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center z-50">
+    <div className="fixed inset-0 z-50 bg-ink-strong/60 flex items-center justify-center p-7">
       <div
-        className="absolute inset-0 bg-gray-950"
+        className="absolute inset-0"
         onClick={onClose}
+        aria-hidden
       />
       <form
         onSubmit={handleSubmit}
-        className="relative border border-white/10 rounded-lg shadow-xl w-full max-w-md p-6 flex flex-col gap-4 lum-bg-nav-bg"
+        className="relative bg-paper-elevated border border-rule-soft rounded-xl shadow-lg p-7 max-w-[480px] w-full"
       >
-        <h2 className="text-lg font-semibold">Join Classroom</h2>
-        <div className="flex flex-col gap-1">
-          <label className="text-xs uppercase tracking-wide opacity-70">
-            Access Code
+        <div className="flex items-start justify-between gap-4 mb-2">
+          <h2 className="heading-3">Join a classroom</h2>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close"
+            className="text-ink-muted hover:text-ink-strong p-1 rounded hover:bg-paper-tinted transition-colors"
+          >
+            <X size={18} />
+          </button>
+        </div>
+        <p className="body-sm text-ink-muted mb-4">
+          Enter the six-character access code your teacher shared with you.
+        </p>
+        <div className="flex flex-col gap-1.5 mb-4">
+          <label
+            htmlFor="join-classroom-code"
+            className="text-sm font-semibold text-ink-strong"
+          >
+            Access code
           </label>
           <input
+            id="join-classroom-code"
             autoFocus
             value={code}
             onChange={(e) => {
@@ -101,33 +121,24 @@ export default function JoinClassroomDialog({ open, onClose }: Props) {
                 .slice(0, 6);
               setCode(val);
             }}
-            className="lum-input w-full"
+            className="bg-paper border border-rule rounded-md px-3 py-2 text-ink-default placeholder:text-ink-subtle focus:outline-none focus:ring-2 focus:ring-navy/30 font-mono uppercase tracking-[0.12em] text-center text-lg"
             placeholder="ABC123"
             maxLength={6}
           />
           {error && (
-            <span className="text-xs text-red-400 font-semibold">{error}</span>
+            <span className="text-xs text-tomato font-semibold">{error}</span>
           )}
         </div>
-        <div className="flex justify-end gap-2">
-          <button
-            type="button"
-            onClick={onClose}
-            className="lum-btn lum-bg-transparent hover:lum-bg-white/10"
-          >
-            Cancel
-          </button>
-          <button
+        <div className="flex justify-end gap-2 mt-6 pt-5 border-t border-rule-soft">
+          <GhostButton onClick={onClose}>Cancel</GhostButton>
+          <PrimaryButton
+            color="forest"
             type="submit"
             disabled={!code || submitting}
-            className={`lum-btn ${
-              code && !submitting
-                ? 'lum-bg-blue-600 hover:lum-bg-blue-500'
-                : 'lum-bg-gray-600 opacity-50 cursor-not-allowed'
-            }`}
+            icon={<LogIn size={16} />}
           >
-            {submitting ? 'Checking...' : 'Join'}
-          </button>
+            {submitting ? 'Checking...' : 'Join classroom'}
+          </PrimaryButton>
         </div>
       </form>
     </div>

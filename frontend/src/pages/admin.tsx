@@ -1,9 +1,14 @@
 import { useContext, useEffect, useRef, useState } from 'react';
-import { Link, Navigate } from 'react-router';
-import { ArrowLeft, RefreshCw, AlertTriangle, Server, Cpu, HardDrive, Users, Boxes, School, Network, Activity, ScrollText } from 'lucide-react';
+import { Link, Navigate, useLocation } from 'react-router';
+import {
+  RefreshCw, AlertTriangle, Server, Cpu, HardDrive, Users, Boxes,
+  School, Network, Activity,
+} from 'lucide-react';
 import { apiUrl, UserDataContext } from '../util/UserData';
 import AdminRestricted from '../components/AdminRestricted';
 import Footer from '../components/Footer';
+import { GhostButton } from '../components/ui/Buttons';
+import { cn } from '../util/cn';
 
 interface Stats {
   host: {
@@ -41,13 +46,13 @@ function fmtDuration(seconds: number): string {
 
 function Bar({ percent, tone }: { percent: number; tone?: 'ok' | 'warn' | 'crit' }) {
   const p = Math.max(0, Math.min(100, percent));
-  const color =
-    tone === 'crit' ? 'bg-red-500' :
-      tone === 'warn' ? 'bg-yellow-500' :
-        'bg-blue-500';
+  const colorClass =
+    tone === 'crit' ? 'bg-tomato' :
+      tone === 'warn' ? 'bg-ochre' :
+        'bg-forest';
   return (
-    <div className="w-full h-2 bg-gray-800 rounded-full overflow-hidden">
-      <div className={`h-full ${color} transition-all`} style={{ width: `${p}%` }} />
+    <div className="w-full h-2 bg-paper-deeper rounded-full overflow-hidden">
+      <div className={cn('h-full transition-all', colorClass)} style={{ width: `${p}%` }} />
     </div>
   );
 }
@@ -69,15 +74,18 @@ function Card({
   children: React.ReactNode;
   highlight?: 'crit' | 'warn' | null;
 }) {
-  const ring =
-    highlight === 'crit' ? 'ring-2 ring-red-500/60' :
-      highlight === 'warn' ? 'ring-2 ring-yellow-500/50' :
+  const ringClass =
+    highlight === 'crit' ? 'ring-2 ring-tomato/60' :
+      highlight === 'warn' ? 'ring-2 ring-ochre/50' :
         '';
   return (
-    <div className={`bg-gray-900/50 border border-gray-800 rounded-lg p-4 flex flex-col gap-3 ${ring}`}>
-      <div className="flex items-center gap-2 text-gray-300">
+    <div className={cn(
+      'bg-paper-elevated border border-rule-soft rounded-xl p-5 flex flex-col gap-3 shadow-sm',
+      ringClass,
+    )}>
+      <div className="flex items-center gap-2 text-ink-muted">
         <span className="opacity-70">{icon}</span>
-        <h3 className="font-semibold text-sm uppercase tracking-wide">{title}</h3>
+        <h3 className="font-semibold text-xs uppercase tracking-wider">{title}</h3>
       </div>
       <div className="flex flex-col gap-2">{children}</div>
     </div>
@@ -87,22 +95,56 @@ function Card({
 function Stat({ label, value, sub }: { label: string; value: React.ReactNode; sub?: React.ReactNode }) {
   return (
     <div className="flex items-baseline justify-between gap-3">
-      <span className="text-xs text-gray-400">{label}</span>
+      <span className="text-xs text-ink-muted uppercase tracking-wider">{label}</span>
       <span className="text-right">
-        <span className="text-base font-mono text-white">{value}</span>
-        {sub && <div className="text-[10px] text-gray-500 font-mono">{sub}</div>}
+        <span className="text-base font-mono text-ink-strong">{value}</span>
+        {sub && <div className="text-[11px] text-ink-subtle font-mono">{sub}</div>}
       </span>
+    </div>
+  );
+}
+
+const SUB_NAV: Array<{ label: string; to: string }> = [
+  { label: 'Overview', to: '/admin' },
+  { label: 'Users', to: '/admin/users' },
+  { label: 'Classrooms', to: '/admin/classrooms' },
+  { label: 'Containers', to: '/admin/containers' },
+  { label: 'Logs', to: '/admin/logs' },
+];
+
+function SubNav({ active }: { active: string }) {
+  return (
+    <div className="flex gap-1 mb-7 border-b border-rule-soft">
+      {SUB_NAV.map((tab) => {
+        const isActive = tab.to === active;
+        return (
+          <Link
+            key={tab.to}
+            to={tab.to}
+            className={cn(
+              'px-4 py-2.5 border-b-2 -mb-px text-sm font-semibold transition-colors',
+              isActive
+                ? 'border-navy text-ink-strong'
+                : 'border-transparent text-ink-muted hover:text-ink-strong',
+            )}
+          >
+            {tab.label}
+          </Link>
+        );
+      })}
     </div>
   );
 }
 
 export default function AdminPage() {
   const userData = useContext(UserDataContext);
+  const location = useLocation();
   const [stats, setStats] = useState<Stats | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const loadRef = useRef<() => Promise<void>>(() => Promise.resolve());
 
   const isAdmin = !!userData?.userInfo?.is_admin;
   const isLoggedIn = !!userData?.userInfo;
@@ -137,6 +179,7 @@ export default function AdminPage() {
         }
       }
     };
+    loadRef.current = load;
     load();
     timerRef.current = setInterval(load, 5000);
     return () => {
@@ -159,58 +202,43 @@ export default function AdminPage() {
   const fdTone = toneFor(fdPercent);
 
   return (
-    <div className="-mt-20 text-white min-h-screen flex flex-col">
-      <header className="pt-24 pb-4 px-6">
-        <div className="max-w-6xl mx-auto">
-          <Link
-            to="/ide"
-            className="inline-flex items-center gap-2 text-gray-400 hover:text-white transition-colors mb-4"
-          >
-            <ArrowLeft size={18} />
-            Back to IDE
-          </Link>
-          <div className="flex items-center justify-between flex-wrap gap-3">
+    <div className="min-h-screen flex flex-col">
+      <main className="flex-1">
+        <div className="max-w-[1200px] mx-auto px-7 py-10">
+          <div className="flex items-start justify-between flex-wrap gap-4 mb-7">
             <div>
-              <h1 className="text-3xl font-bold mb-1">Admin dashboard</h1>
-              <p className="text-gray-400 text-sm">
-                Live node + service stats. Auto-refreshes every 5s.
-                {stats && (
-                  <span className="ml-2 text-gray-500">
-                    Last update: {new Date(stats.timestamp * 1000).toLocaleTimeString()}
-                  </span>
-                )}
+              <h1 className="heading-1">Admin overview</h1>
+              <p className="body-sm mt-1.5">
+                Live node and service stats. Auto-refreshes every 5s.
               </p>
+              {stats && (
+                <p className="caption mt-1">
+                  Last update {new Date(stats.timestamp * 1000).toLocaleTimeString()}
+                </p>
+              )}
             </div>
-            <div className="flex items-center gap-3">
-              <Link
-                to="/admin/logs"
-                className="inline-flex items-center gap-1 px-3 py-1.5 rounded bg-gray-800 border border-gray-700 text-gray-200 hover:bg-gray-700 text-sm"
-              >
-                <ScrollText size={14} /> Logs
-              </Link>
-              <div className="flex items-center gap-2 text-sm text-gray-400">
-                <RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} />
-                {refreshing ? 'Refreshing…' : 'Idle'}
-              </div>
-            </div>
+            <GhostButton
+              icon={<RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} />}
+              onClick={() => loadRef.current()}
+            >
+              Refresh
+            </GhostButton>
           </div>
-        </div>
-      </header>
 
-      <main className="flex-1 px-6 pb-12">
-        <div className="max-w-6xl mx-auto">
+          <SubNav active={location.pathname} />
+
           {loading && !stats && (
-            <div className="text-gray-500">Loading…</div>
+            <div className="body text-ink-muted text-center py-10">Loading…</div>
           )}
           {error && (
-            <div className="mb-4 rounded-lg border border-red-700/50 bg-red-950/30 p-3 text-sm text-red-300 flex items-start gap-2">
-              <AlertTriangle size={16} className="mt-0.5 shrink-0" />
+            <div className="mb-4 bg-tomato-soft border border-tomato/30 rounded-md px-4 py-3 text-tomato text-sm flex items-center gap-2">
+              <AlertTriangle size={16} className="shrink-0" />
               <span>Failed to fetch stats: {error}</span>
             </div>
           )}
 
           {stats && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
               <Card
                 title="Backend process"
                 icon={<Activity size={16} />}
@@ -293,14 +321,14 @@ export default function AdminPage() {
                   sub={`${stats.users.total > 0 ? Math.round((stats.users.onboarded / stats.users.total) * 100) : 0}% of total`}
                 />
                 <Stat label="Active (24h)" value={stats.users.active_24h} />
-                <Link to="/admin/users" className="text-xs text-blue-400 hover:text-blue-300 mt-1">
+                <Link to="/admin/users" className="text-xs text-navy font-semibold mt-1 hover:underline">
                   View all users →
                 </Link>
               </Card>
 
               <Card title="User containers" icon={<Boxes size={16} />}>
                 {stats.containers.error ? (
-                  <span className="text-sm text-red-300">Docker error: {stats.containers.error}</span>
+                  <span className="text-sm text-tomato">Docker error: {stats.containers.error}</span>
                 ) : (
                   <>
                     <Stat label="Running" value={stats.containers.running ?? '—'} />
@@ -308,7 +336,7 @@ export default function AdminPage() {
                     <Stat label="Total" value={stats.containers.total ?? '—'} />
                   </>
                 )}
-                <Link to="/admin/containers" className="text-xs text-blue-400 hover:text-blue-300 mt-1">
+                <Link to="/admin/containers" className="text-xs text-navy font-semibold mt-1 hover:underline">
                   View all containers →
                 </Link>
               </Card>
@@ -316,7 +344,7 @@ export default function AdminPage() {
               <Card title="Classrooms" icon={<School size={16} />}>
                 <Stat label="Total" value={stats.classrooms.total} />
                 <Stat label="Memberships" value={stats.classrooms.memberships} />
-                <Link to="/admin/classrooms" className="text-xs text-blue-400 hover:text-blue-300 mt-1">
+                <Link to="/admin/classrooms" className="text-xs text-navy font-semibold mt-1 hover:underline">
                   View all classrooms →
                 </Link>
               </Card>

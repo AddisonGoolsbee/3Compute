@@ -1,8 +1,11 @@
 import { useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { Link, Navigate } from 'react-router';
-import { ArrowLeft, AlertTriangle, RefreshCw, Play, Pause } from 'lucide-react';
+import { Link, Navigate, useLocation } from 'react-router';
+import { AlertTriangle, RefreshCw, Play, Pause } from 'lucide-react';
 import { apiUrl, UserDataContext } from '../util/UserData';
 import AdminRestricted from '../components/AdminRestricted';
+import Footer from '../components/Footer';
+import { GhostButton, Pill } from '../components/ui/Buttons';
+import { cn } from '../util/cn';
 
 interface LogsResponse {
   available: boolean;
@@ -13,8 +16,50 @@ interface LogsResponse {
 
 const LINE_COUNT_OPTIONS = [100, 200, 500, 1000];
 
+const SUB_NAV: Array<{ label: string; to: string }> = [
+  { label: 'Overview', to: '/admin' },
+  { label: 'Users', to: '/admin/users' },
+  { label: 'Classrooms', to: '/admin/classrooms' },
+  { label: 'Containers', to: '/admin/containers' },
+  { label: 'Logs', to: '/admin/logs' },
+];
+
+function SubNav({ active }: { active: string }) {
+  return (
+    <div className="flex gap-1 mb-7 border-b border-rule-soft">
+      {SUB_NAV.map((tab) => {
+        const isActive = tab.to === active;
+        return (
+          <Link
+            key={tab.to}
+            to={tab.to}
+            className={cn(
+              'px-4 py-2.5 border-b-2 -mb-px text-sm font-semibold transition-colors',
+              isActive
+                ? 'border-navy text-ink-strong'
+                : 'border-transparent text-ink-muted hover:text-ink-strong',
+            )}
+          >
+            {tab.label}
+          </Link>
+        );
+      })}
+    </div>
+  );
+}
+
+function classifyLine(line: string): 'error' | 'warn' | 'debug' | 'info' {
+  if (/\b(ERROR|CRITICAL|Error:|Traceback|OSError|PermissionError|FileNotFoundError|Failed)\b/.test(line)) {
+    return 'error';
+  }
+  if (/\b(WARN|WARNING|warning)\b/.test(line)) return 'warn';
+  if (/\b(DEBUG|TRACE)\b/.test(line)) return 'debug';
+  return 'info';
+}
+
 export default function AdminLogsPage() {
   const userData = useContext(UserDataContext);
+  const location = useLocation();
   const [hideDebug, setHideDebug] = useState(true);
   const [hideInfo, setHideInfo] = useState(false);
   const [lineCount, setLineCount] = useState(200);
@@ -90,77 +135,87 @@ export default function AdminLogsPage() {
   }
 
   return (
-    <div className="-mt-20 text-white min-h-screen flex flex-col">
-      <header className="pt-24 pb-4 px-6">
-        <div className="max-w-6xl mx-auto">
-          <Link to="/admin" className="inline-flex items-center gap-2 text-gray-400 hover:text-white transition-colors mb-4">
-            <ArrowLeft size={18} /> Back to admin
-          </Link>
-          <div className="flex items-center justify-between flex-wrap gap-3">
+    <div className="min-h-screen flex flex-col">
+      <main className="flex-1">
+        <div className="max-w-[1200px] mx-auto px-7 py-10">
+          <div className="flex items-start justify-between flex-wrap gap-4 mb-7">
             <div>
-              <h1 className="text-3xl font-bold mb-1">Service logs</h1>
-              <p className="text-gray-400 text-sm">
-                From <code className="bg-black/30 px-1 rounded">journalctl -u 3compute</code>.
+              <h1 className="heading-1">Service logs</h1>
+              <p className="body-sm mt-1.5">
+                From{' '}
+                <code className="bg-paper-deeper text-ink-default font-mono px-1.5 py-0.5 rounded-sm text-[12.5px]">
+                  journalctl -u 3compute
+                </code>
+                .
               </p>
             </div>
-            <div className="flex items-center gap-2 text-sm">
-              <label className="flex items-center gap-1.5 cursor-pointer select-none text-gray-300">
-                <input
-                  type="checkbox"
-                  checked={hideDebug}
-                  onChange={(e) => setHideDebug(e.target.checked)}
-                  className="accent-blue-600"
-                />
-                Hide debug
-              </label>
-              <label className="flex items-center gap-1.5 cursor-pointer select-none text-gray-300">
-                <input
-                  type="checkbox"
-                  checked={hideInfo}
-                  onChange={(e) => setHideInfo(e.target.checked)}
-                  className="accent-blue-600"
-                />
-                Hide info
-              </label>
-              <select
-                value={lineCount}
-                onChange={(e) => setLineCount(Number(e.target.value))}
-                className="bg-gray-800 border border-gray-700 rounded px-2 py-1 text-gray-200"
-              >
-                {LINE_COUNT_OPTIONS.map((n) => (
-                  <option key={n} value={n}>{n} lines</option>
-                ))}
-              </select>
+            <GhostButton
+              icon={<RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} />}
+              onClick={load}
+            >
+              Refresh
+            </GhostButton>
+          </div>
+
+          <SubNav active={location.pathname} />
+
+          <div className="flex flex-wrap items-center gap-3 mb-5">
+            <div className="flex items-center gap-2">
+              <span className="caption">Severity</span>
               <button
-                onClick={() => setAutoRefresh((v) => !v)}
-                className={`inline-flex items-center gap-1 px-3 py-1 rounded border transition-colors ${
-                  autoRefresh
-                    ? 'bg-green-700/40 border-green-600/50 text-green-100 hover:bg-green-700/60'
-                    : 'bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700'
-                }`}
+                type="button"
+                onClick={() => setHideInfo((v) => !v)}
+                className="cursor-pointer"
+                aria-pressed={!hideInfo}
               >
-                {autoRefresh ? <Pause size={14} /> : <Play size={14} />}
-                Auto 10s
+                {hideInfo
+                  ? <Pill color="navy">info hidden</Pill>
+                  : <Pill color="forest">info shown</Pill>}
               </button>
               <button
-                onClick={load}
-                className="inline-flex items-center gap-1 px-3 py-1 rounded bg-gray-800 border border-gray-700 text-gray-300 hover:bg-gray-700"
+                type="button"
+                onClick={() => setHideDebug((v) => !v)}
+                className="cursor-pointer"
+                aria-pressed={!hideDebug}
               >
-                <RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} />
-                Refresh
+                {hideDebug
+                  ? <Pill color="navy">debug hidden</Pill>
+                  : <Pill color="plum">debug shown</Pill>}
               </button>
             </div>
-          </div>
-        </div>
-      </header>
 
-      <main className="flex-1 px-6 pb-12">
-        <div className="max-w-6xl mx-auto">
-          {loading && lines.length === 0 && <div className="text-gray-500">Loading…</div>}
+            <select
+              value={lineCount}
+              onChange={(e) => setLineCount(Number(e.target.value))}
+              className="bg-paper border border-rule rounded-md px-3 py-2 text-sm text-ink-default focus:outline-none focus:ring-2 focus:ring-navy/30"
+            >
+              {LINE_COUNT_OPTIONS.map((n) => (
+                <option key={n} value={n}>{n} lines</option>
+              ))}
+            </select>
+
+            <button
+              type="button"
+              onClick={() => setAutoRefresh((v) => !v)}
+              className={cn(
+                'inline-flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-semibold transition-colors',
+                autoRefresh
+                  ? 'bg-forest-soft text-forest border border-forest/30 hover:brightness-95'
+                  : 'bg-paper border border-rule text-ink-default hover:bg-paper-tinted',
+              )}
+            >
+              {autoRefresh ? <Pause size={14} /> : <Play size={14} />}
+              Auto 10s
+            </button>
+          </div>
+
+          {loading && lines.length === 0 && (
+            <div className="body text-ink-muted text-center py-10">Loading…</div>
+          )}
 
           {!available && error && (
-            <div className="mb-4 rounded-lg border border-yellow-700/50 bg-yellow-950/20 p-3 text-sm text-yellow-200 flex items-start gap-2">
-              <AlertTriangle size={16} className="mt-0.5 shrink-0" />
+            <div className="mb-4 bg-ochre-soft border border-ochre/30 rounded-md px-4 py-3 text-ochre text-sm flex items-center gap-2">
+              <AlertTriangle size={16} className="shrink-0" />
               <span>{error}</span>
             </div>
           )}
@@ -168,33 +223,31 @@ export default function AdminLogsPage() {
           {available && lines.length > 0 && (
             <pre
               ref={preRef}
-              className="bg-gray-950 border border-gray-800 rounded-lg p-3 overflow-auto font-mono text-[11px] leading-relaxed text-gray-300"
-              style={{ maxHeight: 'calc(100vh - 240px)' }}
+              className="bg-ide-bg border border-ide-rule rounded-lg p-4 font-mono text-[13px] text-ink-default overflow-auto max-h-[70vh] whitespace-pre-wrap"
             >
               {lines.map((line, i) => {
-                const isError = /\b(ERROR|Error:|Traceback|OSError|PermissionError|FileNotFoundError|Failed)\b/.test(line);
-                const isWarn = /\b(WARN|WARNING|warning)\b/.test(line);
+                const kind = classifyLine(line);
+                const cls =
+                  kind === 'error' ? 'text-tomato' :
+                    kind === 'warn' ? 'text-ochre' :
+                      kind === 'debug' ? 'text-ink-muted' :
+                        'text-ink-default';
                 return (
-                  <div
-                    key={i}
-                    className={
-                      isError ? 'text-red-300' :
-                        isWarn ? 'text-yellow-300' :
-                          undefined
-                    }
-                  >
+                  <span key={i} className={cn('block', cls)}>
                     {line}
-                  </div>
+                  </span>
                 );
               })}
             </pre>
           )}
 
           {available && lines.length === 0 && !loading && (
-            <div className="text-gray-500 text-sm">No lines returned.</div>
+            <div className="body-sm text-ink-muted">No lines returned.</div>
           )}
         </div>
       </main>
+
+      <Footer />
     </div>
   );
 }

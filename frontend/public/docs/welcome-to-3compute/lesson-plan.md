@@ -73,7 +73,7 @@ Covers student README Parts 1-3.
 
 2. **Distribute the template (2 min):**
 
-   Push the Welcome-to-3compute template to your classroom, or have students create it from the Template button.
+   Push the Welcome-to-3Compute template to your classroom, or have students create it from the Template button.
 
 3. **Self-guided Part 1 + Part 2 (20 min):**
 
@@ -249,7 +249,7 @@ Use these during debriefs or as written exit tickets:
 | File | Purpose |
 |------|---------|
 | `lesson-plan.md` | This document |
-| Welcome-to-3compute student template: | |
+| Welcome-to-3Compute student template: | |
 | `README.md` | Student-facing walkthrough of all 5 parts |
 | `part3/hello.py` | Starter "Hello, world!" Python file |
 | `part4/journal.py` | Partially implemented journal with a TODO for `read_journal()` |

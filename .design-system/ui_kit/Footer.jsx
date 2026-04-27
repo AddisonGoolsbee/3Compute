@@ -30,7 +30,7 @@ const Footer = () => (
       justifyContent: 'space-between', flexWrap: 'wrap', gap: 16,
       paddingTop: 24, borderTop: '1px solid var(--rule-soft)',
       fontSize: 12.5, color: 'var(--ink-subtle)' }}>
-      <span>© 2026 Birdflop, Inc. A 501(c)(3) nonprofit.</span>
+      <span>© 2026 Birdflop. A 501(c)(3) nonprofit.</span>
       <span style={{ display: 'flex', gap: 24 }}>
         <a href="#" style={{ color: 'var(--ink-subtle)', textDecoration: 'none' }}>Terms</a>
         <a href="#" style={{ color: 'var(--ink-subtle)', textDecoration: 'none' }}>Privacy</a>

@@ -1,8 +1,8 @@
 import { useEffect, useState, useCallback, useContext } from 'react';
 import { apiUrl, UserDataContext } from '../util/UserData';
 import { TerminalTabBar } from './TerminalTabBar';
-import { getClasses } from '@luminescent/ui-react';
-import { Globe } from 'lucide-react';
+import { cn } from '../util/cn';
+import { Globe, Loader2 } from 'lucide-react';
 import PortsPanel from './PortsPanel';
 import { TerminalSession } from './TerminalSession';
 
@@ -192,17 +192,20 @@ export default function TerminalTabs() {
 
   if (isLoading) {
     return (
-      <div className="w-full h-full lum-bg-gray-950 border border-lum-border/40 rounded-lum flex flex-col overflow-hidden">
+      <div className="bg-ide-bg border border-ide-rule rounded-lg overflow-hidden flex flex-col h-full">
         <div className="flex-1 flex items-center justify-center">
-          <div className="text-lum-text-secondary">Loading terminals...</div>
+          <span className="inline-flex items-center gap-2 text-sm text-ink-muted">
+            <Loader2 size={14} className="animate-spin" />
+            Loading terminals...
+          </span>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="w-full h-full lum-bg-gray-950 border border-lum-border/40 rounded-lum flex flex-col overflow-hidden">
-      <div className="flex items-center">
+    <div className="bg-ide-bg border border-ide-rule rounded-lg overflow-hidden flex flex-col h-full">
+      <div className="flex items-center bg-ide-elevated border-b border-ide-rule p-1.5 gap-1">
         <div className="flex-1 min-w-0">
           <TerminalTabBar
             tabs={tabs}
@@ -212,24 +215,17 @@ export default function TerminalTabs() {
             onClose={handleCloseTab}
           />
         </div>
-        {!isMacLike && (
-          <span
-            className="hidden md:inline text-xs text-gray-500 px-2 select-none flex-shrink-0"
-            title="Plain Ctrl+C interrupts the running program (sends SIGINT)"
-          >
-            Ctrl+Shift+C to copy
-          </span>
-        )}
         {/* Ports button */}
-        <div className="relative flex-shrink-0 pr-1">
+        <div className="relative flex-shrink-0 ml-auto">
           <button
             onClick={() => setShowPorts((v) => !v)}
             title="Public URLs"
-            className={getClasses({
-              'flex items-center gap-1 px-2 py-1 rounded text-xs transition-colors cursor-pointer': true,
-              'text-[#54daf4] bg-[#54daf4]/10': showPorts,
-              'text-gray-500 hover:text-gray-300': !showPorts,
-            })}
+            className={cn(
+              'inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-sm text-xs font-medium transition-colors cursor-pointer',
+              showPorts
+                ? 'bg-paper-tinted text-ink-strong'
+                : 'text-ink-muted hover:bg-paper-tinted hover:text-ink-strong',
+            )}
           >
             <Globe size={14} />
             <span className="hidden sm:inline">Ports</span>
@@ -237,7 +233,7 @@ export default function TerminalTabs() {
           <PortsPanel open={showPorts} onClose={() => setShowPorts(false)} />
         </div>
       </div>
-      <div className="flex-1 relative">
+      <div className="flex-1 relative bg-ide-bg">
         {tabs.map((tabId) => (
           <TerminalSession
             key={tabId + '-' + restartToken}
@@ -246,6 +242,14 @@ export default function TerminalTabs() {
           />
         ))}
       </div>
+      {!isMacLike && (
+        <div
+          className="bg-paper-tinted border-t border-rule-soft px-3 py-1.5 text-[11.5px] text-ink-muted font-sans"
+          title="Plain Ctrl+C interrupts the running program (sends SIGINT)"
+        >
+          Ctrl+Shift+C to copy
+        </div>
+      )}
     </div>
   );
 }

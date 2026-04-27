@@ -1,5 +1,5 @@
 {
-    "Welcome-to-3compute": {
+    "Welcome-to-3Compute": {
         "files": [
             "README.md",
             "part3/hello.py",
@@ -7,7 +7,7 @@
             "part5/app.py",
             "part5/requirements.txt"
         ],
-        "description": "First day on 3compute: use the terminal, run Python, and publish a live webpage",
+        "description": "First day on 3Compute: use the terminal, run Python, and publish a live webpage",
         "duration": "2-3 class periods",
         "lessonPlanDoc": "/docs/welcome-to-3compute/lesson-plan.md",
         "standards": [

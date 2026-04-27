@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { LogoBirdflop } from '@luminescent/ui-react';
 import { BookOpen, GraduationCap } from 'lucide-react';
 import { apiUrl } from '../util/UserData';
+import { PrimaryButton } from './ui/Buttons';
 
 export default function Onboarding() {
   const [loading, setLoading] = useState(false);
@@ -26,19 +27,21 @@ export default function Onboarding() {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-bg">
-      <div className="flex flex-col items-center text-center max-w-md px-6">
-        <LogoBirdflop size={64} fillGradient={['#54daf4', '#545eb6']} className="mb-6" />
-        <h1 className="text-2xl font-bold mb-2">Welcome to 3Compute</h1>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-paper p-8">
+      <div className="bg-paper-elevated border border-rule rounded-xl p-10 max-w-[460px] w-full text-center shadow-md">
+        <div className="mb-5 mx-auto inline-flex">
+          <LogoBirdflop size={56} fillGradient={['#54daf4', '#545eb6']} />
+        </div>
+        <h1 className="heading-1 mt-2 mb-2.5">Welcome to 3Compute</h1>
 
         {allowedRoles === null ? (
-          <p className="text-lum-text-secondary">Loading...</p>
+          <p className="body text-ink-muted">Loading…</p>
         ) : allowedRoles.length === 0 ? (
           <div className="flex flex-col items-center gap-3">
-            <p className="text-lum-text-secondary">You don't have access to any roles yet.</p>
-            <p className="text-lum-text-secondary">
+            <p className="body text-ink-muted">You don't have access to any roles yet.</p>
+            <p className="body text-ink-muted">
               Contact{' '}
-              <a href="mailto:3compute@birdflop.com" className="text-[#54daf4] hover:underline">
+              <a href="mailto:3compute@birdflop.com" className="text-navy font-semibold no-underline">
                 3compute@birdflop.com
               </a>{' '}
               to request access.
@@ -46,35 +49,31 @@ export default function Onboarding() {
           </div>
         ) : (
           <>
-            <p className="text-gray-400 mb-10">Are you a teacher or a student?</p>
-            <div
-              className={`grid gap-4 w-full ${allowedRoles.length === 1 ? 'grid-cols-1 max-w-xs' : 'grid-cols-2'}`}
-            >
+            <p className="body text-ink-muted mb-7">Are you a teacher or a student?</p>
+            <div className="flex flex-col gap-3 w-full">
               {allowedRoles.includes('teacher') && (
-                <button
-                  disabled={loading}
+                <PrimaryButton
+                  color="navy"
+                  size="lg"
+                  icon={<GraduationCap size={18} />}
                   onClick={() => selectRole('teacher')}
-                  className="flex flex-col items-center gap-3 p-6 rounded-xl border border-gray-700 hover:border-[#54daf4]/60 hover:bg-[#54daf4]/5 transition-colors disabled:opacity-50 cursor-pointer"
+                  disabled={loading}
+                  className="w-full justify-center"
                 >
-                  <BookOpen size={32} className="text-[#54daf4]" />
-                  <div>
-                    <div className="font-semibold text-base">Teacher</div>
-                    <div className="text-xs text-gray-400 mt-0.5">Create classrooms and import lessons</div>
-                  </div>
-                </button>
+                  I'm a teacher
+                </PrimaryButton>
               )}
               {allowedRoles.includes('student') && (
-                <button
-                  disabled={loading}
+                <PrimaryButton
+                  color="forest"
+                  size="lg"
+                  icon={<BookOpen size={18} />}
                   onClick={() => selectRole('student')}
-                  className="flex flex-col items-center gap-3 p-6 rounded-xl border border-gray-700 hover:border-[#54daf4]/60 hover:bg-[#54daf4]/5 transition-colors disabled:opacity-50 cursor-pointer"
+                  disabled={loading}
+                  className="w-full justify-center"
                 >
-                  <GraduationCap size={32} className="text-[#54daf4]" />
-                  <div>
-                    <div className="font-semibold text-base">Student</div>
-                    <div className="text-xs text-gray-400 mt-0.5">Join a classroom and start coding</div>
-                  </div>
-                </button>
+                  I'm a student
+                </PrimaryButton>
               )}
             </div>
           </>

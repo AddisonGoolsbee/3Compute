@@ -16,7 +16,7 @@ This README covers background knowledge that may be necessary or helpful for thi
 
 ## Setup
 
-Right-click the `Welcome-to-3compute` folder in the file explorer on the left and select **Open in Terminal**. This executes `cd` (change directory) in your terminal to the project folder so the commands below will work.
+Right-click the `Welcome-to-3Compute` folder in the file explorer on the left and select **Open in Terminal**. This executes `cd` (change directory) in your terminal to the project folder so the commands below will work.
 
 That's it. Nothing to install yet. Parts 4 and 5 will have you install one thing each.
 
@@ -45,13 +45,13 @@ Look at your screen right now. 3compute is split into three main areas.
 
 ### Try It
 
-If you have not already, right-click the `Welcome-to-3compute` folder and select **Open in Terminal**. Then type this and press Enter:
+If you have not already, right-click the `Welcome-to-3Compute` folder and select **Open in Terminal**. Then type this and press Enter:
 
 ```
 pwd
 ```
 
-It will print something like `/app/Welcome-to-3compute`. That is your current location inside the Linux server. `pwd` stands for "print working directory" and answers the question *where am I?*
+It will print something like `/app/Welcome-to-3Compute`. That is your current location inside the Linux server. `pwd` stands for "print working directory" and answers the question *where am I?*
 
 That first piece of output is your first "aha" moment: you are running a real Linux machine from your browser.
 
@@ -87,7 +87,7 @@ The terminal accepts one command per line. You type a command, press Enter, and 
 
 ### A Small Exercise
 
-Create a small folder structure to practice. From inside `Welcome-to-3compute/`, run:
+Create a small folder structure to practice. From inside `Welcome-to-3Compute/`, run:
 
 ```bash
 mkdir practice
@@ -130,7 +130,7 @@ Open `part3/hello.py` in the editor. You should see this:
 print("Hello, world!")
 ```
 
-That's a complete Python program. Run it from the terminal. You are currently inside `Welcome-to-3compute/`. Move into the `part3` folder first:
+That's a complete Python program. Run it from the terminal. You are currently inside `Welcome-to-3Compute/`. Move into the `part3` folder first:
 
 ```bash
 cd part3

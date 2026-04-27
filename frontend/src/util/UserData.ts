@@ -3,6 +3,8 @@ import { fetchFilesList, Files, FileType } from './Files';
 
 export interface UserInfo {
   email: string;
+  name?: string | null;
+  avatar_url?: string | null;
   role: string | null;
   port_start: number;
   port_end: number;
@@ -23,6 +25,8 @@ export type UserData = {
   setFilesClientSide: Dispatch<SetStateAction<Files | undefined>>;
   currentFile?: FileType;
   setCurrentFile: Dispatch<SetStateAction<FileType | undefined>>;
+  openFiles: FileType[];
+  setOpenFiles: Dispatch<SetStateAction<FileType[]>>;
   openFolders: string[];
   setOpenFolders: Dispatch<SetStateAction<string[]>>;
   refreshFiles: (force?: boolean) => Promise<void>;
@@ -111,6 +115,8 @@ export const defaultUserData: UserData = {
   setFilesClientSide: () => {},
   currentFile: defaultFiles[0],
   setCurrentFile: () => {},
+  openFiles: [],
+  setOpenFiles: () => {},
   openFolders: [defaultFolder.location],
   setOpenFolders: () => {},
   refreshFiles: async () => {},

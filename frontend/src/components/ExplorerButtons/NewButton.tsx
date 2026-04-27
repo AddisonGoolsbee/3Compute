@@ -1,8 +1,8 @@
 import { ChevronRight, File, Folder, LayoutTemplate, Plus } from 'lucide-react';
-import { useContext, useEffect, useState } from 'react';
-import { SelectMenuRaw, getClasses } from '@luminescent/ui-react';
+import { useContext, useEffect, useRef, useState } from 'react';
 import { apiUrl, UserDataContext } from '../../util/UserData';
 import { StatusContext } from '../../util/Files';
+import { cn } from '../../util/cn';
 
 type Manifest = Record<string, string[]>;
 
@@ -23,6 +23,8 @@ export default function NewButton() {
 
   const [manifest, setManifest] = useState<Manifest>({});
   const [classroomTemplates, setClassroomTemplates] = useState<ClassroomWithTemplates[]>([]);
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetch('/templateProjects/manifest.json')
@@ -49,6 +51,18 @@ export default function NewButton() {
       .catch((err) => console.error('Failed to load classroom assignments', err));
   }, [userData?.userInfo, userData?.classroomSymlinks]);
 
+  // Close menu on outside click
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (!containerRef.current) return;
+      if (containerRef.current.contains(e.target as Node)) return;
+      setOpen(false);
+    };
+    document.addEventListener('click', handler);
+    return () => document.removeEventListener('click', handler);
+  }, [open]);
+
   const handleFileClick = (overrideBase?: string) => {
     if (!userData.files) return;
     userData.setIsUserEditingName?.(true);
@@ -69,6 +83,7 @@ export default function NewButton() {
     const cleaned = stripPlaceholders(userData.files);
     const next = insertPlaceholder(cleaned, base, newFile);
     userData.setFilesClientSide(next);
+    setOpen(false);
   };
 
   const handleFolderClick = (overrideBase?: string) => {
@@ -86,6 +101,7 @@ export default function NewButton() {
     const next = insertPlaceholder(cleaned, base, newFolder);
     userData.setFilesClientSide(next);
     userData.setOpenFolders((prev) => prev.includes(base.endsWith('/') ? base.slice(0, -1) : base) ? prev : [...prev, base.endsWith('/') ? base.slice(0, -1) : base]);
+    setOpen(false);
   };
 
   function stripPlaceholders(files: any[]): any[] {
@@ -152,6 +168,7 @@ export default function NewButton() {
 
   const uploadToPersonalWorkspace = async (templateName: string) => {
     setStatus('Uploading template…');
+    setOpen(false);
     const files = manifest[templateName] || [];
     const formData = new FormData();
 
@@ -224,6 +241,7 @@ export default function NewButton() {
 
   const uploadClassroomTemplate = async (classroomId: string, templateName: string, files: string[]) => {
     setStatus('Copying template from classroom…');
+    setOpen(false);
 
     try {
       const classroomSymlinks = userData.classroomSymlinks || {};
@@ -304,98 +322,107 @@ export default function NewButton() {
 
   const templateNames = Object.keys(manifest);
 
-  // Shared styles for the submenu surfaces so nested levels stack identically.
-  const submenuCls = getClasses({
-    'transition-opacity duration-300 absolute left-full top-0 lum-card p-1 gap-1 z-50 drop-shadow-xl lum-bg-gray-900 border border-gray-700/60 min-w-[12rem]': true,
-    'opacity-0 pointer-events-none': true,
-  });
-  const itemCls = 'lum-btn lum-btn-p-1 rounded-lum-1 gap-0.5 w-full text-left lum-bg-transparent';
+  // Shared classes — mirror the right-click context menu in MenuItems.
+  const menuSurface = 'bg-paper-elevated border border-rule-soft rounded-md shadow-md py-1.5 min-w-[10rem] z-50';
+  const menuItem = 'flex items-center gap-2 px-3 py-1.5 text-sm text-ink-default hover:bg-paper-tinted hover:text-ink-strong cursor-pointer w-full text-left';
 
   return (
-    <SelectMenuRaw
-      id="new-button"
-      className="lum-btn-p-1 rounded-lum-2 gap-1 text-xs lum-bg-green-950 hover:lum-bg-green-900"
-      // Override SelectMenuRaw's default overflow-auto / max-h-72 so nested
-      // hover submenus can escape the dropdown without being clipped.
-      panelClass="overflow-visible! max-h-none! lum-bg-gray-900 border border-gray-700/60"
-      customDropdown
-      dropdown={
-        <div className="flex items-center gap-1">
-          <Plus size={16} />
-          New
-        </div>
-      }
-      extra-buttons={<>
+    <div ref={containerRef} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="bg-paper-elevated text-ink-default border border-ide-rule px-2 py-1.5 rounded-sm text-xs font-medium cursor-pointer font-sans inline-flex items-center justify-center gap-1.5 hover:bg-paper-tinted transition-colors w-full"
+      >
+        <Plus size={12} />
+        New
+      </button>
+      <div
+        className={cn(
+          'absolute left-0 top-full mt-1 transition-opacity duration-150',
+          menuSurface,
+          !open && 'opacity-0 pointer-events-none',
+        )}
+      >
         <button
+          type="button"
           onClick={() => handleFileClick()}
-          className={itemCls}
+          className={menuItem}
         >
-          <File size={16} />
+          <File size={14} className="text-ink-muted" />
           File
         </button>
         <button
+          type="button"
           onClick={() => handleFolderClick()}
-          className={itemCls}
+          className={menuItem}
         >
-          <Folder size={16} />
+          <Folder size={14} className="text-ochre" />
           Folder
         </button>
         {templateNames.length > 0 && (
           <div className="relative group/template">
-            <button className={itemCls}>
-              <LayoutTemplate size={16} />
+            <button type="button" className={menuItem}>
+              <LayoutTemplate size={14} className="text-ink-muted" />
               Template
-              <ChevronRight size={14} className="ml-auto opacity-70" />
+              <ChevronRight size={14} className="ml-auto text-ink-subtle" />
             </button>
             <div
-              className={getClasses({
-                [submenuCls]: true,
-                'group-hover/template:opacity-100 group-hover/template:pointer-events-auto': true,
-              })}
+              className={cn(
+                'absolute left-full top-0 transition-opacity duration-150 min-w-[12rem]',
+                menuSurface,
+                'opacity-0 pointer-events-none',
+                'group-hover/template:opacity-100 group-hover/template:pointer-events-auto',
+              )}
             >
               {templateNames.map((name) => (
                 <button
                   key={name}
+                  type="button"
                   onClick={() => uploadToPersonalWorkspace(name)}
-                  className={itemCls}
+                  className={menuItem}
                 >
                   {name.replace(/[-_]/g, ' ')}
                 </button>
               ))}
               {classroomTemplates.length > 0 && (
                 <div className="relative group/classroom-templates">
-                  <button className={itemCls}>
-                    <LayoutTemplate size={16} />
+                  <button type="button" className={menuItem}>
+                    <LayoutTemplate size={14} className="text-ink-muted" />
                     Classroom Templates
-                    <ChevronRight size={14} className="ml-auto opacity-70" />
+                    <ChevronRight size={14} className="ml-auto text-ink-subtle" />
                   </button>
                   <div
-                    className={getClasses({
-                      [submenuCls]: true,
-                      'group-hover/classroom-templates:opacity-100 group-hover/classroom-templates:pointer-events-auto': true,
-                    })}
+                    className={cn(
+                      'absolute left-full top-0 transition-opacity duration-150 min-w-[12rem]',
+                      menuSurface,
+                      'opacity-0 pointer-events-none',
+                      'group-hover/classroom-templates:opacity-100 group-hover/classroom-templates:pointer-events-auto',
+                    )}
                   >
                     {classroomTemplates.map((classroom) => (
                       <div key={classroom.id} className="relative group/classroom">
-                        <button className={itemCls}>
+                        <button type="button" className={menuItem}>
                           {classroom.name}
-                          <ChevronRight size={14} className="ml-auto opacity-70" />
+                          <ChevronRight size={14} className="ml-auto text-ink-subtle" />
                         </button>
                         <div
-                          className={getClasses({
-                            [submenuCls]: true,
-                            'group-hover/classroom:opacity-100 group-hover/classroom:pointer-events-auto': true,
-                          })}
+                          className={cn(
+                            'absolute left-full top-0 transition-opacity duration-150 min-w-[12rem]',
+                            menuSurface,
+                            'opacity-0 pointer-events-none',
+                            'group-hover/classroom:opacity-100 group-hover/classroom:pointer-events-auto',
+                          )}
                         >
                           {classroom.templates.map((template) => (
                             <button
                               key={template.name}
+                              type="button"
                               onClick={() => uploadClassroomTemplate(
                                 classroom.id,
                                 template.name,
                                 template.files,
                               )}
-                              className={itemCls}
+                              className={menuItem}
                             >
                               {template.name}
                             </button>
@@ -409,7 +436,7 @@ export default function NewButton() {
             </div>
           </div>
         )}
-      </>}
-    />
+      </div>
+    </div>
   );
 }

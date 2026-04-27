@@ -1,16 +1,18 @@
-import { ChevronRight, ClipboardCopy, Copy, ClipboardPaste, Download, FileIcon, Folder, FolderClosed, FolderOpen, MoreHorizontal, Pencil, Plus, RotateCcw, Terminal as TerminalIcon, Trash, X } from 'lucide-react';
-import { getClasses } from '@luminescent/ui-react';
+import { ChevronDown, ChevronRight, ClipboardCopy, Copy, ClipboardPaste, Download, FileIcon, Folder, MoreHorizontal, Pencil, Plus, RotateCcw, Terminal as TerminalIcon, Trash, X } from 'lucide-react';
 import { useContext, Fragment, useEffect, useRef } from 'react';
 import { apiUrl, UserData, UserDataContext } from '../util/UserData';
 import { languageMap } from '../util/languageMap';
 import { uploadLocalFiles } from '../util/uploadLocalFiles';
 import { StatusContext } from '../util/Files';
 import { isActiveTerminalBusy } from '../util/terminalActivity';
+import { cn } from '../util/cn';
 
 export default function MenuItems({ files, count = 0 }: { files: UserData['files'], count?: number }) {
   const {
     currentFile,
     setCurrentFile,
+    openFiles,
+    setOpenFiles,
     openFolders,
     setOpenFolders,
     refreshFiles,
@@ -97,141 +99,32 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
     return () => document.removeEventListener('click', handler);
   }, [contextMenu, contextMenu.visible, setContextMenu]);
 
+  // Shared classes for the right-click context menu.
+  const ctxItem = 'flex items-center gap-2 px-3 py-1.5 text-sm text-ink-default hover:bg-paper-tinted hover:text-ink-strong cursor-pointer w-full text-left transition-colors';
+  const ctxItemDestructive = 'flex items-center gap-2 px-3 py-1.5 text-sm text-ink-default hover:bg-paper-tinted hover:text-tomato cursor-pointer w-full text-left transition-colors';
+  const ctxItemDisabled = 'flex items-center gap-2 px-3 py-1.5 text-sm text-ink-faint cursor-not-allowed w-full text-left';
+
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex flex-col gap-0.5">
       {Array.isArray(files) ? (
-        files.map((file) => (
-          <Fragment key={file.location}>
-            <div
-              className={getClasses({
-                'lum-btn': !file.renaming,
-                'flex items-center justify-between': file.renaming,
-                'p-0 gap-0 rounded-lum-1 relative': true,
-                'lum-bg-gray-900 hover:lum-bg-gray-800':
-                  currentFile?.location === file.location || selectedLocation === file.location,
-                'lum-bg-transparent hover:lum-bg-gray-900/50':
-                  currentFile?.location !== file.location && selectedLocation !== file.location,
-                'ring-2 ring-blue-400 lum-bg-blue-500/15!':
-                  dragOverLocation === file.location && 'files' in file,
-              })}
-              onContextMenu={(e) => {
-                e.preventDefault();
-                setSelectedLocation?.(file.location);
-                setContextMenu?.({ visible: true, x: e.clientX, y: e.clientY, targetLocation: file.location });
-              }}
-              draggable={!file.renaming}
-              onDragStart={(e) => {
-                if (file.renaming) return;
-                try { e.dataTransfer.setData('text/x-3compute-source', file.location); } catch { void 0; }
-                try { e.dataTransfer.setData('text/plain', file.location); } catch { void 0; }
-                e.dataTransfer.effectAllowed = 'move';
-              }}
-              onDragOver={(e) => {
-                // Always prevent default so drop can fire; we validate in onDrop
-                e.preventDefault();
-                if ('files' in file && !file.renaming) {
-                  e.dataTransfer.dropEffect = e.dataTransfer.types.includes('Files') ? 'copy' : 'move';
-                } else {
-                  e.dataTransfer.dropEffect = 'none';
-                }
-              }}
-              onDragEnter={(e) => {
-                if ('files' in file && !file.renaming) {
+        files.map((file) => {
+          const isFolder = 'files' in file;
+          const isSelected = currentFile?.location === file.location || selectedLocation === file.location;
+          const isDragOver = dragOverLocation === file.location && isFolder;
+          return (
+            <Fragment key={file.location}>
+              <div
+                className={cn(
+                  'flex items-center justify-between rounded-sm relative group/row transition-colors',
+                  !isSelected && !isDragOver && 'bg-transparent hover:bg-paper-tinted',
+                  isSelected && !isDragOver && 'bg-paper-deeper',
+                  isDragOver && 'bg-navy-soft ring-1 ring-navy/40',
+                )}
+                onContextMenu={(e) => {
                   e.preventDefault();
-                  setDragOverLocation?.(file.location);
-                  // Auto-expand closed folders after a short hover.
-                  if (!openFolders.includes(file.location)) {
-                    scheduleExpand(file.location);
-                  }
-                }
-              }}
-              onDragLeave={(e) => {
-                if ('files' in file && !file.renaming) {
-                  if (!e.currentTarget.contains(e.relatedTarget as Node)) {
-                    setDragOverLocation?.(undefined);
-                    if (expandTimerRef.current?.location === file.location) {
-                      cancelExpandTimer();
-                    }
-                  }
-                }
-              }}
-              onDragEnd={() => {
-                setDragOverLocation?.(undefined);
-                cancelExpandTimer();
-              }}
-              onDrop={async (e) => {
-                if (!('files' in file)) return; // only drop into folders
-                e.preventDefault();
-                setDragOverLocation?.(undefined);
-                cancelExpandTimer();
-                // Handle OS file drops into this folder
-                if (e.dataTransfer.files.length > 0) {
-                  await uploadLocalFiles(e.dataTransfer.files, file.location, apiUrl, setStatus, refreshFiles);
-                  setOpenFolders((prev) => prev.includes(file.location) ? prev : [...prev, file.location]);
-                  return;
-                }
-                let source = e.dataTransfer.getData('text/x-3compute-source');
-                if (!source) {
-                  source = e.dataTransfer.getData('text/plain');
-                }
-                if (!source) return;
-                // Build destination path under this folder
-                const srcName = source.split('/').filter(Boolean).pop() || '';
-                const destBase = file.location.endsWith('/') ? file.location.slice(0, -1) : file.location;
-                const destination = `${destBase}/${srcName}${source.endsWith('/') ? '/' : ''}`;
-                if (destination === source) return;
-                // If the open editor file is the moved item or inside the moved folder, update it pre-refresh
-                if (currentFile?.location) {
-                  const currentLoc = currentFile.location;
-                  if (currentLoc === source) {
-                    setCurrentFile({ name: currentFile.name || srcName, location: destination });
-                    setSelectedLocation?.(destination);
-                  } else if (source.endsWith('/') && currentLoc.startsWith(source)) {
-                    const suffix = currentLoc.slice(source.length);
-                    const newLoc = `${destination}${suffix}`;
-                    setCurrentFile({ name: currentFile.name, location: newLoc });
-                  }
-                }
-                let res = await fetch(`${apiUrl}/files/move`, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  credentials: 'include',
-                  body: JSON.stringify({ source, destination }),
-                });
-                if (res.status === 409) {
-                  // Name conflict: prompt user to replace
-                  const name = srcName;
-                  const confirmed = window.confirm(`A file or folder named "${name}" already exists here. Replace it? This cannot be undone.`);
-                  if (!confirmed) return;
-                  res = await fetch(`${apiUrl}/files/move`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    credentials: 'include',
-                    body: JSON.stringify({ source, destination, overwrite: true }),
-                  });
-                }
-                if (res.ok) {
-                  setContentVersion?.((v) => (v ?? 0) + 1);
-                  await refreshFiles();
-                  setOpenFolders((prev) => prev.includes(file.location) ? prev : [...prev, file.location]);
-                } else {
-                  const text = await res.text().catch(() => '');
-                  console.error('Move failed', res.status, text);
-                  try {
-                    const errObj = JSON.parse(text);
-                    alert(`Move failed: ${errObj.error || text}`);
-                  } catch {
-                    alert(`Move failed: ${text || res.statusText}`);
-                  }
-                }
-              }}
-              onClick={() => {
-                setSelectedLocation?.(file.location);
-              }}
-              data-explorer-item
-              data-kind={'files' in file ? 'folder' : 'file'}
-            >
-              <button
+                  setSelectedLocation?.(file.location);
+                  setContextMenu?.({ visible: true, x: e.clientX, y: e.clientY, targetLocation: file.location });
+                }}
                 draggable={!file.renaming}
                 onDragStart={(e) => {
                   if (file.renaming) return;
@@ -239,223 +132,374 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
                   try { e.dataTransfer.setData('text/plain', file.location); } catch { void 0; }
                   e.dataTransfer.effectAllowed = 'move';
                 }}
-                onClick={() => {
-                  if (file.renaming) return; // Prevent opening if renaming
-                  if ('files' in file) {
-                    setOpenFolders((prev) => {
-                      if (prev.includes(file.location)) {
-                        return prev.filter((f) => f !== file.location);
-                      } else {
-                        return [...prev, file.location];
+                onDragOver={(e) => {
+                  // Always prevent default so drop can fire; we validate in onDrop
+                  e.preventDefault();
+                  if (isFolder && !file.renaming) {
+                    e.dataTransfer.dropEffect = e.dataTransfer.types.includes('Files') ? 'copy' : 'move';
+                  } else {
+                    e.dataTransfer.dropEffect = 'none';
+                  }
+                }}
+                onDragEnter={(e) => {
+                  if (isFolder && !file.renaming) {
+                    e.preventDefault();
+                    setDragOverLocation?.(file.location);
+                    // Auto-expand closed folders after a short hover.
+                    if (!openFolders.includes(file.location)) {
+                      scheduleExpand(file.location);
+                    }
+                  }
+                }}
+                onDragLeave={(e) => {
+                  if (isFolder && !file.renaming) {
+                    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                      setDragOverLocation?.(undefined);
+                      if (expandTimerRef.current?.location === file.location) {
+                        cancelExpandTimer();
                       }
+                    }
+                  }
+                }}
+                onDragEnd={() => {
+                  setDragOverLocation?.(undefined);
+                  cancelExpandTimer();
+                }}
+                onDrop={async (e) => {
+                  if (!isFolder) return; // only drop into folders
+                  e.preventDefault();
+                  setDragOverLocation?.(undefined);
+                  cancelExpandTimer();
+                  // Handle OS file drops into this folder
+                  if (e.dataTransfer.files.length > 0) {
+                    await uploadLocalFiles(e.dataTransfer.files, file.location, apiUrl, setStatus, refreshFiles);
+                    setOpenFolders((prev) => prev.includes(file.location) ? prev : [...prev, file.location]);
+                    return;
+                  }
+                  let source = e.dataTransfer.getData('text/x-3compute-source');
+                  if (!source) {
+                    source = e.dataTransfer.getData('text/plain');
+                  }
+                  if (!source) return;
+                  // Build destination path under this folder
+                  const srcName = source.split('/').filter(Boolean).pop() || '';
+                  const destBase = file.location.endsWith('/') ? file.location.slice(0, -1) : file.location;
+                  const destination = `${destBase}/${srcName}${source.endsWith('/') ? '/' : ''}`;
+                  if (destination === source) return;
+                  // If the open editor file is the moved item or inside the moved folder, update it pre-refresh
+                  if (currentFile?.location) {
+                    const currentLoc = currentFile.location;
+                    if (currentLoc === source) {
+                      setCurrentFile({ name: currentFile.name || srcName, location: destination });
+                      setSelectedLocation?.(destination);
+                    } else if (source.endsWith('/') && currentLoc.startsWith(source)) {
+                      const suffix = currentLoc.slice(source.length);
+                      const newLoc = `${destination}${suffix}`;
+                      setCurrentFile({ name: currentFile.name, location: newLoc });
+                    }
+                  }
+                  setOpenFiles((prev) => prev.map((f) => {
+                    if (f.location === source) return { ...f, name: srcName, location: destination };
+                    if (source.endsWith('/') && f.location.startsWith(source)) {
+                      return { ...f, location: `${destination}${f.location.slice(source.length)}` };
+                    }
+                    return f;
+                  }));
+                  let res = await fetch(`${apiUrl}/files/move`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ source, destination }),
+                  });
+                  if (res.status === 409) {
+                    // Name conflict: prompt user to replace
+                    const name = srcName;
+                    const confirmed = window.confirm(`A file or folder named "${name}" already exists here. Replace it? This cannot be undone.`);
+                    if (!confirmed) return;
+                    res = await fetch(`${apiUrl}/files/move`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      credentials: 'include',
+                      body: JSON.stringify({ source, destination, overwrite: true }),
                     });
                   }
-                  else {
-                    setCurrentFile(file);
+                  if (res.ok) {
+                    setContentVersion?.((v) => (v ?? 0) + 1);
+                    await refreshFiles();
+                    setOpenFolders((prev) => prev.includes(file.location) ? prev : [...prev, file.location]);
+                  } else {
+                    const text = await res.text().catch(() => '');
+                    console.error('Move failed', res.status, text);
+                    try {
+                      const errObj = JSON.parse(text);
+                      alert(`Move failed: ${errObj.error || text}`);
+                    } catch {
+                      alert(`Move failed: ${text || res.statusText}`);
+                    }
                   }
                 }}
-                className={getClasses({
-                  'flex flex-1 lum-btn-p-1 rounded-lum-1 rounded-r-none items-center gap-2 w-full min-w-0 text-left lum-bg-transparent': true,
-                  'cursor-pointer': !('files' in file),
-                })}
-                style={{
-                  paddingLeft: `calc(0.5rem + ${count * 0.5}rem)`,
-                  boxShadow: 'none',
-                  // Luminescent's lum-bg-* utility paints a blue border on
-                  // :focus; pin it transparent here so mouse clicks don't
-                  // leave a persistent blue box around the row.
-                  borderColor: 'transparent',
-                  WebkitTapHighlightColor: 'transparent',
+                onClick={() => {
+                  setSelectedLocation?.(file.location);
                 }}
+                data-explorer-item
+                data-kind={isFolder ? 'folder' : 'file'}
               >
-                {'files' in file
-                  ? (
-                    openFolders.includes(file.location)
-                      ? <FolderOpen size={16} className={isDimmed(file) ? 'text-gray-500 min-w-4' : 'text-orange-400 min-w-4'} />
-                      : <FolderClosed size={16} className={isDimmed(file) ? 'text-gray-500 min-w-4' : 'text-orange-300 min-w-4'} />
-                  ) : (() => {
-                    const Lang = Object.values(languageMap).find(languageMap =>
-                      languageMap.extensions.includes(file.name.split('.').pop() || ''),
-                    );
-                    if (Lang) return <Lang.icon size={16} className={isDimmed(file) ? 'text-gray-500 min-w-4' : 'text-blue-300 min-w-4'} />;
-                    return <FileIcon size={16} className={isDimmed(file) ? 'text-gray-500 min-w-4' : 'text-blue-300 min-w-4'} />;
-                  })()}
-
-                <span className={getClasses({
-                  'flex-1 truncate min-w-0': true,
-                  'text-gray-500': isDimmed(file),
-                })}>
-                  {file.renaming ? (
-                    <input
-                      type="text"
-                      defaultValue={file.name}
-                      autoFocus
-                      onFocus={(e) => {
-                        setIsUserEditingName?.(true);
-                        // Highlight entire name for quick editing
-                        const input = e.currentTarget;
-                        input.setSelectionRange(0, input.value.length);
-                      }}
-                      onChange={(e) => {
-                        // Clear any previous validity error as the user types
-                        e.currentTarget.setCustomValidity('');
-                      }}
-                      onBlur={async (e) => {
-                        const input = e.currentTarget;
-                        // Guard: React unmounting the input fires a second blur — ignore it
-                        if (input.dataset.submitted) return;
-                        const name = input.value.trim();
-
-                        // Validate: name must be unique among siblings (case-insensitive)
-                        if (name) {
-                          const hasDuplicate = files?.some((sibling) => sibling !== file && sibling.name.toLowerCase() === name.toLowerCase());
-                          if (hasDuplicate) {
-                            input.setCustomValidity('A file or folder with that name already exists.');
-                            input.reportValidity();
-                            // Keep editing by re-focusing and selecting
-                            input.focus();
-                            input.setSelectionRange(0, input.value.length);
-                            return;
-                          }
+                <button
+                  draggable={!file.renaming}
+                  onDragStart={(e) => {
+                    if (file.renaming) return;
+                    try { e.dataTransfer.setData('text/x-3compute-source', file.location); } catch { void 0; }
+                    try { e.dataTransfer.setData('text/plain', file.location); } catch { void 0; }
+                    e.dataTransfer.effectAllowed = 'move';
+                  }}
+                  onClick={() => {
+                    if (file.renaming) return; // Prevent opening if renaming
+                    if (isFolder) {
+                      setOpenFolders((prev) => {
+                        if (prev.includes(file.location)) {
+                          return prev.filter((f) => f !== file.location);
+                        } else {
+                          return [...prev, file.location];
                         }
+                      });
+                    }
+                    else {
+                      setCurrentFile(file);
+                    }
+                  }}
+                  className={cn(
+                    'flex flex-1 items-center gap-1.5 w-full min-w-0 text-left py-1 px-2 bg-transparent border-0 font-sans',
+                    'text-[13.5px]',
+                    isSelected ? 'font-semibold text-ink-strong' : 'font-normal text-ink-strong',
+                    !isFolder && 'cursor-pointer',
+                    isFolder && 'cursor-pointer',
+                  )}
+                  style={{
+                    paddingLeft: `${8 + count * 16}px`,
+                    WebkitTapHighlightColor: 'transparent',
+                  }}
+                >
+                  {isFolder ? (
+                    <>
+                      <span className="inline-flex w-3 text-ink-muted shrink-0">
+                        {openFolders.includes(file.location)
+                          ? <ChevronDown size={12} />
+                          : <ChevronRight size={12} />}
+                      </span>
+                      <Folder
+                        size={14}
+                        className={cn(
+                          'shrink-0',
+                          isDimmed(file) ? 'text-ink-faint' : 'text-ochre',
+                        )}
+                      />
+                    </>
+                  ) : (
+                    <>
+                      <span className="inline-block w-3 shrink-0" />
+                      {(() => {
+                        const Lang = Object.values(languageMap).find(languageMap =>
+                          languageMap.extensions.includes(file.name.split('.').pop() || ''),
+                        );
+                        const IconComp = Lang?.icon ?? FileIcon;
+                        return (
+                          <IconComp
+                            size={13}
+                            className={cn(
+                              'shrink-0',
+                              isDimmed(file) ? 'text-ink-faint' : 'text-ink-muted',
+                            )}
+                          />
+                        );
+                      })()}
+                    </>
+                  )}
 
-                        const isFolder = 'files' in file;
-                        const originalLocation = file.location;
-                        const originalName = file.name;
-                        const locNoSlash = originalLocation.endsWith('/') ? originalLocation.slice(0, -1) : originalLocation;
-                        const parentPath = locNoSlash.slice(0, locNoSlash.lastIndexOf('/') + 1);
-                        const newLocation = `${parentPath}${name || originalName}${isFolder ? '/' : ''}`;
+                  <span
+                    className={cn(
+                      'flex-1 truncate min-w-0',
+                      isDimmed(file) && 'text-ink-faint',
+                    )}
+                  >
+                    {file.renaming ? (
+                      <input
+                        type="text"
+                        defaultValue={file.name}
+                        autoFocus
+                        onFocus={(e) => {
+                          setIsUserEditingName?.(true);
+                          // Highlight entire name for quick editing
+                          const input = e.currentTarget;
+                          input.setSelectionRange(0, input.value.length);
+                        }}
+                        onChange={(e) => {
+                          // Clear any previous validity error as the user types
+                          e.currentTarget.setCustomValidity('');
+                        }}
+                        onBlur={async (e) => {
+                          const input = e.currentTarget;
+                          // Guard: React unmounting the input fires a second blur — ignore it
+                          if (input.dataset.submitted) return;
+                          const name = input.value.trim();
 
-                        try {
-                          if ((file as any).placeholder) {
-                            // Create brand-new file/folder at newLocation
-                            input.dataset.submitted = 'true'; // Prevent double-submit on unmount blur
-                            const res = await fetch(`${apiUrl}/files/file${newLocation}`, {
-                              method: 'POST',
-                              headers: { 'Content-Type': 'application/json' },
-                              credentials: 'include',
-                            });
-                            if (!res.ok) {
-                              delete input.dataset.submitted; // Allow retry
-                              let errMsg = 'Unable to create. Try a different name.';
-                              try {
-                                const errData = await res.json();
-                                if (errData.error) errMsg = errData.error;
-                              } catch { /* use default */ }
-                              input.setCustomValidity(errMsg);
+                          // Validate: name must be unique among siblings (case-insensitive)
+                          if (name) {
+                            const hasDuplicate = files?.some((sibling) => sibling !== file && sibling.name.toLowerCase() === name.toLowerCase());
+                            if (hasDuplicate) {
+                              input.setCustomValidity('A file or folder with that name already exists.');
                               input.reportValidity();
+                              // Keep editing by re-focusing and selecting
                               input.focus();
                               input.setSelectionRange(0, input.value.length);
                               return;
                             }
-                            // Must clear the editing flag BEFORE refresh.
-                            // refreshFiles in root.tsx no-ops while the flag is
-                            // set, to protect an in-progress rename input —
-                            // but once the POST succeeds we want the tree to
-                            // re-fetch so the placeholder/renaming flags clear.
-                            setIsUserEditingName?.(false);
-                            await refreshFiles(true);
-                          } else if (name && name !== originalName) {
-                            // Rename existing by moving to new path
-                            const moveRes = await fetch(`${apiUrl}/files/move`, {
-                              method: 'POST',
-                              headers: { 'Content-Type': 'application/json' },
-                              credentials: 'include',
-                              body: JSON.stringify({ source: originalLocation, destination: newLocation }),
-                            });
-                            if (!moveRes.ok) {
-                              if (moveRes.status === 409) {
-                                input.setCustomValidity('Name already exists.');
+                          }
+
+                          const isFolderItem = 'files' in file;
+                          const originalLocation = file.location;
+                          const originalName = file.name;
+                          const locNoSlash = originalLocation.endsWith('/') ? originalLocation.slice(0, -1) : originalLocation;
+                          const parentPath = locNoSlash.slice(0, locNoSlash.lastIndexOf('/') + 1);
+                          const newLocation = `${parentPath}${name || originalName}${isFolderItem ? '/' : ''}`;
+
+                          try {
+                            if ((file as any).placeholder) {
+                              // Create brand-new file/folder at newLocation
+                              input.dataset.submitted = 'true'; // Prevent double-submit on unmount blur
+                              const res = await fetch(`${apiUrl}/files/file${newLocation}`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                credentials: 'include',
+                              });
+                              if (!res.ok) {
+                                delete input.dataset.submitted; // Allow retry
+                                let errMsg = 'Unable to create. Try a different name.';
+                                try {
+                                  const errData = await res.json();
+                                  if (errData.error) errMsg = errData.error;
+                                } catch { /* use default */ }
+                                input.setCustomValidity(errMsg);
                                 input.reportValidity();
                                 input.focus();
                                 input.setSelectionRange(0, input.value.length);
                                 return;
                               }
-                              input.setCustomValidity('Unable to rename.');
-                              input.reportValidity();
-                              input.focus();
-                              input.setSelectionRange(0, input.value.length);
-                              return;
+                              // Must clear the editing flag BEFORE refresh.
+                              // refreshFiles in root.tsx no-ops while the flag is
+                              // set, to protect an in-progress rename input —
+                              // but once the POST succeeds we want the tree to
+                              // re-fetch so the placeholder/renaming flags clear.
+                              setIsUserEditingName?.(false);
+                              await refreshFiles(true);
+                            } else if (name && name !== originalName) {
+                              // Rename existing by moving to new path
+                              const moveRes = await fetch(`${apiUrl}/files/move`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                credentials: 'include',
+                                body: JSON.stringify({ source: originalLocation, destination: newLocation }),
+                              });
+                              if (!moveRes.ok) {
+                                if (moveRes.status === 409) {
+                                  input.setCustomValidity('Name already exists.');
+                                  input.reportValidity();
+                                  input.focus();
+                                  input.setSelectionRange(0, input.value.length);
+                                  return;
+                                }
+                                input.setCustomValidity('Unable to rename.');
+                                input.reportValidity();
+                                input.focus();
+                                input.setSelectionRange(0, input.value.length);
+                                return;
+                              }
+                              // Update current selection/editor if needed
+                              if (currentFile?.location === originalLocation) {
+                                setCurrentFile({ name, location: newLocation });
+                                setSelectedLocation?.(newLocation);
+                              }
+                              setOpenFiles((prev) => prev.map((f) => {
+                                if (f.location === originalLocation) return { ...f, name, location: newLocation };
+                                if (isFolderItem) {
+                                  const folderPrefix = originalLocation.endsWith('/') ? originalLocation : `${originalLocation}/`;
+                                  const newPrefix = newLocation.endsWith('/') ? newLocation : `${newLocation}/`;
+                                  if (f.location.startsWith(folderPrefix)) {
+                                    return { ...f, location: `${newPrefix}${f.location.slice(folderPrefix.length)}` };
+                                  }
+                                }
+                                return f;
+                              }));
+                              setIsUserEditingName?.(false);
+                              await refreshFiles(true);
+                            } else {
+                              // Unchanged rename on existing item: just refresh to clear renaming flag
+                              setIsUserEditingName?.(false);
+                              await refreshFiles(true);
                             }
-                            // Update current selection/editor if needed
-                            if (currentFile?.location === originalLocation) {
-                              setCurrentFile({ name, location: newLocation });
-                              setSelectedLocation?.(newLocation);
-                            }
+                          } finally {
+                            // Guarantee the flag is cleared even on early returns.
                             setIsUserEditingName?.(false);
-                            await refreshFiles(true);
-                          } else {
-                            // Unchanged rename on existing item: just refresh to clear renaming flag
-                            setIsUserEditingName?.(false);
-                            await refreshFiles(true);
                           }
-                        } finally {
-                          // Guarantee the flag is cleared even on early returns.
-                          setIsUserEditingName?.(false);
-                        }
-                      }}
-                      onKeyDown={async (e) => {
-                        if (e.key === 'Enter') {
-                          (e.target as HTMLInputElement).blur();
-                        }
-                        if (e.key === 'Escape') {
-                          // Cancel creation
-                          await refreshFiles();
-                          setIsUserEditingName?.(false);
-                        }
-                      }}
-                      className="lum-input py-0 px-1 rounded-lum-2 w-full -ml-1 lum-bg-gray-900"
-                    />
-                  ) : (
-                    file.name
-                  )}
-                </span>
-              </button>
+                        }}
+                        onKeyDown={async (e) => {
+                          if (e.key === 'Enter') {
+                            (e.target as HTMLInputElement).blur();
+                          }
+                          if (e.key === 'Escape') {
+                            // Cancel creation
+                            await refreshFiles();
+                            setIsUserEditingName?.(false);
+                          }
+                        }}
+                        className="bg-paper-elevated border border-rule rounded-sm text-ink-default px-1.5 py-0.5 text-[13.5px] focus:outline-none focus:ring-2 focus:ring-navy/30 w-full -ml-1"
+                      />
+                    ) : (
+                      file.name
+                    )}
+                  </span>
+                </button>
 
-              {'files' in file && (
-                <p className="text-gray-500! text-sm">{file.files.length}</p>
-              )}
-              <button className="lum-btn cursor-pointer rounded-lum-1 rounded-l-none p-2 items-center gap-1 text-gray-500 text-sm hover:text-gray-300 lum-bg-transparent hover:lum-bg-transparent"
-                onClick={async (e) => {
-                  if (file.renaming) return await refreshFiles();
-                  console.log('h');
-                  setSelectedLocation?.(file.location);
-                  setContextMenu?.({ visible: true, x: e.clientX, y: e.clientY, targetLocation: file.location });
-                }}
-              >
-                {file.renaming ? (
-                  <X size={16} />
-                ) : (
-                  <MoreHorizontal size={16} />
+                {isFolder && (
+                  <span className="text-ink-faint text-xs px-1 shrink-0 font-sans">{file.files.length}</span>
                 )}
-              </button>
-            </div>
-            {'files' in file && (
-              <div
-                data-folder-location={file.location}
-                className={getClasses({
-                  'transition-all duration-200 overflow-hidden': true,
-                  'max-h-0 opacity-0 scale-98 -mt-1': !openFolders.includes(
-                    file.location,
-                  ),
-                  'max-h-screen opacity-100': openFolders.includes(
-                    file.location,
-                  ),
-                })}
-              >
-                <MenuItems files={file.files} count={count + 1} />
+                <button
+                  className="cursor-pointer p-0.5 mr-1 rounded text-ink-subtle hover:text-ink-strong hover:bg-paper-tinted transition-colors shrink-0"
+                  onClick={async (e) => {
+                    if (file.renaming) return await refreshFiles();
+                    setSelectedLocation?.(file.location);
+                    setContextMenu?.({ visible: true, x: e.clientX, y: e.clientY, targetLocation: file.location });
+                  }}
+                >
+                  {file.renaming ? (
+                    <X size={14} />
+                  ) : (
+                    <MoreHorizontal size={14} />
+                  )}
+                </button>
               </div>
-            )}
-          </Fragment>
-        ))
+              {isFolder && (
+                <div
+                  data-folder-location={file.location}
+                  className={cn(
+                    'transition-all duration-200 overflow-hidden',
+                    !openFolders.includes(file.location) && 'max-h-0 opacity-0 -mt-0.5',
+                    openFolders.includes(file.location) && 'max-h-screen opacity-100',
+                  )}
+                >
+                  <MenuItems files={file.files} count={count + 1} />
+                </div>
+              )}
+            </Fragment>
+          );
+        })
       ) : (
-        <div className="text-gray-500">No files found</div>
+        <div className="text-ink-muted text-sm px-2 py-1">No files found</div>
       )}
       <div
-        className={getClasses({
-          'transition-opacity duration-300 fixed lum-card p-1 gap-1 z-50 drop-shadow-xl lum-bg-gray-900 border border-gray-700/60': true,
-          'opacity-0 pointer-events-none': !contextMenu.visible,
-        })}
+        className={cn(
+          'transition-opacity duration-200 fixed bg-paper-elevated border border-rule-soft rounded-md shadow-md py-1.5 min-w-[180px] z-50',
+          !contextMenu.visible && 'opacity-0 pointer-events-none',
+        )}
         style={{ left: contextMenu.x, top: contextMenu.y }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -480,43 +524,37 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
           };
           return (
             <div className="relative group/new">
-              <button className="lum-btn lum-btn-p-1 rounded-lum-1 gap-0.5 w-full text-left lum-bg-transparent">
-                <Plus size={16} className="inline mr-2" />
+              <button className={ctxItem}>
+                <Plus size={14} className="text-ink-muted" />
                 New
-                <ChevronRight size={14} className="ml-auto opacity-70" />
+                <ChevronRight size={14} className="ml-auto text-ink-subtle" />
               </button>
-              {/* Mirror the parent context menu's exact class list, including
-                  the opacity-based visibility transition, so Luminescent's
-                  `lum-card` / `lum-bg-*` utilities render the surface the
-                  same way. Using opacity (not display) also means both
-                  surfaces stack identically — avoiding the subtle
-                  transparency mismatch that appears when one is rendered
-                  via `hidden`/`flex` and the other via `opacity`. */}
               <div
-                className={getClasses({
-                  'transition-opacity duration-300 absolute left-full top-0 lum-card p-1 gap-1 z-50 drop-shadow-xl lum-bg-gray-900 border border-gray-700/60 min-w-[10rem]': true,
-                  'opacity-0 pointer-events-none': true,
-                  'group-hover/new:opacity-100 group-hover/new:pointer-events-auto': true,
-                })}
+                className={cn(
+                  'transition-opacity duration-200 absolute left-full top-0 bg-paper-elevated border border-rule-soft rounded-md shadow-md py-1.5 min-w-[160px] z-50',
+                  'opacity-0 pointer-events-none',
+                  'group-hover/new:opacity-100 group-hover/new:pointer-events-auto',
+                )}
               >
                 <button
-                  className="lum-btn lum-btn-p-1 rounded-lum-1 gap-0.5 w-full text-left lum-bg-transparent"
+                  className={ctxItem}
                   onClick={() => dispatchNew('file')}
                 >
-                  <FileIcon size={16} className="inline mr-2" />
+                  <FileIcon size={14} className="text-ink-muted" />
                   File
                 </button>
                 <button
-                  className="lum-btn lum-btn-p-1 rounded-lum-1 gap-0.5 w-full text-left lum-bg-transparent"
+                  className={ctxItem}
                   onClick={() => dispatchNew('folder')}
                 >
-                  <Folder size={16} className="inline mr-2" />
+                  <Folder size={14} className="text-ochre" />
                   Folder
                 </button>
               </div>
             </div>
           );
         })()}
+        <div className="my-1 border-t border-rule-soft" />
         {(() => {
           const handlePaste = async () => {
             if (!clipboardLocation || !contextMenu.targetLocation) return;
@@ -549,11 +587,11 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
           const PasteButton = (
             <button
               key="paste"
-              className="lum-btn lum-btn-p-1 rounded-lum-1 gap-0.5 w-full text-left lum-bg-transparent"
+              className={clipboardLocation ? ctxItem : ctxItemDisabled}
               disabled={!clipboardLocation}
               onClick={handlePaste}
             >
-              <ClipboardPaste size={16} className="inline mr-2" />
+              <ClipboardPaste size={14} className={clipboardLocation ? 'text-ink-muted' : 'text-ink-faint'} />
               Paste{clipboardLocation ? ` "${clipboardLocation.split('/').filter(Boolean).pop()}"` : ''}
             </button>
           );
@@ -588,13 +626,12 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
             const parent = trimmed.split('/').slice(0, -1).join('/');
             return parent || '';
           })();
-          // Copy path yields the container-absolute path. Terminal shells
-          // and scripts expect paths rooted at /app (the user's uploads
-          // mount), so we prepend that here.
+          // Copy path yields a tilde-prefixed path so it pastes into a shell
+          // as the user expects (~/foo expands to the container's /app mount).
           const pathForCopy = (() => {
             if (!contextMenu.targetLocation) return null;
             const trimmed = contextMenu.targetLocation.replace(/\/$/, '');
-            return trimmed ? `/app${trimmed}` : '/app';
+            return trimmed ? `~${trimmed}` : '~';
           })();
           const busy = isActiveTerminalBusy();
           const terminalDisabled = targetDir === null || busy;
@@ -602,7 +639,7 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
           const CopyPathButton = (
             <button
               key="copy-path"
-              className="lum-btn lum-btn-p-1 rounded-lum-1 gap-0.5 w-full text-left lum-bg-transparent"
+              className={ctxItem}
               onClick={async () => {
                 if (pathForCopy === null) return;
                 try {
@@ -613,7 +650,7 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
                 setContextMenu({ ...contextMenu, visible: false });
               }}
             >
-              <ClipboardCopy size={16} className="inline mr-2" />
+              <ClipboardCopy size={14} className="text-ink-muted" />
               Copy path
             </button>
           );
@@ -621,22 +658,26 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
           const TerminalButton = (
             <button
               key="terminal"
-              className="lum-btn lum-btn-p-1 rounded-lum-1 gap-0.5 w-full text-left lum-bg-transparent"
+              className={terminalDisabled ? ctxItemDisabled : ctxItem}
               disabled={terminalDisabled}
               title={busy ? 'Terminal is busy running a command' : undefined}
               onClick={() => {
                 if (targetDir === null) return;
-                // Path inside the container is rooted at /app (the user's
-                // uploads mount). Escape any single-quote in a folder name
-                // by closing/escaping/reopening the quote.
-                const containerPath = `/app${targetDir}`.replace(/'/g, '\'\\\'\'');
+                // Build a `cd ~` (or `cd ~/'rel/path'`) command. Tilde must
+                // sit unquoted at the start of the word for bash to expand
+                // it, so we leave it bare and quote the relative path.
+                // Escape any single-quote in folder names by closing /
+                // escaping / reopening the quote.
+                const relPath = targetDir.replace(/^\//, '');
+                const escaped = relPath.replace(/'/g, '\'\\\'\'');
+                const command = relPath ? `cd ~/'${escaped}'\n` : 'cd ~\n';
                 window.dispatchEvent(new CustomEvent('3compute:run-command', {
-                  detail: { command: `cd '${containerPath}'\n` },
+                  detail: { command },
                 }));
                 setContextMenu({ ...contextMenu, visible: false });
               }}
             >
-              <TerminalIcon size={16} className="inline mr-2" />
+              <TerminalIcon size={14} className={terminalDisabled ? 'text-ink-faint' : 'text-ink-muted'} />
               Open in terminal
             </button>
           );
@@ -654,7 +695,7 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
           return (
             <>
               <button
-                className="lum-btn lum-btn-p-1 rounded-lum-1 gap-0.5 w-full text-left lum-bg-transparent"
+                className={ctxItem}
                 onClick={() => {
                   if (!contextMenu.targetLocation) return;
                   const a = document.createElement('a');
@@ -665,18 +706,18 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
                   document.body.removeChild(a);
                 }}
               >
-                <Download size={16} className="inline mr-2" />
+                <Download size={14} className="text-ink-muted" />
                 Download
               </button>
               <button
-                className="lum-btn lum-btn-p-1 rounded-lum-1 gap-0.5 w-full text-left lum-bg-transparent"
+                className={ctxItem}
                 onClick={() => {
                   if (!contextMenu.targetLocation) return;
                   setClipboardLocation?.(contextMenu.targetLocation);
                   setContextMenu({ ...contextMenu, visible: false });
                 }}
               >
-                <Copy size={16} className="inline mr-2" />
+                <Copy size={14} className="text-ink-muted" />
                 Copy
               </button>
               {PasteButton}
@@ -732,20 +773,179 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
             : `Restore "${relPath}" from the original version? Your current changes to this file will be overwritten. This cannot be undone.`;
 
           return (
+            <>
+              <div className="my-1 border-t border-rule-soft" />
+              <button
+                className={ctxItem}
+                onClick={async () => {
+                  if (!window.confirm(confirmMsg)) return;
+                  try {
+                    const res = await fetch(
+                      `${apiUrl}/classrooms/${classroom.id}/assignments/${encodeURIComponent(template)}/restore`,
+                      {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        credentials: 'include',
+                        body: JSON.stringify({ paths: mode === 'all' ? null : [relPath] }),
+                      },
+                    );
+                    if (!res.ok) {
+                      const body = await res.text().catch(() => '');
+                      let reason = body;
+                      try {
+                        const parsed = JSON.parse(body);
+                        reason = parsed.detail ?? parsed.error ?? body;
+                      } catch {
+                        /* use raw body */
+                      }
+                      alert(reason || `Restore failed (${res.status})`);
+                      return;
+                    }
+                    setContentVersion?.((v) => (v ?? 0) + 1);
+                    await refreshFiles();
+                  } catch {
+                    alert('Restore failed');
+                  }
+                  setContextMenu({ ...contextMenu, visible: false });
+                }}
+              >
+                <RotateCcw size={14} className="text-ink-muted" />
+                {label}
+              </button>
+            </>
+          );
+        })()}
+        {!contextMenu.blankSpace && (() => {
+          const renameDisabled = (() => {
+            if (!contextMenu.targetLocation) return true;
+            if (isProtectedLocation(contextMenu.targetLocation)) return true;
+            if (isArchiveFolder(contextMenu.targetLocation)) return true;
+            const parts = contextMenu.targetLocation.split('/').filter(Boolean);
+            const isClassroomRoot = parts.length === 1;
+            if (isClassroomRoot) {
+              const slug = parts[0];
+              const classroom = slug ? classroomSymlinks?.[slug] : undefined;
+              if (classroom) {
+                return !classroom.isInstructor;
+              }
+            }
+            return false;
+          })();
+          return (
+            <>
+              <div className="my-1 border-t border-rule-soft" />
+              <button
+                className={renameDisabled ? ctxItemDisabled : ctxItem}
+                disabled={renameDisabled}
+                onClick={() => {
+                  if (!contextMenu.targetLocation) return;
+                  if (isProtectedLocation(contextMenu.targetLocation)) return;
+                  const parts = contextMenu.targetLocation.split('/').filter(Boolean);
+                  const isClassroomRoot = parts.length === 1;
+                  if (isClassroomRoot) {
+                    // Only instructors can rename classrooms
+                    const slug = parts[0];
+                    const classroom = slug ? classroomSymlinks?.[slug] : undefined;
+                    if (classroom?.isInstructor) {
+                      window.dispatchEvent(new CustomEvent('3compute:classroom-action', {
+                        detail: { location: contextMenu.targetLocation, action: 'rename' },
+                      }));
+                    }
+                  } else {
+                    document.dispatchEvent(new CustomEvent('3compute:rename', { detail: { location: contextMenu.targetLocation } }));
+                  }
+                }}
+              >
+                <Pencil size={14} className={renameDisabled ? 'text-ink-faint' : 'text-ink-muted'} />
+                Rename
+              </button>
+            </>
+          );
+        })()}
+        {!contextMenu.blankSpace && (() => {
+          const deleteDisabled = (() => {
+            if (!contextMenu.targetLocation) return true;
+            if (isProtectedLocation(contextMenu.targetLocation)) return true;
+            if (contextMenu.targetLocation === '/README.md') return true;
+            if (isArchiveRoot(contextMenu.targetLocation)) return true;
+            if (isArchiveFolder(contextMenu.targetLocation)) {
+              const parts = contextMenu.targetLocation.split('/').filter(Boolean);
+              if (parts.length !== 2) return true;
+              return false;
+            }
+            return false;
+          })();
+          const deleteLabel = (() => {
+            if (!contextMenu.targetLocation) return 'Delete';
+            if (isArchiveFolder(contextMenu.targetLocation)) {
+              const parts = contextMenu.targetLocation.split('/').filter(Boolean);
+              if (parts.length === 2) {
+                return 'Restore';
+              }
+              return 'Delete';
+            }
+            const parts = contextMenu.targetLocation.split('/').filter(Boolean);
+            const isClassroomRoot = parts.length === 1;
+            const slug = parts[0];
+            const classroom = slug ? classroomSymlinks?.[slug] : undefined;
+            if (isClassroomRoot && classroom) {
+              return classroom.archived ? 'Restore' : 'Archive';
+            }
+            return 'Delete';
+          })();
+          // Restore is non-destructive; Delete and Archive style as destructive on hover.
+          const isDestructive = deleteLabel === 'Delete' || deleteLabel === 'Archive';
+          return (
             <button
-              className="lum-btn lum-btn-p-1 rounded-lum-1 gap-0.5 w-full text-left lum-bg-transparent"
+              className={
+                deleteDisabled
+                  ? ctxItemDisabled
+                  : isDestructive ? ctxItemDestructive : ctxItem
+              }
+              disabled={deleteDisabled}
               onClick={async () => {
-                if (!window.confirm(confirmMsg)) return;
-                try {
-                  const res = await fetch(
-                    `${apiUrl}/classrooms/${classroom.id}/assignments/${encodeURIComponent(template)}/restore`,
-                    {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      credentials: 'include',
-                      body: JSON.stringify({ paths: mode === 'all' ? null : [relPath] }),
+                if (!contextMenu.targetLocation) return;
+                if (isProtectedLocation(contextMenu.targetLocation)) return;
+
+                // Handle restore from archive folder
+                if (isArchiveFolder(contextMenu.targetLocation)) {
+                  const parts = contextMenu.targetLocation.split('/').filter(Boolean);
+                  if (parts.length === 2) {
+                    const archivedSlug = parts[1];
+                    window.dispatchEvent(new CustomEvent('3compute:archive-restore', {
+                      detail: { slug: archivedSlug },
+                    }));
+                  }
+                  return;
+                }
+
+                const parts = contextMenu.targetLocation.split('/').filter(Boolean);
+                const isClassroomRoot = parts.length === 1;
+                const slug = parts[0];
+                const classroom = slug ? classroomSymlinks?.[slug] : undefined;
+
+                // Handle classroom archive/restore - classroom roots can only be archived, not deleted
+                if (isClassroomRoot && classroom) {
+                  window.dispatchEvent(new CustomEvent('3compute:classroom-action', {
+                    detail: {
+                      location: contextMenu.targetLocation,
+                      action: classroom.archived ? 'restore' : 'archive',
                     },
-                  );
+                  }));
+                  return;
+                }
+
+                // Handle regular file/folder deletion (not classroom roots)
+                if (!window.confirm(`Delete "${contextMenu.targetLocation}"? This cannot be undone.`)) {
+                  return;
+                }
+
+                try {
+                  const res = await fetch(`${apiUrl}/files/file${contextMenu.targetLocation}`, {
+                    method: 'DELETE',
+                    credentials: 'include',
+                  });
+
                   if (!res.ok) {
                     const body = await res.text().catch(() => '');
                     let reason = body;
@@ -753,174 +953,37 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
                       const parsed = JSON.parse(body);
                       reason = parsed.detail ?? parsed.error ?? body;
                     } catch {
-                      /* use raw body */
+                      // not JSON, use raw body
                     }
-                    alert(reason || `Restore failed (${res.status})`);
+                    console.error('Failed to delete:', contextMenu.targetLocation, reason);
+                    alert(reason || `Failed to delete "${contextMenu.targetLocation}"`);
                     return;
                   }
-                  setContentVersion?.((v) => (v ?? 0) + 1);
+
                   await refreshFiles();
-                } catch {
-                  alert('Restore failed');
+
+                  const deletedLoc = contextMenu.targetLocation;
+                  const folderPrefix = deletedLoc.endsWith('/') ? deletedLoc : `${deletedLoc}/`;
+                  const isMatch = (loc: string) => loc === deletedLoc || loc.startsWith(folderPrefix);
+                  const remaining = openFiles.filter((f) => !isMatch(f.location));
+                  if (remaining.length !== openFiles.length) setOpenFiles(remaining);
+                  if (currentFile?.location && isMatch(currentFile.location)) {
+                    setCurrentFile(remaining[remaining.length - 1] ?? undefined);
+                  }
+                  if (!contextMenu.targetLocation.includes('/', 1)) {
+                    setSelectedLocation?.(undefined);
+                  }
+                } catch (error) {
+                  console.error('Error deleting file:', error);
+                  alert('Error deleting file');
                 }
-                setContextMenu({ ...contextMenu, visible: false });
               }}
             >
-              <RotateCcw size={16} className="inline mr-2" />
-              {label}
+              <Trash size={14} className={deleteDisabled ? 'text-ink-faint' : 'text-ink-muted group-hover:text-tomato'} />
+              {deleteLabel}
             </button>
           );
         })()}
-        {!contextMenu.blankSpace && (
-          <button
-            className="lum-btn lum-btn-p-1 rounded-lum-1 gap-0.5 w-full text-left lum-bg-transparent"
-            onClick={() => {
-              if (!contextMenu.targetLocation) return;
-              if (isProtectedLocation(contextMenu.targetLocation)) return;
-              const parts = contextMenu.targetLocation.split('/').filter(Boolean);
-              const isClassroomRoot = parts.length === 1;
-              if (isClassroomRoot) {
-                // Only instructors can rename classrooms
-                const slug = parts[0];
-                const classroom = slug ? classroomSymlinks?.[slug] : undefined;
-                if (classroom?.isInstructor) {
-                  window.dispatchEvent(new CustomEvent('3compute:classroom-action', {
-                    detail: { location: contextMenu.targetLocation, action: 'rename' },
-                  }));
-                }
-              } else {
-                document.dispatchEvent(new CustomEvent('3compute:rename', { detail: { location: contextMenu.targetLocation } }));
-              }
-            }}
-            disabled={(() => {
-              if (!contextMenu.targetLocation) return true;
-              if (isProtectedLocation(contextMenu.targetLocation)) return true;
-              // Archive folder and its contents cannot be renamed
-              if (isArchiveFolder(contextMenu.targetLocation)) return true;
-              const parts = contextMenu.targetLocation.split('/').filter(Boolean);
-              const isClassroomRoot = parts.length === 1;
-              if (isClassroomRoot) {
-                const slug = parts[0];
-                const classroom = slug ? classroomSymlinks?.[slug] : undefined;
-                // Only instructors can rename classrooms; normal folders can be renamed
-                if (classroom) {
-                  return !classroom.isInstructor;
-                }
-              }
-              return false;
-            })()}
-          >
-            <Pencil size={16} className="inline mr-2" />
-            Rename
-          </button>
-        )}
-        {!contextMenu.blankSpace && (
-          <button
-            className="lum-btn lum-btn-p-1 rounded-lum-1 gap-0.5 w-full text-left lum-bg-transparent"
-            onClick={async () => {
-              if (!contextMenu.targetLocation) return;
-              if (isProtectedLocation(contextMenu.targetLocation)) return;
-
-              // Handle restore from archive folder
-              if (isArchiveFolder(contextMenu.targetLocation)) {
-                const parts = contextMenu.targetLocation.split('/').filter(Boolean);
-                if (parts.length === 2) {
-                  const archivedSlug = parts[1];
-                  window.dispatchEvent(new CustomEvent('3compute:archive-restore', {
-                    detail: { slug: archivedSlug },
-                  }));
-                }
-                return;
-              }
-
-              const parts = contextMenu.targetLocation.split('/').filter(Boolean);
-              const isClassroomRoot = parts.length === 1;
-              const slug = parts[0];
-              const classroom = slug ? classroomSymlinks?.[slug] : undefined;
-
-              // Handle classroom archive/restore - classroom roots can only be archived, not deleted
-              if (isClassroomRoot && classroom) {
-                window.dispatchEvent(new CustomEvent('3compute:classroom-action', {
-                  detail: {
-                    location: contextMenu.targetLocation,
-                    action: classroom.archived ? 'restore' : 'archive',
-                  },
-                }));
-                return;
-              }
-
-              // Handle regular file/folder deletion (not classroom roots)
-              if (!window.confirm(`Delete "${contextMenu.targetLocation}"? This cannot be undone.`)) {
-                return;
-              }
-
-              try {
-                const res = await fetch(`${apiUrl}/files/file${contextMenu.targetLocation}`, {
-                  method: 'DELETE',
-                  credentials: 'include',
-                });
-
-                if (!res.ok) {
-                  const body = await res.text().catch(() => '');
-                  let reason = body;
-                  try {
-                    const parsed = JSON.parse(body);
-                    reason = parsed.detail ?? parsed.error ?? body;
-                  } catch {
-                    // not JSON, use raw body
-                  }
-                  console.error('Failed to delete:', contextMenu.targetLocation, reason);
-                  alert(reason || `Failed to delete "${contextMenu.targetLocation}"`);
-                  return;
-                }
-
-                await refreshFiles();
-
-                if (currentFile?.location === contextMenu.targetLocation) {
-                  setCurrentFile(undefined);
-                }
-                if (!contextMenu.targetLocation.includes('/', 1)) {
-                  setSelectedLocation?.(undefined);
-                }
-              } catch (error) {
-                console.error('Error deleting file:', error);
-                alert('Error deleting file');
-              }
-            }}
-            disabled={(() => {
-              if (!contextMenu.targetLocation) return true;
-              if (isProtectedLocation(contextMenu.targetLocation)) return true;
-              if (contextMenu.targetLocation === '/README.md') return true;
-              if (isArchiveRoot(contextMenu.targetLocation)) return true;
-              if (isArchiveFolder(contextMenu.targetLocation)) {
-                const parts = contextMenu.targetLocation.split('/').filter(Boolean);
-                if (parts.length !== 2) return true;
-                return false;
-              }
-              return false;
-            })()}
-          >
-            <Trash size={16} className="inline mr-2" />
-            {(() => {
-              if (!contextMenu.targetLocation) return 'Delete';
-              if (isArchiveFolder(contextMenu.targetLocation)) {
-                const parts = contextMenu.targetLocation.split('/').filter(Boolean);
-                if (parts.length === 2) {
-                  return 'Restore';
-                }
-                return 'Delete';
-              }
-              const parts = contextMenu.targetLocation.split('/').filter(Boolean);
-              const isClassroomRoot = parts.length === 1;
-              const slug = parts[0];
-              const classroom = slug ? classroomSymlinks?.[slug] : undefined;
-              if (isClassroomRoot && classroom) {
-                return classroom.archived ? 'Restore' : 'Archive';
-              }
-              return 'Delete';
-            })()}
-          </button>
-        )}
       </div>
     </div>
   );

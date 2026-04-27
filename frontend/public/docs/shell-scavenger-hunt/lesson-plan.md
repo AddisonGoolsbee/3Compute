@@ -95,7 +95,7 @@ By the end of this project, students should be able to:
 
 **Instructor Notes:**
 
-- Most students finish in 25-45 minutes. Fast finishers can try the Welcome-to-3compute lesson next.
+- Most students finish in 25-45 minutes. Fast finishers can try the Welcome-to-3Compute lesson next.
 - The clue files contain a null byte so the editor will refuse to open them. If a student complains that clicking a file shows "This file cannot be displayed in the editor," that is by design - push them back to the terminal.
 - The null byte also means you cannot easily preview the solution in the editor yourself. The `solution-reference.md` document (if provided) lists the correct answer as a reference.
 
@@ -164,8 +164,6 @@ Use these at the end of the period or as a written exit ticket:
 
 | File | Purpose |
 |------|---------|
-| `lesson-plan.md` | This document |
-| Shell-Scavenger-Hunt student template: | |
 | `README.md` | Student-facing intro, terminal-only warning, and commands reference |
 | `start.txt` | First clue; teaches basic `cat`/`cd`/`ls` |
 | `mansion/hallway/sign-*.txt` | Three signs; one carries the next clue |

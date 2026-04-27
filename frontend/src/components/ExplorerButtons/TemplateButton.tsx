@@ -1,14 +1,15 @@
-import { useEffect, useState, useContext, ChangeEvent } from 'react';
-import { SelectMenuRaw } from '@luminescent/ui-react';
-import { LayoutTemplate } from 'lucide-react';
+import { useEffect, useState, useContext, useRef } from 'react';
+import { LayoutTemplate, Loader2 } from 'lucide-react';
 import { apiUrl, UserDataContext } from '../../util/UserData';
 import { StatusContext } from '../../util/Files';
+import { cn } from '../../util/cn';
 
 type Manifest = Record<string, string[]>;
 
 export default function TemplateButton() {
   const [manifest, setManifest] = useState<Manifest>({});
-  const [selected, setSelected] = useState<string>('');
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
   const { setStatus } = useContext(StatusContext);
   const userData = useContext(UserDataContext);
 
@@ -18,6 +19,18 @@ export default function TemplateButton() {
       .then((data: Manifest) => setManifest(data))
       .catch((err) => console.error('Failed to load template manifest', err));
   }, []);
+
+  // Close menu on outside click
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (!containerRef.current) return;
+      if (containerRef.current.contains(e.target as Node)) return;
+      setOpen(false);
+    };
+    document.addEventListener('click', handler);
+    return () => document.removeEventListener('click', handler);
+  }, [open]);
 
   const getUniqueFolderName = (baseName: string): string => {
     const existing = userData?.files;
@@ -31,6 +44,7 @@ export default function TemplateButton() {
 
   const handleUseTemplate = async (templateName: string) => {
     if (!templateName) return;
+    setOpen(false);
     setStatus('Uploading template…');
 
     const folderName = getUniqueFolderName(templateName);
@@ -83,26 +97,41 @@ export default function TemplateButton() {
   };
 
   const templateNames = Object.keys(manifest);
-  if (!templateNames.length) return <div className="lum-loading animate-spin w-4 h-4" />;
+  if (!templateNames.length) {
+    return (
+      <div className="inline-flex items-center justify-center px-2 py-1.5">
+        <Loader2 size={14} className="animate-spin text-ink-muted" />
+      </div>
+    );
+  }
 
   return (
-    <SelectMenuRaw
-      id="template-select"
-      className="lum-btn-p-1 rounded-lum-2 gap-1 text-xs lum-bg-blue-950 hover:lum-bg-blue-900 w-full"
-      value={selected}
-      onChange={(e: ChangeEvent<HTMLSelectElement>) => {
-        const name = e.target.value;
-        setSelected(name);
-        if (name) handleUseTemplate(name);
-      }}
-      values={templateNames.map((name) => ({ name: name.replace(/[-_]/g, ' '), value: name }))}
-      customDropdown
-      dropdown={
-        <div className="flex items-center gap-1">
-          <LayoutTemplate size={16} />
-          Templates
-        </div>
-      }
-    />
+    <div ref={containerRef} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="bg-paper-elevated text-ink-default border border-ide-rule px-2 py-1.5 rounded-sm text-xs font-medium cursor-pointer font-sans inline-flex items-center justify-center gap-1.5 hover:bg-paper-tinted transition-colors w-full"
+      >
+        <LayoutTemplate size={14} className="text-ink-muted" />
+        Templates
+      </button>
+      <div
+        className={cn(
+          'absolute left-0 top-full mt-1 bg-paper-elevated border border-rule-soft rounded-md shadow-md py-1 min-w-[200px] z-50 transition-opacity duration-150',
+          !open && 'opacity-0 pointer-events-none',
+        )}
+      >
+        {templateNames.map((name) => (
+          <button
+            key={name}
+            type="button"
+            onClick={() => handleUseTemplate(name)}
+            className="flex items-center gap-2 px-3 py-1.5 text-sm text-ink-default hover:bg-paper-tinted hover:text-ink-strong cursor-pointer w-full text-left transition-colors"
+          >
+            {name.replace(/[-_]/g, ' ')}
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }

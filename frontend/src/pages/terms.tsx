@@ -3,8 +3,8 @@ import { useEffect, type ReactNode } from 'react';
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section className="mb-10">
-      <h2 className="text-xl font-semibold text-white mb-3">{title}</h2>
-      <div className="text-gray-300 leading-relaxed space-y-3">{children}</div>
+      <h2 className="heading-3 mb-3">{title}</h2>
+      <div className="body text-ink-default space-y-3">{children}</div>
     </section>
   );
 }
@@ -16,11 +16,11 @@ export default function TermsPage() {
   }, []);
 
   return (
-    <div className="max-w-3xl mx-auto px-6 py-16 text-sm">
-      <h1 className="text-3xl font-bold text-white mb-2">Terms of Service and Privacy Policy</h1>
-      <p className="text-gray-500 mb-10">Effective date: March 23, 2026</p>
+    <div className="max-w-[760px] mx-auto px-7 py-16">
+      <h1 className="heading-1 mb-2">Terms of service and privacy policy</h1>
+      <p className="body-sm mb-10">Effective date: March 23, 2026</p>
 
-      <p className="text-gray-300 leading-relaxed mb-10">
+      <p className="body mb-10 text-ink-default">
         3Compute is a free educational platform operated by Birdflop, a 501(c)(3) nonprofit
         organization (EIN: 93-2401009). By using 3Compute, you agree to the terms below.
         If you are under 13, you may only use 3Compute with the involvement and consent of a
@@ -28,15 +28,13 @@ export default function TermsPage() {
       </p>
 
       {/* ------------------------------------------------------------------ */}
-      <h2 className="text-lg font-semibold text-[#54daf4] uppercase tracking-wide mb-6">
-        Terms of Service
-      </h2>
+      <h2 className="eyebrow text-navy mb-6">Terms of service</h2>
 
-      <Section title="1. Acceptable Use">
+      <Section title="1. Acceptable use">
         <p>
           3Compute is provided for educational and personal learning purposes. You agree not to:
         </p>
-        <ul className="list-disc list-inside space-y-1 text-gray-400 pl-2">
+        <ul className="list-disc list-inside space-y-1 text-ink-muted pl-2">
           <li>Use the platform for any unlawful purpose</li>
           <li>Upload, run, or distribute malicious code, malware, or content that attacks other systems</li>
           <li>Attempt to access other users' environments or data</li>
@@ -49,7 +47,7 @@ export default function TermsPage() {
         </p>
       </Section>
 
-      <Section title="2. File Storage and Admin Access">
+      <Section title="2. File storage and admin access">
         <p>
           Files you store in your 3Compute environment are hosted on Birdflop infrastructure.
           Birdflop administrators have the technical ability
@@ -67,7 +65,7 @@ export default function TermsPage() {
         </p>
       </Section>
 
-      <Section title="3. Service Availability">
+      <Section title="3. Service availability">
         <p>
           3Compute is provided free of charge and on an as-is, as-available basis. We make no
           guarantees of uptime, data retention, or continuity of service. We may modify,
@@ -78,7 +76,7 @@ export default function TermsPage() {
         </p>
       </Section>
 
-      <Section title="4. Intellectual Property">
+      <Section title="4. Intellectual property">
         <p>
           You retain ownership of code and files you create. By using 3Compute, you grant
           Birdflop a limited license to host, store, and transmit your content as necessary
@@ -89,7 +87,7 @@ export default function TermsPage() {
         </p>
       </Section>
 
-      <Section title="5. Disclaimer of Warranties">
+      <Section title="5. Disclaimer of warranties">
         <p>
           3Compute is provided without warranty of any kind, express or implied. Birdflop is
           not liable for any loss of data, loss of work, or damages arising from your use of
@@ -98,13 +96,11 @@ export default function TermsPage() {
       </Section>
 
       {/* ------------------------------------------------------------------ */}
-      <h2 className="text-lg font-semibold text-[#54daf4] uppercase tracking-wide mb-6 mt-10">
-        Privacy Policy
-      </h2>
+      <h2 className="eyebrow text-navy mb-6 mt-10">Privacy policy</h2>
 
-      <Section title="6. Information We Collect">
+      <Section title="6. Information we collect">
         <p>When you sign in with Google, we receive and store:</p>
-        <ul className="list-disc list-inside space-y-1 text-gray-400 pl-2">
+        <ul className="list-disc list-inside space-y-1 text-ink-muted pl-2">
           <li>Your Google account name</li>
           <li>Your Google account email address</li>
           <li>A unique identifier from Google used to recognize your account</li>
@@ -119,9 +115,9 @@ export default function TermsPage() {
         </p>
       </Section>
 
-      <Section title="7. How We Use Your Information">
+      <Section title="7. How we use your information">
         <p>We use the information we collect solely to:</p>
-        <ul className="list-disc list-inside space-y-1 text-gray-400 pl-2">
+        <ul className="list-disc list-inside space-y-1 text-ink-muted pl-2">
           <li>Identify your account and provide access to your environment</li>
           <li>Associate your work with your account</li>
           <li>Allow instructors to manage classroom membership</li>
@@ -133,7 +129,7 @@ export default function TermsPage() {
         </p>
       </Section>
 
-      <Section title="8. Data Retention">
+      <Section title="8. Data retention">
         <p>
           Your account data and files are retained for as long as your account is active.
           You may request deletion of your account and associated data by emailing us at the
@@ -141,7 +137,7 @@ export default function TermsPage() {
         </p>
       </Section>
 
-      <Section title="9. Children's Privacy">
+      <Section title="9. Children's privacy">
         <p>
           3Compute is intended for use in educational settings and may be used by students
           under 13 only with teacher or parental oversight. We do not knowingly collect
@@ -151,7 +147,7 @@ export default function TermsPage() {
         </p>
       </Section>
 
-      <Section title="10. Changes to These Terms">
+      <Section title="10. Changes to these terms">
         <p>
           We may update these terms from time to time. The effective date at the top of this
           page will reflect the most recent revision. Continued use of 3Compute after changes
@@ -160,19 +156,19 @@ export default function TermsPage() {
       </Section>
 
       {/* ------------------------------------------------------------------ */}
-      <div className="border-t border-gray-700 pt-8 mt-4">
-        <h2 className="text-base font-semibold text-white mb-2">Contact</h2>
-        <p className="text-gray-400">
+      <div className="border-t border-rule-soft pt-8 mt-4">
+        <h2 className="heading-4 mb-2">Contact</h2>
+        <p className="body text-ink-default">
           Questions about these terms or your data? Email us at{' '}
           <a
             href="mailto:3compute@birdflop.com"
-            className="text-[#54daf4] hover:underline"
+            className="text-navy font-semibold hover:underline"
           >
             3compute@birdflop.com
           </a>
           .
         </p>
-        <p className="text-gray-600 text-xs mt-4">
+        <p className="text-xs text-ink-subtle mt-4">
           Birdflop is a registered 501(c)(3) nonprofit organization. EIN: 93-2401009.
         </p>
       </div>

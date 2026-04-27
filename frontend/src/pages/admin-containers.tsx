@@ -1,8 +1,11 @@
 import { useContext, useEffect, useRef, useState } from 'react';
-import { Link, Navigate } from 'react-router';
-import { ArrowLeft, AlertTriangle, RefreshCw } from 'lucide-react';
+import { Link, Navigate, useLocation } from 'react-router';
+import { AlertTriangle, RefreshCw } from 'lucide-react';
 import { apiUrl, UserDataContext } from '../util/UserData';
 import AdminRestricted from '../components/AdminRestricted';
+import Footer from '../components/Footer';
+import { GhostButton, Pill } from '../components/ui/Buttons';
+import { cn } from '../util/cn';
 
 interface AdminContainer {
   name: string;
@@ -14,14 +17,48 @@ interface AdminContainer {
   ports: string;
 }
 
+const SUB_NAV: Array<{ label: string; to: string }> = [
+  { label: 'Overview', to: '/admin' },
+  { label: 'Users', to: '/admin/users' },
+  { label: 'Classrooms', to: '/admin/classrooms' },
+  { label: 'Containers', to: '/admin/containers' },
+  { label: 'Logs', to: '/admin/logs' },
+];
+
+function SubNav({ active }: { active: string }) {
+  return (
+    <div className="flex gap-1 mb-7 border-b border-rule-soft">
+      {SUB_NAV.map((tab) => {
+        const isActive = tab.to === active;
+        return (
+          <Link
+            key={tab.to}
+            to={tab.to}
+            className={cn(
+              'px-4 py-2.5 border-b-2 -mb-px text-sm font-semibold transition-colors',
+              isActive
+                ? 'border-navy text-ink-strong'
+                : 'border-transparent text-ink-muted hover:text-ink-strong',
+            )}
+          >
+            {tab.label}
+          </Link>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function AdminContainersPage() {
   const userData = useContext(UserDataContext);
+  const location = useLocation();
   const [rows, setRows] = useState<AdminContainer[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [dockerError, setDockerError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const loadRef = useRef<() => Promise<void>>(() => Promise.resolve());
 
   const isLoggedIn = !!userData?.userInfo;
   const isAdmin = !!userData?.userInfo?.is_admin;
@@ -51,6 +88,7 @@ export default function AdminContainersPage() {
         if (!cancelled) { setRefreshing(false); setLoading(false); }
       }
     };
+    loadRef.current = load;
     load();
     timerRef.current = setInterval(load, 10_000);
     return () => { cancelled = true; if (timerRef.current) clearInterval(timerRef.current); };
@@ -67,83 +105,92 @@ export default function AdminContainersPage() {
   const runningCount = rows.filter((r) => r.state === 'running').length;
 
   return (
-    <div className="-mt-20 text-white min-h-screen flex flex-col">
-      <header className="pt-24 pb-4 px-6">
-        <div className="max-w-6xl mx-auto">
-          <Link to="/admin" className="inline-flex items-center gap-2 text-gray-400 hover:text-white transition-colors mb-4">
-            <ArrowLeft size={18} /> Back to admin
-          </Link>
-          <div className="flex items-center justify-between flex-wrap gap-3">
+    <div className="min-h-screen flex flex-col">
+      <main className="flex-1">
+        <div className="max-w-[1200px] mx-auto px-7 py-10">
+          <div className="flex items-start justify-between flex-wrap gap-4 mb-7">
             <div>
-              <h1 className="text-3xl font-bold mb-1">
-                Containers ({runningCount} running / {rows.length} total)
-              </h1>
-              <p className="text-gray-400 text-sm">
-                Auto-refreshes every 10s. Per-container CPU/mem intentionally omitted to keep this cheap —
-                use <code className="bg-black/30 px-1 rounded">docker stats</code> on the host if you need it.
+              <h1 className="heading-1">Containers</h1>
+              <p className="body-sm mt-1.5">
+                {runningCount} running of {rows.length} total. Auto-refreshes every 10s.
+                Per-container CPU/mem intentionally omitted to keep this cheap — use{' '}
+                <code className="bg-paper-deeper text-ink-default font-mono px-1.5 py-0.5 rounded-sm text-[12.5px]">
+                  docker stats
+                </code>{' '}
+                on the host if you need it.
               </p>
             </div>
-            <div className="flex items-center gap-2 text-sm text-gray-400">
-              <RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} />
-              {refreshing ? 'Refreshing…' : 'Idle'}
-            </div>
+            <GhostButton
+              icon={<RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} />}
+              onClick={() => loadRef.current()}
+            >
+              Refresh
+            </GhostButton>
           </div>
-        </div>
-      </header>
 
-      <main className="flex-1 px-6 pb-12">
-        <div className="max-w-6xl mx-auto">
-          {loading && rows.length === 0 && <div className="text-gray-500">Loading…</div>}
+          <SubNav active={location.pathname} />
+
+          {loading && rows.length === 0 && (
+            <div className="body text-ink-muted text-center py-10">Loading…</div>
+          )}
           {error && (
-            <div className="mb-4 rounded-lg border border-red-700/50 bg-red-950/30 p-3 text-sm text-red-300 flex items-start gap-2">
-              <AlertTriangle size={16} className="mt-0.5 shrink-0" /> {error}
+            <div className="mb-4 bg-tomato-soft border border-tomato/30 rounded-md px-4 py-3 text-tomato text-sm flex items-center gap-2">
+              <AlertTriangle size={16} className="shrink-0" />
+              <span>{error}</span>
             </div>
           )}
           {dockerError && (
-            <div className="mb-4 rounded-lg border border-yellow-700/50 bg-yellow-950/20 p-3 text-sm text-yellow-200 flex items-start gap-2">
-              <AlertTriangle size={16} className="mt-0.5 shrink-0" /> docker: {dockerError}
+            <div className="mb-4 bg-ochre-soft border border-ochre/30 rounded-md px-4 py-3 text-ochre text-sm flex items-center gap-2">
+              <AlertTriangle size={16} className="shrink-0" />
+              <span>docker: {dockerError}</span>
             </div>
           )}
 
-          <div className="overflow-x-auto rounded-lg border border-gray-800 bg-gray-900/40">
-            <table className="w-full text-sm">
-              <thead className="text-left bg-gray-900/60 text-gray-400 uppercase text-[10px] tracking-wide">
-                <tr>
-                  <th className="pl-3! pr-3 py-2">User</th>
-                  <th className="pl-3! pr-3 py-2">State</th>
-                  <th className="pl-3! pr-3 py-2">Status</th>
-                  <th className="pl-3! pr-3 py-2">Uptime</th>
-                  <th className="pl-3! pr-3 py-2">Ports</th>
+          <div className="overflow-x-auto">
+            <table className="w-full bg-paper-elevated border border-rule-soft rounded-xl overflow-hidden border-collapse">
+              <thead>
+                <tr className="bg-paper-tinted">
+                  <th className="pl-3! pr-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-ink-strong">User</th>
+                  <th className="pl-3! pr-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-ink-strong">State</th>
+                  <th className="pl-3! pr-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-ink-strong">Status</th>
+                  <th className="pl-3! pr-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-ink-strong">Uptime</th>
+                  <th className="pl-3! pr-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-ink-strong">Ports</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-800/80">
+              <tbody>
                 {rows.map((c) => (
-                  <tr key={c.name} className="hover:bg-gray-800/30">
-                    <td className="pl-3! pr-3 py-2 font-mono text-xs">
-                      {c.user_email || <span className="text-gray-500">{c.user_id || c.name}</span>}
+                  <tr key={c.name} className="border-t border-rule-soft hover:bg-paper-tinted/50 transition-colors">
+                    <td className="pl-3! pr-3 py-2.5 text-sm font-mono text-ink-default">
+                      {c.user_email || <span className="text-ink-muted">{c.user_id || c.name}</span>}
                     </td>
-                    <td className="pl-3! pr-3 py-2">
-                      {c.state === 'running' ? (
-                        <span className="inline-flex items-center gap-1 text-green-400">
-                          <span className="w-1.5 h-1.5 rounded-full bg-green-400" /> running
-                        </span>
-                      ) : (
-                        <span className="text-gray-500">{c.state}</span>
-                      )}
+                    <td className="pl-3! pr-3 py-2.5 text-sm">
+                      {c.state === 'running'
+                        ? <Pill color="forest">running</Pill>
+                        : c.state === 'exited' || c.state === 'stopped'
+                          ? <Pill color="ochre">{c.state}</Pill>
+                          : <Pill color="tomato">{c.state}</Pill>}
                     </td>
-                    <td className="pl-3! pr-3 py-2 text-gray-400">{c.status}</td>
-                    <td className="pl-3! pr-3 py-2 text-gray-300">{c.running_for}</td>
-                    <td className="pl-3! pr-3 py-2 font-mono text-[10px] text-gray-400">{c.ports || <span className="text-gray-600">—</span>}</td>
+                    <td className="pl-3! pr-3 py-2.5 text-sm text-ink-muted">{c.status}</td>
+                    <td className="pl-3! pr-3 py-2.5 text-sm text-ink-default">{c.running_for}</td>
+                    <td className="pl-3! pr-3 py-2.5 font-mono text-[12px] text-ink-muted">
+                      {c.ports || <span className="text-ink-faint">—</span>}
+                    </td>
                   </tr>
                 ))}
                 {rows.length === 0 && !loading && (
-                  <tr><td colSpan={5} className="pl-3! pr-3 py-6 text-center text-gray-500">No containers.</td></tr>
+                  <tr>
+                    <td colSpan={5} className="pl-3! pr-3 py-6 text-center text-sm text-ink-muted">
+                      No containers.
+                    </td>
+                  </tr>
                 )}
               </tbody>
             </table>
           </div>
         </div>
       </main>
+
+      <Footer />
     </div>
   );
 }

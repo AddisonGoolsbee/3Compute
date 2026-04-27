@@ -2,14 +2,17 @@ import { useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { Link, Navigate, useParams, useSearchParams } from 'react-router';
 import Footer from '../components/Footer';
 import MonacoEditor from '@monaco-editor/react';
+import { setupDaylightTheme, DAYLIGHT_THEME } from '../util/monacoTheme';
 import {
-  ArrowLeft, Copy, Check, Settings, Play,
-  RefreshCw, Pause, PlayCircle, KeyRound, Pencil,
+  Copy, Check, Settings, Play,
+  RefreshCw, KeyRound, Pencil,
   FileText, ExternalLink, ChevronRight, FlaskConical,
-  HelpCircle, BookOpen, Upload, Trash2, Send,
+  HelpCircle, BookOpen, Upload, Trash2, Send, X,
 } from 'lucide-react';
 import { apiUrl, UserDataContext } from '../util/UserData';
 import { languageMap } from '../util/languageMap';
+import { PrimaryButton, GhostButton, Pill } from '../components/ui/Buttons';
+import { cn } from '../util/cn';
 
 interface StudentResult {
   passed: number;
@@ -46,6 +49,23 @@ interface ClassroomInfo {
   participants: string[];
 }
 
+const AVATAR_COLORS = ['bg-tomato', 'bg-navy', 'bg-forest', 'bg-ochre', 'bg-plum'];
+
+function avatarInitials(nameOrEmail: string) {
+  const trimmed = nameOrEmail.trim();
+  if (!trimmed) return '?';
+  if (trimmed.includes(' ')) {
+    return trimmed
+      .split(/\s+/)
+      .map((n) => n[0])
+      .filter(Boolean)
+      .slice(0, 2)
+      .join('')
+      .toUpperCase();
+  }
+  return trimmed.slice(0, 2).toUpperCase();
+}
+
 export default function ClassroomDetailPage() {
   const userData = useContext(UserDataContext);
   const { id } = useParams();
@@ -67,6 +87,7 @@ export default function ClassroomDetailPage() {
   const [renaming, setRenaming] = useState(false);
   const [renameValue, setRenameValue] = useState('');
   const [helpOpen, setHelpOpen] = useState(false);
+
   const fetchClassroom = useCallback(async () => {
     const res = await fetch(`${apiUrl}/classrooms/`, { credentials: 'include' });
     const data = await res.json();
@@ -129,7 +150,6 @@ export default function ClassroomDetailPage() {
     if (res.ok) {
       setClassroom({ ...classroom, joins_paused: !classroom.joins_paused });
     }
-    setSettingsOpen(false);
   };
 
   const regenerateCode = async () => {
@@ -141,7 +161,6 @@ export default function ClassroomDetailPage() {
       const data = await res.json();
       if (classroom) setClassroom({ ...classroom, access_code: data.access_code });
     }
-    setSettingsOpen(false);
   };
 
   const submitRename = async () => {
@@ -156,14 +175,19 @@ export default function ClassroomDetailPage() {
       if (classroom) setClassroom({ ...classroom, name: renameValue.trim() });
     }
     setRenaming(false);
-    setSettingsOpen(false);
+  };
+
+  const startRename = () => {
+    if (!classroom) return;
+    setRenameValue(classroom.name);
+    setRenaming(true);
   };
 
   const copyCode = () => {
     if (!classroom) return;
     navigator.clipboard.writeText(classroom.access_code);
     setCopiedCode(true);
-    setTimeout(() => setCopiedCode(false), 2000);
+    setTimeout(() => setCopiedCode(false), 1500);
   };
 
   const saveWeights = async (newWeights: WeightsData) => {
@@ -188,18 +212,23 @@ export default function ClassroomDetailPage() {
 
   if (loading) {
     return (
-      <div className="-mt-20 text-white min-h-screen flex items-center justify-center">
-        <div className="text-gray-500">Loading...</div>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="body text-ink-muted">Loading…</div>
       </div>
     );
   }
 
   if (!classroom) {
     return (
-      <div className="-mt-20 text-white min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-gray-400 mb-4">Classroom not found</p>
-          <Link to="/classrooms" className="text-gray-300 hover:text-white transition-colors">Back to classrooms</Link>
+      <div className="min-h-screen flex items-center justify-center px-7">
+        <div className="bg-paper-elevated border border-rule-soft rounded-xl shadow-sm p-10 text-center max-w-md w-full">
+          <p className="body text-ink-default mb-4">Classroom not found.</p>
+          <Link
+            to="/classrooms"
+            className="text-navy hover:text-navy/80 font-semibold no-underline"
+          >
+            Back to classrooms
+          </Link>
         </div>
       </div>
     );
@@ -209,217 +238,111 @@ export default function ClassroomDetailPage() {
     ? `${classroom.access_code.slice(0, 3)}-${classroom.access_code.slice(3)}`
     : classroom.access_code;
 
-  return (
-    <div className="-mt-20 text-white min-h-screen flex flex-col">
-      <header className="pt-24 pb-4 px-6">
-        <div className="max-w-5xl mx-auto">
-          <Link
-            to="/classrooms"
-            className="inline-flex items-center gap-2 text-gray-400 hover:text-white transition-colors mb-4"
-          >
-            <ArrowLeft size={18} />
-            All Classrooms
-          </Link>
+  const studentCount = classroom.participants?.length ?? 0;
+  const templateCount = progress?.templates.length ?? 0;
 
-          <div className="flex items-center justify-between">
-            <div>
-              {renaming ? (
-                <div className="flex items-center gap-2">
+  return (
+    <div className="min-h-screen flex flex-col">
+      <main className="flex-1">
+        <div className="max-w-[1100px] mx-auto px-7 py-10">
+          {/* Header */}
+          <div className="flex items-start justify-between gap-4 flex-wrap mb-7">
+            <div className="flex-1 min-w-0">
+              <span className="eyebrow text-tomato">Classroom</span>
+              <div className="flex items-center gap-3 mt-2">
+                {renaming ? (
                   <input
                     type="text"
                     value={renameValue}
                     onChange={(e) => setRenameValue(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === 'Enter') submitRename(); if (e.key === 'Escape') setRenaming(false); }}
-                    className="text-2xl font-bold bg-transparent border-b border-gray-500 outline-none"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') submitRename();
+                      if (e.key === 'Escape') setRenaming(false);
+                    }}
+                    onBlur={submitRename}
+                    className="bg-paper border border-rule rounded-md px-3 py-1.5 text-ink-strong text-2xl font-display font-semibold outline-none focus:ring-2 focus:ring-navy/30 min-w-0 flex-1"
                     autoFocus
                   />
-                  <button onClick={submitRename} className="text-sm text-green-400 hover:text-green-300">Save</button>
-                  <button onClick={() => setRenaming(false)} className="text-sm text-gray-500 hover:text-gray-300">Cancel</button>
-                </div>
-              ) : (
-                <h1 className="text-2xl font-bold">{classroom.name}</h1>
-              )}
-              <div className="flex items-center gap-3 mt-1.5 text-sm text-gray-400">
-                <button
-                  onClick={copyCode}
-                  className="inline-flex items-center gap-1.5 text-gray-400 hover:text-white transition-colors"
-                  title="Copy join code"
-                >
-                  <span className="text-gray-600 text-xs">Join code</span>
-                  <span className="font-mono text-gray-300 tracking-[0.12em] text-[13px]">{formattedCode}</span>
-                  {copiedCode ? <Check size={13} className="text-green-400" /> : <Copy size={13} className="opacity-50" />}
-                </button>
-                <span className="text-gray-700">|</span>
-                <span>{classroom.participants?.length ?? 0} {(classroom.participants?.length ?? 0) === 1 ? 'student' : 'students'}</span>
-                {classroom.joins_paused && (
-                  <span className="text-xs px-2 py-0.5 rounded-full bg-yellow-900/50 text-yellow-400">Paused</span>
+                ) : (
+                  <h1 className="heading-1">{classroom.name}</h1>
                 )}
               </div>
-            </div>
-
-            <div className="flex items-center gap-1">
-              <Link
-                to={`/ide?classroom=${classroom.id}`}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm bg-[#54daf4]/15 text-[#54daf4] hover:bg-[#54daf4]/25 transition-colors"
-                title="Open this classroom in the IDE and cd the terminal into it"
-              >
-                <ExternalLink size={14} />
-                Open in IDE
-              </Link>
-              <button
-                onClick={() => setHelpOpen(!helpOpen)}
-                className={`p-2 rounded-lg hover:bg-gray-800 transition-colors ${helpOpen ? 'text-white bg-gray-800' : 'text-gray-400 hover:text-white'}`}
-                title="How classrooms work"
-              >
-                <HelpCircle size={20} />
-              </button>
-              <div className="relative">
-                <button
-                  onClick={() => setSettingsOpen(!settingsOpen)}
-                  className="p-2 rounded-lg hover:bg-gray-800 transition-colors text-gray-400 hover:text-white"
-                >
-                  <Settings size={20} />
-                </button>
-                {settingsOpen && (
+              <p className="body-sm mt-2">
+                {studentCount} {studentCount === 1 ? 'student' : 'students'} ·{' '}
+                {templateCount} {templateCount === 1 ? 'assignment' : 'assignments'}
+                {classroom.joins_paused && (
                   <>
-                    <div className="fixed inset-0 z-40" onClick={() => setSettingsOpen(false)} />
-                    <div className="absolute right-0 top-full mt-1 z-50 bg-gray-800 border border-gray-700 rounded-lg shadow-xl py-1 min-w-[200px]">
-                      <button
-                        onClick={toggleJoins}
-                        className="w-full text-left px-4 py-2.5 text-sm hover:bg-gray-700/50 flex items-center gap-2.5 transition-colors"
-                      >
-                        {classroom.joins_paused ? <PlayCircle size={15} className="text-gray-400" /> : <Pause size={15} className="text-gray-400" />}
-                        {classroom.joins_paused ? 'Resume joins' : 'Pause joins'}
-                      </button>
-                      <button
-                        onClick={regenerateCode}
-                        className="w-full text-left px-4 py-2.5 text-sm hover:bg-gray-700/50 flex items-center gap-2.5 transition-colors"
-                      >
-                        <KeyRound size={15} className="text-gray-400" />
-                      Regenerate code
-                      </button>
-                      <button
-                        onClick={() => { setRenameValue(classroom.name); setRenaming(true); setSettingsOpen(false); }}
-                        className="w-full text-left px-4 py-2.5 text-sm hover:bg-gray-700/50 flex items-center gap-2.5 transition-colors"
-                      >
-                        <Pencil size={15} className="text-gray-400" />
-                      Rename
-                      </button>
-                    </div>
+                    {' · '}
+                    <span className="text-ochre font-semibold">Joins paused</span>
                   </>
                 )}
-              </div>
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <code className="bg-ochre-soft text-ochre border border-ochre/30 px-3 py-1.5 rounded-md font-mono text-sm tracking-[0.12em] font-semibold inline-flex items-center gap-2">
+                {formattedCode}
+              </code>
+              <button
+                type="button"
+                onClick={copyCode}
+                className="text-ochre hover:bg-ochre/10 rounded-sm p-1.5 cursor-pointer transition-colors"
+                title="Copy join code"
+                aria-label="Copy join code"
+              >
+                {copiedCode ? <Check size={14} /> : <Copy size={14} />}
+              </button>
+
+              <Link
+                to={`/ide?classroom=${classroom.id}`}
+                className="text-navy hover:text-navy/80 font-semibold no-underline inline-flex items-center gap-1.5 px-3 py-2 rounded-md hover:bg-paper-tinted text-sm transition-colors"
+                title="Open this classroom in your workspace"
+              >
+                <ExternalLink size={14} />
+                Open in workspace
+              </Link>
+
+              <button
+                type="button"
+                onClick={() => setHelpOpen(true)}
+                className="p-2 rounded-md hover:bg-paper-tinted text-ink-muted hover:text-ink-strong cursor-pointer transition-colors"
+                title="How classrooms work"
+                aria-label="How classrooms work"
+              >
+                <HelpCircle size={18} />
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setSettingsOpen(true)}
+                className="p-2 rounded-md hover:bg-paper-tinted text-ink-muted hover:text-ink-strong cursor-pointer transition-colors"
+                title="Classroom settings"
+                aria-label="Classroom settings"
+              >
+                <Settings size={18} />
+              </button>
             </div>
           </div>
-
-          {/* Help panel */}
-          {helpOpen && (
-            <div className="mt-4 border border-gray-700/60 rounded-xl bg-gray-800/30 overflow-hidden">
-              <div className="px-5 py-3 bg-gray-800/40 border-b border-gray-700/40 flex items-center justify-between">
-                <span className="text-sm font-medium text-gray-300">How classrooms work</span>
-                <button onClick={() => setHelpOpen(false)} className="text-gray-500 hover:text-gray-300 text-xs">Dismiss</button>
-              </div>
-              <div className="px-5 py-4 space-y-0 divide-y divide-gray-700/40">
-                <div className="flex gap-4 py-3 first:pt-0">
-                  <div className="mt-0.5 w-6 h-6 rounded-full bg-gray-700 flex items-center justify-center text-xs font-bold text-gray-300 shrink-0">1</div>
-                  <div>
-                    <p className="text-base font-semibold text-white">Upload your assignment folder</p>
-                    <p className="text-sm text-gray-300 mt-1">
-                      Go to the <span className="text-white font-medium">Assignments</span> tab and click <span className="text-white font-medium">Upload Folder</span> to
-                      add a folder with your starter code and any <code className="text-gray-300 bg-gray-800 px-1 rounded">test_*.py</code> files.
-                      This is exactly what students will start with.
-                      Or, import a lesson from the <span className="text-white font-medium">Lessons</span> page directly into your classroom to use its code as-is.
-                    </p>
-                  </div>
-                </div>
-                <div className="flex gap-4 py-3">
-                  <div className="mt-0.5 w-6 h-6 rounded-full bg-gray-700 flex items-center justify-center text-xs font-bold text-gray-300 shrink-0">2</div>
-                  <div>
-                    <p className="text-base font-semibold text-white">Edit your draft and publish</p>
-                    <p className="text-sm text-gray-300 mt-1">
-                      Uploaded folders appear as drafts in the <span className="text-white font-medium">Assignments</span> tab.
-                      Click <span className="text-white font-medium">Edit in IDE</span> to refine files before distributing,
-                      then click <span className="text-white font-medium">Publish</span> when ready.
-                      Drafts are synced with the classroom's drafts folder in the IDE, so you can also create and manage drafts there.
-                      To publish from the IDE, move the folder into <code className="text-gray-300 bg-gray-800 px-1 rounded">assignments</code>. This publishes it immediately.
-                    </p>
-                  </div>
-                </div>
-                <div className="flex gap-4 py-3">
-                  <div className="mt-0.5 w-6 h-6 rounded-full bg-gray-700 flex items-center justify-center text-xs font-bold text-gray-300 shrink-0">3</div>
-                  <div>
-                    <p className="text-base font-semibold text-white">Students get a copy automatically</p>
-                    <p className="text-sm text-gray-300 mt-1">
-                      When you publish, every current student gets their own editable copy, and future students who join pick up every published assignment automatically.
-                      You can keep editing <code className="text-gray-300 bg-gray-800 px-1 rounded">assignments/</code> freely — existing students' copies aren't touched, so their work is safe.
-                      They can always see your latest version through a hidden <code className="text-gray-300 bg-gray-800 px-1 rounded">.templates/</code> folder inside their classroom (they flip <span className="text-white font-medium">Show hidden files</span> in the file explorer to see it), which is useful when you fix a bug or they want the original files back.
-                    </p>
-                  </div>
-                </div>
-                <div className="flex gap-4 py-3">
-                  <div className="mt-0.5 w-6 h-6 rounded-full bg-gray-700 flex items-center justify-center text-xs font-bold text-gray-300 shrink-0">4</div>
-                  <div>
-                    <p className="text-base font-semibold text-white">Share the join code with students</p>
-                    <p className="text-sm text-gray-300 mt-1">
-                      Students enter the code on the Classrooms page to join. You can pause joins or regenerate the code from the settings menu above.
-                    </p>
-                  </div>
-                </div>
-                <div className="pt-3 space-y-2">
-                  <p className="text-xs text-gray-300">
-                    <span className="text-gray-300 font-medium">Test files:</span>{' '}
-                    Files named <code className="text-gray-300 bg-gray-800 px-1 rounded">test_*.py</code> are used for automated grading.
-                    Students can see them but can't modify them. You can also import lessons with pre-written tests from the <span className="text-white font-medium">Lessons</span> page.
-                  </p>
-                  <p className="text-xs text-gray-300">
-                    <span className="text-gray-300 font-medium">Removing assignments:</span>{' '}
-                    Delete the assignment from the <span className="text-white font-medium">Assignments</span> tab, or remove the folder from{' '}
-                    <code className="text-gray-300 bg-gray-800 px-1 rounded">assignments</code> in the IDE.
-                    Students keep their existing copies, but it won't appear in the gradebook or be given to new students.
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
 
           {/* Tabs */}
-          <div className="flex gap-1 mt-6 border-b border-gray-700/50">
-            <button
-              onClick={() => setActiveTab('students')}
-              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === 'students'
-                  ? 'border-white text-white'
-                  : 'border-transparent text-gray-500 hover:text-gray-300'
-              }`}
-            >
-              Students
-            </button>
-            <button
-              onClick={() => setActiveTab('gradebook')}
-              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === 'gradebook'
-                  ? 'border-white text-white'
-                  : 'border-transparent text-gray-500 hover:text-gray-300'
-              }`}
-            >
-              Gradebook
-            </button>
-            <button
-              onClick={() => setActiveTab('assignments')}
-              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === 'assignments'
-                  ? 'border-white text-white'
-                  : 'border-transparent text-gray-500 hover:text-gray-300'
-              }`}
-            >
-              Assignments
-            </button>
+          <div className="flex gap-1 mb-5 border-b border-rule-soft">
+            {(['students', 'gradebook', 'assignments'] as const).map((tab) => (
+              <button
+                key={tab}
+                type="button"
+                onClick={() => setActiveTab(tab)}
+                className={cn(
+                  'px-4 py-3 bg-transparent border-0 cursor-pointer text-sm font-semibold border-b-2 -mb-px font-sans transition-colors capitalize',
+                  activeTab === tab
+                    ? 'border-navy text-ink-strong'
+                    : 'border-transparent text-ink-muted hover:text-ink-strong',
+                )}
+              >
+                {tab === 'students' ? 'Students' : tab === 'gradebook' ? 'Gradebook' : 'Assignments'}
+              </button>
+            ))}
           </div>
-        </div>
-      </header>
 
-      <main className="flex-1 px-6 pb-20">
-        <div className="max-w-5xl mx-auto mt-4">
           {activeTab === 'students' ? (
             <StudentsTab
               classroomId={id!}
@@ -449,6 +372,241 @@ export default function ClassroomDetailPage() {
       </main>
 
       <Footer />
+
+      {settingsOpen && (
+        <SettingsDialog
+          classroom={classroom}
+          onClose={() => setSettingsOpen(false)}
+          onTogglePause={async () => {
+            await toggleJoins();
+          }}
+          onRegenerate={async () => {
+            await regenerateCode();
+          }}
+          onRename={() => {
+            setSettingsOpen(false);
+            startRename();
+          }}
+        />
+      )}
+
+      {helpOpen && <HelpDialog onClose={() => setHelpOpen(false)} />}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Settings dialog
+// ---------------------------------------------------------------------------
+
+function SettingsDialog({
+  classroom,
+  onClose,
+  onTogglePause,
+  onRegenerate,
+  onRename,
+}: {
+  classroom: ClassroomInfo;
+  onClose: () => void;
+  onTogglePause: () => Promise<void>;
+  onRegenerate: () => Promise<void>;
+  onRename: () => void;
+}) {
+  const [paused, setPaused] = useState(classroom.joins_paused);
+  const [working, setWorking] = useState(false);
+
+  const handleTogglePause = async () => {
+    setWorking(true);
+    try {
+      setPaused((p) => !p);
+      await onTogglePause();
+    } finally {
+      setWorking(false);
+    }
+  };
+
+  const handleRegenerate = async () => {
+    if (!window.confirm('Regenerate the join code? Existing students stay in the classroom, but the old code stops working.')) return;
+    setWorking(true);
+    try {
+      await onRegenerate();
+    } finally {
+      setWorking(false);
+    }
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 bg-ink-strong/60 flex items-center justify-center p-7"
+      onClick={onClose}
+    >
+      <div
+        className="bg-paper-elevated border border-rule-soft rounded-xl shadow-lg p-7 max-w-[520px] w-full"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-start justify-between gap-4 mb-5">
+          <h2 className="heading-3">Classroom settings</h2>
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-1.5 rounded-sm text-ink-muted hover:text-ink-strong hover:bg-paper-tinted cursor-pointer transition-colors"
+            aria-label="Close settings"
+          >
+            <X size={16} />
+          </button>
+        </div>
+
+        <div className="flex flex-col">
+          <div className="flex items-center justify-between gap-4 py-3 border-b border-rule-soft">
+            <div className="flex-1 min-w-0">
+              <p className="body text-ink-strong font-semibold">Pause joins</p>
+              <p className="body-sm">New students cannot join with the code while paused.</p>
+            </div>
+            <label className="inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                className="accent-navy w-4 h-4 cursor-pointer"
+                checked={paused}
+                onChange={handleTogglePause}
+                disabled={working}
+              />
+            </label>
+          </div>
+
+          <div className="flex items-center justify-between gap-4 py-3 border-b border-rule-soft">
+            <div className="flex-1 min-w-0">
+              <p className="body text-ink-strong font-semibold">Regenerate join code</p>
+              <p className="body-sm">Old code stops working. Existing students stay enrolled.</p>
+            </div>
+            <button
+              type="button"
+              onClick={handleRegenerate}
+              disabled={working}
+              className="text-navy hover:text-navy/80 font-semibold inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md hover:bg-paper-tinted text-sm cursor-pointer transition-colors disabled:opacity-50"
+            >
+              <KeyRound size={14} />
+              Regenerate
+            </button>
+          </div>
+
+          <div className="flex items-center justify-between gap-4 py-3">
+            <div className="flex-1 min-w-0">
+              <p className="body text-ink-strong font-semibold">Rename classroom</p>
+              <p className="body-sm">Change the display name of this classroom.</p>
+            </div>
+            <button
+              type="button"
+              onClick={onRename}
+              className="text-navy hover:text-navy/80 font-semibold inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md hover:bg-paper-tinted text-sm cursor-pointer transition-colors"
+            >
+              <Pencil size={14} />
+              Rename
+            </button>
+          </div>
+        </div>
+
+        <div className="flex justify-end gap-2 mt-5">
+          <GhostButton onClick={onClose}>Close</GhostButton>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Help dialog
+// ---------------------------------------------------------------------------
+
+function HelpDialog({ onClose }: { onClose: () => void }) {
+  return (
+    <div
+      className="fixed inset-0 z-50 bg-ink-strong/60 flex items-center justify-center p-7 overflow-auto"
+      onClick={onClose}
+    >
+      <div
+        className="bg-paper-elevated border border-rule-soft rounded-xl shadow-lg p-7 max-w-[640px] w-full my-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-start justify-between gap-4 mb-5">
+          <h2 className="heading-3">How classrooms work</h2>
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-1.5 rounded-sm text-ink-muted hover:text-ink-strong hover:bg-paper-tinted cursor-pointer transition-colors"
+            aria-label="Close help"
+          >
+            <X size={16} />
+          </button>
+        </div>
+
+        <div className="flex flex-col gap-4">
+          <HelpStep n={1} title="Upload your assignment folder">
+            Go to the <strong className="text-ink-strong font-semibold">Assignments</strong> tab and click{' '}
+            <strong className="text-ink-strong font-semibold">Upload assignment</strong> to add a folder with your
+            starter code and any <code className="bg-paper-tinted text-navy font-mono text-sm px-1.5 py-0.5 rounded-sm">test_*.py</code> files.
+            This is exactly what students will start with. Or, import a lesson from the{' '}
+            <strong className="text-ink-strong font-semibold">Lessons</strong> page directly into your classroom
+            to use its code as-is.
+          </HelpStep>
+
+          <HelpStep n={2} title="Edit your draft and publish">
+            Uploaded folders appear as drafts in the{' '}
+            <strong className="text-ink-strong font-semibold">Assignments</strong> tab. Click{' '}
+            <strong className="text-ink-strong font-semibold">Edit in workspace</strong> to refine files before
+            distributing, then click <strong className="text-ink-strong font-semibold">Publish</strong> when
+            ready. Drafts are synced with the classroom's drafts folder in your workspace, so you can also create and
+            manage drafts there. To publish from the workspace, move the folder into{' '}
+            <code className="bg-paper-tinted text-navy font-mono text-sm px-1.5 py-0.5 rounded-sm">assignments</code>.
+          </HelpStep>
+
+          <HelpStep n={3} title="Students get a copy automatically">
+            When you publish, every current student gets their own editable copy, and future students who join
+            pick up every published assignment automatically. You can keep editing{' '}
+            <code className="bg-paper-tinted text-navy font-mono text-sm px-1.5 py-0.5 rounded-sm">assignments/</code>{' '}
+            freely — existing students' copies aren't touched, so their work is safe. They can always see your
+            latest version through a hidden{' '}
+            <code className="bg-paper-tinted text-navy font-mono text-sm px-1.5 py-0.5 rounded-sm">.templates/</code>{' '}
+            folder.
+          </HelpStep>
+
+          <HelpStep n={4} title="Share the join code with students">
+            Students enter the code on the Classrooms page to join. You can pause joins or regenerate the code
+            from the settings menu above.
+          </HelpStep>
+
+          <div className="border-t border-rule-soft pt-4 flex flex-col gap-2">
+            <p className="body-sm text-ink-default">
+              <strong className="text-ink-strong font-semibold">Test files:</strong>{' '}
+              Files named <code className="bg-paper-tinted text-navy font-mono text-sm px-1.5 py-0.5 rounded-sm">test_*.py</code> are
+              used for automated grading. Students can see them but can't modify them.
+            </p>
+            <p className="body-sm text-ink-default">
+              <strong className="text-ink-strong font-semibold">Removing assignments:</strong>{' '}
+              Delete the assignment from the{' '}
+              <strong className="text-ink-strong font-semibold">Assignments</strong> tab. Students keep their
+              existing copies, but it won't appear in the gradebook or be given to new students.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex justify-end mt-5">
+          <PrimaryButton color="navy" onClick={onClose}>Got it</PrimaryButton>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function HelpStep({ n, title, children }: { n: number; title: string; children: React.ReactNode }) {
+  return (
+    <div className="flex gap-4">
+      <div className="mt-0.5 w-7 h-7 rounded-full bg-navy-soft text-navy flex items-center justify-center text-xs font-bold shrink-0">
+        {n}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="heading-4">{title}</p>
+        <p className="body-sm text-ink-default mt-1">{children}</p>
+      </div>
     </div>
   );
 }
@@ -599,71 +757,71 @@ function StudentsTab({
 
   if (!progress || progress.templates.length === 0) {
     return (
-      <div className="py-10 max-w-2xl mx-auto">
+      <div className="py-6 max-w-3xl mx-auto">
         <div className="text-center mb-8">
-          <BookOpen size={40} className="mx-auto mb-3 text-gray-500" />
-          <h2 className="text-lg font-semibold text-gray-200 mb-1">No assignments yet</h2>
-          <p className="text-sm text-gray-400">Add your first assignment to get started.</p>
+          <BookOpen size={40} className="mx-auto mb-3 text-ink-faint" />
+          <h2 className="heading-3 mb-1">No assignments yet</h2>
+          <p className="body-sm">Add your first assignment to get started.</p>
         </div>
 
-        <div className="border border-gray-700/60 rounded-xl bg-gray-800/30 divide-y divide-gray-700/40">
+        <div className="bg-paper-elevated border border-rule-soft rounded-xl shadow-sm divide-y divide-rule-soft">
           <div className="px-5 py-4 flex gap-4">
-            <div className="mt-0.5 w-6 h-6 rounded-full bg-gray-700 flex items-center justify-center text-xs font-bold text-gray-300 shrink-0">1</div>
-            <div>
-              <p className="text-base font-semibold text-white">Upload your assignment folder</p>
-              <p className="text-sm text-gray-300 mt-1">
-                Go to the <span className="text-white font-medium">Assignments</span> tab and click <span className="text-white font-medium">Upload Folder</span> to
-                add a folder with your starter code and any <code className="text-gray-300 bg-gray-800 px-1 rounded">test_*.py</code> files.
+            <div className="mt-0.5 w-6 h-6 rounded-full bg-navy-soft flex items-center justify-center text-xs font-semibold text-navy shrink-0">1</div>
+            <div className="min-w-0">
+              <p className="body text-ink-strong font-semibold">Upload your assignment folder</p>
+              <p className="body-sm mt-1 text-ink-default">
+                Go to the <span className="text-ink-strong font-semibold">Assignments</span> tab and click <span className="text-ink-strong font-semibold">Upload Folder</span> to
+                add a folder with your starter code and any <code className="bg-paper-tinted text-navy px-1 py-0.5 rounded-sm font-mono text-[12px]">test_*.py</code> files.
                 This is exactly what students will start with.
-                Or, import a lesson from the <span className="text-white font-medium">Lessons</span> page directly into your classroom to use its code as-is.
+                Or, import a lesson from the <span className="text-ink-strong font-semibold">Lessons</span> page directly into your classroom to use its code as-is.
               </p>
             </div>
           </div>
           <div className="px-5 py-4 flex gap-4">
-            <div className="mt-0.5 w-6 h-6 rounded-full bg-gray-700 flex items-center justify-center text-xs font-bold text-gray-300 shrink-0">2</div>
-            <div>
-              <p className="text-base font-semibold text-white">Edit your draft and publish</p>
-              <p className="text-sm text-gray-300 mt-1">
-                Uploaded folders appear as drafts in the <span className="text-white font-medium">Assignments</span> tab.
-                Click <span className="text-white font-medium">Edit in IDE</span> to refine files before distributing,
-                then click <span className="text-white font-medium">Publish</span> when ready.
-                Drafts are synced with the classroom's drafts folder in the IDE, so you can also create and manage drafts there.
-                To publish from the IDE, move the folder into <code className="text-gray-300 bg-gray-800 px-1 rounded">assignments</code>. This publishes it immediately.
+            <div className="mt-0.5 w-6 h-6 rounded-full bg-navy-soft flex items-center justify-center text-xs font-semibold text-navy shrink-0">2</div>
+            <div className="min-w-0">
+              <p className="body text-ink-strong font-semibold">Edit your draft and publish</p>
+              <p className="body-sm mt-1 text-ink-default">
+                Uploaded folders appear as drafts in the <span className="text-ink-strong font-semibold">Assignments</span> tab.
+                Click <span className="text-ink-strong font-semibold">Edit in IDE</span> to refine files before distributing,
+                then click <span className="text-ink-strong font-semibold">Publish</span> when ready.
+                Drafts are synced with the classroom&rsquo;s drafts folder in the IDE, so you can also create and manage drafts there.
+                To publish from the IDE, move the folder into <code className="bg-paper-tinted text-navy px-1 py-0.5 rounded-sm font-mono text-[12px]">assignments</code>. This publishes it immediately.
               </p>
             </div>
           </div>
           <div className="px-5 py-4 flex gap-4">
-            <div className="mt-0.5 w-6 h-6 rounded-full bg-gray-700 flex items-center justify-center text-xs font-bold text-gray-300 shrink-0">3</div>
-            <div>
-              <p className="text-base font-semibold text-white">Students get a copy automatically</p>
-              <p className="text-sm text-gray-300 mt-1">
+            <div className="mt-0.5 w-6 h-6 rounded-full bg-navy-soft flex items-center justify-center text-xs font-semibold text-navy shrink-0">3</div>
+            <div className="min-w-0">
+              <p className="body text-ink-strong font-semibold">Students get a copy automatically</p>
+              <p className="body-sm mt-1 text-ink-default">
                 When you publish, every current student gets their own editable copy, and future students who join pick up every published assignment automatically.
-                You can keep editing <code className="text-gray-300 bg-gray-800 px-1 rounded">assignments/</code> freely — existing students' copies aren't touched, so their work is safe.
-                They can always see your latest version through a hidden <code className="text-gray-300 bg-gray-800 px-1 rounded">.templates/</code> folder inside their classroom (they flip <span className="text-white font-medium">Show hidden files</span> in the file explorer to see it), which is useful when you fix a bug or they want the original files back.
+                You can keep editing <code className="bg-paper-tinted text-navy px-1 py-0.5 rounded-sm font-mono text-[12px]">assignments/</code> freely &mdash; existing students&rsquo; copies aren&rsquo;t touched, so their work is safe.
+                They can always see your latest version through a hidden <code className="bg-paper-tinted text-navy px-1 py-0.5 rounded-sm font-mono text-[12px]">.templates/</code> folder inside their classroom (they flip <span className="text-ink-strong font-semibold">Show hidden files</span> in the file explorer to see it), which is useful when you fix a bug or they want the original files back.
               </p>
             </div>
           </div>
           <div className="px-5 py-4 flex gap-4">
-            <div className="mt-0.5 w-6 h-6 rounded-full bg-gray-700 flex items-center justify-center text-xs font-bold text-gray-300 shrink-0">4</div>
-            <div>
-              <p className="text-base font-semibold text-white">Share the join code with students</p>
-              <p className="text-sm text-gray-300 mt-1">
+            <div className="mt-0.5 w-6 h-6 rounded-full bg-navy-soft flex items-center justify-center text-xs font-semibold text-navy shrink-0">4</div>
+            <div className="min-w-0">
+              <p className="body text-ink-strong font-semibold">Share the join code with students</p>
+              <p className="body-sm mt-1 text-ink-default">
                 Students enter the code on the Classrooms page to join. You can pause joins or regenerate the code from the settings menu above.
               </p>
             </div>
           </div>
         </div>
 
-        <div className="mt-6 border border-gray-700/40 rounded-lg bg-gray-800/20 px-5 py-3 space-y-2">
-          <p className="text-xs text-gray-300">
-            <span className="text-gray-300 font-medium">Test files:</span>{' '}
-            Files named <code className="text-gray-300 bg-gray-800 px-1 rounded">test_*.py</code> are used for automated grading. Students can see them but can't modify them. You can also import lessons with pre-written tests from the <span className="text-white font-medium">Lessons</span> page.
+        <div className="mt-6 bg-paper-elevated border border-rule-soft rounded-lg px-5 py-3 space-y-2">
+          <p className="text-xs text-ink-muted">
+            <span className="text-ink-strong font-semibold">Test files:</span>{' '}
+            Files named <code className="bg-paper-tinted text-navy px-1 py-0.5 rounded-sm font-mono text-[12px]">test_*.py</code> are used for automated grading. Students can see them but can&rsquo;t modify them. You can also import lessons with pre-written tests from the <span className="text-ink-strong font-semibold">Lessons</span> page.
           </p>
-          <p className="text-xs text-gray-300">
-            <span className="text-gray-300 font-medium">Removing assignments:</span>{' '}
-            Delete the assignment from the <span className="text-white font-medium">Assignments</span> tab, or remove the folder from{' '}
-            <code className="text-gray-300 bg-gray-800 px-1 rounded">assignments</code> in the IDE.
-            Students keep their existing copies, but it won't appear in the gradebook or be given to new students.
+          <p className="text-xs text-ink-muted">
+            <span className="text-ink-strong font-semibold">Removing assignments:</span>{' '}
+            Delete the assignment from the <span className="text-ink-strong font-semibold">Assignments</span> tab, or remove the folder from{' '}
+            <code className="bg-paper-tinted text-navy px-1 py-0.5 rounded-sm font-mono text-[12px]">assignments</code> in the IDE.
+            Students keep their existing copies, but it won&rsquo;t appear in the gradebook or be given to new students.
           </p>
         </div>
       </div>
@@ -672,164 +830,243 @@ function StudentsTab({
 
   return (
     <div>
-      {/* Assignment selector as pill tabs */}
-      <div className="flex items-center justify-between gap-4 mb-5">
-        <div className="flex items-center gap-1.5 overflow-x-auto">
-          {progress.templates.map((t) => (
-            <button
-              key={t}
-              onClick={() => onSelectTemplate(t)}
-              className={`px-3 py-1.5 rounded-lg text-sm whitespace-nowrap transition-colors ${
-                selectedTemplate === t
-                  ? 'bg-gray-700 text-white'
-                  : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800/50'
-              }`}
-            >
-              {t}
-            </button>
-          ))}
+      {/* Assignment selector pills */}
+      <div className="flex items-center justify-between gap-4 mb-3.5 flex-wrap">
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <span className="text-ink-muted text-xs uppercase tracking-wider mr-2 font-semibold">
+            Assignment
+          </span>
+          {progress.templates.map((t) => {
+            const active = selectedTemplate === t;
+            return (
+              <button
+                key={t}
+                type="button"
+                onClick={() => onSelectTemplate(t)}
+                className={cn(
+                  'px-3.5 py-1.5 rounded-full text-[13px] border cursor-pointer font-sans font-semibold whitespace-nowrap transition-colors',
+                  active
+                    ? 'bg-navy text-white border-navy'
+                    : 'bg-transparent border-rule text-ink-muted hover:text-ink-strong',
+                )}
+              >
+                {t}
+              </button>
+            );
+          })}
         </div>
         <div className="flex items-center gap-3 shrink-0">
-          <span className="text-xs text-gray-600">Scores update when you run tests</span>
+          <span className="caption">Scores update when you run tests.</span>
           <button
+            type="button"
             onClick={() => onRunTests(selectedTemplate)}
             disabled={runningTests}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-gray-400 hover:text-white hover:bg-gray-800 disabled:opacity-50 transition-colors"
+            className="text-navy hover:text-navy/80 font-semibold inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md hover:bg-paper-tinted text-sm cursor-pointer transition-colors disabled:opacity-50"
           >
             {runningTests ? <RefreshCw size={14} className="animate-spin" /> : <Play size={14} />}
-            {runningTests ? 'Running...' : 'Run Tests'}
+            {runningTests ? 'Running…' : 'Run tests'}
           </button>
         </div>
       </div>
 
       {progress.students.length === 0 ? (
-        <div className="text-center py-12 text-gray-600 text-sm">No students have joined yet.</div>
+        <div className="bg-paper-elevated border border-rule-soft rounded-lg shadow-sm p-10 text-center body-sm">
+          No students have joined yet.
+        </div>
       ) : (
-        <div className="flex flex-col">
-          {progress.students.map((student) => {
+        <div className="bg-paper-elevated border border-rule-soft rounded-lg p-2 shadow-sm">
+          {progress.students.map((student, idx) => {
             const result = student.results[selectedTemplate];
             const passed = result?.passed ?? 0;
             const total = result?.total ?? 0;
-            const allPassing = total > 0 && passed === total;
+            const passing = total > 0 && passed === total;
+            const partial = passed > 0 && passed < total;
             const isExpanded = expandedStudent === student.email;
+            const avatarColor = AVATAR_COLORS[idx % AVATAR_COLORS.length];
+            const initials = avatarInitials(student.name || student.email);
+            const progressPct = total > 0 ? (passed / total) * 100 : 0;
+            const progressColor = passing ? 'bg-forest' : partial ? 'bg-ochre' : 'bg-tomato';
+            const labelColor = passing ? 'text-forest' : partial ? 'text-ochre' : 'text-tomato';
 
             return (
               <div key={student.id}>
-                {/* Student row */}
                 <button
+                  type="button"
                   onClick={() => toggleStudent(student.email)}
-                  className="w-full flex items-center gap-4 px-3 py-2.5 hover:bg-gray-800/20 rounded-lg transition-colors text-left"
+                  className={cn(
+                    'w-full flex items-center gap-3.5 px-3.5 py-3 rounded-md text-left text-ink-strong transition-colors cursor-pointer',
+                    isExpanded ? 'bg-paper-tinted' : 'bg-transparent hover:bg-paper-tinted',
+                  )}
                 >
-                  <span className="text-gray-500 transition-transform" style={{ transform: isExpanded ? 'rotate(90deg)' : undefined }}>
-                    <ChevronRight size={14} />
+                  <ChevronRight
+                    size={14}
+                    className={cn(
+                      'text-ink-subtle transition-transform shrink-0',
+                      isExpanded && 'rotate-90',
+                    )}
+                  />
+                  <span
+                    className={cn(
+                      'w-8 h-8 rounded-full inline-flex items-center justify-center shrink-0 text-white text-xs font-bold',
+                      avatarColor,
+                    )}
+                  >
+                    {initials}
                   </span>
                   <div className="flex-1 min-w-0">
-                    <span className="text-sm font-medium truncate block">{student.name || student.email}</span>
+                    <div className="text-[14.5px] font-semibold truncate">{student.name || student.email}</div>
                     {student.name && (
-                      <span className="text-xs text-gray-600">{student.email}</span>
+                      <div className="text-[12.5px] text-ink-subtle truncate">{student.email}</div>
                     )}
                   </div>
-                  <span className={`font-mono text-sm tabular-nums ${allPassing ? 'text-green-400' : 'text-gray-500'}`}>
-                    {passed}/{total}
-                  </span>
+                  <div className="flex items-center gap-3 shrink-0">
+                    <div className="w-20 h-1.5 bg-paper-deeper rounded-full overflow-hidden">
+                      <div
+                        className={cn('h-full', progressColor)}
+                        style={{ width: `${progressPct}%` }}
+                      />
+                    </div>
+                    <span
+                      className={cn(
+                        'font-mono text-[13.5px] font-medium tabular-nums min-w-[40px] text-right',
+                        labelColor,
+                      )}
+                    >
+                      {passed}/{total}
+                    </span>
+                  </div>
                 </button>
 
-                {/* Expanded file browser */}
                 {isExpanded && (
-                  <div className="ml-8 mr-3 mb-3 border border-gray-800 rounded-lg overflow-hidden bg-gray-900/50">
+                  <div className="mx-9 mb-3.5 border border-rule-soft rounded-md overflow-hidden bg-paper-elevated">
                     {loadingFiles ? (
-                      <div className="p-4 text-sm text-gray-500">Loading files...</div>
+                      <div className="p-4 body-sm">Loading files…</div>
                     ) : studentFiles.length === 0 ? (
-                      <div className="p-4 text-sm text-gray-600">No files found.</div>
+                      <div className="p-4 body-sm">No files found.</div>
                     ) : (
-                      <div className="flex" style={{ height: (selectedFile || showTestOutput) ? '360px' : 'auto' }}>
-                        {/* File list + test output button */}
-                        <div className={`${(selectedFile || showTestOutput) ? 'w-48 border-r border-gray-800' : 'w-full'} overflow-y-auto flex-shrink-0`}>
+                      <div
+                        className="flex"
+                        style={{
+                          height: selectedFile || showTestOutput ? '360px' : 'auto',
+                        }}
+                      >
+                        <div
+                          className={cn(
+                            'overflow-y-auto flex-shrink-0',
+                            selectedFile || showTestOutput ? 'w-52 border-r border-rule-soft' : 'w-full',
+                          )}
+                        >
                           <button
+                            type="button"
                             onClick={() => runStudentTests(student.email)}
                             disabled={testRunning}
-                            className={`w-full text-left px-3 py-1.5 text-sm truncate transition-colors flex items-center gap-2 ${
+                            className={cn(
+                              'w-full text-left px-3.5 py-2 text-sm truncate transition-colors flex items-center gap-2 cursor-pointer',
                               showTestOutput
-                                ? 'bg-blue-900/30 text-blue-300'
-                                : 'text-blue-400 hover:text-blue-200 hover:bg-blue-900/20'
-                            }`}
+                                ? 'bg-plum-soft text-plum'
+                                : 'text-plum hover:bg-plum-soft/60',
+                              'disabled:opacity-50',
+                            )}
                           >
-                            {testRunning ? <RefreshCw size={12} className="flex-shrink-0 animate-spin" /> : <FlaskConical size={12} className="flex-shrink-0" />}
-                            <span className="truncate">{testRunning ? 'Running...' : 'View test output'}</span>
+                            {testRunning ? (
+                              <RefreshCw size={12} className="flex-shrink-0 animate-spin" />
+                            ) : (
+                              <FlaskConical size={12} className="flex-shrink-0" />
+                            )}
+                            <span className="truncate font-semibold">
+                              {testRunning ? 'Running…' : 'View test output'}
+                            </span>
                           </button>
-                          <div className="border-b border-gray-800/50" />
-                          {studentFiles.map((f) => (
-                            <button
-                              key={f}
-                              onClick={() => { setShowTestOutput(false); viewFile(f); }}
-                              className={`w-full text-left px-3 py-1.5 text-sm truncate transition-colors flex items-center gap-2 ${
-                                selectedFile === f && !showTestOutput
-                                  ? 'bg-gray-800 text-white'
-                                  : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800/40'
-                              }`}
-                              title={f}
-                            >
-                              <FileText size={12} className="flex-shrink-0 opacity-50" />
-                              <span className="truncate">{f}</span>
-                            </button>
-                          ))}
+                          <div className="border-b border-rule-soft" />
+                          {studentFiles.map((f) => {
+                            const active = selectedFile === f && !showTestOutput;
+                            return (
+                              <button
+                                key={f}
+                                type="button"
+                                onClick={() => {
+                                  setShowTestOutput(false);
+                                  viewFile(f);
+                                }}
+                                className={cn(
+                                  'w-full text-left px-3.5 py-2 text-sm truncate transition-colors flex items-center gap-2 cursor-pointer',
+                                  active
+                                    ? 'bg-paper-tinted text-ink-strong'
+                                    : 'text-ink-default hover:bg-paper-tinted',
+                                )}
+                                title={f}
+                              >
+                                <FileText size={12} className="flex-shrink-0 text-ink-subtle" />
+                                <span className="truncate font-mono text-[12.5px]">{f}</span>
+                              </button>
+                            );
+                          })}
                         </div>
 
-                        {/* Test output preview */}
                         {showTestOutput && (
                           <div className="flex-1 flex flex-col min-w-0">
-                            <div className="flex items-center justify-between px-3 py-1.5 border-b border-gray-800 flex-shrink-0">
-                              <span className="text-xs text-gray-500">
+                            <div className="flex items-center justify-between px-3.5 py-2 border-b border-rule-soft flex-shrink-0">
+                              <span className="text-[12.5px] text-ink-muted">
                                 Test output
                                 {testResult && (
-                                  <span className={`ml-2 ${testResult.total > 0 && testResult.passed === testResult.total ? 'text-green-400' : 'text-gray-400'}`}>
+                                  <span
+                                    className={cn(
+                                      'ml-2 font-mono',
+                                      testResult.total > 0 && testResult.passed === testResult.total
+                                        ? 'text-forest'
+                                        : 'text-ink-default',
+                                    )}
+                                  >
                                     {testResult.passed}/{testResult.total} passed
                                   </span>
                                 )}
                               </span>
                               <button
+                                type="button"
                                 onClick={() => runStudentTests(student.email)}
                                 disabled={testRunning}
-                                className="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-white transition-colors shrink-0 ml-3 disabled:opacity-50"
+                                className="text-navy hover:text-navy/80 font-semibold inline-flex items-center gap-1 text-xs cursor-pointer transition-colors disabled:opacity-50"
                               >
                                 <RefreshCw size={11} className={testRunning ? 'animate-spin' : ''} />
                                 Re-run
                               </button>
                             </div>
-                            <div className="flex-1 min-h-0 overflow-auto p-3">
+                            <div className="flex-1 min-h-0 overflow-auto p-3 bg-paper">
                               {testRunning && !testOutput ? (
-                                <div className="text-sm text-gray-500">Running tests...</div>
+                                <div className="body-sm">Running tests…</div>
                               ) : testOutput ? (
-                                <pre className="whitespace-pre-wrap text-gray-300 text-xs leading-relaxed font-mono">{testOutput}</pre>
+                                <pre className="whitespace-pre-wrap text-ink-default text-xs leading-relaxed font-mono">
+                                  {testOutput}
+                                </pre>
                               ) : (
-                                <div className="text-sm text-gray-600">Click &quot;View test output&quot; to run tests.</div>
+                                <div className="body-sm">Click "View test output" to run tests.</div>
                               )}
                             </div>
                           </div>
                         )}
 
-                        {/* Monaco preview */}
                         {selectedFile && !showTestOutput && (
                           <div className="flex-1 flex flex-col min-w-0">
-                            <div className="flex items-center justify-between px-3 py-1.5 border-b border-gray-800 flex-shrink-0">
-                              <span className="text-xs text-gray-500 font-mono truncate">{selectedFile}</span>
+                            <div className="flex items-center justify-between px-3.5 py-2 border-b border-rule-soft flex-shrink-0">
+                              <span className="text-[12.5px] text-ink-muted font-mono truncate">{selectedFile}</span>
                               <Link
                                 to={`/ide?classroom=${classroomId}&student=${encodeURIComponent(student.email)}&file=${encodeURIComponent(selectedTemplate + '/' + selectedFile)}`}
-                                className="inline-flex items-center gap-1.5 text-xs text-gray-400 hover:text-white transition-colors shrink-0 ml-3 hover:no-underline!"
+                                className="text-navy hover:text-navy/80 font-semibold inline-flex items-center gap-1.5 text-xs no-underline shrink-0 ml-3 transition-colors"
                               >
                                 <ExternalLink size={11} />
-                                Open in IDE
+                                Open in workspace
                               </Link>
                             </div>
-                            <div className="flex-1 min-h-0">
+                            <div className="flex-1 min-h-0 bg-paper p-3 font-mono text-[12.5px] leading-5">
                               {loadingContent ? (
-                                <div className="p-4 text-sm text-gray-500">Loading...</div>
+                                <div className="body-sm">Loading…</div>
                               ) : (
                                 <MonacoEditor
                                   height="100%"
                                   language={getMonacoLanguage(selectedFile)}
                                   value={fileContent ?? ''}
-                                  theme="vs-dark"
+                                  beforeMount={setupDaylightTheme}
+                                  theme={DAYLIGHT_THEME}
                                   options={{
                                     readOnly: true,
                                     minimap: { enabled: false },
@@ -915,8 +1152,8 @@ function GradebookTab({
 
   if (!progress || progress.templates.length === 0) {
     return (
-      <div className="text-center py-16 text-gray-500">
-        <p>No assignments yet.</p>
+      <div className="bg-paper-elevated border border-rule-soft rounded-xl shadow-sm p-10 text-center body-sm">
+        No assignments yet.
       </div>
     );
   }
@@ -970,7 +1207,7 @@ function GradebookTab({
         totalPoints += total;
         earnedPoints += score;
       }
-      if (totalPoints === 0) return '\u2014';
+      if (totalPoints === 0) return '—';
       return `${Math.round((earnedPoints / totalPoints) * 100)}%`;
     }
 
@@ -983,143 +1220,135 @@ function GradebookTab({
       totalWeight += w;
       weightedSum += w * (result.passed / result.total);
     }
-    if (totalWeight === 0) return '\u2014';
+    if (totalWeight === 0) return '—';
     return `${Math.round((weightedSum / totalWeight) * 100)}%`;
   };
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-5">
+      <div className="flex items-center justify-between mb-5 gap-3 flex-wrap">
         {/* Mode selector */}
-        <div className="flex rounded-lg overflow-hidden border border-gray-700">
-          {GRADING_MODES.map((m) => (
-            <button
-              key={m.value}
-              onClick={() => changeMode(m.value)}
-              className={`px-3 py-1.5 text-xs transition-colors ${
-                localMode === m.value
-                  ? 'bg-gray-700 text-white'
-                  : 'text-gray-500 hover:text-gray-300 hover:bg-gray-800/50'
-              }`}
-            >
-              {m.label}
-            </button>
-          ))}
+        <div
+          role="tablist"
+          aria-label="Grading mode"
+          className="inline-flex items-center bg-paper-elevated border border-rule-soft rounded-full p-1"
+        >
+          {GRADING_MODES.map((m) => {
+            const active = m.value === localMode;
+            return (
+              <button
+                key={m.value}
+                type="button"
+                role="tab"
+                aria-selected={active}
+                onClick={() => changeMode(m.value)}
+                className={cn(
+                  'px-4 py-1.5 rounded-full text-sm font-semibold cursor-pointer transition-colors whitespace-nowrap',
+                  active
+                    ? 'bg-navy text-white'
+                    : 'text-ink-muted hover:text-ink-strong',
+                )}
+              >
+                {m.label}
+              </button>
+            );
+          })}
         </div>
 
         {localMode !== 'manual' && (
           <div className="flex items-center gap-3">
-            <span className="text-xs text-gray-600">Scores update when you run tests</span>
+            <span className="caption">Scores update when you run tests.</span>
             <button
+              type="button"
               onClick={() => onRunTests()}
               disabled={runningTests}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-gray-400 hover:text-white hover:bg-gray-800 disabled:opacity-50 transition-colors"
+              className="text-navy hover:text-navy/80 font-semibold inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md hover:bg-paper-tinted text-sm cursor-pointer transition-colors disabled:opacity-50"
             >
               {runningTests ? <RefreshCw size={14} className="animate-spin" /> : <Play size={14} />}
-              {runningTests ? 'Running...' : 'Run All Tests'}
+              {runningTests ? 'Running…' : 'Run all tests'}
             </button>
           </div>
         )}
       </div>
 
-      <div className="overflow-x-auto rounded-lg border border-gray-800">
-        <table className="w-full text-sm">
+      <div className="bg-paper-elevated border border-rule-soft rounded-lg overflow-x-auto shadow-sm">
+        <table className="w-full border-collapse">
           <thead>
-            {/* Group header row */}
-            <tr className="bg-gray-800/40">
-              <th className="sticky left-0 z-10 bg-gray-800/40 min-w-[180px]" />
-              <th
-                colSpan={templates.length}
-                className="px-4 pt-3 pb-1 text-xs font-medium text-gray-400 text-center border-l border-gray-800/50"
-              >
-                Assignments
+            <tr className="border-b border-rule-soft">
+              <th className="pl-3! pr-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-ink-muted min-w-[180px]">
+                Student
               </th>
-              <th colSpan={localMode === 'manual' ? 2 : 1} className="border-l border-gray-800/50 min-w-[80px]" />
-            </tr>
-            {/* Assignment names row */}
-            <tr className={`bg-gray-800/40 ${!showInputRow ? 'border-b border-gray-700/50' : ''}`}>
-              {!showInputRow ? (
-                <th className="text-left pl-8! pr-4 py-2 text-xs font-medium text-gray-400 sticky left-0 z-10 bg-gray-800/40 min-w-[180px]">
-                  Student
-                </th>
-              ) : (
-                <th className="sticky left-0 z-10 bg-gray-800/40 min-w-[180px]" />
-              )}
               {templates.map((t) => (
-                <th key={t} className="px-4 py-2 text-xs font-medium text-gray-400 text-center min-w-[90px] border-l border-gray-800/50">
-                  <div className="truncate max-w-[120px] mx-auto normal-case tracking-normal" title={t}>{t}</div>
+                <th
+                  key={t}
+                  className="pl-3! pr-3 py-2.5 text-center text-xs font-semibold uppercase tracking-wider text-ink-muted min-w-[110px]"
+                >
+                  <div className="truncate max-w-[140px] mx-auto normal-case tracking-normal" title={t}>
+                    {t}
+                  </div>
                 </th>
               ))}
-              {!showInputRow ? (
-                <th className="px-4 py-2 text-xs font-medium text-gray-400 text-center min-w-[80px] border-l border-gray-800/50">
-                  Average
+              {localMode === 'manual' && (
+                <th className="pl-3! pr-3 py-2.5 text-center text-xs font-semibold uppercase tracking-wider text-ink-muted min-w-[90px]">
+                  Total
                 </th>
-              ) : (
-                <>
-                  <th className="border-l border-gray-800/50 min-w-[80px]" />
-                  {localMode === 'manual' && <th className="border-l border-gray-800/50 min-w-[80px]" />}
-                </>
               )}
+              <th className="pl-3! pr-3 py-2.5 text-center text-xs font-semibold uppercase tracking-wider text-ink-muted min-w-[90px]">
+                Average
+              </th>
             </tr>
-            {/* Weights/totals row (custom weights or manual scores) */}
             {showInputRow && (
-              <tr className="bg-gray-800/40 border-b border-gray-700/50">
-                <th className="text-left pl-8! pr-4 py-2 text-xs font-medium text-gray-400 sticky left-0 z-10 bg-gray-800/40 min-w-[180px]">
-                  Student
+              <tr className="border-b border-rule-soft bg-paper-tinted/50">
+                <th className="pl-3! pr-3 py-2 text-left text-[11px] font-semibold text-ink-muted">
+                  {localMode === 'manual' ? 'Total points' : 'Weights'}
                 </th>
                 {templates.map((t) => (
-                  <th key={t} className="px-4 py-1.5 text-center min-w-[90px] border-l border-gray-800/50">
-                    <div className="flex items-center justify-center gap-1.5">
-                      <span className="text-[10px] text-gray-600 font-normal normal-case tracking-normal">
-                        {localMode === 'manual' ? 'Total' : 'Weight'}
-                      </span>
-                      <input
-                        type="text"
-                        inputMode="decimal"
-                        value={localWeights[t] ?? 0}
-                        onChange={(e) => {
-                          const v = e.target.value;
-                          if (v === '' || /^\d*\.?\d*$/.test(v)) {
-                            updateWeight(t, parseFloat(v) || 0);
-                          }
-                        }}
-                        className="w-12 bg-gray-900 border border-gray-700 rounded-md px-1.5 py-1 text-xs text-center text-gray-300 outline-none focus:border-gray-500 transition-colors font-normal normal-case tracking-normal"
-                        title={`${localMode === 'manual' ? 'Total' : 'Weight'} for ${t}`}
-                      />
-                    </div>
+                  <th key={t} className="pl-3! pr-3 py-2 text-center">
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      value={localWeights[t] ?? 0}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        if (v === '' || /^\d*\.?\d*$/.test(v)) {
+                          updateWeight(t, parseFloat(v) || 0);
+                        }
+                      }}
+                      className="bg-paper border border-rule rounded-md text-sm text-ink-default px-2 py-1 w-20 text-center font-mono outline-none focus:ring-2 focus:ring-navy/30 transition-shadow"
+                      title={`${localMode === 'manual' ? 'Total' : 'Weight'} for ${t}`}
+                    />
                   </th>
                 ))}
-                {localMode === 'manual' && (
-                  <th className="px-4 py-2 text-xs font-medium text-gray-400 text-center min-w-[80px] border-l border-gray-800/50">
-                    Total
-                  </th>
-                )}
-                <th className="px-4 py-2 text-xs font-medium text-gray-400 text-center min-w-[80px] border-l border-gray-800/50">
-                  Average
-                </th>
+                {localMode === 'manual' && <th className="pl-3! pr-3 py-2" />}
+                <th className="pl-3! pr-3 py-2" />
               </tr>
             )}
           </thead>
           <tbody>
             {progress.students.length === 0 ? (
               <tr>
-                <td colSpan={templates.length + 2} className="text-center py-10 text-gray-600 text-sm">
+                <td
+                  colSpan={templates.length + (localMode === 'manual' ? 3 : 2)}
+                  className="pl-3! pr-3 py-10 text-center body-sm"
+                >
                   No students have joined yet.
                 </td>
               </tr>
             ) : (
-              progress.students.map((student, i) => (
-                <tr key={student.id} className={`${i !== progress.students.length - 1 ? 'border-b border-gray-800/50' : ''} hover:bg-gray-800/15 transition-colors`}>
-                  <td className="py-2.5 pl-8! pr-4 sticky left-0 z-10 bg-gray-900">
-                    <div className="text-sm truncate max-w-[180px]">{student.name || student.email}</div>
+              progress.students.map((student) => (
+                <tr key={student.id} className="border-t border-rule-soft hover:bg-paper-tinted transition-colors">
+                  <td className="pl-3! pr-3 py-2.5 text-sm text-ink-default">
+                    <div className="truncate max-w-[200px] font-semibold text-ink-strong">
+                      {student.name || student.email}
+                    </div>
                   </td>
                   {templates.map((t) => {
                     if (localMode === 'manual') {
                       const score = manualScores[student.id]?.[t] ?? 0;
                       const total = localWeights[t] ?? 0;
                       return (
-                        <td key={t} className="px-4 py-1.5 text-center">
-                          <div className="inline-flex items-center gap-0 font-mono text-xs tabular-nums">
+                        <td key={t} className="pl-3! pr-3 py-2 text-center">
+                          <div className="inline-flex items-center gap-1 font-mono text-xs tabular-nums">
                             <input
                               type="text"
                               inputMode="decimal"
@@ -1137,11 +1366,12 @@ function GradebookTab({
                               onBlur={() => {
                                 saveManualScore(student.id, t, manualScores[student.id]?.[t] ?? 0);
                               }}
-                              className={`w-10 bg-gray-900 border border-gray-700/50 rounded-md px-1 py-1 text-xs text-center outline-none focus:border-gray-500 transition-colors font-mono tabular-nums ${
-                                total > 0 && score >= total ? 'text-green-400' : 'text-gray-400'
-                              }`}
+                              className={cn(
+                                'bg-paper border border-rule rounded-md text-sm px-2 py-1 w-14 text-center font-mono tabular-nums outline-none focus:ring-2 focus:ring-navy/30 transition-shadow',
+                                total > 0 && score >= total ? 'text-forest font-semibold' : 'text-ink-default',
+                              )}
                             />
-                            <span className="text-gray-600 ml-0.5">/{total || 0}</span>
+                            <span className="text-ink-subtle">/{total || 0}</span>
                           </div>
                         </td>
                       );
@@ -1149,12 +1379,18 @@ function GradebookTab({
                     const r = student.results[t];
                     const passed = r?.passed ?? 0;
                     const total = r?.total ?? 0;
-                    const allPassing = total > 0 && passed === total;
+                    const passing = total > 0 && passed === total;
+                    const partial = passed > 0 && passed < total;
+                    const pillColor = passing ? 'forest' : partial ? 'ochre' : 'tomato';
                     return (
-                      <td key={t} className="px-4 py-2.5 text-center">
-                        <span className={`font-mono text-xs tabular-nums ${allPassing ? 'text-green-400' : 'text-gray-500'}`}>
-                          {passed}/{total}
-                        </span>
+                      <td key={t} className="pl-3! pr-3 py-2.5 text-center">
+                        {total === 0 ? (
+                          <span className="font-mono text-xs text-ink-subtle">—</span>
+                        ) : (
+                          <Pill color={pillColor}>
+                            <span className="font-mono tabular-nums">{passed}/{total}</span>
+                          </Pill>
+                        )}
                       </td>
                     );
                   })}
@@ -1168,15 +1404,20 @@ function GradebookTab({
                       possible += total;
                     }
                     return (
-                      <td className="px-4 py-2.5 text-center border-l border-gray-800/50">
-                        <span className={`font-mono text-xs tabular-nums ${possible > 0 && earned >= possible ? 'text-green-400' : 'text-gray-400'}`}>
+                      <td className="pl-3! pr-3 py-2.5 text-center">
+                        <span
+                          className={cn(
+                            'font-mono text-sm tabular-nums',
+                            possible > 0 && earned >= possible ? 'text-forest font-semibold' : 'text-ink-default',
+                          )}
+                        >
                           {earned}/{possible}
                         </span>
                       </td>
                     );
                   })()}
-                  <td className="px-4 py-2.5 text-center">
-                    <span className="font-mono text-xs tabular-nums text-gray-400">
+                  <td className="pl-3! pr-3 py-2.5 text-center">
+                    <span className="font-mono text-sm tabular-nums font-semibold text-ink-strong">
                       {getWeightedAverage(student)}
                     </span>
                   </td>
@@ -1347,21 +1588,24 @@ function AssignmentsTab({
 
   return (
     <div>
-      {/* Upload button */}
-      <div className="flex items-center justify-between mb-6 gap-3 flex-wrap">
-        <h3 className="text-sm font-medium text-gray-300">Manage assignment templates</h3>
+      <div className="flex items-center justify-between mb-8 gap-3 flex-wrap">
+        <div>
+          <h3 className="heading-3">Assignments</h3>
+          <p className="body-sm mt-1">Drafts and published templates for this classroom.</p>
+        </div>
         <div className="flex items-center gap-2">
           <Link
             to="/lessons"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm border border-gray-600 hover:border-gray-400 text-gray-300 hover:text-white transition-colors"
+            className="text-navy hover:text-navy/80 font-semibold inline-flex items-center gap-1.5 px-3 py-2 rounded-md hover:bg-paper-tinted text-sm no-underline transition-colors"
             title="Browse ready-to-import lessons"
           >
             <BookOpen size={14} />
-            Browse Lessons
+            Browse lessons
           </Link>
-          <label className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm bg-[#54daf4]/15 text-[#54daf4] hover:bg-[#54daf4]/25 cursor-pointer transition-colors">
-            <Upload size={14} />
-            {uploading ? 'Uploading...' : 'Upload Folder'}
+          <label className="cursor-pointer">
+            <PrimaryButton size="sm" color="navy" icon={<Upload size={14} />}>
+              {uploading ? 'Uploading…' : 'Upload assignment'}
+            </PrimaryButton>
             <input
               ref={folderInputRef}
               type="file"
@@ -1374,24 +1618,25 @@ function AssignmentsTab({
         </div>
       </div>
 
-      {/* Drafts section */}
-      <div className="mb-6 border border-yellow-700/30 rounded-xl bg-yellow-900/5 overflow-hidden">
-        <div className="px-4 py-2.5 bg-yellow-900/15 border-b border-yellow-700/20 flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-yellow-500/70" />
-          <span className="text-xs font-medium text-yellow-400/90">Drafts</span>
-          <span className="text-xs text-gray-500">· edit and preview before publishing</span>
+      {/* Drafts */}
+      <div className="mb-6">
+        <div className="flex items-center gap-2 mb-3">
+          <span className="eyebrow text-ochre">Drafts</span>
+          <span className="caption">Edit and preview before publishing.</span>
         </div>
-        <div className="p-3">
-          {drafts.length === 0 ? (
-            <p className="text-sm text-gray-500 py-3 text-center">No drafts. Upload a folder above to create one.</p>
-          ) : (
-            <div className="flex flex-col gap-2">
-              {drafts.map((draft) => (
-                <div
-                  key={draft.name}
-                  className="flex items-center justify-between px-4 py-3 rounded-lg bg-gray-800/40"
-                >
-                  <div className="min-w-0 flex-1">
+        {drafts.length === 0 ? (
+          <div className="bg-paper-elevated border border-rule-soft rounded-lg shadow-sm p-6 text-center body-sm">
+            No drafts. Upload a folder above to create one.
+          </div>
+        ) : (
+          <div className="flex flex-col gap-3">
+            {drafts.map((draft) => (
+              <div
+                key={draft.name}
+                className="bg-paper-elevated border border-rule-soft rounded-lg p-5 shadow-sm flex items-start justify-between gap-4"
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
                     {renamingDraft === draft.name ? (
                       <input
                         autoFocus
@@ -1408,85 +1653,106 @@ function AssignmentsTab({
                         }}
                         onBlur={() => commitRenameDraft(draft.name)}
                         onFocus={(e) => e.currentTarget.select()}
-                        className="text-sm font-medium text-white bg-gray-900/80 border border-gray-600 rounded px-2 py-0.5 w-full outline-none focus:border-[#54daf4]"
+                        className="bg-paper border border-rule rounded-md px-3 py-1.5 text-ink-strong text-base font-semibold outline-none focus:ring-2 focus:ring-navy/30 w-full"
                       />
                     ) : (
-                      <p className="text-sm font-medium text-white truncate">{draft.name}</p>
+                      <>
+                        <p className="heading-4 truncate mb-0">{draft.name}</p>
+                        <Pill color="ochre">Draft</Pill>
+                      </>
                     )}
-                    <p className="text-xs text-gray-400">{draft.files.length} file{draft.files.length !== 1 ? 's' : ''}</p>
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <Link
-                      to={`/ide?classroom=${classroomId}&folder=${encodeURIComponent('drafts/' + draft.name)}`}
-                      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs text-gray-400 hover:text-white hover:bg-gray-700/50 transition-colors"
-                      title="Open in IDE to edit"
-                    >
-                      <ExternalLink size={12} />
-                      Edit in IDE
-                    </Link>
-                    <button
-                      onClick={() => publishDraft(draft.name)}
-                      disabled={publishing === draft.name || renamingDraft === draft.name}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm bg-green-700/50 hover:bg-green-700/70 text-green-200 transition-colors disabled:opacity-50"
-                    >
-                      <Send size={13} />
-                      {publishing === draft.name ? 'Publishing...' : 'Publish'}
-                    </button>
-                    <button
-                      onClick={() => startRenameDraft(draft.name)}
-                      className="p-1.5 rounded-lg text-gray-500 hover:text-white hover:bg-gray-800 transition-colors"
-                      title="Rename draft"
-                    >
-                      <Pencil size={15} />
-                    </button>
-                    <button
-                      onClick={() => deleteDraft(draft.name)}
-                      className="p-1.5 rounded-lg text-gray-500 hover:text-red-400 hover:bg-gray-800 transition-colors"
-                      title="Delete draft"
-                    >
-                      <Trash2 size={15} />
-                    </button>
-                  </div>
+                  <p className="body-sm mt-1">
+                    {draft.files.length} {draft.files.length === 1 ? 'file' : 'files'}
+                  </p>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Published assignments */}
-      <div className="border border-gray-700/40 rounded-xl bg-gray-800/10 overflow-hidden">
-        <div className="px-4 py-2.5 bg-gray-800/30 border-b border-gray-700/30 flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-green-500/70" />
-          <span className="text-xs font-medium text-gray-300">Published</span>
-          <span className="text-xs text-gray-500">· distributed to students</span>
-        </div>
-        <div className="p-3">
-          {templates.length === 0 && drafts.length === 0 ? (
-            <p className="text-sm text-gray-500 py-3 text-center">No assignments yet. Upload a folder to create a draft, then publish it to distribute to students.</p>
-          ) : templates.length === 0 ? (
-            <p className="text-sm text-gray-500 py-3 text-center">No published assignments yet.</p>
-          ) : (
-            <div className="flex flex-col gap-1">
-              {templates.map((t) => (
-                <div key={t} className="flex items-center px-4 py-2.5 rounded-lg bg-gray-800/30">
-                  <FileText size={15} className="text-green-500/70 mr-3 shrink-0" />
-                  <span className="text-sm text-gray-200 flex-1">{t}</span>
-                  <button
-                    onClick={() => deleteAssignment(t)}
-                    className="p-1.5 rounded-lg text-gray-500 hover:text-red-400 hover:bg-gray-800 transition-colors"
-                    title="Delete assignment"
+                <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+                  <Link
+                    to={`/ide?classroom=${classroomId}&folder=${encodeURIComponent('drafts/' + draft.name)}`}
+                    className="text-navy hover:text-navy/80 font-semibold inline-flex items-center gap-1.5 px-3 py-2 rounded-md hover:bg-paper-tinted text-sm no-underline transition-colors"
+                    title="Open in workspace to edit"
                   >
-                    <Trash2 size={15} />
+                    <ExternalLink size={14} />
+                    Edit in workspace
+                  </Link>
+                  <PrimaryButton
+                    size="sm"
+                    color="forest"
+                    icon={<Send size={14} />}
+                    onClick={() => publishDraft(draft.name)}
+                    disabled={publishing === draft.name || renamingDraft === draft.name}
+                  >
+                    {publishing === draft.name ? 'Publishing…' : 'Publish'}
+                  </PrimaryButton>
+                  <button
+                    type="button"
+                    onClick={() => startRenameDraft(draft.name)}
+                    className="p-2 rounded-md text-ink-muted hover:text-ink-strong hover:bg-paper-tinted cursor-pointer transition-colors"
+                    title="Rename draft"
+                    aria-label="Rename draft"
+                  >
+                    <Pencil size={14} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => deleteDraft(draft.name)}
+                    className="p-2 rounded-md text-tomato hover:bg-tomato/10 cursor-pointer transition-colors"
+                    title="Delete draft"
+                    aria-label="Delete draft"
+                  >
+                    <Trash2 size={14} />
                   </button>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
-      {loading && <div className="text-center py-8 text-gray-500 text-sm">Loading...</div>}
+      {/* Published */}
+      <div>
+        <div className="flex items-center gap-2 mb-3">
+          <span className="eyebrow text-forest">Published</span>
+          <span className="caption">Distributed to students.</span>
+        </div>
+        {templates.length === 0 && drafts.length === 0 ? (
+          <div className="bg-paper-elevated border border-rule-soft rounded-lg shadow-sm p-6 text-center body-sm">
+            No assignments yet. Upload a folder to create a draft, then publish it to distribute to students.
+          </div>
+        ) : templates.length === 0 ? (
+          <div className="bg-paper-elevated border border-rule-soft rounded-lg shadow-sm p-6 text-center body-sm">
+            No published assignments yet.
+          </div>
+        ) : (
+          <div className="flex flex-col gap-3">
+            {templates.map((t) => (
+              <div
+                key={t}
+                className="bg-paper-elevated border border-rule-soft rounded-lg p-5 shadow-sm flex items-start justify-between gap-4"
+              >
+                <div className="flex items-center gap-3 min-w-0 flex-1">
+                  <FileText size={16} className="text-forest shrink-0" />
+                  <p className="heading-4 truncate mb-0">{t}</p>
+                  <Pill color="forest">Published</Pill>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => deleteAssignment(t)}
+                    className="p-2 rounded-md text-tomato hover:bg-tomato/10 cursor-pointer transition-colors"
+                    title="Delete assignment"
+                    aria-label="Delete assignment"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {loading && <div className="text-center py-8 body-sm">Loading…</div>}
     </div>
   );
 }

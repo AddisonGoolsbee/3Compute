@@ -6,7 +6,7 @@ import { SearchAddon } from '@xterm/addon-search';
 import { useEffect, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { backendUrl } from '../util/UserData';
-import { getClasses } from '@luminescent/ui-react';
+import { cn } from '../util/cn';
 import {
   registerTerminalOutput,
   setActiveTerminalTab,
@@ -84,6 +84,33 @@ export function TerminalSession({ tabId, isActive }: TerminalSessionProps) {
       macOptionIsMeta: true,
       macOptionClickForcesSelection: true,
       scrollback: 5000,
+      fontFamily: '"DM Mono", ui-monospace, Menlo, monospace',
+      fontSize: 13,
+      lineHeight: 1.4,
+      theme: {
+        background: '#fbf7ec', // --ide-bg
+        foreground: '#2d2d35', // --ink-default
+        cursor: '#1a1a1f', // --ink-strong
+        cursorAccent: '#fbf7ec',
+        selectionBackground: '#d8e3eecc', // --c-navy-soft @ ~80%
+        selectionForeground: '#1a1a1f',
+        black: '#1a1a1f', // --ink-strong (ANSI 0)
+        red: '#e85d3f', // --c-tomato
+        green: '#2d6a4f', // --c-forest
+        yellow: '#b07a1f', // darkened ochre — bright yellow on cream is unreadable
+        blue: '#1f4e79', // --c-navy
+        magenta: '#6d3aed', // --c-plum
+        cyan: '#0e7490', // teal complement
+        white: '#6b6a6e', // --ink-muted (default "white" reads as quiet text)
+        brightBlack: '#908e8a', // --ink-subtle
+        brightRed: '#d24e32',
+        brightGreen: '#2d6a4f',
+        brightYellow: '#e09733', // --c-ochre full strength
+        brightBlue: '#1f4e79',
+        brightMagenta: '#6d3aed',
+        brightCyan: '#0e7490',
+        brightWhite: '#1a1a1f', // --ink-strong (most-emphasized text)
+      },
     });
     const webLinks = new WebLinksAddon();
     const search = new SearchAddon();
@@ -251,14 +278,16 @@ export function TerminalSession({ tabId, isActive }: TerminalSessionProps) {
 
   return (
     <div
-      className={getClasses({
-        'absolute inset-0 w-full h-full': true,
-        visible: isActive,
-        'invisible pointer-events-none': !isActive,
-      })}
+      className={cn(
+        'absolute inset-0 w-full h-full',
+        isActive ? 'visible' : 'invisible pointer-events-none',
+      )}
       data-tab-id={tabId}
     >
-      <div ref={terminalRef} className='w-full h-full overflow-hidden px-1' />
+      <div
+        ref={terminalRef}
+        className="bg-ide-bg w-full h-full overflow-hidden px-1"
+      />
     </div>
   );
 }

@@ -1,10 +1,10 @@
 import { useContext, useState } from 'react';
-import { FolderIcon, Eye, EyeOff } from 'lucide-react';
+import { Folder, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { apiUrl, defaultUserData, UserDataContext } from '../util/UserData';
 import UploadButton from './ExplorerButtons/UploadButton';
 import NewButton from './ExplorerButtons/NewButton';
 import MenuItems from './MenuItems';
-import { getClasses } from '@luminescent/ui-react';
+import { cn } from '../util/cn';
 import { StatusContext, getShowHidden, setShowHidden } from '../util/Files';
 import { uploadLocalFiles } from '../util/uploadLocalFiles';
 
@@ -21,42 +21,39 @@ export default function Explorer() {
   };
 
   return <StatusContext value={{ status, setStatus }}>
-    <div className="flex h-full w-full flex-col lum-card gap-1 p-1 lum-bg-gray-950 border-lum-border/30">
-      <div className={getClasses({
-        'transition-all duration-500 flex flex-col gap-1 p-1 lum-bg-gray-900 rounded-lum-1': true,
-        'rounded-b-sm': !!status,
-      })}>
-        <div className="flex items-center gap-1 lum-btn-p-1">
-          <FolderIcon size={16} />
-          <span className="ml-1">
-            File Explorer
-          </span>
+    <div className="flex flex-col h-full w-full bg-ide-bg border border-ide-rule rounded-lg p-1.5 gap-1.5">
+      <div className="flex flex-col gap-1.5 p-1.5 bg-ide-elevated rounded-md">
+        <div className="flex items-center gap-2 px-1 py-0.5">
+          <Folder size={15} className="text-ochre" />
+          <span className="text-sm font-semibold text-ink-strong">Files</span>
           <button
             onClick={toggleShowHidden}
             title={showHidden ? 'Hide hidden files' : 'Show hidden files'}
             aria-label={showHidden ? 'Hide hidden files' : 'Show hidden files'}
-            className="ml-auto p-1 rounded hover:bg-gray-700/60 text-gray-400 hover:text-white transition-colors"
+            className="ml-auto p-1 rounded hover:bg-paper-tinted text-ink-muted hover:text-ink-strong transition-colors"
             aria-pressed={showHidden}
           >
             {showHidden ? <Eye size={14} /> : <EyeOff size={14} />}
           </button>
         </div>
-        <div className="grid grid-cols-2 gap-1">
+        <div className="grid grid-cols-2 gap-1.5">
           <UploadButton />
           <NewButton />
         </div>
       </div>
-      <div className={getClasses({
-        'transition-all duration-500 flex items-center gap-2 p-1 pl-2 lum-bg-gray-900 rounded-lum-1 rounded-t-sm': true,
-        '-mt-8 opacity-0 pointer-events-none': !status,
-      })}>
-        <div className="lum-loading w-4 h-4 m-0.5 border-2" />
-        <span className="flex-1">
+      <div
+        className={cn(
+          'transition-all duration-500 flex items-center gap-2 p-1 pl-2 bg-paper-tinted rounded-md',
+          !status && '-mt-8 opacity-0 pointer-events-none',
+        )}
+      >
+        <Loader2 size={14} className="animate-spin text-ink-muted" />
+        <span className="flex-1 text-sm text-ink-default">
           {status}
         </span>
       </div>
       <div
-        className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide"
+        className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide p-0.5"
         onClick={(e) => {
           // Deselect when clicking blank space within the list area
           if ((e.target as HTMLElement).closest('[data-explorer-item]')) return;
@@ -80,20 +77,20 @@ export default function Explorer() {
           if ((e.target as HTMLElement).closest('[data-kind="folder"]')) return;
           e.preventDefault();
           e.dataTransfer.dropEffect = e.dataTransfer.types.includes('Files') ? 'copy' : 'move';
-          (e.currentTarget as HTMLElement).classList.add('ring-1', 'ring-blue-400/30');
+          (e.currentTarget as HTMLElement).classList.add('ring-1', 'ring-navy/30');
         }}
         onDragLeave={(e) => {
-          (e.currentTarget as HTMLElement).classList.remove('ring-1', 'ring-blue-400/30');
+          (e.currentTarget as HTMLElement).classList.remove('ring-1', 'ring-navy/30');
         }}
         onDragEnd={(e) => {
-          (e.currentTarget as HTMLElement).classList.remove('ring-1', 'ring-blue-400/30');
+          (e.currentTarget as HTMLElement).classList.remove('ring-1', 'ring-navy/30');
         }}
         onDrop={async (e) => {
           // Drops on folder rows are handled by the folder itself; anything
           // else (file rows, blank space) falls through to this handler.
           if ((e.target as HTMLElement).closest('[data-kind="folder"]')) return;
           e.preventDefault();
-          (e.currentTarget as HTMLElement).classList.remove('ring-1', 'ring-blue-400/30');
+          (e.currentTarget as HTMLElement).classList.remove('ring-1', 'ring-navy/30');
           // Determine the destination folder: if the drop target is inside a
           // folder's contents container (e.g. between two sibling files in an
           // expanded folder), use that folder; otherwise fall back to root.
@@ -130,6 +127,13 @@ export default function Explorer() {
               userData.setCurrentFile({ name: userData.currentFile.name, location: newLoc });
             }
           }
+          userData.setOpenFiles((prev) => prev.map((f) => {
+            if (f.location === source) return { ...f, name: srcName, location: destination };
+            if (source.endsWith('/') && f.location.startsWith(source)) {
+              return { ...f, location: `${destination}${f.location.slice(source.length)}` };
+            }
+            return f;
+          }));
           let res = await fetch(`${apiUrl}/files/move`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -165,7 +169,7 @@ export default function Explorer() {
         {Array.isArray(userData?.files) ? (
           <MenuItems files={userData?.files} />
         ) : userData?.userInfo ? (
-          <div className="text-red-500">Error loading files</div>
+          <div className="text-tomato text-sm px-2">Error loading files</div>
         ) : (
           <MenuItems files={defaultUserData.files} />
         )}

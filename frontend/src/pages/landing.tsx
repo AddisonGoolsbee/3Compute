@@ -1,414 +1,179 @@
-import { useContext, useEffect, useState, useRef } from 'react';
-import { Link } from 'react-router';
-import Footer from '../components/Footer';
+import { useContext, useEffect, useRef, useState } from 'react';
+import { Link, useNavigate } from 'react-router';
 import {
+  ArrowRight,
+  BookOpen,
+  Heart,
   Terminal,
+  Globe,
+  FlaskConical,
   Users,
   LayoutTemplate,
-  ArrowRight,
   Code,
-  BookOpen,
   Share2,
   UserPlus,
   Laptop,
   Send,
-  GraduationCap,
-  Play,
-  Globe,
-  Zap,
   Server,
-  Heart,
+  Zap,
   ChevronRight,
-  FlaskConical,
   FileText,
   RefreshCw,
   ExternalLink,
 } from 'lucide-react';
 import { apiUrl, UserDataContext } from '../util/UserData';
+import { PrimaryButton, GhostButton, Pill } from '../components/ui/Buttons';
+import { SpotEditor, SpotGradebook } from '../components/ui/Spots';
+import TerminalDemo from '../components/TerminalDemo';
+import Footer from '../components/Footer';
+import { cn } from '../util/cn';
 
-// ---------------------------------------------------------------------------
-// Terminal demo data
-// ---------------------------------------------------------------------------
+type AccentColor = 'navy' | 'tomato' | 'ochre' | 'forest' | 'plum';
 
-interface DemoProgram {
-  label: string;
-  filename: string;
-  code: string[];
-  runCommand: string;
-  output: string[];
+const ACCENT_BG_SOFT: Record<AccentColor, string> = {
+  navy: 'bg-navy-soft text-navy',
+  tomato: 'bg-tomato-soft text-tomato',
+  ochre: 'bg-ochre-soft text-ochre',
+  forest: 'bg-forest-soft text-forest',
+  plum: 'bg-plum-soft text-plum',
+};
+
+interface FeatureCell {
+  icon: React.ReactNode;
+  color: AccentColor;
+  title: string;
+  body: string;
 }
 
-const DEMO_PROGRAMS: DemoProgram[] = [
+const FEATURES: FeatureCell[] = [
   {
-    label: 'Simple Web API',
-    filename: 'api.py',
-    code: [
-      'from flask import Flask, jsonify',
-      '',
-      'app = Flask(__name__)',
-      '',
-      'todos = [',
-      '    {"id": 1, "task": "Learn Python"},',
-      '    {"id": 2, "task": "Build something cool"},',
-      ']',
-      '',
-      '@app.route("/todos")',
-      'def get_todos():',
-      '    return jsonify(todos)',
-      '',
-      'app.run(host="0.0.0.0", port=3000)',
-    ],
-    runCommand: '$ python api.py',
-    output: [
-      ' * Running on http://0.0.0.0:3000',
-      ' * Your app is live at:',
-      '   https://jdoe.app.3compute.org/todos',
-    ],
+    icon: <Terminal size={22} />,
+    color: 'navy',
+    title: 'A real Python workspace',
+    body: 'A persistent Linux environment with editor, file explorer, and terminal.',
   },
   {
-    label: 'Number Guessing Game',
-    filename: 'guess.py',
-    code: [
-      'import random',
-      '',
-      'def play():',
-      '    secret = random.randint(1, 100)',
-      '    attempts = 0',
-      '    print("Guess a number between 1 and 100!")',
-      '    while True:',
-      '        guess = int(input("> "))',
-      '        attempts += 1',
-      '        if guess < secret:',
-      '            print("Too low!")',
-      '        elif guess > secret:',
-      '            print("Too high!")',
-      '        else:',
-      '            print(f"Correct in {attempts} tries!")',
-      '            break',
-      '',
-      'play()',
-    ],
-    runCommand: '$ python guess.py',
-    output: [
-      'Guess a number between 1 and 100!',
-      '> 50',
-      'Too low!',
-      '> 75',
-      'Too high!',
-      '> 63',
-      'Correct in 3 tries!',
-    ],
+    icon: <Globe size={22} />,
+    color: 'forest',
+    title: 'Public web addresses',
+    body: 'Run any server and publish to name.app.3compute.org. Share with classmates or family.',
   },
   {
-    label: 'Bubble Sort',
-    filename: 'sort.py',
-    code: [
-      'def bubble_sort(arr):',
-      '    n = len(arr)',
-      '    for i in range(n):',
-      '        for j in range(n - i - 1):',
-      '            if arr[j] > arr[j + 1]:',
-      '                arr[j], arr[j + 1] = arr[j + 1], arr[j]',
-      '    return arr',
-      '',
-      'data = [64, 34, 25, 12, 22, 11, 90]',
-      'print("Before:", data)',
-      'print("After: ", bubble_sort(data))',
-    ],
-    runCommand: '$ python sort.py',
-    output: [
-      'Before: [64, 34, 25, 12, 22, 11, 90]',
-      'After:  [11, 12, 22, 25, 34, 64, 90]',
-    ],
+    icon: <FlaskConical size={22} />,
+    color: 'plum',
+    title: 'Auto-graded tests',
+    body: 'Lessons ship with tests. Students see what\'s passing as they work; teachers see the same view in the gradebook.',
+  },
+  {
+    icon: <BookOpen size={22} />,
+    color: 'ochre',
+    title: 'An open lesson library',
+    body: 'Modify any community lesson, or write your own using Markdown plus a tests directory.',
+  },
+  {
+    icon: <Users size={22} />,
+    color: 'tomato',
+    title: 'Classroom management',
+    body: 'Create a classroom, share an access code, and students join with one click. See everyone\'s work in one place.',
+  },
+  {
+    icon: <LayoutTemplate size={22} />,
+    color: 'ochre',
+    title: 'Import, modify, or write lessons',
+    body: 'Pull from the open library, adapt a lesson to your class, or write a new one from scratch.',
   },
 ];
 
-// Syntax highlight a single line of Python source
-function highlightLine(line: string): React.ReactNode {
-  if (line === '') return <br />;
+// ---------------------------------------------------------------------------
+// Lightweight Python tokenizer (for ClassroomDemo's static code preview)
+// ---------------------------------------------------------------------------
 
-  // Very simple token-level coloriser (no regex backtracking issues)
-  const keywords = new Set([
-    'import', 'from', 'def', 'return', 'while', 'for', 'if', 'elif',
-    'else', 'in', 'range', 'True', 'False', 'None', 'break', 'int',
-  ]);
+type TokenType = 'keyword' | 'string' | 'number' | 'comment' | 'decorator' | 'ident' | 'other';
 
-  // Tokenise: strings, comments, identifiers, numbers, operators, whitespace
-  const tokens: { type: string; value: string }[] = [];
+const PY_KEYWORDS = new Set([
+  'def', 'return', 'if', 'elif', 'else', 'for', 'while', 'in', 'import',
+  'from', 'as', 'class', 'True', 'False', 'None', 'and', 'or', 'not',
+  'is', 'with', 'try', 'except', 'finally', 'raise', 'pass', 'break',
+  'continue', 'lambda', 'yield', 'global', 'nonlocal', 'print', 'int',
+  'str', 'float', 'list', 'dict', 'tuple', 'range', 'input', 'len',
+]);
+
+const TOKEN_VAR: Record<TokenType, string> = {
+  keyword: 'var(--code-keyword)',
+  string: 'var(--code-string)',
+  number: 'var(--code-number)',
+  comment: 'var(--code-comment)',
+  decorator: 'var(--code-decorator)',
+  ident: 'var(--code-ident)',
+  other: 'var(--code-other)',
+};
+
+function tokenizePython(line: string): { t: TokenType; v: string }[] {
+  const out: { t: TokenType; v: string }[] = [];
   let i = 0;
   while (i < line.length) {
-    // String literals
-    if (line[i] === '"' || line[i] === '\'') {
-      const quote = line[i];
-      let j = i + 1;
-      while (j < line.length && line[j] !== quote) j++;
-      tokens.push({ type: 'string', value: line.slice(i, j + 1) });
-      i = j + 1;
-      continue;
+    const c = line[i];
+    if (c === '#') { out.push({ t: 'comment', v: line.slice(i) }); break; }
+    if ((c === 'f' || c === 'F') && (line[i + 1] === '"' || line[i + 1] === '\'')) {
+      const q = line[i + 1]; let j = i + 2;
+      while (j < line.length && line[j] !== q) j++;
+      out.push({ t: 'string', v: line.slice(i, j + 1) }); i = j + 1; continue;
     }
-    // f-string prefix
-    if ((line[i] === 'f' || line[i] === 'F') && (line[i + 1] === '"' || line[i + 1] === '\'')) {
-      const quote = line[i + 1];
-      let j = i + 2;
-      while (j < line.length && line[j] !== quote) j++;
-      tokens.push({ type: 'string', value: line.slice(i, j + 1) });
-      i = j + 1;
-      continue;
+    if (c === '"' || c === '\'') {
+      const q = c; let j = i + 1;
+      while (j < line.length && line[j] !== q) j++;
+      out.push({ t: 'string', v: line.slice(i, j + 1) }); i = j + 1; continue;
     }
-    // Comment
-    if (line[i] === '#') {
-      tokens.push({ type: 'comment', value: line.slice(i) });
-      break;
+    if (/\d/.test(c)) {
+      let j = i; while (j < line.length && /[\d.]/.test(line[j])) j++;
+      out.push({ t: 'number', v: line.slice(i, j) }); i = j; continue;
     }
-    // Number
-    if (/\d/.test(line[i])) {
-      let j = i;
-      while (j < line.length && /[\d.]/.test(line[j])) j++;
-      tokens.push({ type: 'number', value: line.slice(i, j) });
-      i = j;
-      continue;
+    if (c === '@') {
+      let j = i + 1; while (j < line.length && /[\w.]/.test(line[j])) j++;
+      out.push({ t: 'decorator', v: line.slice(i, j) }); i = j; continue;
     }
-    // Identifier or keyword
-    if (/[a-zA-Z_]/.test(line[i])) {
-      let j = i;
-      while (j < line.length && /\w/.test(line[j])) j++;
+    if (/[A-Za-z_]/.test(c)) {
+      let j = i; while (j < line.length && /\w/.test(line[j])) j++;
       const word = line.slice(i, j);
-      tokens.push({ type: keywords.has(word) ? 'keyword' : 'ident', value: word });
-      i = j;
-      continue;
+      out.push({ t: PY_KEYWORDS.has(word) ? 'keyword' : 'ident', v: word });
+      i = j; continue;
     }
-    // Decorator
-    if (line[i] === '@') {
-      let j = i + 1;
-      while (j < line.length && /\w/.test(line[j])) j++;
-      tokens.push({ type: 'decorator', value: line.slice(i, j) });
-      i = j;
-      continue;
-    }
-    // Everything else (operators, punctuation, spaces)
-    tokens.push({ type: 'other', value: line[i] });
-    i++;
+    let j = i; while (j < line.length && !/[\w@'"#\d\s]/.test(line[j])) j++;
+    out.push({ t: 'other', v: line.slice(i, Math.max(j, i + 1)) });
+    i = Math.max(j, i + 1);
   }
-
-  const colorMap: Record<string, string> = {
-    keyword: '#c792ea',
-    string: '#c3e88d',
-    number: '#f78c6c',
-    comment: '#546e7a',
-    decorator: '#82aaff',
-    ident: '#e0e0e0',
-    other: '#89ddff',
-  };
-
-  return (
-    <>
-      {tokens.map((tok, idx) => (
-        <span key={idx} style={{ color: colorMap[tok.type] }}>
-          {tok.value}
-        </span>
-      ))}
-    </>
-  );
+  return out;
 }
 
-// ---------------------------------------------------------------------------
-// TerminalDemo component
-// ---------------------------------------------------------------------------
-
-type Phase = 'typing-code' | 'ready' | 'typing-run' | 'typing-output' | 'done';
-
-function TerminalDemo() {
-  const [programIndex, setProgramIndex] = useState(0);
-  const [phase, setPhase] = useState<Phase>('typing-code');
-  const [visibleCodeLines, setVisibleCodeLines] = useState(0);
-  const [runCommandChars, setRunCommandChars] = useState(0);
-  const [visibleOutputLines, setVisibleOutputLines] = useState(0);
-  const timeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
-
-  const program = DEMO_PROGRAMS[programIndex];
-
-  function clearAllTimeouts() {
-    timeoutsRef.current.forEach(clearTimeout);
-    timeoutsRef.current = [];
-  }
-
-  function schedule(fn: () => void, delay: number) {
-    const id = setTimeout(fn, delay);
-    timeoutsRef.current.push(id);
-  }
-
-  function startSequence(idx: number) {
-    clearAllTimeouts();
-    const prog = DEMO_PROGRAMS[idx];
-    setVisibleCodeLines(0);
-    setRunCommandChars(0);
-    setVisibleOutputLines(0);
-    setPhase('typing-code');
-
-    const LINE_DELAY = 80;
-    prog.code.forEach((_, lineIdx) => {
-      schedule(() => {
-        setVisibleCodeLines(lineIdx + 1);
-        if (lineIdx === prog.code.length - 1) setPhase('ready');
-      }, LINE_DELAY * (lineIdx + 1));
-    });
-  }
-
-  // Start on mount and when programIndex changes
-  useEffect(() => {
-    startSequence(programIndex);
-    return clearAllTimeouts;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [programIndex]);
-
-  function handleRun() {
-    if (phase !== 'ready') return;
-    setPhase('typing-run');
-    setRunCommandChars(0);
-
-    const cmd = program.runCommand;
-    const CHAR_DELAY = 35;
-    cmd.split('').forEach((_, charIdx) => {
-      schedule(() => setRunCommandChars(charIdx + 1), CHAR_DELAY * (charIdx + 1));
-    });
-
-    const cmdDuration = CHAR_DELAY * cmd.length + 150;
-    schedule(() => {
-      setPhase('typing-output');
-      const OUT_DELAY = 180;
-      program.output.forEach((_, i) => {
-        schedule(() => {
-          setVisibleOutputLines(i + 1);
-          if (i === program.output.length - 1) {
-            setPhase('done');
-          }
-        }, OUT_DELAY * (i + 1));
-      });
-    }, cmdDuration);
-  }
-
-  function handleNext() {
-    const next = (programIndex + 1) % DEMO_PROGRAMS.length;
-    setProgramIndex(next);
-  }
-
+function PyLine({ line, lineNo }: { line: string; lineNo: number }) {
   return (
-    <div
-      className="rounded-xl overflow-hidden border border-gray-700 shadow-2xl shadow-black/60 w-full max-w-lg mx-auto lg:mx-0"
-      aria-label="Interactive terminal demo showing a student's 3Compute coding session"
-      role="region"
-    >
-      {/* Title bar */}
-      <div className="flex items-center justify-between bg-gray-900 border-b border-gray-700 px-4 py-2.5">
-        <div className="flex items-center gap-2">
-          <span className="w-3 h-3 rounded-full bg-red-500/70" />
-          <span className="w-3 h-3 rounded-full bg-yellow-500/70" />
-          <span className="w-3 h-3 rounded-full bg-green-500/70" />
-        </div>
-        <span className="text-xs text-gray-400 font-mono">{program.filename}</span>
-        <div className="flex items-center gap-2">
-          {/* Program selector */}
-          {DEMO_PROGRAMS.map((p, i) => (
-            <button
-              key={i}
-              onClick={() => setProgramIndex(i)}
-              className={`text-xs px-2 py-0.5 rounded transition-colors ${
-                i === programIndex
-                  ? 'bg-[#54daf4]/20 text-[#54daf4]'
-                  : 'text-gray-500 hover:text-gray-300'
-              }`}
-              aria-label={`Switch to ${p.label} demo`}
-            >
-              {i + 1}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Code pane */}
-      <div className="bg-[#0d1117] px-5 pt-4 pb-3 font-mono text-sm leading-6 overflow-x-auto">
-        {program.code.map((line, i) => (
-          <div key={i} className={`flex gap-4 transition-opacity duration-75 ${i < visibleCodeLines ? 'opacity-100' : 'opacity-0'}`}>
-            <span className="select-none text-gray-600 text-xs leading-6 w-4 text-right flex-shrink-0">
-              {i + 1}
-            </span>
-            <span className="whitespace-pre">
-              {line === '' ? <span>&nbsp;</span> : highlightLine(line)}
-            </span>
-          </div>
+    <div className="flex gap-3">
+      <span
+        className="select-none text-right text-xs"
+        style={{ color: 'var(--ink-faint)', minWidth: 22 }}
+      >
+        {lineNo}
+      </span>
+      <span className="whitespace-pre">
+        {line === '' ? ' ' : tokenizePython(line).map((tok, j) => (
+          <span key={j} style={{ color: TOKEN_VAR[tok.t] }}>{tok.v}</span>
         ))}
-      </div>
-
-      {/* Terminal pane */}
-      <div className="bg-[#0a0e13] border-t border-gray-800 px-5 py-3 font-mono text-sm min-h-[100px] overflow-x-auto">
-        {/* Idle $ prompt */}
-        {(phase === 'typing-code' || phase === 'ready') && (
-          <div className="text-gray-500 flex items-center gap-1">
-            $<span className="inline-block w-2 h-[14px] bg-gray-500 animate-pulse" />
-          </div>
-        )}
-        {/* Run command typed char-by-char */}
-        {runCommandChars > 0 && (
-          <div className="text-gray-400 flex items-center">
-            <span>{program.runCommand.slice(0, runCommandChars)}</span>
-            {phase === 'typing-run' && (
-              <span className="inline-block w-2 h-[14px] bg-gray-400 animate-pulse ml-0.5" />
-            )}
-          </div>
-        )}
-        {/* Output lines, cursor trails the last visible one */}
-        {program.output.slice(0, visibleOutputLines).map((line, i) => (
-          <div key={i} className="text-[#54daf4] flex items-center">
-            <span>{line}</span>
-            {phase === 'typing-output' && i === visibleOutputLines - 1 && (
-              <span className="inline-block w-2 h-[14px] bg-[#54daf4] animate-pulse ml-0.5" />
-            )}
-          </div>
-        ))}
-        {/* New $ prompt after run completes */}
-        {phase === 'done' && (
-          <div className="text-gray-500 flex items-center gap-1 mt-1">
-            $<span className="inline-block w-2 h-[14px] bg-gray-500 animate-pulse" />
-          </div>
-        )}
-      </div>
-
-      {/* Controls */}
-      <div className="bg-gray-900 border-t border-gray-700 px-4 py-2.5 flex items-center justify-between">
-        <span className="text-xs text-gray-500">{program.label}</span>
-        <div className="flex items-center gap-2">
-          {phase === 'done' && (
-            <button
-              onClick={handleNext}
-              className="text-xs text-gray-400 hover:text-white transition-colors px-3 py-1 rounded border border-gray-700 hover:border-gray-500"
-            >
-              Next example
-            </button>
-          )}
-          <button
-            onClick={handleRun}
-            disabled={phase !== 'ready'}
-            className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded transition-colors ${
-              phase === 'ready'
-                ? 'bg-[#2a9bb8] hover:bg-[#238da8] text-white cursor-pointer'
-                : 'bg-gray-700 text-gray-500 cursor-not-allowed'
-            }`}
-            aria-label="Run the code"
-          >
-            <Play size={12} />
-            Run
-          </button>
-        </div>
-      </div>
+      </span>
     </div>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Classroom demo data & component
+// Classroom demo data & component (restored from original, reskinned)
 // ---------------------------------------------------------------------------
 
-const DEMO_STUDENTS = [
+interface DemoStudent {
+  name: string;
+  email: string;
+  scores: Record<string, [number, number]>;
+}
+
+const DEMO_STUDENTS: DemoStudent[] = [
   { name: 'Alice Chen', email: 'alice@school.edu', scores: { 'Data-Encoding': [7, 8], 'Tic-Tac-Toe': [3, 4], 'Weather-App': [2, 3] } },
   { name: 'Ben Torres', email: 'ben@school.edu', scores: { 'Data-Encoding': [6, 8], 'Tic-Tac-Toe': [4, 4], 'Weather-App': [3, 3] } },
   { name: 'Chloe Park', email: 'chloe@school.edu', scores: { 'Data-Encoding': [8, 8], 'Tic-Tac-Toe': [4, 4], 'Weather-App': [3, 3] } },
@@ -417,6 +182,78 @@ const DEMO_STUDENTS = [
 ];
 
 const DEMO_TEMPLATES = ['Data-Encoding', 'Tic-Tac-Toe', 'Weather-App'];
+
+const DEMO_AVATAR_COLORS = ['bg-tomato', 'bg-navy', 'bg-forest', 'bg-ochre', 'bg-plum'];
+
+function demoInitials(name: string): string {
+  return name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase();
+}
+
+function DemoStudentRow({
+  student,
+  idx,
+  p,
+  t,
+  expanded = false,
+}: {
+  student: DemoStudent;
+  idx: number;
+  p: number;
+  t: number;
+  expanded?: boolean;
+}) {
+  const passing = p === t;
+  const partial = p > 0 && p < t;
+  const avatarBg = DEMO_AVATAR_COLORS[idx % DEMO_AVATAR_COLORS.length];
+  return (
+    <div
+      className={cn(
+        'w-full flex items-center gap-3.5 px-3.5 py-3 rounded-md transition-colors',
+        expanded ? 'bg-paper-tinted' : 'hover:bg-paper-tinted',
+      )}
+    >
+      <span
+        className={cn(
+          'text-ink-subtle inline-flex transition-transform shrink-0',
+          expanded && 'rotate-90',
+        )}
+      >
+        <ChevronRight size={14} />
+      </span>
+      <span
+        className={cn(
+          'w-8 h-8 rounded-full inline-flex items-center justify-center text-white text-xs font-bold shrink-0',
+          avatarBg,
+        )}
+      >
+        {demoInitials(student.name)}
+      </span>
+      <div className="flex-1 min-w-0">
+        <div className="text-[14.5px] font-semibold text-ink-strong truncate">{student.name}</div>
+        <div className="text-[12.5px] text-ink-subtle truncate">{student.email}</div>
+      </div>
+      <div className="flex items-center gap-3 shrink-0">
+        <div className="w-20 h-1.5 bg-paper-deeper rounded-full overflow-hidden">
+          <div
+            className={cn(
+              'h-full',
+              passing ? 'bg-forest' : partial ? 'bg-ochre' : 'bg-tomato',
+            )}
+            style={{ width: `${(p / t) * 100}%` }}
+          />
+        </div>
+        <span
+          className={cn(
+            'font-mono text-sm tabular-nums min-w-[36px] text-right',
+            passing ? 'text-forest font-semibold' : 'text-ink-default',
+          )}
+        >
+          {p}/{t}
+        </span>
+      </div>
+    </div>
+  );
+}
 
 const DEMO_TEST_OUTPUT = `Running tests for Data-Encoding...
 
@@ -446,130 +283,148 @@ def binary_encode(text):
 
 function ClassroomDemo() {
   const [step, setStep] = useState(0);
+  const studentsTabRef = useRef<HTMLDivElement | null>(null);
+  const [panelHeight, setPanelHeight] = useState<number | undefined>(undefined);
+
+  // Lock the mock-UI panel to the height of the Students tab (the first step
+  // shown on mount) so switching steps doesn't make the card grow or shrink —
+  // longer steps scroll inside instead.
+  useEffect(() => {
+    if (step === 0 && studentsTabRef.current && panelHeight === undefined) {
+      setPanelHeight(studentsTabRef.current.scrollHeight);
+    }
+  }, [step, panelHeight]);
 
   const steps = [
-    { label: 'Students tab', desc: 'See every student and their test scores at a glance' },
-    { label: 'Drill into student', desc: 'Expand a student to view their files and code' },
-    { label: 'Run tests', desc: 'Run tests against a student\'s code and see detailed output' },
-    { label: 'Gradebook', desc: 'Track all scores in a spreadsheet-style view with flexible grading' },
+    { label: 'Students tab', desc: 'See every student and their test scores at a glance.' },
+    { label: 'Drill into student', desc: 'Expand a student to view their files and code.' },
+    { label: 'Run tests', desc: 'Run tests against a student\'s code and read detailed output.' },
+    { label: 'Gradebook', desc: 'Track all scores in a spreadsheet-style view with flexible grading.' },
   ];
 
   return (
-    <div className="rounded-2xl border border-[#54daf4]/20 bg-[#54daf4]/5 overflow-hidden">
+    <div className="rounded-2xl border border-rule-soft bg-paper-elevated overflow-hidden shadow-md">
       <div className="px-8 pt-8 pb-4 text-center">
-        <h3 className="text-2xl font-bold mb-2">Track every student&rsquo;s progress</h3>
-        <p className="text-gray-400 text-sm max-w-lg mx-auto">
-          See scores, drill into code, run tests, and manage grades.
+        <span className="eyebrow text-tomato block mb-2">Inside the gradebook</span>
+        <h3 className="heading-2">Track every student&rsquo;s progress</h3>
+        <p className="body text-ink-muted max-w-lg mx-auto">
+          See scores, drill into code, run tests, and manage grades — all in one classroom view.
         </p>
       </div>
 
-      {/* Step indicator pills */}
-      <div className="flex items-center justify-center gap-2 mb-4 px-4">
+      {/* Step pills */}
+      <div className="flex flex-wrap items-center justify-center gap-2 mb-4 px-4">
         {steps.map((s, i) => (
           <button
             key={i}
+            type="button"
             onClick={() => setStep(i)}
-            className={`px-3 py-1.5 rounded-lg text-xs transition-all ${
-              step === i
-                ? 'bg-[#54daf4]/20 text-[#54daf4] font-medium'
-                : 'text-gray-500 hover:text-gray-300'
-            }`}
+            className={
+              'px-3 py-1.5 rounded-md text-xs font-semibold transition-colors cursor-pointer ' +
+              (step === i
+                ? 'bg-tomato-soft text-tomato'
+                : 'text-ink-muted hover:text-ink-default hover:bg-paper-tinted')
+            }
           >
             {s.label}
           </button>
         ))}
       </div>
 
-      {/* Mock UI panels */}
-      <div className="mx-4 mb-4 rounded-xl border border-gray-700 bg-[#0d1117] overflow-hidden" style={{ minHeight: 340 }}>
+      {/* Mock UI panels — locked to the Students-tab height; scroll for taller steps. */}
+      <div
+        className={cn(
+          'mx-4 mb-4 rounded-xl border border-rule bg-paper-tinted',
+          step === 0 ? 'overflow-hidden' : 'overflow-y-auto',
+        )}
+        style={{ height: panelHeight }}
+      >
         {step === 0 && (
-          <div className="p-4">
-            <div className="flex items-center gap-1.5 mb-3">
-              <div className="px-3 py-1.5 rounded-lg bg-gray-700 text-white text-sm">Data-Encoding</div>
-              <div className="px-3 py-1.5 rounded-lg text-gray-400 text-sm">Tic-Tac-Toe</div>
-              <div className="px-3 py-1.5 rounded-lg text-gray-400 text-sm">Weather-App</div>
+          <div ref={studentsTabRef} className="p-4">
+            <div className="flex flex-wrap items-center gap-1.5 mb-3">
+              <span className="px-3 py-1.5 rounded-md bg-paper-elevated border border-rule-soft text-ink-strong text-sm font-medium">Data-Encoding</span>
+              <span className="px-3 py-1.5 rounded-md text-ink-muted text-sm">Tic-Tac-Toe</span>
+              <span className="px-3 py-1.5 rounded-md text-ink-muted text-sm">Weather-App</span>
             </div>
-            {DEMO_STUDENTS.map((s) => {
+            {DEMO_STUDENTS.map((s, i) => {
               const [p, t] = s.scores['Data-Encoding'];
               return (
-                <div key={s.email} className="flex items-center gap-4 px-3 py-2.5 hover:bg-gray-800/20 rounded-lg">
-                  <ChevronRight size={14} className="text-gray-500" />
-                  <div className="flex-1 min-w-0">
-                    <span className="text-sm font-medium">{s.name}</span>
-                    <span className="text-xs text-gray-600 ml-2">{s.email}</span>
-                  </div>
-                  <span className={`font-mono text-sm tabular-nums ${p === t ? 'text-green-400' : 'text-gray-500'}`}>
-                    {p}/{t}
-                  </span>
-                </div>
+                <DemoStudentRow key={s.email} student={s} idx={i} p={p} t={t} />
               );
             })}
           </div>
         )}
+
         {(step === 1 || step === 2) && (
-          <div className="p-4 overflow-y-auto" style={{ maxHeight: 340 }}>
+          <div className="p-4">
             {/* Assignment selector */}
-            <div className="flex items-center gap-1.5 mb-3">
-              <div className="px-3 py-1.5 rounded-lg bg-gray-700 text-white text-sm">Data-Encoding</div>
-              <div className="px-3 py-1.5 rounded-lg text-gray-400 text-sm">Tic-Tac-Toe</div>
-              <div className="px-3 py-1.5 rounded-lg text-gray-400 text-sm">Weather-App</div>
+            <div className="flex flex-wrap items-center gap-1.5 mb-3">
+              <span className="px-3 py-1.5 rounded-md bg-paper-elevated border border-rule-soft text-ink-strong text-sm font-medium">Data-Encoding</span>
+              <span className="px-3 py-1.5 rounded-md text-ink-muted text-sm">Tic-Tac-Toe</span>
+              <span className="px-3 py-1.5 rounded-md text-ink-muted text-sm">Weather-App</span>
             </div>
             {/* Alice expanded */}
-            <button className="w-full flex items-center gap-4 px-3 py-2.5 bg-gray-800/20 rounded-t-lg text-left">
-              <span className="text-gray-500" style={{ transform: 'rotate(90deg)' }}>
-                <ChevronRight size={14} />
-              </span>
-              <div className="flex-1 min-w-0">
-                <span className="text-sm font-medium">Alice Chen</span>
-                <span className="text-xs text-gray-600 ml-2">alice@school.edu</span>
-              </div>
-              <span className="font-mono text-sm tabular-nums text-gray-500">7/8</span>
-            </button>
-            <div className="ml-8 mr-3 mb-3 border border-gray-800 rounded-b-lg overflow-hidden bg-gray-900/50">
+            <DemoStudentRow
+              student={DEMO_STUDENTS[0]}
+              idx={0}
+              p={DEMO_STUDENTS[0].scores['Data-Encoding'][0]}
+              t={DEMO_STUDENTS[0].scores['Data-Encoding'][1]}
+              expanded
+            />
+            <div className="ml-8 mr-3 mb-3 border border-rule-soft rounded-b-md overflow-hidden bg-paper-elevated">
               <div className="flex" style={{ height: 220 }}>
-                <div className="w-48 border-r border-gray-800 overflow-y-auto flex-shrink-0">
-                  <div className={`px-3 py-1.5 text-sm truncate flex items-center gap-2 ${step === 2 ? 'bg-blue-900/30 text-blue-300' : 'text-blue-400'}`}>
-                    <FlaskConical size={12} className="flex-shrink-0" /> <span className="truncate">View test output</span>
+                <div className="w-48 border-r border-rule-soft overflow-y-auto flex-shrink-0 bg-paper-tinted">
+                  <div className={
+                    'px-3 py-1.5 text-sm flex items-center gap-2 ' +
+                    (step === 2
+                      ? 'bg-navy-soft text-navy font-semibold'
+                      : 'text-navy')
+                  }>
+                    <FlaskConical size={12} className="flex-shrink-0" />
+                    <span className="truncate">View test output</span>
                   </div>
-                  <div className="border-b border-gray-800/50" />
+                  <div className="border-b border-rule-soft" />
                   {['encoding.py', 'decode.py', 'test_encoding.py'].map((f, i) => (
-                    <div key={f} className={`px-3 py-1.5 text-sm truncate flex items-center gap-2 ${step === 1 && i === 0 ? 'bg-gray-800 text-white' : 'text-gray-400'}`}>
-                      <FileText size={12} className="flex-shrink-0 opacity-50" /> <span className="truncate">{f}</span>
+                    <div key={f} className={
+                      'px-3 py-1.5 text-sm flex items-center gap-2 ' +
+                      (step === 1 && i === 0
+                        ? 'bg-paper-elevated text-ink-strong font-semibold'
+                        : 'text-ink-muted')
+                    }>
+                      <FileText size={12} className="flex-shrink-0 opacity-60" />
+                      <span className="truncate">{f}</span>
                     </div>
                   ))}
                 </div>
                 <div className="flex-1 flex flex-col min-w-0">
                   {step === 1 ? (
                     <>
-                      <div className="flex items-center justify-between px-3 py-1.5 border-b border-gray-800 flex-shrink-0">
-                        <span className="text-xs text-gray-500 font-mono truncate">encoding.py</span>
-                        <span className="inline-flex items-center gap-1.5 text-xs text-gray-400 shrink-0 ml-3">
+                      <div className="flex items-center justify-between px-3 py-1.5 border-b border-rule-soft flex-shrink-0 bg-paper-tinted">
+                        <span className="text-xs text-ink-muted font-mono truncate">encoding.py</span>
+                        <span className="inline-flex items-center gap-1.5 text-xs text-navy font-semibold shrink-0 ml-3">
                           <ExternalLink size={11} />
-                          Open in IDE
+                          Open in workspace
                         </span>
                       </div>
-                      <div className="flex-1 overflow-auto bg-[#0d1117] px-4 pt-3 pb-2 font-mono text-sm leading-6">
+                      <div className="flex-1 overflow-auto px-4 pt-3 pb-2 font-mono text-[12.5px] leading-6 bg-paper-elevated">
                         {DEMO_CODE.split('\n').map((line, i) => (
-                          <div key={i} className="flex gap-4">
-                            <span className="select-none text-gray-600 text-xs leading-6 w-4 text-right flex-shrink-0">{i + 1}</span>
-                            <span className="whitespace-pre">{line === '' ? <span>&nbsp;</span> : highlightLine(line)}</span>
-                          </div>
+                          <PyLine key={i} line={line} lineNo={i + 1} />
                         ))}
                       </div>
                     </>
                   ) : (
                     <>
-                      <div className="flex items-center justify-between px-3 py-1.5 border-b border-gray-800 flex-shrink-0">
-                        <span className="text-xs text-gray-500">
+                      <div className="flex items-center justify-between px-3 py-1.5 border-b border-rule-soft flex-shrink-0 bg-paper-tinted">
+                        <span className="text-xs text-ink-muted">
                           Test output
-                          <span className="ml-2 text-gray-400">7/8 passed</span>
+                          <span className="ml-2 text-ink-strong font-semibold">7/8 passed</span>
                         </span>
-                        <span className="inline-flex items-center gap-1 text-xs text-gray-400 shrink-0 ml-3">
+                        <span className="inline-flex items-center gap-1 text-xs text-navy font-semibold shrink-0 ml-3">
                           <RefreshCw size={11} /> Re-run
                         </span>
                       </div>
-                      <div className="flex-1 p-3 overflow-auto">
-                        <pre className="whitespace-pre-wrap text-gray-300 text-xs leading-relaxed font-mono">{DEMO_TEST_OUTPUT}</pre>
+                      <div className="flex-1 p-3 overflow-auto bg-paper-elevated">
+                        <pre className="whitespace-pre-wrap text-ink-default text-xs leading-relaxed font-mono m-0">{DEMO_TEST_OUTPUT}</pre>
                       </div>
                     </>
                   )}
@@ -577,66 +432,60 @@ function ClassroomDemo() {
               </div>
             </div>
             {/* Remaining students collapsed */}
-            {DEMO_STUDENTS.slice(1).map((s) => {
+            {DEMO_STUDENTS.slice(1).map((s, i) => {
               const [p, t] = s.scores['Data-Encoding'];
               return (
-                <div key={s.email} className="flex items-center gap-4 px-3 py-2.5 hover:bg-gray-800/20 rounded-lg">
-                  <ChevronRight size={14} className="text-gray-500" />
-                  <div className="flex-1 min-w-0">
-                    <span className="text-sm font-medium">{s.name}</span>
-                    <span className="text-xs text-gray-600 ml-2">{s.email}</span>
-                  </div>
-                  <span className={`font-mono text-sm tabular-nums ${p === t ? 'text-green-400' : 'text-gray-500'}`}>
-                    {p}/{t}
-                  </span>
-                </div>
+                <DemoStudentRow key={s.email} student={s} idx={i + 1} p={p} t={t} />
               );
             })}
           </div>
         )}
+
         {step === 3 && (
           <div className="p-4">
             <div className="flex items-center gap-3 mb-3">
-              <div className="flex rounded-lg overflow-hidden border border-gray-700">
-                <span className="px-3 py-1 text-xs bg-gray-700 text-white">Equal weights</span>
-                <span className="px-3 py-1 text-xs text-gray-500">Custom weights</span>
-                <span className="px-3 py-1 text-xs text-gray-500">Manual scores</span>
+              <div className="flex rounded-md overflow-hidden border border-rule">
+                <span className="px-3 py-1 text-xs bg-paper-elevated text-ink-strong font-semibold">Equal weights</span>
+                <span className="px-3 py-1 text-xs text-ink-muted">Custom weights</span>
+                <span className="px-3 py-1 text-xs text-ink-muted">Manual scores</span>
               </div>
             </div>
-            <div className="overflow-x-auto rounded-lg border border-gray-800">
+            <div className="overflow-x-auto rounded-md border border-rule-soft bg-paper-elevated">
               <table className="w-full text-sm" style={{ borderSpacing: 0 }}>
                 <thead>
-                  <tr className="bg-gray-800/40">
-                    <th style={{ padding: '8px 12px' }} className="text-left text-xs text-gray-500 font-medium">Student</th>
+                  <tr className="bg-paper-tinted">
+                    <th style={{ padding: '8px 12px' }} className="text-left text-xs text-ink-muted font-semibold pl-3!">Student</th>
                     {DEMO_TEMPLATES.map((t) => (
-                      <th key={t} style={{ padding: '8px 12px' }} className="text-xs text-gray-500 font-medium text-center">{t}</th>
+                      <th key={t} style={{ padding: '8px 12px' }} className="text-xs text-ink-muted font-semibold text-center pl-3!">{t}</th>
                     ))}
-                    <th style={{ padding: '8px 12px' }} className="text-xs text-gray-500 font-medium text-center">Average</th>
+                    <th style={{ padding: '8px 12px' }} className="text-xs text-ink-muted font-semibold text-center pl-3!">Average</th>
                   </tr>
                 </thead>
                 <tbody>
                   {DEMO_STUDENTS.map((s) => {
-                    let totalW = 0, weightedS = 0;
+                    let totalW = 0;
+                    let weightedS = 0;
                     for (const t of DEMO_TEMPLATES) {
-                      const [p, tot] = s.scores[t as keyof typeof s.scores];
+                      const [p, tot] = s.scores[t];
                       if (tot > 0) { totalW += 1; weightedS += p / tot; }
                     }
                     const avg = totalW > 0 ? Math.round((weightedS / totalW) * 100) : 0;
                     return (
-                      <tr key={s.email} className="border-t border-gray-800/50">
-                        <td style={{ padding: '8px 12px' }} className="text-sm">{s.name}</td>
+                      <tr key={s.email} className="border-t border-rule-soft">
+                        <td style={{ padding: '8px 12px' }} className="text-sm text-ink-strong pl-3!">{s.name}</td>
                         {DEMO_TEMPLATES.map((t) => {
-                          const [p, tot] = s.scores[t as keyof typeof s.scores];
+                          const [p, tot] = s.scores[t];
+                          const passing = p === tot;
                           return (
-                            <td key={t} style={{ padding: '8px 12px' }} className="text-center">
-                              <span className={`font-mono text-xs tabular-nums ${p === tot ? 'text-green-400' : 'text-gray-500'}`}>
+                            <td key={t} style={{ padding: '8px 12px' }} className="text-center pl-3!">
+                              <span className={`font-mono text-xs tabular-nums ${passing ? 'text-forest font-semibold' : 'text-ink-muted'}`}>
                                 {p}/{tot}
                               </span>
                             </td>
                           );
                         })}
-                        <td style={{ padding: '8px 12px' }} className="text-center">
-                          <span className="font-mono text-xs tabular-nums text-gray-400">{avg}%</span>
+                        <td style={{ padding: '8px 12px' }} className="text-center pl-3!">
+                          <span className="font-mono text-xs tabular-nums text-ink-strong font-semibold">{avg}%</span>
                         </td>
                       </tr>
                     );
@@ -648,15 +497,44 @@ function ClassroomDemo() {
         )}
       </div>
 
-      <div className="flex items-center justify-between px-6 pb-6">
-        <p className="text-sm text-gray-400">{steps[step].desc}</p>
+      <div className="flex flex-wrap items-center justify-between gap-3 px-6 pb-6">
+        <p className="body-sm m-0">{steps[step].desc}</p>
         <button
+          type="button"
           onClick={() => setStep((s) => (s + 1) % steps.length)}
-          className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-white transition-colors px-3 py-1.5 rounded-lg border border-gray-700 hover:border-gray-500"
+          className="flex items-center gap-1.5 text-xs font-semibold text-ink-default hover:text-navy transition-colors px-3 py-1.5 rounded-md border border-rule hover:border-navy cursor-pointer"
         >
           {steps[(step + 1) % steps.length].label}
           <ChevronRight size={12} />
         </button>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Step row helper for the "How it works" section
+// ---------------------------------------------------------------------------
+
+function HowStep({
+  number,
+  icon,
+  text,
+  color,
+}: {
+  number: number;
+  icon: React.ReactNode;
+  text: string;
+  color: AccentColor;
+}) {
+  return (
+    <div className="flex items-start gap-4">
+      <div className={`flex-shrink-0 w-8 h-8 rounded-full ${ACCENT_BG_SOFT[color]} flex items-center justify-center text-sm font-semibold`}>
+        {number}
+      </div>
+      <div className="flex items-center gap-2 pt-1">
+        <span className="text-ink-muted">{icon}</span>
+        <span className="body text-ink-default">{text}</span>
       </div>
     </div>
   );
@@ -668,8 +546,10 @@ function ClassroomDemo() {
 
 export default function LandingPage() {
   const userData = useContext(UserDataContext);
+  const navigate = useNavigate();
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
 
+  // Detect login state
   useEffect(() => {
     if (userData?.userInfo) {
       setIsLoggedIn(true);
@@ -680,351 +560,398 @@ export default function LandingPage() {
     }
   }, [userData?.userInfo]);
 
+  // Re-enable page scrolling for the landing page (the rest of the app shell
+  // sets overflow:hidden) and restore on unmount.
   useEffect(() => {
     document.documentElement.style.overflowY = 'auto';
-    // Remove the nav's bottom border so it blends flush into the hero gradient
-    const style = document.createElement('style');
-    style.id = 'landing-nav-border';
-    style.textContent = 'nav > div { border-bottom: none !important; }';
-    document.head.appendChild(style);
     return () => {
       document.documentElement.style.overflowY = 'hidden';
-      document.getElementById('landing-nav-border')?.remove();
     };
   }, []);
 
+  function handleSignIn() {
+    if (isLoggedIn) {
+      navigate('/ide');
+    } else {
+      window.location.href = `${apiUrl}/auth/login`;
+    }
+  }
+
+  function scrollToHowItWorks(e: React.MouseEvent) {
+    e.preventDefault();
+    document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' });
+  }
+
   return (
-    <div className="-mt-20 text-white">
-      {/* Hero gradient — absolute so it stays at the top and scrolls away */}
-      <div className="absolute inset-x-0 top-0 h-screen pointer-events-none bg-[radial-gradient(ellipse_at_top,_rgba(84,218,244,0.12)_0%,_rgba(84,94,182,0.06)_40%,_transparent_70%)]" />
-      {/* Dot grid — covers hero area */}
-      <div
-        className="absolute inset-x-0 top-0 h-screen pointer-events-none"
-        style={{
-          backgroundImage: 'radial-gradient(rgba(84, 218, 244, 0.05) 1px, transparent 1px)',
-          backgroundSize: '32px 32px',
-        }}
-      />
-      {/* Hero */}
-      <section className="relative min-h-screen flex items-center">
+    <div className="bg-paper">
+      {/* ============================================================
+          1. Hero
+         ============================================================ */}
+      <section className="relative overflow-hidden px-7 pt-[88px] pb-24">
+        <div
+          aria-hidden
+          className="absolute top-[60px] -right-20 w-[280px] h-[280px] bg-ochre-soft rounded-full opacity-60 z-0"
+        />
+        <div
+          aria-hidden
+          className="absolute top-[220px] right-20 w-20 h-20 bg-tomato rounded-[18px] rotate-12 opacity-85 z-0"
+        />
 
-        <div className="relative z-10 w-full max-w-6xl mx-auto px-6 py-28 lg:py-32">
-          <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-16">
-            {/* Left: headline + CTAs */}
-            <div className="flex-1 text-center lg:text-left">
-              <h1 className="text-4xl sm:text-5xl lg:text-5xl xl:text-6xl font-bold tracking-tight mb-5 leading-tight">
-                The coding classroom{' '}
-                <span className="text-[#54daf4]">that stays with students</span>
-              </h1>
-              <p className="text-base sm:text-lg text-gray-300 max-w-xl mx-auto lg:mx-0 mb-8 leading-relaxed">
-                Free coding environment for teachers and students. Create or import lessons,
-                run Python in the browser, and let students build projects they keep.
-              </p>
-
-              <div className="flex flex-wrap gap-3 justify-center lg:justify-start">
-                {isLoggedIn ? (
-                  <Link
-                    to="/ide"
-                    className="lum-btn lum-pad-md text-base rounded-lg bg-[#2a9bb8] hover:bg-[#238da8] text-white font-semibold inline-flex items-center gap-2 transition-colors shadow-lg shadow-[#2a9bb8]/20"
-                  >
-                    Go to Dashboard
-                    <ArrowRight size={18} />
-                  </Link>
-                ) : (
-                  <a
-                    href={`${apiUrl}/auth/login`}
-                    className="lum-btn lum-pad-md text-base rounded-lg bg-[#2a9bb8] hover:bg-[#238da8] text-white font-semibold inline-flex items-center gap-2 transition-colors shadow-lg shadow-[#2a9bb8]/20"
-                  >
-                    Sign in with Google
-                    <ArrowRight size={18} />
-                  </a>
-                )}
-                <a
-                  href="#how-it-works"
-                  className="lum-btn lum-pad-md text-base rounded-lg border border-gray-600 hover:border-gray-400 font-semibold inline-flex items-center gap-2 transition-colors"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    document
-                      .getElementById('how-it-works')
-                      ?.scrollIntoView({ behavior: 'smooth' });
-                  }}
-                >
-                  How it works
-                </a>
-                <Link
-                  to="/lessons"
-                  className="lum-btn lum-pad-md text-base rounded-lg border border-gray-600 hover:border-gray-400 font-semibold inline-flex items-center gap-2 transition-colors"
-                >
-                  Browse Lessons
-                  <LayoutTemplate size={16} />
-                </Link>
-              </div>
+        <div className="max-w-[1180px] mx-auto relative z-10 grid grid-cols-1 lg:grid-cols-[1.15fr_1fr] gap-14 items-center">
+          <div>
+            <h1
+              className="heading-display mb-7"
+              style={{ fontSize: 64, lineHeight: 1.05 }}
+            >
+              The coding classroom<br />
+              <span className="text-navy italic">that stays with students</span>
+            </h1>
+            <p className="body-lg mb-8 max-w-[540px]">
+              3Compute is a free coding environment for teachers and students. Create or import
+              lessons, run Python in the browser, and watch as students build projects
+              they keep.
+            </p>
+            <div className="flex flex-wrap gap-3">
+              <PrimaryButton
+                size="lg"
+                color="navy"
+                onClick={handleSignIn}
+                icon={<ArrowRight size={18} />}
+              >
+                {isLoggedIn ? 'Go to dashboard' : 'Sign in with Google'}
+              </PrimaryButton>
+              <a
+                href="#how-it-works"
+                onClick={scrollToHowItWorks}
+                className="inline-flex"
+              >
+                <GhostButton>How it works</GhostButton>
+              </a>
+              <Link to="/lessons" className="inline-flex">
+                <GhostButton icon={<LayoutTemplate size={16} />}>
+                  Browse lessons
+                </GhostButton>
+              </Link>
             </div>
-
-            {/* Right: terminal demo */}
-            <div className="flex-1 w-full lg:max-w-[480px]">
-              <TerminalDemo />
-            </div>
+          </div>
+          <div className="lg:justify-self-end w-full">
+            <TerminalDemo />
           </div>
         </div>
       </section>
 
-      {/* Mission */}
-      <section className="py-20 px-6">
-        <div className="max-w-3xl mx-auto text-center">
-          <h2 className="text-3xl font-bold mb-5">Built to spark curiosity</h2>
-          <p className="text-gray-300 text-lg leading-relaxed mb-6">
-            3Compute is a project by Birdflop, a 501(c)(3) nonprofit dedicated to
-            igniting and nurturing a passion for technology and computer science.
-            We believe accessible tools are the best catalyst for that curiosity.
-            Everything on 3Compute is free: no strings attached.
+      {/* ============================================================
+          2. Mission band — navy
+         ============================================================ */}
+      <section id="mission" className="bg-navy px-7 py-[88px] relative overflow-hidden" style={{ color: '#fff' }}>
+        <div
+          aria-hidden
+          className="absolute -top-10 -left-10 w-[180px] h-[180px] bg-tomato rounded-full opacity-40"
+        />
+        <div
+          aria-hidden
+          className="absolute -bottom-[60px] right-10 w-[120px] h-[120px] bg-ochre rounded-3xl opacity-50"
+          style={{ transform: 'rotate(-18deg)' }}
+        />
+        <div className="max-w-[760px] mx-auto text-center relative">
+          <div className="eyebrow mb-5" style={{ color: '#f4a948' }}>
+            Why we built this
+          </div>
+          <h2 className="heading-2" style={{ color: '#fff' }}>
+            Every classroom should have access
+          </h2>
+          <p className="body-lg" style={{ color: '#e8e1ce' }}>
+            Computer science classrooms shouldn't depend on whether a school can afford managed Chromebooks, software licenses, or cloud credits. 3Compute is a project by Birdflop, a 501(c)(3) nonprofit, and is funded by donations.
           </p>
-          <a
-            href="https://www.paypal.com/US/fundraiser/charity/5036975"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg border border-[#54daf4]/40 hover:border-[#54daf4] text-[#54daf4] hover:bg-[#54daf4]/10 transition-colors text-sm font-semibold"
-          >
-            <Heart size={15} />
-            Donate Today
-          </a>
+          <div className="mt-8 inline-flex flex-wrap gap-3 justify-center">
+            <a
+              href="https://www.paypal.com/US/fundraiser/charity/5036975"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="bg-tomato border-none px-6 py-3 rounded-md font-semibold text-[15px] inline-flex items-center gap-2 cursor-pointer transition-[transform,filter] duration-150 hover:-translate-y-px hover:brightness-105 no-underline"
+              style={{ color: '#fff', boxShadow: '0 6px 20px -4px rgba(232,93,63,0.5)' }}
+            >
+              <Heart size={16} /> Donate
+            </a>
+          </div>
         </div>
       </section>
 
-      {/* How It Works */}
-      <section id="how-it-works" className="py-20 px-6">
-        <div className="max-w-5xl mx-auto">
-          <h2 className="text-3xl font-bold text-center mb-12">How it works</h2>
+      {/* ============================================================
+          3. How it works (merged with role cards) — paper-tinted band
+         ============================================================ */}
+      <section id="how-it-works" className="bg-paper-tinted px-7 py-[88px]">
+        <div className="max-w-[1180px] mx-auto">
+          <div className="text-center mb-14">
+            <span className="eyebrow text-forest block mb-3">How it works</span>
+            <h2 className="heading-2">From sign-in to running code in minutes</h2>
+            <p className="body text-ink-muted max-w-[640px] mx-auto">
+              Create or join a classroom and start coding without any setup.
+            </p>
+          </div>
 
-          <div className="grid md:grid-cols-2 gap-12 lg:gap-20">
-            <div>
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 rounded-lg bg-[#54daf4]/10 flex items-center justify-center">
-                  <BookOpen size={20} className="text-[#54daf4]" />
-                </div>
-                <h3 className="text-xl font-semibold">For Teachers</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-7">
+            {/* Students */}
+            <div className="bg-paper-elevated border-[1.5px] border-navy rounded-2xl p-7 relative">
+              <div className="flex justify-center mb-[18px]">
+                <SpotEditor size={170} />
               </div>
-              <div className="space-y-5">
-                <Step number={1} icon={<Code size={18} />} text="Create a classroom and import or write a lesson" />
-                <Step number={2} icon={<Share2 size={18} />} text="Share the access code with students" />
-                <Step number={3} icon={<Users size={18} />} text="Watch progress update as students work" />
+              <Pill color="navy">Students</Pill>
+              <h3 className="heading-3 mt-3 mb-5">Build and publish</h3>
+              <div className="space-y-4">
+                <HowStep
+                  number={1}
+                  icon={<UserPlus size={18} />}
+                  text="Join with the code your teacher gave you."
+                  color="navy"
+                />
+                <HowStep
+                  number={2}
+                  icon={<Laptop size={18} />}
+                  text="Open your personal browser coding environment."
+                  color="navy"
+                />
+                <HowStep
+                  number={3}
+                  icon={<Send size={18} />}
+                  text="Write, run, and maintain your projects."
+                  color="navy"
+                />
               </div>
             </div>
 
-            <div>
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 rounded-lg bg-[#54daf4]/10 flex items-center justify-center">
-                  <UserPlus size={20} className="text-[#54daf4]" />
-                </div>
-                <h3 className="text-xl font-semibold">For Students</h3>
+            {/* Teachers */}
+            <div className="bg-paper-elevated border-[1.5px] border-tomato rounded-2xl p-7 relative">
+              <div className="flex justify-center mb-[18px]">
+                <SpotGradebook size={170} />
               </div>
-              <div className="space-y-5">
-                <Step number={1} icon={<UserPlus size={18} />} text="Join with the code your teacher gave you" />
-                <Step number={2} icon={<Laptop size={18} />} text="Open your personal browser coding environment" />
-                <Step number={3} icon={<Send size={18} />} text="Write, run, and keep your projects forever" />
+              <Pill color="tomato">Teachers</Pill>
+              <h3 className="heading-3 mt-3 mb-5">Run your classroom</h3>
+              <div className="space-y-4">
+                <HowStep
+                  number={1}
+                  icon={<Code size={18} />}
+                  text="Create a classroom and import or write a lesson."
+                  color="tomato"
+                />
+                <HowStep
+                  number={2}
+                  icon={<Share2 size={18} />}
+                  text="Share the access code with students."
+                  color="tomato"
+                />
+                <HowStep
+                  number={3}
+                  icon={<Users size={18} />}
+                  text="Watch progress update as students work."
+                  color="tomato"
+                />
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Features */}
-      <section className="py-20 px-6">
-        <div className="max-w-5xl mx-auto">
-          <h2 className="text-3xl font-bold text-center mb-12">What you get</h2>
-          <div className="grid md:grid-cols-3 gap-6">
-            <FeatureCard
-              icon={<Terminal size={28} />}
-              title="Full IDE in your browser"
-              description="A full coding environment with no installation. Open a browser and start writing code."
-            />
-            <FeatureCard
-              icon={<Users size={28} />}
-              title="Classroom management"
-              description="Create a classroom, share an access code, and students join with one click. See everyone's work in one place."
-            />
-            <FeatureCard
-              icon={<LayoutTemplate size={28} />}
-              title="Import, modify, or create lessons"
-              description="Import pre-built lessons, modify them to fit your class, or build your own from scratch."
-            />
+      {/* ============================================================
+          5. Feature grid (kit, expanded with original "What you get")
+         ============================================================ */}
+      <section className="px-7 py-20">
+        <div className="max-w-[1100px] mx-auto">
+          <h2 className="heading-2 text-center mb-10">What you get</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-10 gap-y-8">
+            {FEATURES.map((f, i) => (
+              <div key={i} className="flex gap-4">
+                <div
+                  className={`w-12 h-12 rounded-md flex items-center justify-center flex-shrink-0 ${ACCENT_BG_SOFT[f.color]}`}
+                >
+                  {f.icon}
+                </div>
+                <div>
+                  <h4 className="heading-4 mb-1.5 mt-1">{f.title}</h4>
+                  <p className="body text-ink-muted m-0">{f.body}</p>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* Classroom demo */}
-      <section className="py-20 px-6">
-        <div className="max-w-5xl mx-auto">
+      {/* ============================================================
+          6. Classroom demo (RESTORED) — paper-tinted band
+         ============================================================ */}
+      <section className="bg-paper-tinted px-7 py-[88px]">
+        <div className="max-w-[1100px] mx-auto">
           <ClassroomDemo />
         </div>
       </section>
 
-      {/* Student ownership */}
-      <section className="py-20 px-6">
-        <div className="max-w-5xl mx-auto">
-          <div className="px-10 py-12 lg:px-16 lg:py-14">
-            <div className="text-center mb-12">
-              <h2 className="text-3xl font-bold mb-3">Students own their projects</h2>
-              <p className="text-gray-400 max-w-xl mx-auto">
-                Class ends, but the code keeps running. Every student project stays online for free, long after the lesson is over.
-              </p>
-            </div>
+      {/* ============================================================
+          7. Students own their projects (RESTORED) — deploy diagram
+         ============================================================ */}
+      <section className="px-7 py-[88px]">
+        <div className="max-w-[1100px] mx-auto">
+          <div className="text-center mb-14">
+            <span className="eyebrow text-forest block mb-3">Student ownership</span>
+            <h2 className="heading-2">Class ends, but the code keeps running</h2>
+            <p className="body text-ink-muted max-w-[600px] mx-auto">
+              Every student project stays online, on a real public web address,
+              long after the lesson is over.
+            </p>
+          </div>
 
-            {/* Deploy flow diagram */}
-            <div className="flex flex-col items-center">
-              {/* Source node */}
-              <div className="flex items-center gap-3 bg-gray-800/80 border border-gray-600 rounded-xl px-6 py-4 shadow-lg">
-                <Terminal size={20} className="text-[#54daf4]" />
-                <div>
-                  <div className="text-sm font-semibold">Your Python code</div>
-                  <div className="text-xs text-gray-500 font-mono">app.py · api.py · script.py</div>
-                </div>
+          {/* Deploy flow — paper-cutout shapes + dashed connectors */}
+          <div className="flex flex-col items-center">
+            {/* Source node */}
+            <div className="flex items-center gap-3 bg-paper-elevated border border-rule rounded-xl px-6 py-4 shadow-md">
+              <div className="w-10 h-10 rounded-md bg-navy-soft text-navy flex items-center justify-center">
+                <Terminal size={20} />
               </div>
-
-              {/* Arrow down to deploy */}
-              <div className="flex flex-col items-center py-1">
-                <div className="w-px h-4 bg-[#54daf4]/40" />
-                <svg width="12" height="8" viewBox="0 0 12 8" fill="none">
-                  <path d="M6 8L0 0H12L6 8Z" fill="rgba(84,218,244,0.4)" />
-                </svg>
-              </div>
-
-              {/* Deploy node */}
-              <div className="flex items-center gap-3 bg-[#54daf4]/10 border border-[#54daf4]/40 rounded-xl px-6 py-4 shadow-lg shadow-[#54daf4]/10">
-                <Server size={20} className="text-[#54daf4]" />
-                <div>
-                  <div className="text-sm font-semibold text-[#54daf4]">Deploy to 3Compute</div>
-                  <div className="text-xs text-gray-400">one command · stays running · free</div>
-                </div>
-              </div>
-
-              {/* Branching SVG */}
-              <div className="w-full max-w-2xl mt-1">
-                <svg viewBox="0 0 600 60" className="w-full overflow-visible" style={{ height: 60 }}>
-                  <defs>
-                    <marker id="arr" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
-                      <path d="M0,0 L0,8 L8,4 z" fill="rgba(84,218,244,0.5)" />
-                    </marker>
-                  </defs>
-                  <line x1="300" y1="0" x2="300" y2="20" stroke="rgba(84,218,244,0.4)" strokeWidth="1.5" strokeDasharray="4 3">
-                    <animate attributeName="stroke-dashoffset" from="0" to="-14" dur="1s" repeatCount="indefinite" />
-                  </line>
-                  <path d="M300,20 Q300,40 110,55" stroke="rgba(84,218,244,0.4)" strokeWidth="1.5" fill="none" strokeDasharray="4 3" markerEnd="url(#arr)">
-                    <animate attributeName="stroke-dashoffset" from="0" to="-14" dur="1s" repeatCount="indefinite" />
-                  </path>
-                  <line x1="300" y1="20" x2="300" y2="55" stroke="rgba(84,218,244,0.4)" strokeWidth="1.5" strokeDasharray="4 3" markerEnd="url(#arr)">
-                    <animate attributeName="stroke-dashoffset" from="0" to="-14" dur="1s" repeatCount="indefinite" />
-                  </line>
-                  <path d="M300,20 Q300,40 490,55" stroke="rgba(84,218,244,0.4)" strokeWidth="1.5" fill="none" strokeDasharray="4 3" markerEnd="url(#arr)">
-                    <animate attributeName="stroke-dashoffset" from="0" to="-14" dur="1s" repeatCount="indefinite" />
-                  </path>
-                </svg>
-
-                <div className="grid grid-cols-3 gap-4 -mt-1">
-                  <div className="rounded-xl border border-gray-700 bg-gray-900/70 p-4 text-center">
-                    <div className="w-10 h-10 rounded-lg bg-[#54daf4]/15 flex items-center justify-center text-[#54daf4] mx-auto mb-3">
-                      <Globe size={22} />
-                    </div>
-                    <h3 className="font-semibold text-sm mb-1">Host websites</h3>
-                    <p className="text-gray-400 text-sm leading-relaxed">Serve a website at a public URL. Flask, FastAPI, or anything else.</p>
-                  </div>
-                  <div className="rounded-xl border border-gray-700 bg-gray-900/70 p-4 text-center">
-                    <div className="w-10 h-10 rounded-lg bg-[#54daf4]/15 flex items-center justify-center text-[#54daf4] mx-auto mb-3">
-                      <Zap size={22} />
-                    </div>
-                    <h3 className="font-semibold text-sm mb-1">Build REST APIs</h3>
-                    <p className="text-gray-400 text-sm leading-relaxed">Expose endpoints other apps can call, hosted on free infrastructure.</p>
-                  </div>
-                  <div className="rounded-xl border border-gray-700 bg-gray-900/70 p-4 text-center">
-                    <div className="w-10 h-10 rounded-lg bg-[#54daf4]/15 flex items-center justify-center text-[#54daf4] mx-auto mb-3">
-                      <Code size={22} />
-                    </div>
-                    <h3 className="font-semibold text-sm mb-1">Any Python app</h3>
-                    <p className="text-gray-400 text-sm leading-relaxed">Scripts, scrapers, games, automation. If it runs on Linux, it runs here.</p>
-                  </div>
-                </div>
+              <div>
+                <div className="text-sm font-semibold text-ink-strong">Your Python code</div>
+                <div className="text-xs text-ink-muted font-mono">app.py · api.py · script.py</div>
               </div>
             </div>
 
+            {/* Arrow down */}
+            <div className="flex flex-col items-center py-2">
+              <svg width="24" height="36" viewBox="0 0 24 36" fill="none" aria-hidden>
+                <line
+                  x1="12" y1="0" x2="12" y2="28"
+                  stroke="var(--c-forest)"
+                  strokeWidth="1.5"
+                  strokeDasharray="4 3"
+                  strokeLinecap="round"
+                >
+                  <animate attributeName="stroke-dashoffset" from="0" to="-14" dur="1s" repeatCount="indefinite" />
+                </line>
+                <path d="M12 36 L4 26 L20 26 Z" fill="var(--c-forest)" />
+              </svg>
+            </div>
+
+            {/* Deploy node */}
+            <div className="flex items-center gap-3 bg-paper-elevated border-[1.5px] border-forest rounded-xl px-6 py-4 shadow-md">
+              <div className="w-10 h-10 rounded-md bg-forest-soft text-forest flex items-center justify-center">
+                <Server size={20} />
+              </div>
+              <div>
+                <div className="text-sm font-semibold text-forest">Deploy to 3Compute</div>
+                <div className="text-xs text-ink-muted">one command · stays running · free</div>
+              </div>
+            </div>
+
+            {/* Branching connector */}
+            <div className="w-full max-w-[640px] mt-2">
+              <svg viewBox="0 0 600 60" className="w-full overflow-visible" style={{ height: 60 }} aria-hidden>
+                <defs>
+                  <marker id="arr-forest" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
+                    <path d="M0,0 L0,8 L8,4 z" fill="var(--c-forest)" />
+                  </marker>
+                </defs>
+                <line
+                  x1="300" y1="0" x2="300" y2="20"
+                  stroke="var(--c-forest)"
+                  strokeWidth="1.5"
+                  strokeDasharray="4 3"
+                  strokeLinecap="round"
+                >
+                  <animate attributeName="stroke-dashoffset" from="0" to="-14" dur="1s" repeatCount="indefinite" />
+                </line>
+                <path
+                  d="M300,20 Q300,40 110,55"
+                  stroke="var(--c-forest)"
+                  strokeWidth="1.5"
+                  fill="none"
+                  strokeDasharray="4 3"
+                  strokeLinecap="round"
+                  markerEnd="url(#arr-forest)"
+                >
+                  <animate attributeName="stroke-dashoffset" from="0" to="-14" dur="1s" repeatCount="indefinite" />
+                </path>
+                <line
+                  x1="300" y1="20" x2="300" y2="55"
+                  stroke="var(--c-forest)"
+                  strokeWidth="1.5"
+                  strokeDasharray="4 3"
+                  strokeLinecap="round"
+                  markerEnd="url(#arr-forest)"
+                >
+                  <animate attributeName="stroke-dashoffset" from="0" to="-14" dur="1s" repeatCount="indefinite" />
+                </line>
+                <path
+                  d="M300,20 Q300,40 490,55"
+                  stroke="var(--c-forest)"
+                  strokeWidth="1.5"
+                  fill="none"
+                  strokeDasharray="4 3"
+                  strokeLinecap="round"
+                  markerEnd="url(#arr-forest)"
+                >
+                  <animate attributeName="stroke-dashoffset" from="0" to="-14" dur="1s" repeatCount="indefinite" />
+                </path>
+              </svg>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="bg-paper-elevated border border-rule-soft rounded-xl p-5 text-center">
+                  <div className="w-11 h-11 rounded-md bg-navy-soft text-navy flex items-center justify-center mx-auto mb-3">
+                    <Globe size={22} />
+                  </div>
+                  <h3 className="heading-4 mb-1.5">Host websites</h3>
+                  <p className="body-sm m-0">Serve a website at a public URL. Flask, FastAPI, or anything else.</p>
+                </div>
+                <div className="bg-paper-elevated border border-rule-soft rounded-xl p-5 text-center">
+                  <div className="w-11 h-11 rounded-md bg-ochre-soft text-ochre flex items-center justify-center mx-auto mb-3">
+                    <Zap size={22} />
+                  </div>
+                  <h3 className="heading-4 mb-1.5">Build REST APIs</h3>
+                  <p className="body-sm m-0">Expose endpoints other apps can call, hosted on free infrastructure.</p>
+                </div>
+                <div className="bg-paper-elevated border border-rule-soft rounded-xl p-5 text-center">
+                  <div className="w-11 h-11 rounded-md bg-plum-soft text-plum flex items-center justify-center mx-auto mb-3">
+                    <Code size={22} />
+                  </div>
+                  <h3 className="heading-4 mb-1.5">Any Python app</h3>
+                  <p className="body-sm m-0">Scripts, scrapers, games, automation. If it runs on Linux, it runs here.</p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="py-16 px-6">
-        <div className="max-w-xl mx-auto text-center">
-          <GraduationCap size={32} className="mx-auto mb-4 text-[#54daf4]" />
-          <h2 className="text-2xl font-bold mb-3">Free for everyone</h2>
-          <p className="text-gray-400 mb-6">
-            3Compute is free for schools, clubs, and individual learners. No credit card, no trial period.
+      {/* ============================================================
+          8. Closing CTA
+         ============================================================ */}
+      <section className="px-7 py-[88px]">
+        <div
+          className="max-w-[720px] mx-auto text-center bg-paper-elevated border border-rule-soft rounded-2xl p-14 shadow-md"
+        >
+          <h2 className="heading-2">Free for everyone</h2>
+          <p className="body-lg text-ink-muted mb-7">
+            3Compute is free for schools, clubs, and individual learners. No
+            credit card, no trial period.
           </p>
-          {isLoggedIn ? (
-            <Link
-              to="/ide"
-              className="lum-btn lum-pad-md text-lg rounded-lg bg-[#2a9bb8] hover:bg-[#238da8] text-white font-semibold inline-flex items-center gap-2 transition-colors shadow-lg shadow-[#2a9bb8]/20"
+          <div className="inline-flex flex-wrap gap-3 justify-center">
+            <PrimaryButton
+              size="lg"
+              color="navy"
+              onClick={handleSignIn}
+              icon={<ArrowRight size={18} />}
             >
-              Go to Dashboard
-              <ArrowRight size={20} />
-            </Link>
-          ) : (
+              {isLoggedIn ? 'Go to dashboard' : 'Get started'}
+            </PrimaryButton>
             <a
-              href={`${apiUrl}/auth/login`}
-              className="lum-btn lum-pad-md text-lg rounded-lg bg-[#2a9bb8] hover:bg-[#238da8] text-white font-semibold inline-flex items-center gap-2 transition-colors shadow-lg shadow-[#2a9bb8]/20"
+              href="https://www.paypal.com/US/fundraiser/charity/5036975"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex"
             >
-              Get started
-              <ArrowRight size={20} />
+              <GhostButton icon={<Heart size={16} />}>Donate</GhostButton>
             </a>
-          )}
+          </div>
         </div>
       </section>
 
       <Footer />
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Helper components
-// ---------------------------------------------------------------------------
-
-function FeatureCard({
-  icon,
-  title,
-  description,
-}: {
-  icon: React.ReactNode;
-  title: React.ReactNode;
-  description: string;
-}) {
-  return (
-    <div className="lum-card rounded-xl p-7 border border-gray-700 hover:border-[#54daf4]/30 transition-colors">
-      <div className="w-11 h-11 rounded-lg bg-[#54daf4]/10 flex items-center justify-center text-[#54daf4] mb-4">
-        {icon}
-      </div>
-      <h3 className="text-base font-semibold mb-2">{title}</h3>
-      <p className="text-gray-400 text-sm leading-relaxed">{description}</p>
-    </div>
-  );
-}
-
-function Step({
-  number,
-  icon,
-  text,
-}: {
-  number: number;
-  icon: React.ReactNode;
-  text: string;
-}) {
-  return (
-    <div className="flex items-start gap-4">
-      <div className="flex-shrink-0 w-7 h-7 rounded-full bg-[#54daf4]/10 flex items-center justify-center text-sm font-bold text-[#54daf4]">
-        {number}
-      </div>
-      <div className="flex items-center gap-2 pt-0.5">
-        <span className="text-gray-400">{icon}</span>
-        <span className="text-base">{text}</span>
-      </div>
     </div>
   );
 }
