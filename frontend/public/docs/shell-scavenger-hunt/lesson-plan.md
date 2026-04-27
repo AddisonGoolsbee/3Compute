@@ -2,7 +2,9 @@
 
 ## Overview
 
-Students follow a chain of clue files through a nested filesystem, reading each with `cat` and navigating with `cd` and `ls`. A dead-end trail of visible decoys and a hidden `.vault/` folder at the end forces them to learn and combine `ls -a` and `ls -l` in order to find the real treasure among several fakes. The correct answer is a single number (the coin count in the real file), which makes grading trivial and diagnostic.
+Students follow a chain of clue files through a nested filesystem, reading each with `cat` and navigating with `cd` and `ls`. A dead-end trail of visible decoys and a hidden `.vault/` folder at the end forces them to learn and combine `ls -a` and `ls -l` in order to find the prize among several decoy coin piles. The correct answer is a single number (the coin count in the largest pile), which makes grading trivial and diagnostic.
+
+The `ls` flags are introduced over two beats, not all at once: the freezer clue (`ice-tray.txt`) teaches `ls -a` and points students to the basement; once they enter the hidden vault, an `inscription.txt` waiting on the wall teaches `ls -l` and combining flags. This keeps any single `cat` from dumping the entire flag reference into the terminal.
 
 The lesson is designed to run unsupervised. Students work individually through the hunt while you circulate for questions. No live coding or direct instruction is required, though a short warm-up and debrief are recommended.
 
@@ -26,9 +28,8 @@ The lesson is designed to run unsupervised. Students work individually through t
 | Standard | Description | How This Project Supports It |
 |----------|-------------|------------------------------|
 | **3A-CS-03** | Develop guidelines that convey systematic troubleshooting strategies that others can use to identify and fix errors. | The final stretch of the hunt requires students to recognize when a strategy is incomplete (e.g., `ls` alone misses hidden files) and combine tools (`ls -al`) to get full information. The "wrong answer tells you which step you missed" feedback loop is an explicit systematic-troubleshooting model. |
-| **3A-CS-02** | Compare levels of abstraction, analogy, and paradigm for the interactions between application software, system software, and hardware. | The filesystem is itself an abstraction: folders and files are presented as a tree, but the underlying storage is unordered blocks on disk. Students see one concrete example of an abstraction built by the operating system. |
 
-This lesson is primarily an onboarding / tool-fluency exercise, not a computer science content lesson. Use it before curricular lessons that assume terminal comfort.
+This lesson is primarily an onboarding / tool-fluency exercise rather than a computer science content lesson. Useful for curricular lessons that assume terminal comfort.
 
 ---
 
@@ -72,15 +73,6 @@ By the end of this project, students should be able to:
 
    Students read the README in the editor, then `cat start.txt` in the terminal, then follow the clues through the mansion. Circulate and answer questions but avoid giving away any part of the puzzle.
 
-   Common sticking points and recommended nudges (do not give the answer):
-
-   | Student is stuck on... | Helpful nudge |
-   |------------------------|---------------|
-   | Finding the terminal | Walk them through right-click "Open in Terminal" on the project folder |
-   | Getting back to a parent folder | "What does `..` mean? Try using it with `cd`." |
-   | Choosing between decoy files | "Read each clue carefully. Only one actually tells you where to go next." |
-   | Basement traps (getting a wrong coin count) | "Did you use `ls -a` in the basement? What about `ls -l` inside the hidden folder?" |
-
 4. **Debrief (5-10 min):**
 
    Ask students to report the coin count they found. The correct answer is **4**. Other numbers map to specific mistakes:
@@ -88,9 +80,9 @@ By the end of this project, students should be able to:
    | Student reports | Mistake they made |
    |-----------------|-------------------|
    | **4** | Correct - used `ls -al` in the vault |
-   | 2 | Used `ls -a` but not `ls -l` (picked a hidden fake by accident) |
-   | 8, 11, or 15 | Used `ls -l` but not `ls -a` (never found the hidden real file) |
-   | 3, 7, or 12 | Never used `ls -a` at basement level; fell for a visible fake chest |
+   | 2 | Used `ls -a` in the vault but not `ls -l` (picked a hidden pile without checking sizes) |
+   | 8, 11, or 15 | Ignored the `inscription.txt` note inside the vault (or used plain `ls`) and picked a visible pile |
+   | 3, 7, or 12 | Never used `ls -a` at basement level; fell for a visible decoy chest |
 
    Use this as a teaching moment: "Your number tells me exactly which step you skipped. That's how useful `ls -al` is - it gives you both pieces of information that each of the individual commands only gives you half of."
 
@@ -149,17 +141,17 @@ Three lightweight options:
 Use these at the end of the period or as a written exit ticket:
 
 1. "You ran a `.txt` file through `cat` but could not open it in the editor. Why do you think the editor refused?"
-2. "Why do you think hidden files exist in the first place? What are some real cases where you would want a file to be invisible by default?"
+2. "Why do you think hidden files exist in the first place? What are some everyday cases where you would want a file to be invisible by default?"
 3. "What happened when you tried to use `ls -l` in the basement? It showed sizes, but they were all similar. What did that tell you?"
 4. "You used `cd ..` to go up one folder. In the scavenger hunt you also saw `..` listed by `ls -a`. Why are those the same thing?"
-5. "The final clue said 'combining flags is not a gimmick.' Give one real example where you would want both hidden files AND file sizes in the same listing outside of this puzzle."
+5. "The final clue said 'combining flags is not a gimmick.' Give one everyday example where you would want both hidden files AND file sizes in the same listing outside of this puzzle."
 
 ---
 
 ## Common Misconceptions
 
-| Misconception | Reality |
-|--------------|---------|
+| Misconception | Correction |
+|--------------|------------|
 | "The file explorer shows me everything that's on the server." | By default, no. Any file or folder whose name starts with `.` is hidden from the default view. |
 | "Hidden files are dangerous or for hackers only." | Hidden files are used all the time for configuration (`.env`, `.gitignore`, `.vscode/`) and are a normal, safe part of every Linux system. |
 | "`-a` and `-l` are separate commands." | They are flags (options) for the `ls` command. Most commands accept flags, and many commands let you combine flags with a single dash. |
@@ -176,11 +168,11 @@ Use these at the end of the period or as a written exit ticket:
 | Shell-Scavenger-Hunt student template: | |
 | `README.md` | Student-facing intro, terminal-only warning, and commands reference |
 | `start.txt` | First clue; teaches basic `cat`/`cd`/`ls` |
-| `mansion/hallway/sign-*.txt` | Three signs; one is the real clue |
-| `mansion/bedroom/**` | Room with decoy files and one real clue |
-| `mansion/kitchen/**` | Deeper nesting (fridge and freezer), one real clue |
-| `mansion/basement/chest-*.txt` | Three visible trap files in the basement |
-| `mansion/basement/.vault/` | Hidden folder containing five treasure candidates (four decoys, one real). Real file is the largest and is itself hidden. |
+| `mansion/hallway/sign-*.txt` | Three signs; one carries the next clue |
+| `mansion/bedroom/**` | Room with decoy files and one clue |
+| `mansion/kitchen/**` | Deeper nesting (fridge and freezer); the freezer's `ice-tray.txt` introduces `ls -a` |
+| `mansion/basement/chest-*.txt` | Three visible decoy chests in the basement |
+| `mansion/basement/.vault/` | Hidden folder. Visible `inscription.txt` introduces `ls -l` and combining flags. Five coin-pile candidates (four decoys, one prize); the prize is the largest file and is itself hidden. |
 
 ---
 

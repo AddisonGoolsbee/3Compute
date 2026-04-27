@@ -1,4 +1,4 @@
-# Welcome to 3compute: Instructor Lesson Plan
+# Welcome to 3Compute: Instructor Lesson Plan
 
 ## Overview
 
@@ -236,11 +236,11 @@ Use these during debriefs or as written exit tickets:
 
 | Misconception | Reality |
 |--------------|---------|
-| "My code runs on my laptop." | No. It runs inside a container on a 3compute server. Your laptop only runs the browser. |
+| "My code runs on my laptop." | The code runs inside a container on a 3compute server. Your laptop only runs the browser. |
 | "Saving a file runs it." | Saving writes the file to disk. Running executes it. These are separate steps. |
 | "The terminal and the editor are showing different files." | They are showing the same filesystem. Changes in one are visible to the other after a refresh or re-read. |
 | "Pressing the Run button is different from running `python hello.py`." | They do the same thing under the hood. The button is a convenience that shells out to the terminal command. |
-| "`cd ..` goes back to the previous command." | No. `cd ..` goes up one folder in the filesystem. The up-arrow key recalls the previous command. |
+| "`cd ..` goes back to the previous command." | `cd ..` goes up one folder in the filesystem. The up-arrow key recalls the previous command. |
 
 ---
 

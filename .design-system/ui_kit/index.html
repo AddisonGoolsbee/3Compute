@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>3Compute · Daylight direction</title>
+  <link rel="icon" href="assets/3compute-logo.svg">
+  <link rel="stylesheet" href="colors_and_type.css">
+  <style>
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; } }
+    @keyframes blink { 50% { opacity: 0; } }
+    .cursor-blink { display: inline-block; vertical-align: middle; animation: blink 1s infinite; }
+    button { font-family: inherit; }
+    ::-webkit-scrollbar { width: 10px; height: 10px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--rule); border-radius: 5px; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+  <script type="text/babel" src="Brand.jsx"></script>
+  <script type="text/babel" src="Icons.jsx"></script>
+  <script type="text/babel" src="Buttons.jsx"></script>
+  <script type="text/babel" src="PythonHighlight.jsx"></script>
+  <script type="text/babel" src="Spots.jsx"></script>
+  <script type="text/babel" src="Nav.jsx"></script>
+  <script type="text/babel" src="Footer.jsx"></script>
+  <script type="text/babel" src="TerminalDemo.jsx"></script>
+  <script type="text/babel" src="Login.jsx"></script>
+  <script type="text/babel" src="Explorer.jsx"></script>
+  <script type="text/babel" src="Editor.jsx"></script>
+  <script type="text/babel" src="TerminalPane.jsx"></script>
+  <script type="text/babel" src="IDE.jsx"></script>
+  <script type="text/babel" src="Classroom.jsx"></script>
+  <script type="text/babel" src="Landing.jsx"></script>
+
+  <script type="text/babel">
+    const App = () => {
+      const [route, setRoute] = React.useState('landing');
+      const [user, setUser] = React.useState(null);
+      const signIn = () => {
+        setUser({ name: 'Alex Rivera', email: 'alex@school.edu', role: 'teacher' });
+        setRoute('ide');
+      };
+      const navigate = (r) => {
+        if (r === 'landing-loggedout') { setUser(null); setRoute('landing'); return; }
+        setRoute(r);
+      };
+      const screen =
+        route === 'login' ? <Login onSignIn={signIn} /> :
+        route === 'landing' ? <Landing onSignIn={signIn} /> :
+        route === 'ide' ? <IDE /> :
+        route === 'classroom' ? <Classroom /> :
+        route === 'lessons' ? (
+          <div style={{ maxWidth: 1024, margin: '0 auto', padding: 48 }}>
+            <h1 className="h-1" style={{ margin: 0 }}>Lessons</h1>
+            <p className="body" style={{ color: 'var(--ink-muted)', marginTop: 8 }}>
+              Lesson library — not implemented in this kit.
+            </p>
+          </div>
+        ) : <Landing onSignIn={signIn} />;
+      const labels = { login: '01 Login', landing: '02 Landing', ide: '03 Workspace',
+        classroom: '04 Classroom', lessons: '05 Lessons' };
+      return (
+        <div data-screen-label={labels[route] || route}>
+          <Nav user={user} route={route} onNavigate={navigate} />
+          {screen}
+        </div>
+      );
+    };
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>

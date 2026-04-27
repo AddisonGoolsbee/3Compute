@@ -1,0 +1,84 @@
+@import url('https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600;6..72,700&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=DM+Mono:wght@400;500&display=swap');
+
+:root {
+  --font-display: 'Newsreader', Georgia, serif;
+  --font-sans: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'DM Mono', ui-monospace, Menlo, monospace;
+
+  /* Paper surfaces — warm cream, never pure white */
+  --paper:           #fdfaf2;
+  --paper-elevated:  #ffffff;
+  --paper-tinted:    #f5f0e3;
+  --paper-deeper:    #ebe4d2;
+  --rule:            #d8cfb8;
+  --rule-soft:       #e8e1ce;
+
+  /* Ink */
+  --ink-strong:  #1a1a1f;
+  --ink-default: #2d2d35;
+  --ink-muted:   #6b6a6e;
+  --ink-subtle:  #908e8a;
+  --ink-faint:   #b8b4a8;
+
+  /* Multi-color palette — used as section accents, not a single brand color */
+  --c-navy:   #1f4e79;
+  --c-navy-soft: #d8e3ee;
+  --c-tomato: #e85d3f;
+  --c-tomato-soft: #fbe1da;
+  --c-ochre:  #e09733;
+  --c-ochre-soft: #fbecd0;
+  --c-forest: #2d6a4f;
+  --c-forest-soft: #d6e6dc;
+  --c-plum:   #6d3aed;
+  --c-plum-soft: #e5dafa;
+
+  /* Soft-light IDE surfaces (still readable for code but not glaring) */
+  --ide-bg:       #fbf7ec;
+  --ide-elevated: #f3edd8;
+  --ide-deep:     #ece4cb;
+  --ide-rule:     #d8cfb8;
+
+  /* Python syntax — muted, contrast-checked on cream */
+  --code-keyword:   #6d3aed;
+  --code-string:    #2d6a4f;
+  --code-number:    #d24e32;
+  --code-comment:   #908e8a;
+  --code-decorator: #e09733;
+  --code-ident:     #1a1a1f;
+  --code-other:     #1f4e79;
+
+  --sp-1: 4px;  --sp-2: 8px;   --sp-3: 12px; --sp-4: 16px;
+  --sp-5: 24px; --sp-6: 32px;  --sp-7: 48px; --sp-8: 64px;
+  --sp-9: 96px;
+
+  --r-sm: 4px;  --r-md: 10px; --r-lg: 14px; --r-xl: 20px; --r-2xl: 28px; --r-pill: 999px;
+
+  --shadow-sm: 0 1px 2px rgba(48, 32, 8, 0.08);
+  --shadow-md: 0 6px 18px rgba(48, 32, 8, 0.08);
+  --shadow-lg: 0 18px 40px rgba(48, 32, 8, 0.12);
+  --shadow-cta: 0 6px 20px -4px rgba(31, 78, 121, 0.35);
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--paper);
+  color: var(--ink-default);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+h1, h2, h3, h4, p { text-wrap: pretty; }
+
+.h-display { font: 600 72px/1.02 var(--font-display); letter-spacing: -0.02em; color: var(--ink-strong); }
+.h-1       { font: 600 48px/1.08 var(--font-display); letter-spacing: -0.018em; color: var(--ink-strong); }
+.h-2       { font: 600 34px/1.15 var(--font-display); letter-spacing: -0.012em; color: var(--ink-strong); }
+.h-3       { font: 600 22px/1.3  var(--font-sans); letter-spacing: -0.008em; color: var(--ink-strong); }
+.h-4       { font: 600 17px/1.4  var(--font-sans); color: var(--ink-strong); }
+
+.body-lg   { font: 400 19px/1.6  var(--font-sans); color: var(--ink-default); }
+.body      { font: 400 16px/1.6  var(--font-sans); color: var(--ink-default); }
+.body-sm   { font: 400 14px/1.55 var(--font-sans); color: var(--ink-muted); }
+.caption   { font: 500 12px/1.4  var(--font-sans); color: var(--ink-muted); letter-spacing: 0.01em; }
+.eyebrow   { font: 600 11px/1.3  var(--font-sans); letter-spacing: 0.1em; text-transform: uppercase; }

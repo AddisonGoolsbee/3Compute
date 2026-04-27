@@ -2,6 +2,30 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+# Design system
+
+This site uses the **3Compute Daylight** visual language — a warm, paper-toned, scholastic aesthetic. All design assets live in `.design-system/`.
+
+## Before making any visual change
+
+1. Read `.design-system/README.md` end-to-end. It covers voice, color, type, motion, and iconography rules.
+2. Read `.design-system/colors_and_type.css`. **Use these tokens directly** — do not invent colors, fonts, radii, or shadows. Import the file once at the app root.
+3. Reference `.design-system/ui_kit/` for component patterns. Open `ui_kit/index.html` in a browser to see the live kit. The `.jsx` files (Buttons, Nav, Landing, etc.) are the canonical implementations to mirror.
+
+## Hard rules (do not break)
+
+- **Light only.** Cream paper (`--paper` `#fdfaf2`) is the page color. Pure white is for elevated cards only.
+- **Serif headlines.** `Newsreader` for h1/h2 only. `DM Sans` for body and h3+. `DM Mono` for code.
+- **One accent per section.** Pick navy / tomato / ochre / forest / plum and pair only with its `-soft` variant. Never stack multiple saturated colors in one card.
+- **No emoji. No gradient backgrounds. No backdrop-blur. No drop shadows on text. No bouncy/spring animations** — fades only.
+- **Iconography is lucide.** Don't hand-draw SVG icons. Brand glyphs come from `@icons-pack/react-simple-icons`.
+- **Sentence case** for headings and buttons. Title Case only for proper nouns and `3Compute` / `Birdflop`.
+- **Voice is verb-first, declarative, generous.** Never gushing. No "revolutionize", "unleash", "supercharge".
+
+## Workflow expectation
+
+Before rewriting files, show a short plan: which files you intend to touch, which kit components map to which existing components, and any open questions about the existing structure. Wait for confirmation before doing the rewrite.
+
 ## Commands
 
 ### Development

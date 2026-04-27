@@ -37,7 +37,11 @@ export default function Layout({ children }: { children?: ReactNode }) {
         <PanelGroup orientation="vertical" className="flex-1">
           <Panel minSize="25%" defaultSize="62%">
             <PanelGroup orientation="horizontal" className="h-full">
-              <Panel minSize="200px" defaultSize="20%">
+              <Panel
+                minSize="200px"
+                defaultSize="20%"
+                style={{ overflow: 'visible', position: 'relative', zIndex: 30 }}
+              >
                 <div className="h-full">
                   <Explorer />
                 </div>

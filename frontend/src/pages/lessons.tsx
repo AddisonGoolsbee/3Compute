@@ -618,14 +618,34 @@ function LessonCard({
               <FileText size={12} />
               Includes:
             </span>
-            {lesson.files.map((f) => (
-              <span
-                key={f}
-                className="text-xs bg-gray-800 text-gray-400 rounded px-2 py-0.5 font-mono"
-              >
-                {f}
-              </span>
-            ))}
+            {(() => {
+              const FILE_CHIP_LIMIT = 6;
+              const shown =
+                lesson.files.length > FILE_CHIP_LIMIT
+                  ? lesson.files.slice(0, FILE_CHIP_LIMIT - 1)
+                  : lesson.files;
+              const hidden = lesson.files.length - shown.length;
+              return (
+                <>
+                  {shown.map((f) => (
+                    <span
+                      key={f}
+                      className="text-xs bg-gray-800 text-gray-400 rounded px-2 py-0.5 font-mono"
+                    >
+                      {f}
+                    </span>
+                  ))}
+                  {hidden > 0 && (
+                    <span
+                      className="text-xs bg-gray-800 text-gray-500 rounded px-2 py-0.5"
+                      title={lesson.files.slice(shown.length).join('\n')}
+                    >
+                      +{hidden} {hidden === 1 ? 'other' : 'others'}
+                    </span>
+                  )}
+                </>
+              );
+            })()}
           </div>
 
           {/* CSTA standards */}

@@ -1,4 +1,4 @@
-# Welcome to 3compute
+# Welcome to 3Compute
 
 This is your first lesson. By the end, you will have opened a terminal, run Linux commands, written and executed Python code, and put a live webpage on the internet with a URL you can text to a friend.
 
@@ -82,6 +82,8 @@ The terminal accepts one command per line. You type a command, press Enter, and 
 - **Up arrow** recalls your previous command. Press it again for the one before. This saves enormous time.
 - **Ctrl+C** stops whatever is running. Useful if a program is stuck or you launched something by accident.
 - **Ctrl+L** clears the screen, same as `clear`.
+
+> **Copying from the terminal.** In the 3compute terminal, plain `Ctrl+C` is reserved for stopping programs (just like a real Linux machine), so it does **not** copy selected text. To copy, select with the mouse and then press **Ctrl+Shift+C** (Windows / Linux / ChromeOS) or **Cmd+C** (Mac). To paste, use **Ctrl+Shift+V** or **Cmd+V**.
 
 ### A Small Exercise
 
@@ -288,34 +290,46 @@ Keep this handy for every future lesson.
 
 ### Moving Around
 
+| Command | What It Does |
+|---------|--------------|
 | `pwd` | Where am I? |
 | `ls` | What is in this folder? |
-| `cd name` | Go into a folder |
+| `cd <name>` | Go into a folder |
 | `cd ..` | Go up one folder |
-| `cd ../other` | Go up then into a sibling folder |
+| `cd ../<sibling>` | Go up then into a sibling folder |
 
 ### Creating and Deleting
 
-| `mkdir name` | New folder |
-| `touch name.txt` | New empty file |
-| `rm name.txt` | Delete a file |
-| `rm -r name` | Delete a folder and everything in it |
+| Command | What It Does |
+|---------|--------------|
+| `mkdir <name>` | New folder |
+| `touch <name.txt>` | New empty file |
+| `rm <name.txt>` | Delete a file |
+| `rm -r <name>` | Delete a folder and everything in it |
 
 ### Reading
 
-| `cat file` | Print a file's contents |
+| Command | What It Does |
+|---------|--------------|
+| `cat <file>` | Print a file's contents |
 
 ### Running Code
 
-| `python file.py` | Run a Python script |
-| `pip install thing` | Install a Python library |
+| Command | What It Does |
+|---------|--------------|
+| `python <file.py>` | Run a Python script |
+| `pip install <library>` | Install a Python library |
 | `Ctrl+C` | Stop a running program |
 
 ### Terminal Shortcuts
 
+| Shortcut | What It Does |
+|----------|--------------|
 | Tab | Auto-complete a filename |
 | Up arrow | Recall your previous command |
 | Ctrl+L | Clear the screen |
+| Ctrl+Shift+C / Cmd+C | Copy selected text (plain Ctrl+C stops programs) |
+| Ctrl+Shift+V / Cmd+V | Paste into the terminal |
 
 ---
 

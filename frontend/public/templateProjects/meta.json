@@ -48,23 +48,20 @@
             "mansion/basement/chest-iron.txt",
             "mansion/basement/chest-wooden.txt",
             "mansion/basement/chest-rusted.txt",
+            "mansion/basement/.vault/inscription.txt",
             "mansion/basement/.vault/coin-pile-a.txt",
             "mansion/basement/.vault/coin-pile-b.txt",
             "mansion/basement/.vault/coin-pile-d.txt",
             "mansion/basement/.vault/.coin-pile-c.txt",
             "mansion/basement/.vault/.coin-pile-e.txt"
         ],
-        "description": "A one-hour terminal puzzle. Follow clues through a nested filesystem to find the real treasure, avoiding traps that teach ls, ls -a, and ls -l.",
+        "description": "A short terminal puzzle. Follow clues through a nested filesystem to find the prize and avoid traps, learning basic terminal commands.",
         "duration": "1 class period",
         "lessonPlanDoc": "/docs/shell-scavenger-hunt/lesson-plan.md",
         "standards": [
             {
                 "id": "3A-CS-03",
                 "description": "Develop guidelines that convey systematic troubleshooting strategies that others can use to identify and fix errors."
-            },
-            {
-                "id": "3A-CS-02",
-                "description": "Compare levels of abstraction, analogy, and paradigm for the interactions between application software, system software, and hardware."
             }
         ],
         "testCount": 0
