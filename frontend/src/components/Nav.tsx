@@ -1,5 +1,5 @@
 import { LogoBirdflop } from '@luminescent/ui-react';
-import { LogOut, LogIn, BookOpen, School, Terminal, ShieldCheck, Heart } from 'lucide-react';
+import { LogOut, LogIn, BookOpen, School, Terminal, ShieldCheck } from 'lucide-react';
 import { useContext, type ReactNode } from 'react';
 import { Link, useLocation } from 'react-router';
 import { apiUrl, UserDataContext } from '../util/UserData';
@@ -94,10 +94,10 @@ export default function NavComponent() {
       {isLoggedIn ? (
         <>
           <NavLinkA to="/ide" active={isActive('/ide')} icon={<Terminal size={15} />}>Workspace</NavLinkA>
+          <NavLinkA to="/classrooms" active={isActive('/classrooms')} icon={<School size={15} />}>Classrooms</NavLinkA>
           {isTeacher && (
             <NavLinkA to="/lessons" active={isActive('/lessons')} icon={<BookOpen size={15} />}>Lessons</NavLinkA>
           )}
-          <NavLinkA to="/classrooms" active={isActive('/classrooms')} icon={<School size={15} />}>Classrooms</NavLinkA>
           {isAdmin && (
             <NavLinkA to="/admin" active={isActive('/admin')} icon={<ShieldCheck size={15} />}>Admin</NavLinkA>
           )}
@@ -114,11 +114,7 @@ export default function NavComponent() {
         </>
       ) : (
         <>
-          <NavLinkA href="#about">About</NavLinkA>
-          <NavLinkA href="#lessons">Lessons</NavLinkA>
-          <NavLinkA href="#teachers">For teachers</NavLinkA>
-          <NavLinkA href="#donate" icon={<Heart size={15} />}>Donate</NavLinkA>
-          <div className="w-px h-[22px] bg-rule-soft mx-2.5" />
+          <NavLinkA href="#lessons" icon={<BookOpen size={15} />}>Lessons</NavLinkA>
           <PrimaryButton
             color="navy"
             size="md"
