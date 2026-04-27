@@ -6,6 +6,10 @@ import { Globe } from 'lucide-react';
 import PortsPanel from './PortsPanel';
 import { TerminalSession } from './TerminalSession';
 
+// Suppress the Ctrl+Shift+C copy hint on macOS where Cmd+C works as expected.
+const isMacLike =
+  typeof navigator !== 'undefined' && /Mac|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
 export default function TerminalTabs() {
   const userData = useContext(UserDataContext);
   const [tabs, setTabs] = useState<string[]>(['1']);
@@ -208,6 +212,14 @@ export default function TerminalTabs() {
             onClose={handleCloseTab}
           />
         </div>
+        {!isMacLike && (
+          <span
+            className="hidden md:inline text-xs text-gray-500 px-2 select-none flex-shrink-0"
+            title="Plain Ctrl+C interrupts the running program (sends SIGINT)"
+          >
+            Ctrl+Shift+C to copy
+          </span>
+        )}
         {/* Ports button */}
         <div className="relative flex-shrink-0 pr-1">
           <button

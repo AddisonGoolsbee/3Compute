@@ -1,6 +1,6 @@
-import { File, Folder, LayoutTemplate, Plus } from 'lucide-react';
+import { ChevronRight, File, Folder, LayoutTemplate, Plus } from 'lucide-react';
 import { useContext, useEffect, useState } from 'react';
-import { SelectMenuRaw } from '@luminescent/ui-react';
+import { SelectMenuRaw, getClasses } from '@luminescent/ui-react';
 import { apiUrl, UserDataContext } from '../../util/UserData';
 import { StatusContext } from '../../util/Files';
 
@@ -23,10 +23,6 @@ export default function NewButton() {
 
   const [manifest, setManifest] = useState<Manifest>({});
   const [classroomTemplates, setClassroomTemplates] = useState<ClassroomWithTemplates[]>([]);
-  const [showTemplatePicker, setShowTemplatePicker] = useState(false);
-  const [showClassroomPickerDialog, setShowClassroomPickerDialog] = useState(false);
-  const [selectedClassroom, setSelectedClassroom] = useState<ClassroomWithTemplates | null>(null);
-  const [showClassroomTemplateDialog, setShowClassroomTemplateDialog] = useState(false);
 
   useEffect(() => {
     fetch('/templateProjects/manifest.json')
@@ -46,7 +42,7 @@ export default function NewButton() {
           const slug = Object.keys(userData.classroomSymlinks || {}).find(
             s => userData.classroomSymlinks?.[s]?.id === classroom.id,
           );
-          return !!slug;
+          return !!slug && classroom.templates.length > 0;
         });
         setClassroomTemplates(availableClassrooms);
       })
@@ -102,12 +98,11 @@ export default function NewButton() {
   // via a shared event, passing the right-clicked path as the base.
   useEffect(() => {
     const handler = (e: Event) => {
-      const detail = (e as CustomEvent).detail as { kind: 'file' | 'folder' | 'template'; base?: string } | undefined;
+      const detail = (e as CustomEvent).detail as { kind: 'file' | 'folder'; base?: string } | undefined;
       if (!detail) return;
       const base = detail.base ?? '/';
       if (detail.kind === 'file') handleFileClick(base);
       else if (detail.kind === 'folder') handleFolderClick(base);
-      else if (detail.kind === 'template') setShowTemplatePicker(true);
     };
     window.addEventListener('3compute:new-at', handler as EventListener);
     return () => window.removeEventListener('3compute:new-at', handler as EventListener);
@@ -154,12 +149,6 @@ export default function NewButton() {
   }
 
   // --- Template logic ---
-
-  const handleUseTemplate = async (templateName: string) => {
-    if (!templateName) return;
-    setShowTemplatePicker(false);
-    await uploadToPersonalWorkspace(templateName);
-  };
 
   const uploadToPersonalWorkspace = async (templateName: string) => {
     setStatus('Uploading template…');
@@ -315,10 +304,20 @@ export default function NewButton() {
 
   const templateNames = Object.keys(manifest);
 
-  return <>
+  // Shared styles for the submenu surfaces so nested levels stack identically.
+  const submenuCls = getClasses({
+    'transition-opacity duration-300 absolute left-full top-0 lum-card p-1 gap-1 z-50 drop-shadow-xl lum-bg-gray-900 border border-gray-700/60 min-w-[12rem]': true,
+    'opacity-0 pointer-events-none': true,
+  });
+  const itemCls = 'lum-btn lum-btn-p-1 rounded-lum-1 gap-0.5 w-full text-left lum-bg-transparent';
+
+  return (
     <SelectMenuRaw
       id="new-button"
       className="lum-btn-p-1 rounded-lum-2 gap-1 text-xs lum-bg-green-950 hover:lum-bg-green-900"
+      // Override SelectMenuRaw's default overflow-auto / max-h-72 so nested
+      // hover submenus can escape the dropdown without being clipped.
+      panelClass="overflow-visible! max-h-none! lum-bg-gray-900 border border-gray-700/60"
       customDropdown
       dropdown={
         <div className="flex items-center gap-1">
@@ -329,184 +328,88 @@ export default function NewButton() {
       extra-buttons={<>
         <button
           onClick={() => handleFileClick()}
-          className="lum-btn lum-btn-p-1 rounded-lum-1 gap-1 text-xs lum-bg-transparent"
+          className={itemCls}
         >
           <File size={16} />
           File
         </button>
         <button
           onClick={() => handleFolderClick()}
-          className="lum-btn lum-btn-p-1 rounded-lum-1 gap-1 text-xs lum-bg-transparent"
+          className={itemCls}
         >
           <Folder size={16} />
           Folder
         </button>
         {templateNames.length > 0 && (
-          <button
-            onClick={() => setShowTemplatePicker(true)}
-            className="lum-btn lum-btn-p-1 rounded-lum-1 gap-1 text-xs lum-bg-transparent"
-          >
-            <LayoutTemplate size={16} />
-            Template
-          </button>
+          <div className="relative group/template">
+            <button className={itemCls}>
+              <LayoutTemplate size={16} />
+              Template
+              <ChevronRight size={14} className="ml-auto opacity-70" />
+            </button>
+            <div
+              className={getClasses({
+                [submenuCls]: true,
+                'group-hover/template:opacity-100 group-hover/template:pointer-events-auto': true,
+              })}
+            >
+              {templateNames.map((name) => (
+                <button
+                  key={name}
+                  onClick={() => uploadToPersonalWorkspace(name)}
+                  className={itemCls}
+                >
+                  {name.replace(/[-_]/g, ' ')}
+                </button>
+              ))}
+              {classroomTemplates.length > 0 && (
+                <div className="relative group/classroom-templates">
+                  <button className={itemCls}>
+                    <LayoutTemplate size={16} />
+                    Classroom Templates
+                    <ChevronRight size={14} className="ml-auto opacity-70" />
+                  </button>
+                  <div
+                    className={getClasses({
+                      [submenuCls]: true,
+                      'group-hover/classroom-templates:opacity-100 group-hover/classroom-templates:pointer-events-auto': true,
+                    })}
+                  >
+                    {classroomTemplates.map((classroom) => (
+                      <div key={classroom.id} className="relative group/classroom">
+                        <button className={itemCls}>
+                          {classroom.name}
+                          <ChevronRight size={14} className="ml-auto opacity-70" />
+                        </button>
+                        <div
+                          className={getClasses({
+                            [submenuCls]: true,
+                            'group-hover/classroom:opacity-100 group-hover/classroom:pointer-events-auto': true,
+                          })}
+                        >
+                          {classroom.templates.map((template) => (
+                            <button
+                              key={template.name}
+                              onClick={() => uploadClassroomTemplate(
+                                classroom.id,
+                                template.name,
+                                template.files,
+                              )}
+                              className={itemCls}
+                            >
+                              {template.name}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
         )}
       </>}
     />
-
-    {/* Template Picker Dialog */}
-    {showTemplatePicker && (
-      <div className="fixed inset-0 flex items-center justify-center z-50">
-        <div
-          className="absolute inset-0 bg-black/30 backdrop-blur-sm"
-          onClick={() => setShowTemplatePicker(false)}
-        />
-        <div
-          className="relative border border-white/10 rounded-lg shadow-xl w-full max-w-md p-6 flex flex-col gap-4"
-          style={{ backgroundColor: 'var(--color-bg)' }}
-        >
-          <h2 className="text-lg font-semibold">Choose a Template</h2>
-          <p className="text-sm opacity-70">
-            Select a template to add to your workspace:
-          </p>
-
-          <div className="flex flex-col gap-2 max-h-96 overflow-auto">
-            {classroomTemplates.length > 0 && (
-              <button
-                onClick={() => {
-                  setShowTemplatePicker(false);
-                  setShowClassroomPickerDialog(true);
-                }}
-                className="lum-btn lum-bg-purple-700 hover:lum-bg-purple-600 text-left px-4 py-3 rounded-lum-1"
-              >
-                <div className="font-medium">Classroom Assignments</div>
-                <div className="text-xs opacity-70">
-                  Browse assignments from your classrooms
-                </div>
-              </button>
-            )}
-            {templateNames.map((name) => (
-              <button
-                key={name}
-                onClick={() => handleUseTemplate(name)}
-                className="lum-btn lum-bg-blue-600 hover:lum-bg-blue-500 text-left px-4 py-3 rounded-lum-1"
-              >
-                <div className="font-medium">{name.replace(/[-_]/g, ' ')}</div>
-              </button>
-            ))}
-          </div>
-
-          <button
-            onClick={() => setShowTemplatePicker(false)}
-            className="lum-btn lum-bg-transparent hover:lum-bg-white/10"
-          >
-            Cancel
-          </button>
-        </div>
-      </div>
-    )}
-
-    {/* Classroom Picker Dialog */}
-    {showClassroomPickerDialog && (
-      <div className="fixed inset-0 flex items-center justify-center z-50">
-        <div
-          className="absolute inset-0 bg-black/30 backdrop-blur-sm"
-          onClick={() => {
-            setShowClassroomPickerDialog(false);
-          }}
-        />
-        <div
-          className="relative border border-white/10 rounded-lg shadow-xl w-full max-w-md p-6 flex flex-col gap-4"
-          style={{ backgroundColor: 'var(--color-bg)' }}
-        >
-          <h2 className="text-lg font-semibold">Choose a Classroom</h2>
-          <p className="text-sm opacity-70">
-            Select a classroom to browse its assignments:
-          </p>
-
-          <div className="flex flex-col gap-2 max-h-96 overflow-auto">
-            {classroomTemplates.map((classroom) => (
-              <button
-                key={classroom.id}
-                onClick={() => {
-                  setSelectedClassroom(classroom);
-                  setShowClassroomPickerDialog(false);
-                  setShowClassroomTemplateDialog(true);
-                }}
-                className="lum-btn lum-bg-purple-700 hover:lum-bg-purple-600 text-left px-4 py-3 rounded-lum-1"
-              >
-                <div className="font-medium">{classroom.name}</div>
-                <div className="text-xs opacity-70">
-                  {classroom.templates.length} assignment{classroom.templates.length !== 1 ? 's' : ''} available
-                </div>
-              </button>
-            ))}
-          </div>
-
-          <button
-            onClick={() => setShowClassroomPickerDialog(false)}
-            className="lum-btn lum-bg-transparent hover:lum-bg-white/10"
-          >
-            Cancel
-          </button>
-        </div>
-      </div>
-    )}
-
-    {/* Classroom Template Picker Dialog */}
-    {showClassroomTemplateDialog && selectedClassroom && (
-      <div className="fixed inset-0 flex items-center justify-center z-50">
-        <div
-          className="absolute inset-0 bg-black/30 backdrop-blur-sm"
-          onClick={() => {
-            setShowClassroomTemplateDialog(false);
-            setSelectedClassroom(null);
-          }}
-        />
-        <div
-          className="relative border border-white/10 rounded-lg shadow-xl w-full max-w-md p-6 flex flex-col gap-4"
-          style={{ backgroundColor: 'var(--color-bg)' }}
-        >
-          <h2 className="text-lg font-semibold">
-            {selectedClassroom.name}
-          </h2>
-          <p className="text-sm opacity-70">
-            Select a template to copy to your workspace:
-          </p>
-
-          <div className="flex flex-col gap-2 max-h-96 overflow-auto">
-            {selectedClassroom.templates.map((template) => (
-              <button
-                key={template.name}
-                onClick={async () => {
-                  setShowClassroomTemplateDialog(false);
-                  await uploadClassroomTemplate(
-                    selectedClassroom.id,
-                    template.name,
-                    template.files,
-                  );
-                  setSelectedClassroom(null);
-                }}
-                className="lum-btn lum-bg-blue-600 hover:lum-bg-blue-500 text-left px-4 py-3 rounded-lum-1"
-              >
-                <div className="font-medium">{template.name}</div>
-                <div className="text-xs opacity-70">
-                  {template.files.length} file{template.files.length !== 1 ? 's' : ''}
-                </div>
-              </button>
-            ))}
-          </div>
-
-          <button
-            onClick={() => {
-              setShowClassroomTemplateDialog(false);
-              setSelectedClassroom(null);
-            }}
-            className="lum-btn lum-bg-transparent hover:lum-bg-white/10"
-          >
-            Cancel
-          </button>
-        </div>
-      </div>
-    )}
-  </>;
+  );
 }

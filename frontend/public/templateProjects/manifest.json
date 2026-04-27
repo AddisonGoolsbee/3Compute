@@ -1,4 +1,11 @@
 {
+  "Welcome-to-3compute": [
+    "README.md",
+    "part3/hello.py",
+    "part4/journal.py",
+    "part5/app.py",
+    "part5/requirements.txt"
+  ],
   "Website": [
     "main.py",
     "index.html",

@@ -36,8 +36,11 @@ jobs:
         run: |
           python -m venv .venv-lessons
           .venv-lessons/bin/pip install --upgrade pip
-          .venv-lessons/bin/pip install -r frontend/public/templateProjects/My-Website/requirements.txt
-          .venv-lessons/bin/pip install -r frontend/public/templateProjects/Weather-App/requirements.txt
+          shopt -s nullglob
+          for req in frontend/public/templateProjects/*/requirements.txt; do
+            echo "Installing $req"
+            .venv-lessons/bin/pip install -r "$req"
+          done
 
       - name: Run lesson reference verification
         env:

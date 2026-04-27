@@ -143,19 +143,25 @@ def pip_install_requirements(workdir: Path) -> None:
     )
 
 
-def run_lesson(lesson: dict, work_root: Path) -> tuple[bool, str]:
+def run_lesson(lesson: dict, work_root: Path) -> tuple[str, str]:
+    """Returns (status, detail) where status is 'ok', 'skip', or 'fail'.
+
+    'skip' is used when the template directory or a required solution overlay
+    isn't on the current branch, so the workflow stays green on PR branches
+    that don't include every lesson.
+    """
     name = lesson["id"]
-    dst = work_root / name
     template = REPO_ROOT / lesson["template"]
     if not template.is_dir():
-        return False, f"template missing: {template}"
+        return "skip", f"template missing: {template}"
 
+    dst = work_root / name
     shutil.copytree(template, dst)
 
     for src_rel, dest_name in lesson["overlays"]:
         src = REPO_ROOT / src_rel
         if not src.is_file():
-            return False, f"solution overlay missing: {src}"
+            return "skip", f"solution overlay missing: {src}"
         shutil.copy2(src, dst / dest_name)
 
     pip_install_requirements(dst)
@@ -172,8 +178,8 @@ def run_lesson(lesson: dict, work_root: Path) -> tuple[bool, str]:
     ok, reason = verify_success(lesson["id"], out, proc.returncode)
     if not ok:
         tail = "\n".join(out.strip().splitlines()[-40:])
-        return False, f"{reason}\n--- last 40 lines ---\n{tail}"
-    return True, out
+        return "fail", f"{reason}\n--- last 40 lines ---\n{tail}"
+    return "ok", out
 
 
 def main() -> int:
@@ -191,15 +197,21 @@ def main() -> int:
             print(f"Unknown lesson id: {args.lesson}", file=sys.stderr)
             return 2
 
+    ok_count = 0
+    skip_count = 0
     failures: list[str] = []
     with tempfile.TemporaryDirectory(prefix="lesson-ref-tests-") as tmp:
         root = Path(tmp)
         for lesson in to_run:
             label = lesson["id"]
             print(f"==> {label} …", flush=True)
-            ok, detail = run_lesson(lesson, root)
-            if ok:
+            status, detail = run_lesson(lesson, root)
+            if status == "ok":
                 print(f"    OK ({lesson['test'][-1]})", flush=True)
+                ok_count += 1
+            elif status == "skip":
+                print(f"    SKIP: {detail}", flush=True)
+                skip_count += 1
             else:
                 print(f"    FAIL: {detail.splitlines()[0]}", flush=True)
                 failures.append(f"{label}:\n{detail}")
@@ -209,7 +221,10 @@ def main() -> int:
         for f in failures:
             print(f, file=sys.stderr)
         return 1
-    print(f"\nAll {len(to_run)} lesson reference test(s) passed.")
+    summary = f"All {ok_count} lesson reference test(s) passed."
+    if skip_count:
+        summary += f" Skipped {skip_count} (template or solution missing on this branch)."
+    print(f"\n{summary}")
     return 0
 
 
