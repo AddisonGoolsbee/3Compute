@@ -108,6 +108,7 @@ export default function Editor() {
   const editorRef = useRef<unknown>(null);
   const markdownRef = useRef<HTMLDivElement>(null);
   const langMenuRef = useRef<HTMLDivElement>(null);
+  const tabBarRef = useRef<HTMLDivElement>(null);
   const autosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const currentFileLocationRef = useRef<string | undefined>(undefined);
   const lastSavedValueRef = useRef<string>('');
@@ -246,6 +247,38 @@ export default function Editor() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Keep the active tab visible in the horizontal tab strip. Only scrolls
+  // when the tab is partially or fully clipped, so it doesn't fight a click
+  // on an already-visible tab. Re-runs when the right-side actions strip
+  // changes width (markdown print/preview, lang picker, run button toggling)
+  // because that resizes the tab strip's available room — needed for the
+  // .txt → .md case where buttons appear after the file content settles.
+  useEffect(() => {
+    const container = tabBarRef.current;
+    const location = userData.currentFile?.location;
+    if (!container || !location) return;
+    const tab = container.querySelector<HTMLElement>(
+      `[data-tab-location="${CSS.escape(location)}"]`,
+    );
+    if (!tab) return;
+    const cRect = container.getBoundingClientRect();
+    const tRect = tab.getBoundingClientRect();
+    if (tRect.left < cRect.left) {
+      container.scrollBy({ left: tRect.left - cRect.left, behavior: 'smooth' });
+    } else if (tRect.right > cRect.right) {
+      container.scrollBy({ left: tRect.right - cRect.right, behavior: 'smooth' });
+    }
+  }, [
+    userData.currentFile?.location,
+    userData.openFiles.length,
+    currentLanguage,
+    isImage,
+    isBinary,
+    isTooLarge,
+    loadError,
+    mdPreview,
+  ]);
+
   // Close language menu on outside click / escape
   useEffect(() => {
     if (!langMenuOpen) return;
@@ -367,8 +400,6 @@ export default function Editor() {
   const monacoLanguage = languageMap[currentLanguage as keyof typeof languageMap]?.language || 'plaintext';
   const currentFile = userData.currentFile;
   const currentLanguageInfo = languageMap[currentLanguage as keyof typeof languageMap];
-  const lineCount = value ? value.split('\n').length : 0;
-  const eolStyle = value.includes('\r\n') ? 'CRLF' : 'LF';
   const runCommandFn = runCommandMap[currentLanguage as keyof typeof languageMap];
   const canRun = !!(currentFile?.location && runCommandFn && !isImage && !isBinary && !isTooLarge && !loadError);
 
@@ -379,9 +410,9 @@ export default function Editor() {
       )}
 
       {currentFile && (
-        <>
-          {/* Tab bar */}
-          <div className="flex bg-ide-elevated border-b border-ide-rule overflow-x-auto shrink-0">
+        <div className="flex items-stretch bg-ide-elevated border-b border-ide-rule shrink-0 min-h-10">
+          {/* Tabs (scroll horizontally when they would collide with the actions) */}
+          <div ref={tabBarRef} className="flex flex-1 min-w-0 overflow-x-auto">
             {userData.openFiles.map((tab) => {
               const isActive = tab.location === currentFile.location;
               const tabExt = tab.name.split('.').pop()?.toLowerCase() || '';
@@ -400,6 +431,7 @@ export default function Editor() {
               return (
                 <div
                   key={tab.location}
+                  data-tab-location={tab.location}
                   className={cn(
                     'group/tab inline-flex items-center gap-2 pl-3.5 pr-1.5 py-1.5 border-r border-ide-rule cursor-pointer font-mono text-[13px] transition-colors shrink-0',
                     isActive
@@ -437,123 +469,113 @@ export default function Editor() {
             })}
           </div>
 
-          {/* Toolbar: file path + actions */}
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-ide-elevated border-b border-ide-rule shrink-0 min-h-10">
-            <span
-              className="text-[12px] flex gap-2 items-center flex-1 min-w-0 text-ink-muted font-mono"
-              title={`~${currentFile.location}`}
-            >
-              <File size={14} className="shrink-0 text-ink-subtle" />
-              <span className="truncate min-w-0">~{currentFile.location}</span>
-            </span>
+          {/* Actions */}
+          <div className="flex items-center gap-1.5 shrink-0 px-2 border-l border-ide-rule">
+            {!isImage && (
+              <span
+                className={cn(
+                  'text-[11.5px] px-1 select-none whitespace-nowrap font-mono',
+                  saveStatus === 'error' ? 'text-tomato' : 'text-ink-subtle',
+                )}
+                aria-live="polite"
+              >
+                {saveStatus === 'saving' && 'Saving…'}
+                {saveStatus === 'saved' && 'Saved'}
+                {saveStatus === 'error' && 'Save failed'}
+              </span>
+            )}
 
-            <div className="flex items-center gap-1.5 shrink-0">
-              {!isImage && (
-                <span
+            {currentLanguage === 'markdown' && !isImage && (
+              <>
+                {mdPreview && (
+                  <button
+                    title="Print"
+                    aria-label="Print"
+                    className="inline-flex items-center justify-center p-1.5 rounded-sm transition-colors cursor-pointer shrink-0 text-ink-muted hover:text-ink-strong hover:bg-paper-tinted"
+                    onClick={() => {
+                      if (markdownRef.current)
+                        printMarkdownElement(markdownRef.current, currentFile.name ?? 'Document');
+                    }}
+                  >
+                    <Printer size={14} />
+                  </button>
+                )}
+                <button
+                  title={mdPreview ? 'Show source' : 'Show preview'}
+                  aria-label={mdPreview ? 'Show source' : 'Show preview'}
                   className={cn(
-                    'text-[11.5px] px-1 select-none whitespace-nowrap font-mono',
-                    saveStatus === 'error' ? 'text-tomato' : 'text-ink-subtle',
+                    'inline-flex items-center justify-center p-1.5 rounded-sm transition-colors cursor-pointer shrink-0',
+                    mdPreview
+                      ? 'text-navy bg-navy-soft hover:brightness-105'
+                      : 'text-ink-muted hover:text-ink-strong hover:bg-paper-tinted',
                   )}
-                  aria-live="polite"
+                  onClick={() => setMdPreview(!mdPreview)}
                 >
-                  {saveStatus === 'saving' && 'Saving…'}
-                  {saveStatus === 'saved' && 'Saved'}
-                  {saveStatus === 'error' && 'Save failed'}
-                </span>
-              )}
+                  <Eye size={14} />
+                </button>
+              </>
+            )}
 
-              {currentLanguage === 'markdown' && !isImage && (
-                <>
-                  {mdPreview && (
-                    <button
-                      title="Print"
-                      aria-label="Print"
-                      className="inline-flex items-center justify-center p-1.5 rounded-sm transition-colors cursor-pointer shrink-0 text-ink-muted hover:text-ink-strong hover:bg-paper-tinted"
-                      onClick={() => {
-                        if (markdownRef.current)
-                          printMarkdownElement(markdownRef.current, currentFile.name ?? 'Document');
-                      }}
-                    >
-                      <Printer size={14} />
-                    </button>
-                  )}
-                  <button
-                    title={mdPreview ? 'Show source' : 'Show preview'}
-                    aria-label={mdPreview ? 'Show source' : 'Show preview'}
-                    className={cn(
-                      'inline-flex items-center justify-center p-1.5 rounded-sm transition-colors cursor-pointer shrink-0',
-                      mdPreview
-                        ? 'text-navy bg-navy-soft hover:brightness-105'
-                        : 'text-ink-muted hover:text-ink-strong hover:bg-paper-tinted',
-                    )}
-                    onClick={() => setMdPreview(!mdPreview)}
-                  >
-                    <Eye size={14} />
-                  </button>
-                </>
-              )}
-
-              {!isImage && (
-                <div ref={langMenuRef} className="relative">
-                  <button
-                    onClick={() => setLangMenuOpen((v) => !v)}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-xs font-mono text-ink-muted hover:bg-paper-tinted hover:text-ink-strong transition-colors cursor-pointer"
-                  >
-                    {currentLanguageInfo?.icon && <currentLanguageInfo.icon size={14} />}
-                    <span>{currentLanguageInfo?.name ?? currentLanguage}</span>
-                    <ChevronDown size={14} />
-                  </button>
-                  {langMenuOpen && (
-                    <ul className="absolute right-0 top-full mt-1 max-h-[260px] overflow-y-auto bg-paper-elevated border border-rule-soft rounded-md shadow-md py-1 min-w-[180px] z-50">
-                      {Object.entries(languageMap).map(([key, lang]) => {
-                        const isActive = key === currentLanguage;
-                        const Icon = lang.icon;
-                        return (
-                          <li
-                            key={key}
-                            onClick={() => {
-                              setCurrentLanguage(key as keyof typeof languageMap);
-                              setLangMenuOpen(false);
-                            }}
-                            className={cn(
-                              'flex items-center gap-2 px-3 py-1.5 text-sm cursor-pointer font-mono',
-                              isActive
-                                ? 'text-ink-strong bg-paper-tinted'
-                                : 'text-ink-default hover:bg-paper-tinted hover:text-ink-strong',
-                            )}
-                          >
-                            {isActive ? (
-                              <Check size={12} className="text-navy shrink-0" />
-                            ) : (
-                              <span className="w-3 shrink-0" />
-                            )}
-                            <Icon size={14} className="shrink-0" />
-                            <span>{lang.name}</span>
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  )}
-                </div>
-              )}
-
-              {canRun && (
-                <PrimaryButton
-                  color="forest"
-                  icon={<Play size={14} />}
-                  onClick={() => {
-                    if (!runCommandFn || !currentFile.location) return;
-                    const command = runCommandFn(currentFile.location);
-                    window.dispatchEvent(new CustomEvent('3compute:run-command', { detail: { command } }));
-                  }}
-                  className="px-3! py-1.5! text-xs! gap-1.5!"
+            {!isImage && (
+              <div ref={langMenuRef} className="relative">
+                <button
+                  onClick={() => setLangMenuOpen((v) => !v)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-xs font-mono text-ink-muted hover:bg-paper-tinted hover:text-ink-strong transition-colors cursor-pointer"
                 >
-                  Run
-                </PrimaryButton>
-              )}
-            </div>
+                  {currentLanguageInfo?.icon && <currentLanguageInfo.icon size={14} />}
+                  <span>{currentLanguageInfo?.name ?? currentLanguage}</span>
+                  <ChevronDown size={14} />
+                </button>
+                {langMenuOpen && (
+                  <ul className="absolute right-0 top-full mt-1 max-h-[260px] overflow-y-auto bg-paper-elevated border border-rule-soft rounded-md shadow-md py-1 min-w-[180px] z-50">
+                    {Object.entries(languageMap).map(([key, lang]) => {
+                      const isActive = key === currentLanguage;
+                      const Icon = lang.icon;
+                      return (
+                        <li
+                          key={key}
+                          onClick={() => {
+                            setCurrentLanguage(key as keyof typeof languageMap);
+                            setLangMenuOpen(false);
+                          }}
+                          className={cn(
+                            'flex items-center gap-2 px-3 py-1.5 text-sm cursor-pointer font-mono',
+                            isActive
+                              ? 'text-ink-strong bg-paper-tinted'
+                              : 'text-ink-default hover:bg-paper-tinted hover:text-ink-strong',
+                          )}
+                        >
+                          {isActive ? (
+                            <Check size={12} className="text-navy shrink-0" />
+                          ) : (
+                            <span className="w-3 shrink-0" />
+                          )}
+                          <Icon size={14} className="shrink-0" />
+                          <span>{lang.name}</span>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </div>
+            )}
+
+            {canRun && (
+              <PrimaryButton
+                color="forest"
+                icon={<Play size={14} />}
+                onClick={() => {
+                  if (!runCommandFn || !currentFile.location) return;
+                  const command = runCommandFn(currentFile.location);
+                  window.dispatchEvent(new CustomEvent('3compute:run-command', { detail: { command } }));
+                }}
+                className="px-3! py-1.5! text-xs! gap-1.5!"
+              >
+                Run
+              </PrimaryButton>
+            )}
           </div>
-        </>
+        </div>
       )}
 
       {studentView && (
@@ -758,15 +780,6 @@ export default function Editor() {
         </div>
       )}
 
-      {/* Status bar — only meaningful when a real file is open and we're not in a sub-view */}
-      {currentFile && !isImage && !isBinary && !isTooLarge && !loadError && testOutput === null && (
-        <div className="flex items-center gap-4 px-3.5 py-1.5 bg-ide-elevated border-t border-ide-rule text-[11.5px] text-ink-muted font-mono shrink-0 leading-snug whitespace-nowrap">
-          <span>{lineCount} lines</span>
-          <span>UTF-8</span>
-          <span>{eolStyle}</span>
-          <span className="ml-auto">{currentLanguageInfo?.name ?? 'Plaintext'}</span>
-        </div>
-      )}
     </div>
   );
 }

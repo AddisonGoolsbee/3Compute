@@ -775,8 +775,7 @@ export default function LandingPage() {
             <span className="eyebrow text-forest block mb-3">Student ownership</span>
             <h2 className="heading-2">Class ends, but the code keeps running</h2>
             <p className="body text-ink-muted max-w-[600px] mx-auto">
-              Every student project stays online, on a real public web address,
-              long after the lesson is over.
+              Student projects stays online on a  public web address long after the lesson is over, enabling long-term projects that students can be proud of.
             </p>
           </div>
 

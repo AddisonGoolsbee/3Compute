@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronRight, ClipboardCopy, Copy, ClipboardPaste, Download, FileIcon, Folder, MoreHorizontal, Pencil, Plus, RotateCcw, Terminal as TerminalIcon, Trash, X } from 'lucide-react';
+import { ChevronDown, ChevronRight, ClipboardCopy, Copy, ClipboardPaste, Download, FileIcon, Folder, FolderOpen, MoreHorizontal, Pencil, Plus, RotateCcw, Terminal as TerminalIcon, Trash, X } from 'lucide-react';
 import { useContext, Fragment, useEffect, useRef } from 'react';
 import { apiUrl, UserData, UserDataContext } from '../util/UserData';
 import { languageMap } from '../util/languageMap';
@@ -286,13 +286,18 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
                           ? <ChevronDown size={12} />
                           : <ChevronRight size={12} />}
                       </span>
-                      <Folder
-                        size={14}
-                        className={cn(
-                          'shrink-0',
-                          isDimmed(file) ? 'text-ink-faint' : 'text-ochre',
-                        )}
-                      />
+                      {(() => {
+                        const FolderIcon = openFolders.includes(file.location) ? FolderOpen : Folder;
+                        return (
+                          <FolderIcon
+                            size={14}
+                            className={cn(
+                              'shrink-0',
+                              isDimmed(file) ? 'text-ink-faint' : 'text-ochre',
+                            )}
+                          />
+                        );
+                      })()}
                     </>
                   ) : (
                     <>
