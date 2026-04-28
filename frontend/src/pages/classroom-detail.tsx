@@ -1,5 +1,5 @@
 import { useContext, useEffect, useState, useCallback, useRef } from 'react';
-import { Link, Navigate, useParams, useSearchParams } from 'react-router';
+import { Link, Navigate, useLocation, useParams, useSearchParams } from 'react-router';
 import Footer from '../components/Footer';
 import MonacoEditor from '@monaco-editor/react';
 import { setupDaylightTheme, DAYLIGHT_THEME } from '../util/monacoTheme';
@@ -66,10 +66,33 @@ function avatarInitials(nameOrEmail: string) {
   return trimmed.slice(0, 2).toUpperCase();
 }
 
-export default function ClassroomDetailPage() {
+interface ClassroomDetailProps {
+  /** Demo mode renders the same page sourced from /api/demo (no auth, no
+   *  mutations). Used by the public marketing demo route. */
+  demoMode?: boolean;
+  /** Used in demo mode where ``id`` from useParams isn't set. */
+  classroomIdOverride?: string;
+}
+
+export default function ClassroomDetailPage({
+  demoMode: demoModeProp = false,
+  classroomIdOverride,
+}: ClassroomDetailProps = {}) {
   const userData = useContext(UserDataContext);
-  const { id } = useParams();
+  const { id: paramId } = useParams();
+  const location = useLocation();
+  // Force demo mode whenever the URL is under /demo. Belt-and-suspenders:
+  // a stale bundle, broken HMR, or a missing prop on the wrapper page
+  // would otherwise put us into the real-classroom code path with id
+  // ``undefined`` and 401 every fetch. Detecting the route here makes the
+  // demo bulletproof against frontend caching.
+  const demoMode = demoModeProp || location.pathname.startsWith('/demo');
+  const id = classroomIdOverride ?? (demoMode ? 'demo' : paramId);
   const [searchParams] = useSearchParams();
+  const readOnly = demoMode;
+  // Single source of truth for the per-classroom REST base. Real classrooms
+  // hit /api/classrooms/{id}; the demo router hangs everything off /api/demo.
+  const apiBase = demoMode ? `${apiUrl}/demo` : `${apiUrl}/classrooms/${id}`;
   const [classroom, setClassroom] = useState<ClassroomInfo | null>(null);
   const [progress, setProgress] = useState<ProgressData | null>(null);
   const [weights, setWeights] = useState<WeightsData | null>(null);
@@ -89,15 +112,20 @@ export default function ClassroomDetailPage() {
   const [helpOpen, setHelpOpen] = useState(false);
 
   const fetchClassroom = useCallback(async () => {
+    if (demoMode) {
+      const res = await fetch(`${apiBase}/classroom`, { credentials: 'include' });
+      if (res.ok) setClassroom(await res.json());
+      return;
+    }
     const res = await fetch(`${apiUrl}/classrooms/`, { credentials: 'include' });
     const data = await res.json();
     const all = [...(data.owner ?? []), ...(data.joined ?? [])];
     const found = all.find((c: ClassroomInfo) => c.id === id);
     if (found) setClassroom(found);
-  }, [id]);
+  }, [id, demoMode, apiBase]);
 
   const fetchProgress = useCallback(async () => {
-    const res = await fetch(`${apiUrl}/classrooms/${id}/progress`, { credentials: 'include' });
+    const res = await fetch(`${apiBase}/progress`, { credentials: 'include' });
     if (res.ok) {
       const data = await res.json();
       setProgress(data);
@@ -105,14 +133,14 @@ export default function ClassroomDetailPage() {
         setSelectedTemplate(data.templates[0]);
       }
     }
-  }, [id, selectedTemplate]);
+  }, [apiBase, selectedTemplate]);
 
   const fetchWeights = useCallback(async () => {
-    const res = await fetch(`${apiUrl}/classrooms/${id}/weights`, { credentials: 'include' });
+    const res = await fetch(`${apiBase}/weights`, { credentials: 'include' });
     if (res.ok) {
       setWeights(await res.json());
     }
-  }, [id]);
+  }, [apiBase]);
 
   useEffect(() => {
     document.documentElement.style.overflowY = 'auto';
@@ -125,9 +153,10 @@ export default function ClassroomDetailPage() {
   }, [fetchClassroom, fetchProgress, fetchWeights]);
 
   const runTests = async (templateName?: string) => {
+    if (readOnly) return;
     setRunningTests(true);
     try {
-      await fetch(`${apiUrl}/classrooms/${id}/run-tests`, {
+      await fetch(`${apiBase}/run-tests`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -140,8 +169,8 @@ export default function ClassroomDetailPage() {
   };
 
   const toggleJoins = async () => {
-    if (!classroom) return;
-    const res = await fetch(`${apiUrl}/classrooms/${id}`, {
+    if (readOnly || !classroom) return;
+    const res = await fetch(`${apiBase}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
@@ -153,7 +182,8 @@ export default function ClassroomDetailPage() {
   };
 
   const regenerateCode = async () => {
-    const res = await fetch(`${apiUrl}/classrooms/${id}/access-code`, {
+    if (readOnly) return;
+    const res = await fetch(`${apiBase}/access-code`, {
       method: 'POST',
       credentials: 'include',
     });
@@ -164,8 +194,8 @@ export default function ClassroomDetailPage() {
   };
 
   const submitRename = async () => {
-    if (!renameValue.trim()) return;
-    const res = await fetch(`${apiUrl}/classrooms/${id}`, {
+    if (readOnly || !renameValue.trim()) return;
+    const res = await fetch(`${apiBase}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
@@ -191,9 +221,10 @@ export default function ClassroomDetailPage() {
   };
 
   const saveWeights = async (newWeights: WeightsData) => {
+    if (readOnly) return;
     setWeights(newWeights);
     try {
-      const res = await fetch(`${apiUrl}/classrooms/${id}/weights`, {
+      const res = await fetch(`${apiBase}/weights`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -206,7 +237,7 @@ export default function ClassroomDetailPage() {
     } catch { /* ignore */ }
   };
 
-  if (!userData?.userInfo) {
+  if (!demoMode && !userData?.userInfo) {
     return <Navigate to="/" replace />;
   }
 
@@ -222,13 +253,33 @@ export default function ClassroomDetailPage() {
     return (
       <div className="min-h-screen flex items-center justify-center px-7">
         <div className="bg-paper-elevated border border-rule-soft rounded-xl shadow-sm p-10 text-center max-w-md w-full">
-          <p className="body text-ink-default mb-4">Classroom not found.</p>
-          <Link
-            to="/classrooms"
-            className="text-navy hover:text-navy/80 font-semibold no-underline"
-          >
-            Back to classrooms
-          </Link>
+          {demoMode ? (
+            <>
+              <p className="body text-ink-strong font-semibold mb-2">Demo classroom unavailable</p>
+              <p className="body-sm text-ink-default mb-4">
+                The backend hasn't seeded the demo classroom yet. If you just
+                started the stack, give it a moment and refresh; otherwise check{' '}
+                <code className="bg-paper-tinted text-navy font-mono text-xs px-1 py-0.5 rounded-sm">docker compose logs backend</code>{' '}
+                for a "Failed to seed demo classroom" line.
+              </p>
+              <Link
+                to="/demo"
+                className="text-navy hover:text-navy/80 font-semibold no-underline"
+              >
+                Go to the demo workspace
+              </Link>
+            </>
+          ) : (
+            <>
+              <p className="body text-ink-default mb-4">Classroom not found.</p>
+              <Link
+                to="/classrooms"
+                className="text-navy hover:text-navy/80 font-semibold no-underline"
+              >
+                Back to classrooms
+              </Link>
+            </>
+          )}
         </div>
       </div>
     );
@@ -250,7 +301,7 @@ export default function ClassroomDetailPage() {
             <div className="flex-1 min-w-0">
               <span className="eyebrow text-tomato">Classroom</span>
               <div className="flex items-center gap-3 mt-2">
-                {renaming ? (
+                {renaming && !readOnly ? (
                   <input
                     type="text"
                     value={renameValue}
@@ -293,14 +344,16 @@ export default function ClassroomDetailPage() {
                 {copiedCode ? <Check size={14} /> : <Copy size={14} />}
               </button>
 
-              <Link
-                to={`/ide?classroom=${classroom.id}`}
-                className="text-navy hover:text-navy/80 font-semibold no-underline inline-flex items-center gap-1.5 px-3 py-2 rounded-md hover:bg-paper-tinted text-sm transition-colors"
-                title="Open this classroom in your workspace"
-              >
-                <ExternalLink size={14} />
+              {!readOnly && (
+                <Link
+                  to={`/ide?classroom=${classroom.id}`}
+                  className="text-navy hover:text-navy/80 font-semibold no-underline inline-flex items-center gap-1.5 px-3 py-2 rounded-md hover:bg-paper-tinted text-sm transition-colors"
+                  title="Open this classroom in your workspace"
+                >
+                  <ExternalLink size={14} />
                 Open in workspace
-              </Link>
+                </Link>
+              )}
 
               <button
                 type="button"
@@ -312,15 +365,17 @@ export default function ClassroomDetailPage() {
                 <HelpCircle size={18} />
               </button>
 
-              <button
-                type="button"
-                onClick={() => setSettingsOpen(true)}
-                className="p-2 rounded-md hover:bg-paper-tinted text-ink-muted hover:text-ink-strong cursor-pointer transition-colors"
-                title="Classroom settings"
-                aria-label="Classroom settings"
-              >
-                <Settings size={18} />
-              </button>
+              {!readOnly && (
+                <button
+                  type="button"
+                  onClick={() => setSettingsOpen(true)}
+                  className="p-2 rounded-md hover:bg-paper-tinted text-ink-muted hover:text-ink-strong cursor-pointer transition-colors"
+                  title="Classroom settings"
+                  aria-label="Classroom settings"
+                >
+                  <Settings size={18} />
+                </button>
+              )}
             </div>
           </div>
 
@@ -346,6 +401,8 @@ export default function ClassroomDetailPage() {
           {activeTab === 'students' ? (
             <StudentsTab
               classroomId={id!}
+              apiBase={apiBase}
+              readOnly={readOnly}
               progress={progress}
               selectedTemplate={selectedTemplate}
               onSelectTemplate={setSelectedTemplate}
@@ -354,7 +411,8 @@ export default function ClassroomDetailPage() {
             />
           ) : activeTab === 'gradebook' ? (
             <GradebookTab
-              classroomId={id!}
+              apiBase={apiBase}
+              readOnly={readOnly}
               progress={progress}
               weights={weights}
               onSaveWeights={saveWeights}
@@ -364,6 +422,8 @@ export default function ClassroomDetailPage() {
           ) : (
             <AssignmentsTab
               classroomId={id!}
+              apiBase={apiBase}
+              readOnly={readOnly}
               templates={progress?.templates ?? []}
               onPublished={fetchProgress}
             />
@@ -625,6 +685,8 @@ function getMonacoLanguage(filename: string): string {
 
 function StudentsTab({
   classroomId,
+  apiBase,
+  readOnly,
   progress,
   selectedTemplate,
   onSelectTemplate,
@@ -632,6 +694,8 @@ function StudentsTab({
   runningTests,
 }: {
   classroomId: string;
+  apiBase: string;
+  readOnly: boolean;
   progress: ProgressData | null;
   selectedTemplate: string;
   onSelectTemplate: (t: string) => void;
@@ -650,6 +714,7 @@ function StudentsTab({
   const [testResult, setTestResult] = useState<{ passed: number; total: number } | null>(null);
 
   const runStudentTests = async (studentEmail: string) => {
+    if (readOnly) return;
     setShowTestOutput(true);
     setSelectedFile(null);
     setFileContent(null);
@@ -658,7 +723,7 @@ function StudentsTab({
     setTestResult(null);
     try {
       const res = await fetch(
-        `${apiUrl}/classrooms/${classroomId}/run-student-tests`,
+        `${apiBase}/run-student-tests`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -703,7 +768,7 @@ function StudentsTab({
     setLoadingFiles(true);
     try {
       const res = await fetch(
-        `${apiUrl}/classrooms/${classroomId}/student-files?email=${encodeURIComponent(studentEmail)}&template=${encodeURIComponent(selectedTemplate)}`,
+        `${apiBase}/student-files?email=${encodeURIComponent(studentEmail)}&template=${encodeURIComponent(selectedTemplate)}`,
         { credentials: 'include' },
       );
       if (res.ok) {
@@ -728,7 +793,7 @@ function StudentsTab({
     try {
       const path = `${selectedTemplate}/${fileName}`;
       const res = await fetch(
-        `${apiUrl}/classrooms/${classroomId}/student-file?email=${encodeURIComponent(expandedStudent)}&path=${encodeURIComponent(path)}`,
+        `${apiBase}/student-file?email=${encodeURIComponent(expandedStudent)}&path=${encodeURIComponent(path)}`,
         { credentials: 'include' },
       );
       if (res.ok) {
@@ -855,18 +920,20 @@ function StudentsTab({
             );
           })}
         </div>
-        <div className="flex items-center gap-3 shrink-0">
-          <span className="caption">Scores update when you run tests.</span>
-          <button
-            type="button"
-            onClick={() => onRunTests(selectedTemplate)}
-            disabled={runningTests}
-            className="text-navy hover:text-navy/80 font-semibold inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md hover:bg-paper-tinted text-sm cursor-pointer transition-colors disabled:opacity-50"
-          >
-            {runningTests ? <RefreshCw size={14} className="animate-spin" /> : <Play size={14} />}
-            {runningTests ? 'Running…' : 'Run tests'}
-          </button>
-        </div>
+        {!readOnly && (
+          <div className="flex items-center gap-3 shrink-0">
+            <span className="caption">Scores update when you run tests.</span>
+            <button
+              type="button"
+              onClick={() => onRunTests(selectedTemplate)}
+              disabled={runningTests}
+              className="text-navy hover:text-navy/80 font-semibold inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md hover:bg-paper-tinted text-sm cursor-pointer transition-colors disabled:opacity-50"
+            >
+              {runningTests ? <RefreshCw size={14} className="animate-spin" /> : <Play size={14} />}
+              {runningTests ? 'Running…' : 'Run tests'}
+            </button>
+          </div>
+        )}
       </div>
 
       {progress.students.length === 0 ? (
@@ -956,28 +1023,32 @@ function StudentsTab({
                             selectedFile || showTestOutput ? 'w-52 border-r border-rule-soft' : 'w-full',
                           )}
                         >
-                          <button
-                            type="button"
-                            onClick={() => runStudentTests(student.email)}
-                            disabled={testRunning}
-                            className={cn(
-                              'w-full text-left px-3.5 py-2 text-sm truncate transition-colors flex items-center gap-2 cursor-pointer',
-                              showTestOutput
-                                ? 'bg-plum-soft text-plum'
-                                : 'text-plum hover:bg-plum-soft/60',
-                              'disabled:opacity-50',
-                            )}
-                          >
-                            {testRunning ? (
-                              <RefreshCw size={12} className="flex-shrink-0 animate-spin" />
-                            ) : (
-                              <FlaskConical size={12} className="flex-shrink-0" />
-                            )}
-                            <span className="truncate font-semibold">
-                              {testRunning ? 'Running…' : 'View test output'}
-                            </span>
-                          </button>
-                          <div className="border-b border-rule-soft" />
+                          {!readOnly && (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => runStudentTests(student.email)}
+                                disabled={testRunning}
+                                className={cn(
+                                  'w-full text-left px-3.5 py-2 text-sm truncate transition-colors flex items-center gap-2 cursor-pointer',
+                                  showTestOutput
+                                    ? 'bg-plum-soft text-plum'
+                                    : 'text-plum hover:bg-plum-soft/60',
+                                  'disabled:opacity-50',
+                                )}
+                              >
+                                {testRunning ? (
+                                  <RefreshCw size={12} className="flex-shrink-0 animate-spin" />
+                                ) : (
+                                  <FlaskConical size={12} className="flex-shrink-0" />
+                                )}
+                                <span className="truncate font-semibold">
+                                  {testRunning ? 'Running…' : 'View test output'}
+                                </span>
+                              </button>
+                              <div className="border-b border-rule-soft" />
+                            </>
+                          )}
                           {studentFiles.map((f) => {
                             const active = selectedFile === f && !showTestOutput;
                             return (
@@ -1021,15 +1092,17 @@ function StudentsTab({
                                   </span>
                                 )}
                               </span>
-                              <button
-                                type="button"
-                                onClick={() => runStudentTests(student.email)}
-                                disabled={testRunning}
-                                className="text-navy hover:text-navy/80 font-semibold inline-flex items-center gap-1 text-xs cursor-pointer transition-colors disabled:opacity-50"
-                              >
-                                <RefreshCw size={11} className={testRunning ? 'animate-spin' : ''} />
+                              {!readOnly && (
+                                <button
+                                  type="button"
+                                  onClick={() => runStudentTests(student.email)}
+                                  disabled={testRunning}
+                                  className="text-navy hover:text-navy/80 font-semibold inline-flex items-center gap-1 text-xs cursor-pointer transition-colors disabled:opacity-50"
+                                >
+                                  <RefreshCw size={11} className={testRunning ? 'animate-spin' : ''} />
                                 Re-run
-                              </button>
+                                </button>
+                              )}
                             </div>
                             <div className="flex-1 min-h-0 overflow-auto p-3 bg-paper">
                               {testRunning && !testOutput ? (
@@ -1049,13 +1122,15 @@ function StudentsTab({
                           <div className="flex-1 flex flex-col min-w-0">
                             <div className="flex items-center justify-between px-3.5 py-2 border-b border-rule-soft flex-shrink-0">
                               <span className="text-[12.5px] text-ink-muted font-mono truncate">{selectedFile}</span>
-                              <Link
-                                to={`/ide?classroom=${classroomId}&student=${encodeURIComponent(student.email)}&file=${encodeURIComponent(selectedTemplate + '/' + selectedFile)}`}
-                                className="text-navy hover:text-navy/80 font-semibold inline-flex items-center gap-1.5 text-xs no-underline shrink-0 ml-3 transition-colors"
-                              >
-                                <ExternalLink size={11} />
+                              {!readOnly && (
+                                <Link
+                                  to={`/ide?classroom=${classroomId}&student=${encodeURIComponent(student.email)}&file=${encodeURIComponent(selectedTemplate + '/' + selectedFile)}`}
+                                  className="text-navy hover:text-navy/80 font-semibold inline-flex items-center gap-1.5 text-xs no-underline shrink-0 ml-3 transition-colors"
+                                >
+                                  <ExternalLink size={11} />
                                 Open in workspace
-                              </Link>
+                                </Link>
+                              )}
                             </div>
                             <div className="flex-1 min-h-0 bg-paper p-3 font-mono text-[12.5px] leading-5">
                               {loadingContent ? (
@@ -1109,14 +1184,16 @@ const GRADING_MODES: { value: GradingMode; label: string }[] = [
 ];
 
 function GradebookTab({
-  classroomId,
+  apiBase,
+  readOnly,
   progress,
   weights,
   onSaveWeights,
   onRunTests,
   runningTests,
 }: {
-  classroomId: string;
+  apiBase: string;
+  readOnly: boolean;
   progress: ProgressData | null;
   weights: WeightsData | null;
   onSaveWeights: (w: WeightsData) => void;
@@ -1140,7 +1217,7 @@ function GradebookTab({
     if (localMode !== 'manual' || manualScoresLoaded) return;
     (async () => {
       try {
-        const res = await fetch(`${apiUrl}/classrooms/${classroomId}/manual-scores`, { credentials: 'include' });
+        const res = await fetch(`${apiBase}/manual-scores`, { credentials: 'include' });
         if (res.ok) {
           const data = await res.json();
           setManualScores(data.scores ?? {});
@@ -1148,7 +1225,7 @@ function GradebookTab({
       } catch { /* ignore */ }
       setManualScoresLoaded(true);
     })();
-  }, [localMode, classroomId, manualScoresLoaded]);
+  }, [localMode, apiBase, manualScoresLoaded]);
 
   if (!progress || progress.templates.length === 0) {
     return (
@@ -1162,6 +1239,7 @@ function GradebookTab({
   const showInputRow = localMode !== 'equal';
 
   const changeMode = (mode: GradingMode) => {
+    if (readOnly) return;
     setLocalMode(mode);
     if (mode === 'equal') {
       // Only save the mode — don't touch stored weights so they're
@@ -1178,17 +1256,19 @@ function GradebookTab({
   };
 
   const updateWeight = (template: string, value: number) => {
+    if (readOnly) return;
     const updated = { ...localWeights, [template]: value };
     setLocalWeights(updated);
     onSaveWeights({ grading_mode: localMode, weights: updated });
   };
 
   const saveManualScore = async (userId: string, template: string, score: number) => {
+    if (readOnly) return;
     setManualScores((prev) => ({
       ...prev,
       [userId]: { ...prev[userId], [template]: score },
     }));
-    await fetch(`${apiUrl}/classrooms/${classroomId}/manual-score`, {
+    await fetch(`${apiBase}/manual-score`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
@@ -1242,11 +1322,13 @@ function GradebookTab({
                 role="tab"
                 aria-selected={active}
                 onClick={() => changeMode(m.value)}
+                disabled={readOnly && !active}
                 className={cn(
-                  'px-4 py-1.5 rounded-full text-sm font-semibold cursor-pointer transition-colors whitespace-nowrap',
+                  'px-4 py-1.5 rounded-full text-sm font-semibold transition-colors whitespace-nowrap',
                   active
                     ? 'bg-navy text-white'
                     : 'text-ink-muted hover:text-ink-strong',
+                  readOnly && !active ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer',
                 )}
               >
                 {m.label}
@@ -1255,7 +1337,7 @@ function GradebookTab({
           })}
         </div>
 
-        {localMode !== 'manual' && (
+        {localMode !== 'manual' && !readOnly && (
           <div className="flex items-center gap-3">
             <span className="caption">Scores update when you run tests.</span>
             <button
@@ -1308,13 +1390,17 @@ function GradebookTab({
                       type="text"
                       inputMode="decimal"
                       value={localWeights[t] ?? 0}
+                      readOnly={readOnly}
                       onChange={(e) => {
                         const v = e.target.value;
                         if (v === '' || /^\d*\.?\d*$/.test(v)) {
                           updateWeight(t, parseFloat(v) || 0);
                         }
                       }}
-                      className="bg-paper border border-rule rounded-md text-sm text-ink-default px-2 py-1 w-20 text-center font-mono outline-none focus:ring-2 focus:ring-navy/30 transition-shadow"
+                      className={cn(
+                        'bg-paper border border-rule rounded-md text-sm text-ink-default px-2 py-1 w-20 text-center font-mono outline-none focus:ring-2 focus:ring-navy/30 transition-shadow',
+                        readOnly && 'cursor-not-allowed',
+                      )}
                       title={`${localMode === 'manual' ? 'Total' : 'Weight'} for ${t}`}
                     />
                   </th>
@@ -1353,7 +1439,9 @@ function GradebookTab({
                               type="text"
                               inputMode="decimal"
                               value={score}
+                              readOnly={readOnly}
                               onChange={(e) => {
+                                if (readOnly) return;
                                 const v = e.target.value;
                                 if (v === '' || /^\d*\.?\d*$/.test(v)) {
                                   const num = parseFloat(v) || 0;
@@ -1369,6 +1457,7 @@ function GradebookTab({
                               className={cn(
                                 'bg-paper border border-rule rounded-md text-sm px-2 py-1 w-14 text-center font-mono tabular-nums outline-none focus:ring-2 focus:ring-navy/30 transition-shadow',
                                 total > 0 && score >= total ? 'text-forest font-semibold' : 'text-ink-default',
+                                readOnly && 'cursor-not-allowed',
                               )}
                             />
                             <span className="text-ink-subtle">/{total || 0}</span>
@@ -1381,15 +1470,27 @@ function GradebookTab({
                     const total = r?.total ?? 0;
                     const passing = total > 0 && passed === total;
                     const partial = passed > 0 && passed < total;
-                    const pillColor = passing ? 'forest' : partial ? 'ochre' : 'tomato';
+                    // Plain colored numbers (no pill background): full pass
+                    // → forest, partial → ochre, zero → tomato. Mirrors the
+                    // Students-tab treatment for consistency.
+                    const labelColor = passing
+                      ? 'text-forest'
+                      : partial
+                        ? 'text-ochre'
+                        : 'text-tomato';
                     return (
                       <td key={t} className="pl-3! pr-3 py-2.5 text-center">
                         {total === 0 ? (
                           <span className="font-mono text-xs text-ink-subtle">—</span>
                         ) : (
-                          <Pill color={pillColor}>
-                            <span className="font-mono tabular-nums">{passed}/{total}</span>
-                          </Pill>
+                          <span
+                            className={cn(
+                              'font-mono tabular-nums text-sm font-semibold',
+                              labelColor,
+                            )}
+                          >
+                            {passed}/{total}
+                          </span>
                         )}
                       </td>
                     );
@@ -1442,10 +1543,14 @@ interface Draft {
 
 function AssignmentsTab({
   classroomId,
+  apiBase,
+  readOnly,
   templates,
   onPublished,
 }: {
   classroomId: string;
+  apiBase: string;
+  readOnly: boolean;
   templates: string[];
   onPublished: () => Promise<void> | void;
 }) {
@@ -1460,7 +1565,7 @@ function AssignmentsTab({
 
   const fetchDrafts = useCallback(async () => {
     try {
-      const res = await fetch(`${apiUrl}/classrooms/${classroomId}/drafts`, { credentials: 'include' });
+      const res = await fetch(`${apiBase}/drafts`, { credentials: 'include' });
       if (res.ok) {
         const data = await res.json();
         setDrafts(data.drafts ?? []);
@@ -1468,7 +1573,7 @@ function AssignmentsTab({
     } finally {
       setLoading(false);
     }
-  }, [classroomId]);
+  }, [apiBase]);
 
   useEffect(() => { fetchDrafts(); }, [fetchDrafts]);
 
@@ -1481,7 +1586,7 @@ function AssignmentsTab({
         const path = (file as { webkitRelativePath?: string }).webkitRelativePath || file.name;
         formData.append('files', file, path);
       }
-      const res = await fetch(`${apiUrl}/classrooms/${classroomId}/drafts`, {
+      const res = await fetch(`${apiBase}/drafts`, {
         method: 'POST',
         body: formData,
         credentials: 'include',
@@ -1514,7 +1619,7 @@ function AssignmentsTab({
       return;
     }
     const res = await fetch(
-      `${apiUrl}/classrooms/${classroomId}/drafts/${encodeURIComponent(oldName)}/rename`,
+      `${apiBase}/drafts/${encodeURIComponent(oldName)}/rename`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1538,7 +1643,7 @@ function AssignmentsTab({
 
   const deleteDraft = async (name: string) => {
     if (!window.confirm(`Delete draft "${name}"?`)) return;
-    await fetch(`${apiUrl}/classrooms/${classroomId}/drafts/${encodeURIComponent(name)}`, {
+    await fetch(`${apiBase}/drafts/${encodeURIComponent(name)}`, {
       method: 'DELETE',
       credentials: 'include',
     });
@@ -1547,7 +1652,7 @@ function AssignmentsTab({
 
   const deleteAssignment = async (name: string) => {
     if (!window.confirm(`Delete published assignment "${name}"? This will not remove copies already in students' folders.`)) return;
-    await fetch(`${apiUrl}/classrooms/${classroomId}/assignments/${encodeURIComponent(name)}`, {
+    await fetch(`${apiBase}/assignments/${encodeURIComponent(name)}`, {
       method: 'DELETE',
       credentials: 'include',
     });
@@ -1557,7 +1662,7 @@ function AssignmentsTab({
   const publishDraft = async (name: string) => {
     setPublishing(name);
     try {
-      const res = await fetch(`${apiUrl}/classrooms/${classroomId}/drafts/${encodeURIComponent(name)}/publish`, {
+      const res = await fetch(`${apiBase}/drafts/${encodeURIComponent(name)}/publish`, {
         method: 'POST',
         credentials: 'include',
       });
@@ -1591,31 +1696,35 @@ function AssignmentsTab({
       <div className="flex items-center justify-between mb-8 gap-3 flex-wrap">
         <div>
           <h3 className="heading-3">Assignments</h3>
-          <p className="body-sm mt-1">Drafts and published templates for this classroom.</p>
+          <p className="body-sm mt-1">
+            {readOnly ? 'Published templates for this classroom.' : 'Drafts and published templates for this classroom.'}
+          </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Link
-            to="/lessons"
-            className="text-navy hover:text-navy/80 font-semibold inline-flex items-center gap-1.5 px-3 py-2 rounded-md hover:bg-paper-tinted text-sm no-underline transition-colors"
-            title="Browse ready-to-import lessons"
-          >
-            <BookOpen size={14} />
+        {!readOnly && (
+          <div className="flex items-center gap-2">
+            <Link
+              to="/lessons"
+              className="text-navy hover:text-navy/80 font-semibold inline-flex items-center gap-1.5 px-3 py-2 rounded-md hover:bg-paper-tinted text-sm no-underline transition-colors"
+              title="Browse ready-to-import lessons"
+            >
+              <BookOpen size={14} />
             Browse lessons
-          </Link>
-          <label className="cursor-pointer">
-            <PrimaryButton size="sm" color="navy" icon={<Upload size={14} />}>
-              {uploading ? 'Uploading…' : 'Upload assignment'}
-            </PrimaryButton>
-            <input
-              ref={folderInputRef}
-              type="file"
-              className="hidden"
-              {...{ webkitdirectory: '', directory: '' } as React.InputHTMLAttributes<HTMLInputElement>}
-              onChange={(e) => e.target.files && handleUpload(e.target.files)}
-              disabled={uploading}
-            />
-          </label>
-        </div>
+            </Link>
+            <label className="cursor-pointer">
+              <PrimaryButton size="sm" color="navy" icon={<Upload size={14} />}>
+                {uploading ? 'Uploading…' : 'Upload assignment'}
+              </PrimaryButton>
+              <input
+                ref={folderInputRef}
+                type="file"
+                className="hidden"
+                {...{ webkitdirectory: '', directory: '' } as React.InputHTMLAttributes<HTMLInputElement>}
+                onChange={(e) => e.target.files && handleUpload(e.target.files)}
+                disabled={uploading}
+              />
+            </label>
+          </div>
+        )}
       </div>
 
       {/* Drafts */}
@@ -1626,7 +1735,7 @@ function AssignmentsTab({
         </div>
         {drafts.length === 0 ? (
           <div className="bg-paper-elevated border border-rule-soft rounded-lg shadow-sm p-6 text-center body-sm">
-            No drafts. Upload a folder above to create one.
+          No drafts. Upload a folder above to create one.
           </div>
         ) : (
           <div className="flex flex-col gap-3">
@@ -1637,7 +1746,7 @@ function AssignmentsTab({
               >
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    {renamingDraft === draft.name ? (
+                    {renamingDraft === draft.name && !readOnly ? (
                       <input
                         autoFocus
                         value={renameDraftValue}
@@ -1667,37 +1776,56 @@ function AssignmentsTab({
                   </p>
                 </div>
                 <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
-                  <Link
-                    to={`/ide?classroom=${classroomId}&folder=${encodeURIComponent('drafts/' + draft.name)}`}
-                    className="text-navy hover:text-navy/80 font-semibold inline-flex items-center gap-1.5 px-3 py-2 rounded-md hover:bg-paper-tinted text-sm no-underline transition-colors"
-                    title="Open in workspace to edit"
-                  >
-                    <ExternalLink size={14} />
+                  {readOnly ? (
+                    <span
+                      className="text-ink-muted inline-flex items-center gap-1.5 px-3 py-2 rounded-md text-sm cursor-not-allowed opacity-60"
+                      title="Sign up to edit drafts in your own workspace."
+                    >
+                      <ExternalLink size={14} />
+                      Edit in workspace
+                    </span>
+                  ) : (
+                    <Link
+                      to={`/ide?classroom=${classroomId}&folder=${encodeURIComponent('drafts/' + draft.name)}`}
+                      className="text-navy hover:text-navy/80 font-semibold inline-flex items-center gap-1.5 px-3 py-2 rounded-md hover:bg-paper-tinted text-sm no-underline transition-colors"
+                      title="Open in workspace to edit"
+                    >
+                      <ExternalLink size={14} />
                     Edit in workspace
-                  </Link>
+                    </Link>
+                  )}
                   <PrimaryButton
                     size="sm"
                     color="forest"
                     icon={<Send size={14} />}
-                    onClick={() => publishDraft(draft.name)}
-                    disabled={publishing === draft.name || renamingDraft === draft.name}
+                    onClick={() => { if (!readOnly) publishDraft(draft.name); }}
+                    disabled={readOnly || publishing === draft.name || renamingDraft === draft.name}
+                    title={readOnly ? 'Sign up to publish drafts.' : undefined}
                   >
                     {publishing === draft.name ? 'Publishing…' : 'Publish'}
                   </PrimaryButton>
                   <button
                     type="button"
-                    onClick={() => startRenameDraft(draft.name)}
-                    className="p-2 rounded-md text-ink-muted hover:text-ink-strong hover:bg-paper-tinted cursor-pointer transition-colors"
-                    title="Rename draft"
+                    onClick={() => { if (!readOnly) startRenameDraft(draft.name); }}
+                    disabled={readOnly}
+                    className={cn(
+                      'p-2 rounded-md text-ink-muted transition-colors',
+                      readOnly ? 'opacity-60 cursor-not-allowed' : 'hover:text-ink-strong hover:bg-paper-tinted cursor-pointer',
+                    )}
+                    title={readOnly ? 'Sign up to rename drafts.' : 'Rename draft'}
                     aria-label="Rename draft"
                   >
                     <Pencil size={14} />
                   </button>
                   <button
                     type="button"
-                    onClick={() => deleteDraft(draft.name)}
-                    className="p-2 rounded-md text-tomato hover:bg-tomato/10 cursor-pointer transition-colors"
-                    title="Delete draft"
+                    onClick={() => { if (!readOnly) deleteDraft(draft.name); }}
+                    disabled={readOnly}
+                    className={cn(
+                      'p-2 rounded-md text-tomato transition-colors',
+                      readOnly ? 'opacity-60 cursor-not-allowed' : 'hover:bg-tomato/10 cursor-pointer',
+                    )}
+                    title={readOnly ? 'Sign up to delete drafts.' : 'Delete draft'}
                     aria-label="Delete draft"
                   >
                     <Trash2 size={14} />
@@ -1735,17 +1863,19 @@ function AssignmentsTab({
                   <p className="heading-4 truncate mb-0">{t}</p>
                   <Pill color="forest">Published</Pill>
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => deleteAssignment(t)}
-                    className="p-2 rounded-md text-tomato hover:bg-tomato/10 cursor-pointer transition-colors"
-                    title="Delete assignment"
-                    aria-label="Delete assignment"
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                </div>
+                {!readOnly && (
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => deleteAssignment(t)}
+                      className="p-2 rounded-md text-tomato hover:bg-tomato/10 cursor-pointer transition-colors"
+                      title="Delete assignment"
+                      aria-label="Delete assignment"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                )}
               </div>
             ))}
           </div>

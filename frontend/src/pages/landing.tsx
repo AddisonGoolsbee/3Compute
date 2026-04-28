@@ -154,12 +154,16 @@ interface DemoStudent {
   scores: Record<string, [number, number]>;
 }
 
+// Names mirror the seeded live demo (backend/api/demo.py DEMO_STUDENTS) so
+// the static gradebook on the landing page and the interactive /demo show
+// the same roster. Score patterns include 0/total entries so the red
+// treatment is visible alongside green and ochre.
 const DEMO_STUDENTS: DemoStudent[] = [
-  { name: 'Alice Chen', email: 'alice@school.edu', scores: { 'Data-Encoding': [7, 8], 'Tic-Tac-Toe': [3, 4], 'Weather-App': [2, 3] } },
-  { name: 'Ben Torres', email: 'ben@school.edu', scores: { 'Data-Encoding': [6, 8], 'Tic-Tac-Toe': [4, 4], 'Weather-App': [3, 3] } },
-  { name: 'Chloe Park', email: 'chloe@school.edu', scores: { 'Data-Encoding': [8, 8], 'Tic-Tac-Toe': [4, 4], 'Weather-App': [3, 3] } },
-  { name: 'David Kim', email: 'david@school.edu', scores: { 'Data-Encoding': [5, 8], 'Tic-Tac-Toe': [2, 4], 'Weather-App': [1, 3] } },
-  { name: 'Emma Davis', email: 'emma@school.edu', scores: { 'Data-Encoding': [7, 8], 'Tic-Tac-Toe': [4, 4], 'Weather-App': [2, 3] } },
+  { name: 'Aiden Park',    email: 'aiden.park@csroom.demo',    scores: { 'Data-Encoding': [8, 8], 'Tic-Tac-Toe': [4, 4], 'Weather-App': [3, 3] } },
+  { name: 'Bea Okafor',    email: 'bea.okafor@csroom.demo',    scores: { 'Data-Encoding': [8, 8], 'Tic-Tac-Toe': [2, 4], 'Weather-App': [0, 3] } },
+  { name: 'Casey Tran',    email: 'casey.tran@csroom.demo',    scores: { 'Data-Encoding': [8, 8], 'Tic-Tac-Toe': [4, 4], 'Weather-App': [3, 3] } },
+  { name: 'Diego Alvarez', email: 'diego.alvarez@csroom.demo', scores: { 'Data-Encoding': [6, 8], 'Tic-Tac-Toe': [0, 4], 'Weather-App': [0, 3] } },
+  { name: 'Eleanor Cho',   email: 'eleanor.cho@csroom.demo',   scores: { 'Data-Encoding': [0, 8], 'Tic-Tac-Toe': [0, 4], 'Weather-App': [0, 3] } },
 ];
 
 const DEMO_TEMPLATES = ['Data-Encoding', 'Tic-Tac-Toe', 'Weather-App'];
@@ -456,10 +460,20 @@ function ClassroomDemo() {
                         <td style={{ padding: '8px 12px' }} className="text-sm text-ink-strong pl-3!">{s.name}</td>
                         {DEMO_TEMPLATES.map((t) => {
                           const [p, tot] = s.scores[t];
-                          const passing = p === tot;
+                          // Plain colored numbers (no pill background): full
+                          // pass → forest, partial → ochre, zero → tomato.
+                          // Mirrors classroom-detail.tsx Gradebook for
+                          // consistency between the live and static demos.
+                          const isFull = tot > 0 && p === tot;
+                          const isZero = p === 0;
+                          const labelColor = isFull
+                            ? 'text-forest'
+                            : isZero
+                              ? 'text-tomato'
+                              : 'text-ochre';
                           return (
                             <td key={t} style={{ padding: '8px 12px' }} className="text-center pl-3!">
-                              <span className={`font-mono text-xs tabular-nums ${passing ? 'text-forest font-semibold' : 'text-ink-muted'}`}>
+                              <span className={`font-mono text-xs tabular-nums font-semibold ${labelColor}`}>
                                 {p}/{tot}
                               </span>
                             </td>
@@ -762,6 +776,24 @@ export default function LandingPage() {
       <section className="bg-paper-tinted px-4 sm:px-7 py-16 sm:py-[88px]">
         <div className="max-w-[1100px] mx-auto">
           <ClassroomDemo />
+          <div className="mt-10 flex flex-col items-center text-center gap-4">
+            <p className="body text-ink-default max-w-[560px] m-0">
+              Want to click around yourself?{' '}
+              Try a demo sample classroom. <br /> No sign-up required.
+            </p>
+            <div className="flex flex-wrap gap-3 justify-center">
+              <Link to="/demo" className="inline-flex">
+                <PrimaryButton color="navy" icon={<ArrowRight size={16} />}>
+                  Try the workspace
+                </PrimaryButton>
+              </Link>
+              <Link to="/demo/classroom" className="inline-flex">
+                <GhostButton icon={<ArrowRight size={16} />}>
+                  Try the classroom dashboard
+                </GhostButton>
+              </Link>
+            </div>
+          </div>
         </div>
       </section>
 

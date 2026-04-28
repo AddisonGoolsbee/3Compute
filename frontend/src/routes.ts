@@ -12,6 +12,8 @@ export default [
   route('/request-access/thanks', 'pages/request-access-thanks.tsx'),
   route('/classrooms', 'pages/classrooms.tsx'),
   route('/classrooms/:id', 'pages/classroom-detail.tsx'),
+  route('/demo', 'pages/demo-classroom.tsx'),
+  route('/demo/classroom', 'pages/demo-dashboard.tsx'),
   route('/admin', 'pages/admin.tsx'),
   route('/admin/users', 'pages/admin-users.tsx'),
   route('/admin/classrooms', 'pages/admin-classrooms.tsx'),

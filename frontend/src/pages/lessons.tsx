@@ -143,7 +143,16 @@ export default function LessonsPage() {
     setLoadingPlan(true);
     try {
       const res = await fetch(lesson.lessonPlanDoc);
-      setLessonPlanContent(res.ok ? await res.text() : 'Failed to load lesson plan.');
+      // SPA fallback returns the index HTML for unknown paths with status
+      // 200, so the .ok check isn't enough — also reject anything that
+      // looks like an HTML document.
+      const text = res.ok ? await res.text() : '';
+      const looksLikeHtml = /^\s*<!doctype html|^\s*<html\b/i.test(text);
+      if (!res.ok || looksLikeHtml) {
+        setLessonPlanContent('Failed to load lesson plan.');
+      } else {
+        setLessonPlanContent(text);
+      }
     } catch {
       setLessonPlanContent('Failed to load lesson plan.');
     } finally {
