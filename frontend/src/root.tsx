@@ -379,7 +379,8 @@ export function Layout({ children }: { children: ReactNode }) {
             __html: `window.dataLayer = window.dataLayer || [];
 function gtag(){dataLayer.push(arguments);}
 gtag('js', new Date());
-gtag('config', 'G-3YB0XHNYT5');`,
+gtag('config', 'G-3YB0XHNYT5');
+gtag('config', 'AW-11483620641');`,
           }}
         />
         <meta charSet="utf-8" />

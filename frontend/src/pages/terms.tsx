@@ -126,8 +126,8 @@ export default function TermsPage() {
           >
             Google's privacy policy
           </a>
-          . We do not use this data to retarget you with ads on other sites, and we do not
-          sell or share it with third parties beyond Google.
+          . We do not
+          sell or share it with third parties.
         </p>
         <p>
           We do not collect payment information.
