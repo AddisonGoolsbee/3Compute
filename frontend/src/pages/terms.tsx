@@ -19,7 +19,7 @@ export default function TermsPage() {
   return (
     <div className="max-w-[760px] mx-auto px-7 py-16">
       <h1 className="heading-1 mb-2">Terms of service and privacy policy</h1>
-      <p className="body-sm mb-10">Effective date: March 23, 2026</p>
+      <p className="body-sm mb-10">Effective date: April 28, 2026</p>
 
       <p className="body mb-10 text-ink-default">
         CS Room is a free educational platform operated by Birdflop, a 501(c)(3) nonprofit
@@ -112,8 +112,25 @@ export default function TermsPage() {
           of classroom membership if you join or create a classroom.
         </p>
         <p>
-          We do not collect payment information. We do not use third-party analytics or
-          advertising trackers.
+          We use Google Analytics to understand how CS Room is used, to improve the
+          platform, and to measure the effectiveness of our Google Search Ads (for example,
+          whether visitors who arrive from an ad go on to sign up). Google Analytics may
+          set cookies and collect information such as your IP address, device and browser
+          type, pages viewed, referring URL, and approximate location. This information is
+          processed by Google in accordance with{' '}
+          <a
+            href="https://policies.google.com/privacy"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-navy font-semibold hover:underline"
+          >
+            Google's privacy policy
+          </a>
+          . We do not use this data to retarget you with ads on other sites, and we do not
+          sell or share it with third parties beyond Google.
+        </p>
+        <p>
+          We do not collect payment information.
         </p>
       </Section>
 
