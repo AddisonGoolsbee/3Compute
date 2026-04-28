@@ -1,4 +1,4 @@
-# My Website (Personal Portfolio): Instructor Lesson Plan
+# Personal Website: Instructor Lesson Plan
 
 ## Overview
 
@@ -412,18 +412,18 @@ Use these at natural transition points:
 
 | File | Purpose |
 |------|---------|
-| `templateProjects/My-Website/app.py` | Student template with commented-out TODOs |
-| `templateProjects/My-Website/templates/base.html` | Shared layout (nav, footer) |
-| `templateProjects/My-Website/templates/index.html` | Home page with commented-out section HTML |
-| `templateProjects/My-Website/static/style.css` | Stylesheet with CSS variables for theming |
-| `templateProjects/My-Website/static/app.js` | JavaScript with commented-out section code |
-| `templateProjects/My-Website/test_website.py` | Test suite for Flask routes |
-| `templateProjects/My-Website/README.md` | Student-facing instructions |
-| `templateProjects/My-Website/requirements.txt` | Python dependencies |
-| `docs/my-website/lesson-plan.md` | This document |
-| `docs/my-website/solution/app.py` | Complete reference implementation |
-| `docs/my-website/solution/index.html` | Complete index.html with all sections |
-| `docs/my-website/solution/app.js` | Complete app.js with all sections |
+| `templateProjects/Personal-Website/app.py` | Student template with commented-out TODOs |
+| `templateProjects/Personal-Website/templates/base.html` | Shared layout (nav, footer) |
+| `templateProjects/Personal-Website/templates/index.html` | Home page with commented-out section HTML |
+| `templateProjects/Personal-Website/static/style.css` | Stylesheet with CSS variables for theming |
+| `templateProjects/Personal-Website/static/app.js` | JavaScript with commented-out section code |
+| `templateProjects/Personal-Website/test_website.py` | Test suite for Flask routes |
+| `templateProjects/Personal-Website/README.md` | Student-facing instructions |
+| `templateProjects/Personal-Website/requirements.txt` | Python dependencies |
+| `docs/personal-website/lesson-plan.md` | This document |
+| `docs/personal-website/solution/app.py` | Complete reference implementation |
+| `docs/personal-website/solution/index.html` | Complete index.html with all sections |
+| `docs/personal-website/solution/app.js` | Complete app.js with all sections |
 
 ---
 

@@ -155,7 +155,7 @@ def run_shell() -> None:
     fs = MiniFS()
 
     print("=" * 52)
-    print("  MiniFS Shell  |  Computing Layers Project")
+    print("  MiniFS Shell  |  Building a File System Project")
     print("=" * 52)
 
     if not _check_implementation(fs):

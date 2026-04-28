@@ -1,4 +1,4 @@
-# Computing Layers: Build a File System
+# Building a File System
 
 When you save a file, something has to decide where on the physical disk those bytes land, what permissions protect them, how to find them again later, and how to give your program access to them through a name such as `"notes.txt"`. That work belongs to the operating system.
 
@@ -15,7 +15,7 @@ This README covers background knowledge that may be necessary or helpful for thi
 
 ## Setup
 
-Right-click the `Computing-Layers` folder in the file explorer on the left and select **Open in Terminal**. This executes `cd` (change directory) in your terminal to the project folder so the commands below will work.
+Right-click the `Building-a-File-System` folder in the file explorer on the left and select **Open in Terminal**. This executes `cd` (change directory) in your terminal to the project folder so the commands below will work.
 
 From there:
 

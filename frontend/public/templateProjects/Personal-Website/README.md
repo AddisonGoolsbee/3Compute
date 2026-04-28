@@ -1,4 +1,4 @@
-# My Website
+# Personal Website
 
 You build this site section by section. Each section adds something real: your name, your bio, a skills chart, a live clock, a visitor counter. When you are done, you have a working site you can share with anyone.
 
@@ -8,7 +8,7 @@ This README covers background knowledge that may be necessary or helpful for thi
 
 ## How to Run It
 
-Right-click the `My-Website` folder in the file explorer on the left and select **Open in Terminal**. This executes `cd` (change directory) in your terminal to the project folder so the commands below will work.
+Right-click the `Personal-Website` folder in the file explorer on the left and select **Open in Terminal**. This executes `cd` (change directory) in your terminal to the project folder so the commands below will work.
 
 Install the dependencies and start the server:
 
@@ -37,7 +37,7 @@ When you run `python app.py` on CS Room, the platform keeps your server reachabl
 ## Project Structure
 
 ```
-my-website/
+personal-website/
 ├── app.py              Flask backend. Add your routes here.
 ├── templates/
 │   ├── base.html       Shared layout (nav bar, footer).

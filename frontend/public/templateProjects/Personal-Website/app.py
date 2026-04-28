@@ -1,6 +1,6 @@
 """
-My Website - Personal Portfolio
-================================
+Personal Website - Personal Portfolio
+=====================================
 
 You're building a real website. By the time you finish all eight sections,
 you'll have something you can share with anyone: friends, family, future

@@ -2,7 +2,7 @@
 MiniFS Solution
 ===============
 
-Reference implementation for the Computing Layers project.
+Reference implementation for the Building a File System project.
 Instructor use only — do not distribute to students.
 """
 

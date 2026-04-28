@@ -1,4 +1,4 @@
-# Computing Layers: Instructor Lesson Plan
+# Building a File System: Instructor Lesson Plan
 
 ## Overview
 
@@ -66,7 +66,7 @@ By the end of this project, students should be able to:
 |------|---------|
 | `solution.py` | Complete reference implementation (instructor only, do not distribute) |
 | `lesson-plan.md` | This document |
-| Computing-Layers student template: | |
+| Building-a-File-System student template: | |
 | `file_system.py` | MiniFS skeleton with six TODO methods |
 | `main.py` | Provided REPL shell |
 | `test_filesystem.py` | Test suite |

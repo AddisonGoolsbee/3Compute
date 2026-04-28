@@ -84,15 +84,15 @@ LESSONS: list[dict] = [
         "test": ["python3", "test_programs.py"],
     },
     {
-        "id": "computing_layers",
-        "template": "frontend/public/templateProjects/Computing-Layers",
-        "overlays": [("backend/solutions/computing-layers/solution.py", "file_system.py")],
+        "id": "building_a_file_system",
+        "template": "frontend/public/templateProjects/Building-a-File-System",
+        "overlays": [("backend/solutions/building-a-file-system/solution.py", "file_system.py")],
         "test": ["python3", "test_filesystem.py"],
     },
     {
-        "id": "my_website",
-        "template": "frontend/public/templateProjects/My-Website",
-        "overlays": [("backend/solutions/my-website/solution/app.py", "app.py")],
+        "id": "personal_website",
+        "template": "frontend/public/templateProjects/Personal-Website",
+        "overlays": [("backend/solutions/personal-website/solution/app.py", "app.py")],
         "test": ["python3", "test_website.py"],
     },
 ]
@@ -108,7 +108,7 @@ def verify_success(lesson_id: str, output: str, returncode: int) -> tuple[bool, 
             return True, ""
         return False, "expected password suite full-pass message"
 
-    if lesson_id in ("weather_app", "my_website", "data_encoding"):
+    if lesson_id in ("weather_app", "personal_website", "data_encoding"):
         return True, ""
 
     if lesson_id == "data_analysis":

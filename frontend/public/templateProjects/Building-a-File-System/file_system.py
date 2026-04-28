@@ -1,6 +1,6 @@
 """
-Computing Layers: Build a File System
-======================================
+Building a File System
+======================
 
 Real operating systems hide enormous complexity behind simple commands.
 When you call open("notes.txt", "r") in Python, the OS locates the file

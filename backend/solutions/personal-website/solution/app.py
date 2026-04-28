@@ -1,6 +1,6 @@
 """
-My Website: SOLUTION (Instructor Reference)
-=============================================
+Personal Website: SOLUTION (Instructor Reference)
+=================================================
 
 This is the complete, working version of app.py with all eight sections
 implemented. Use this to check student work or debug common issues.
