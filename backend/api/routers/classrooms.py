@@ -19,7 +19,7 @@ from backend.docker import (
 )
 
 from ..database import AssignmentWeight, Classroom, ClassroomMember, ManualScore, TestResult, User
-from ..dependencies import get_current_user, get_db
+from ..dependencies import get_db, get_onboarded_user, require_teacher
 from ..terminal import notify_files_changed
 
 try:
@@ -238,7 +238,7 @@ class ManageMemberRequest(BaseModel):
 
 @router.get("/")
 async def list_classrooms(
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_onboarded_user),
     db: Session = Depends(get_db),
 ):
     user_id = str(user.id)
@@ -305,7 +305,7 @@ async def list_classrooms(
 @router.post("/", status_code=201)
 async def create_classroom(
     body: CreateClassroomRequest,
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_teacher),
     db: Session = Depends(get_db),
 ):
     name = body.name.strip()
@@ -375,7 +375,7 @@ async def create_classroom(
 @router.post("/join")
 async def join_classroom(
     body: JoinClassroomRequest,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_onboarded_user),
     db: Session = Depends(get_db),
 ):
     code = body.code.strip().upper()
@@ -470,7 +470,7 @@ async def join_classroom(
 @router.post("/validate-code")
 async def validate_classroom_code(
     body: ValidateCodeRequest,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_onboarded_user),
     db: Session = Depends(get_db),
 ):
     code = (body.code or "").strip().upper()
@@ -489,7 +489,7 @@ async def validate_classroom_code(
 @router.post("/restore-by-slug")
 async def restore_by_slug(
     body: RestoreBySlugRequest,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_onboarded_user),
     db: Session = Depends(get_db),
 ):
     slug = body.slug.strip().lower()
@@ -547,7 +547,7 @@ async def restore_by_slug(
 
 @router.get("/assignments")
 async def list_classroom_assignments(
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_onboarded_user),
     db: Session = Depends(get_db),
 ):
     user_id = str(user.id)
@@ -615,7 +615,7 @@ async def list_classroom_assignments(
 @router.get("/{classroom_id}/access-code")
 async def get_access_code(
     classroom_id: str,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_onboarded_user),
     db: Session = Depends(get_db),
 ):
     classroom = _require_classroom(db, classroom_id)
@@ -626,7 +626,7 @@ async def get_access_code(
 @router.post("/{classroom_id}/access-code")
 async def regenerate_access_code(
     classroom_id: str,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_onboarded_user),
     db: Session = Depends(get_db),
 ):
     classroom = _require_classroom(db, classroom_id)
@@ -643,7 +643,7 @@ async def regenerate_access_code(
 async def update_classroom(
     classroom_id: str,
     body: UpdateClassroomRequest,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_onboarded_user),
     db: Session = Depends(get_db),
 ):
     classroom = _require_classroom(db, classroom_id)
@@ -676,7 +676,7 @@ async def update_classroom(
 @router.delete("/{classroom_id}")
 async def delete_classroom(
     classroom_id: str,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_onboarded_user),
     db: Session = Depends(get_db),
 ):
     classroom = _require_classroom(db, classroom_id)
@@ -705,7 +705,7 @@ async def delete_classroom(
 async def archive_classroom(
     classroom_id: str,
     body: ArchiveClassroomRequest,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_onboarded_user),
     db: Session = Depends(get_db),
 ):
     _require_classroom(db, classroom_id)
@@ -733,7 +733,7 @@ async def archive_classroom(
 @router.get("/{classroom_id}/participants")
 async def list_participants(
     classroom_id: str,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_onboarded_user),
     db: Session = Depends(get_db),
 ):
     _require_classroom(db, classroom_id)
@@ -752,7 +752,7 @@ async def list_participants(
 async def add_participant(
     classroom_id: str,
     body: ManageMemberRequest,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_onboarded_user),
     db: Session = Depends(get_db),
 ):
     _require_classroom(db, classroom_id)
@@ -798,7 +798,7 @@ async def add_participant(
 async def remove_participant(
     classroom_id: str,
     body: ManageMemberRequest,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_onboarded_user),
     db: Session = Depends(get_db),
 ):
     _require_classroom(db, classroom_id)
@@ -827,7 +827,7 @@ async def remove_participant(
 @router.get("/{classroom_id}/instructors")
 async def list_instructors(
     classroom_id: str,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_onboarded_user),
     db: Session = Depends(get_db),
 ):
     _require_classroom(db, classroom_id)
@@ -846,7 +846,7 @@ async def list_instructors(
 async def add_instructor(
     classroom_id: str,
     body: ManageMemberRequest,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_onboarded_user),
     db: Session = Depends(get_db),
 ):
     _require_classroom(db, classroom_id)
@@ -896,7 +896,7 @@ async def add_instructor(
 async def remove_instructor(
     classroom_id: str,
     body: ManageMemberRequest,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_onboarded_user),
     db: Session = Depends(get_db),
 ):
     _require_classroom(db, classroom_id)
@@ -941,7 +941,7 @@ async def upload_classroom_assignment(
     classroom_id: str,
     files: list[UploadFile] = File(...),
     template_name: str = Form(default=""),
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_onboarded_user),
     db: Session = Depends(get_db),
 ):
     _require_classroom(db, classroom_id)
@@ -1041,7 +1041,7 @@ async def restore_assignment_files(
     classroom_id: str,
     template_name: str,
     body: RestoreAssignmentRequest,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_onboarded_user),
     db: Session = Depends(get_db),
 ):
     """Copy template file(s) over the participant's working copy so they can
@@ -1129,7 +1129,7 @@ async def restore_assignment_files(
 @router.get("/{classroom_id}/progress")
 async def get_classroom_progress(
     classroom_id: str,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_onboarded_user),
     db: Session = Depends(get_db),
 ):
     """Get all students' test results for all templates in a classroom."""
@@ -1210,7 +1210,7 @@ class RunStudentTestsRequest(BaseModel):
 async def run_student_tests(
     classroom_id: str,
     body: RunStudentTestsRequest,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_onboarded_user),
     db: Session = Depends(get_db),
 ):
     """Run tests for a single student on a single template and return raw output."""
@@ -1287,7 +1287,7 @@ class RunTestsRequest(BaseModel):
 async def run_classroom_tests(
     classroom_id: str,
     body: RunTestsRequest,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_onboarded_user),
     db: Session = Depends(get_db),
 ):
     """Run tests for all students on a specific template (or all templates)."""
@@ -1397,7 +1397,7 @@ class UpdateWeightsRequest(BaseModel):
 @router.get("/{classroom_id}/weights")
 async def get_weights(
     classroom_id: str,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_onboarded_user),
     db: Session = Depends(get_db),
 ):
     classroom = _require_classroom(db, classroom_id)
@@ -1419,7 +1419,7 @@ async def get_weights(
 async def update_weights(
     classroom_id: str,
     body: UpdateWeightsRequest,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_onboarded_user),
     db: Session = Depends(get_db),
 ):
     classroom = _require_classroom(db, classroom_id)
@@ -1478,7 +1478,7 @@ class UpdateManualScoreRequest(BaseModel):
 @router.get("/{classroom_id}/manual-scores")
 async def get_manual_scores(
     classroom_id: str,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_onboarded_user),
     db: Session = Depends(get_db),
 ):
     _require_classroom(db, classroom_id)
@@ -1499,7 +1499,7 @@ async def get_manual_scores(
 async def update_manual_score(
     classroom_id: str,
     body: UpdateManualScoreRequest,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_onboarded_user),
     db: Session = Depends(get_db),
 ):
     _require_classroom(db, classroom_id)
@@ -1538,7 +1538,7 @@ async def list_student_files(
     classroom_id: str,
     email: str,
     template: str,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_onboarded_user),
     db: Session = Depends(get_db),
 ):
     """List files in a student's assignment directory. Teacher-only."""
@@ -1603,7 +1603,7 @@ async def get_student_file(
     classroom_id: str,
     email: str,
     path: str,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_onboarded_user),
     db: Session = Depends(get_db),
 ):
     """Read a student's file content. Teacher-only."""
@@ -1719,7 +1719,7 @@ def _list_dir_files(base: str) -> list[str]:
 @router.get("/{classroom_id}/drafts")
 async def list_drafts(
     classroom_id: str,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_onboarded_user),
     db: Session = Depends(get_db),
 ):
     if not _is_instructor(db, classroom_id, str(user.id)):
@@ -1742,7 +1742,7 @@ async def list_drafts(
 async def upload_draft(
     classroom_id: str,
     files: list[UploadFile] = File(...),
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_onboarded_user),
     db: Session = Depends(get_db),
 ):
     if not _is_instructor(db, classroom_id, str(user.id)):
@@ -1784,7 +1784,7 @@ async def upload_draft(
 async def delete_draft(
     classroom_id: str,
     draft_name: str,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_onboarded_user),
     db: Session = Depends(get_db),
 ):
     if not _is_instructor(db, classroom_id, str(user.id)):
@@ -1808,7 +1808,7 @@ async def rename_draft(
     classroom_id: str,
     draft_name: str,
     body: RenameDraftRequest,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_onboarded_user),
     db: Session = Depends(get_db),
 ):
     if not _is_instructor(db, classroom_id, str(user.id)):
@@ -1848,7 +1848,7 @@ async def rename_draft(
 async def publish_draft(
     classroom_id: str,
     draft_name: str,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_onboarded_user),
     db: Session = Depends(get_db),
 ):
     if not _is_instructor(db, classroom_id, str(user.id)):
@@ -1958,7 +1958,7 @@ async def publish_draft(
 async def delete_assignment(
     classroom_id: str,
     template_name: str,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_onboarded_user),
     db: Session = Depends(get_db),
 ):
     if not _is_instructor(db, classroom_id, str(user.id)):

@@ -1,5 +1,5 @@
 import { useEffect, useState, useContext } from 'react';
-import { Link, Navigate } from 'react-router';
+import { Link, Navigate, useNavigate } from 'react-router';
 import {
   Copy,
   Check,
@@ -7,12 +7,13 @@ import {
   Plus,
   LogIn,
   School,
+  UserPlus,
 } from 'lucide-react';
 import { apiUrl, UserDataContext } from '../util/UserData';
 import CreateClassroomDialog from '../components/CreateClassroomDialog';
 import JoinClassroomDialog from '../components/JoinClassroomDialog';
 import Footer from '../components/Footer';
-import { PrimaryButton, Pill } from '../components/ui/Buttons';
+import { GhostButton, PrimaryButton, Pill } from '../components/ui/Buttons';
 import { cn } from '../util/cn';
 
 interface Classroom {
@@ -35,6 +36,7 @@ function formatCode(code: string) {
 
 export default function ClassroomsPage() {
   const userData = useContext(UserDataContext);
+  const navigate = useNavigate();
   const [owned, setOwned] = useState<Classroom[]>([]);
   const [joined, setJoined] = useState<Classroom[]>([]);
   const [assignmentsByClassroom, setAssignmentsByClassroom] = useState<
@@ -113,15 +115,23 @@ export default function ClassroomsPage() {
                   : 'Your classrooms and assignments.'}
               </p>
             </div>
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-2.5 flex-wrap">
               {isTeacher && (
-                <PrimaryButton
-                  color="navy"
-                  icon={<Plus size={16} />}
-                  onClick={() => setCreateOpen(true)}
-                >
-                  Create classroom
-                </PrimaryButton>
+                <>
+                  <GhostButton
+                    icon={<UserPlus size={16} />}
+                    onClick={() => navigate('/request-access')}
+                  >
+                    Request more access
+                  </GhostButton>
+                  <PrimaryButton
+                    color="navy"
+                    icon={<Plus size={16} />}
+                    onClick={() => setCreateOpen(true)}
+                  >
+                    Create classroom
+                  </PrimaryButton>
+                </>
               )}
               <PrimaryButton
                 color="forest"

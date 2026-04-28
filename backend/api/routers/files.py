@@ -13,7 +13,7 @@ from sqlmodel import Session, select
 from backend.docker import CLASSROOMS_ROOT, UPLOADS_ROOT, CONTAINER_USER_UID, CONTAINER_USER_GID
 
 from ..database import Classroom, ClassroomMember, User
-from ..dependencies import get_current_user, get_db
+from ..dependencies import get_db, get_onboarded_user
 from ..terminal import notify_files_changed, session_map
 
 logger = logging.getLogger("files")
@@ -577,7 +577,7 @@ def _ensure_readme(upload_dir: str, user: User) -> None:
 @router.get("/list")
 async def list_files(
     show_hidden: bool = False,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_onboarded_user),
     db: Session = Depends(get_db),
 ):
     upload_dir = f"{UPLOADS_ROOT}/{user.id}"
@@ -718,7 +718,7 @@ async def list_files(
 @router.post("/move")
 async def move_file_or_folder(
     body: MoveRequest,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_onboarded_user),
     db: Session = Depends(get_db),
 ):
     source_param = body.source.lstrip("/")
@@ -828,7 +828,7 @@ async def move_file_or_folder(
 @router.post("/copy")
 async def copy_file_or_folder(
     body: CopyRequest,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_onboarded_user),
     db: Session = Depends(get_db),
 ):
     source_param = body.source.lstrip("/")
@@ -909,7 +909,7 @@ async def copy_file_or_folder(
 async def upload(
     files: list[UploadFile] = File(...),
     destination: str = Form(default=""),
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_onboarded_user),
     db: Session = Depends(get_db),
 ):
     upload_dir = f"{UPLOADS_ROOT}/{user.id}"
@@ -1035,7 +1035,7 @@ async def _push_classroom_templates_to_participants(
 async def upload_folder(
     request: Request,
     files: list[UploadFile] = File(...),
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_onboarded_user),
     db: Session = Depends(get_db),
 ):
     upload_dir = f"{UPLOADS_ROOT}/{user.id}"
@@ -1162,7 +1162,7 @@ async def upload_folder(
 @router.get("/file/{file_path:path}")
 async def read_file(
     file_path: str,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_onboarded_user),
 ):
     upload_dir = f"{UPLOADS_ROOT}/{user.id}"
     abs_path = _resolve_abs_path(upload_dir, file_path)
@@ -1188,7 +1188,7 @@ async def read_file(
 @router.get("/download/{file_path:path}")
 async def download_file(
     file_path: str,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_onboarded_user),
 ):
     upload_dir = f"{UPLOADS_ROOT}/{user.id}"
     abs_path = _resolve_abs_path(upload_dir, file_path)
@@ -1260,7 +1260,7 @@ async def download_file(
 async def update_file(
     file_path: str,
     request: Request,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_onboarded_user),
     db: Session = Depends(get_db),
 ):
     upload_dir = f"{UPLOADS_ROOT}/{user.id}"
@@ -1296,7 +1296,7 @@ async def update_file(
 @router.delete("/file/{file_path:path}")
 async def delete_file(
     file_path: str,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_onboarded_user),
     db: Session = Depends(get_db),
 ):
     upload_dir = f"{UPLOADS_ROOT}/{user.id}"
@@ -1336,7 +1336,7 @@ async def delete_file(
 @router.post("/file/{file_path:path}")
 async def create_file(
     file_path: str,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_onboarded_user),
     db: Session = Depends(get_db),
 ):
     upload_dir = f"{UPLOADS_ROOT}/{user.id}"

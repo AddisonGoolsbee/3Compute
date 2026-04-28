@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useContext, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router';
 import { ArrowLeft, AtSign, Check, Mail, ShieldAlert } from 'lucide-react';
-import { apiUrl } from '../util/UserData';
+import { apiUrl, UserDataContext } from '../util/UserData';
 import { PrimaryButton } from '../components/ui/Buttons';
 import Footer from '../components/Footer';
 
@@ -49,9 +49,17 @@ function emailDomain(email: string): string {
 }
 
 export default function RequestAccessPage() {
-  const [fullName, setFullName] = useState('');
+  // When a signed-in teacher hits this page (via Classrooms → "Request more
+  // access"), prefill what we already know and hide the demographic fields
+  // (we already collected them during the original signup) and the
+  // "students-already-have-access" radio (irrelevant for an existing teacher).
+  const userData = useContext(UserDataContext);
+  const userInfo = userData?.userInfo;
+  const isTeacher = userInfo?.role === 'teacher';
+
+  const [fullName, setFullName] = useState(isTeacher ? (userInfo?.name || '') : '');
   const [schoolName, setSchoolName] = useState('');
-  const [schoolEmail, setSchoolEmail] = useState('');
+  const [schoolEmail, setSchoolEmail] = useState(isTeacher ? (userInfo?.email || '') : '');
   const [method, setMethod] = useState<Method>('domain');
   const [studentEmails, setStudentEmails] = useState('');
   const [isNonGoogle, setIsNonGoogle] = useState(false);
@@ -117,10 +125,11 @@ export default function RequestAccessPage() {
   // Empty site key from /public-config means captcha is intentionally off
   // (dev mode). Don't require a token in that case.
   const captchaRequired = turnstileSiteKey !== '' && turnstileSiteKey !== null;
+  const identityOk = isTeacher
+    ? true  // backend pulls from session
+    : !!fullName.trim() && !!schoolName.trim() && schoolEmail.includes('@') && schoolEmail.includes('.');
   const canSubmit =
-    !!fullName.trim() &&
-    !!schoolName.trim() &&
-    schoolEmail.includes('@') && schoolEmail.includes('.') &&
+    identityOk &&
     (!captchaRequired || !!turnstileToken) &&
     !submitting;
 
@@ -137,9 +146,11 @@ export default function RequestAccessPage() {
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          full_name: fullName.trim(),
-          school_name: schoolName.trim(),
-          school_email: schoolEmail.trim(),
+          // Teacher mode: backend derives identity from the session, so we
+          // omit these to avoid prefilled values being treated as user input.
+          full_name: isTeacher ? null : fullName.trim(),
+          school_name: isTeacher ? null : schoolName.trim(),
+          school_email: isTeacher ? null : schoolEmail.trim(),
           student_access_method: method,
           student_emails_text: method === 'list' ? studentEmails : null,
           is_non_google: isNonGoogle,
@@ -170,122 +181,137 @@ export default function RequestAccessPage() {
     <div className="min-h-screen bg-paper flex flex-col">
       <main className="flex-1 flex items-start justify-center px-6 py-14">
         <div className="w-full max-w-[640px]">
-          <Link to="/" className="inline-flex items-center gap-1.5 text-sm text-ink-muted no-underline hover:text-ink-strong mb-6">
+          <Link
+            to={isTeacher ? '/classrooms' : '/'}
+            className="inline-flex items-center gap-1.5 text-sm text-ink-muted no-underline hover:text-ink-strong mb-6"
+          >
             <ArrowLeft size={14} />
-            Back home
+            {isTeacher ? 'Back to classrooms' : 'Back home'}
           </Link>
 
           {submitted ? (
-            <SubmittedCard email={schoolEmail.trim()} isNonGoogle={isNonGoogle} />
+            <SubmittedCard email={schoolEmail.trim()} isNonGoogle={isNonGoogle} isTeacher={isTeacher} />
           ) : (
             <>
-              <h1 className="heading-1 mb-3">Request access</h1>
+              <h1 className="heading-1 mb-3">
+                {isTeacher ? 'Request access for more students' : 'Request access'}
+              </h1>
               <p className="body text-ink-muted mb-9">
-                CS Room is free for teachers and their students. Tell us a bit about your school and we'll
-                get you set up. Most teachers hear back within a day or two.
+                {isTeacher
+                  ? 'Pick how additional students should get access. Most requests are reviewed within a day or two.'
+                  : (<>CS Room is free for teachers and their students. Tell us a bit about your school and we'll
+                      get you set up. Most teachers hear back within a day or two.</>)}
               </p>
 
               <form
                 onSubmit={(e) => { e.preventDefault(); submit(); }}
                 className="flex flex-col gap-7"
               >
-                <Field label="Your full name">
-                  <input
-                    type="text"
-                    autoComplete="name"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    className={inputClass}
-                    required
-                  />
-                </Field>
+                {!isTeacher && (
+                  <>
+                    <Field label="Your full name">
+                      <input
+                        type="text"
+                        autoComplete="name"
+                        value={fullName}
+                        onChange={(e) => setFullName(e.target.value)}
+                        className={inputClass}
+                        required
+                      />
+                    </Field>
 
-                <Field label="School name">
-                  <input
-                    type="text"
-                    autoComplete="organization"
-                    value={schoolName}
-                    onChange={(e) => setSchoolName(e.target.value)}
-                    className={inputClass}
-                    required
-                  />
-                </Field>
+                    <Field label="School name">
+                      <input
+                        type="text"
+                        autoComplete="organization"
+                        value={schoolName}
+                        onChange={(e) => setSchoolName(e.target.value)}
+                        className={inputClass}
+                        required
+                      />
+                    </Field>
 
-                <Field label="Your school email">
-                  <div className="relative">
-                    <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-faint" />
-                    <input
-                      type="email"
-                      autoComplete="email"
-                      value={schoolEmail}
-                      onChange={(e) => setSchoolEmail(e.target.value)}
-                      className={`${inputClass} pl-9`}
-                      required
-                    />
-                  </div>
-                </Field>
+                    <Field label="Your school email">
+                      <div className="relative">
+                        <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-faint" />
+                        <input
+                          type="email"
+                          autoComplete="email"
+                          value={schoolEmail}
+                          onChange={(e) => setSchoolEmail(e.target.value)}
+                          className={`${inputClass} pl-9`}
+                          required
+                        />
+                      </div>
+                    </Field>
+                  </>
+                )}
 
-                <fieldset className="flex flex-col gap-2">
-                  <legend className="block text-sm font-semibold text-ink-strong mb-1.5">
-                    Grade levels you teach
-                  </legend>
-                  <div className="flex flex-wrap gap-2">
-                    {GRADE_LEVEL_OPTIONS.map((g) => {
-                      const checked = gradeLevels.includes(g);
-                      return (
-                        <button
-                          type="button"
-                          key={g}
-                          onClick={() => setGradeLevels((prev) =>
-                            prev.includes(g) ? prev.filter((x) => x !== g) : [...prev, g],
-                          )}
-                          className={`px-3.5 py-2 rounded-full border text-sm font-medium transition-colors ${
-                            checked
-                              ? 'border-navy bg-navy-soft text-navy'
-                              : 'border-rule bg-paper-elevated text-ink-default hover:border-rule-soft'
-                          }`}
-                        >
-                          {g}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </fieldset>
+                {!isTeacher && (
+                  <>
+                    <fieldset className="flex flex-col gap-2">
+                      <legend className="block text-sm font-semibold text-ink-strong mb-1.5">
+                        Grade levels you teach
+                      </legend>
+                      <div className="flex flex-wrap gap-2">
+                        {GRADE_LEVEL_OPTIONS.map((g) => {
+                          const checked = gradeLevels.includes(g);
+                          return (
+                            <button
+                              type="button"
+                              key={g}
+                              onClick={() => setGradeLevels((prev) =>
+                                prev.includes(g) ? prev.filter((x) => x !== g) : [...prev, g],
+                              )}
+                              className={`px-3.5 py-2 rounded-full border text-sm font-medium transition-colors ${
+                                checked
+                                  ? 'border-navy bg-navy-soft text-navy'
+                                  : 'border-rule bg-paper-elevated text-ink-default hover:border-rule-soft'
+                              }`}
+                            >
+                              {g}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </fieldset>
 
-                <Field label="How many students do you plan to use CS Room with?">
-                  <select
-                    value={studentCount}
-                    onChange={(e) => setStudentCount(e.target.value)}
-                    className={inputClass}
-                  >
-                    <option value="">Select…</option>
-                    {STUDENT_COUNT_OPTIONS.map((o) => (
-                      <option key={o} value={o}>{o}</option>
-                    ))}
-                  </select>
-                </Field>
+                    <Field label="How many students do you plan to use CS Room with?">
+                      <select
+                        value={studentCount}
+                        onChange={(e) => setStudentCount(e.target.value)}
+                        className={inputClass}
+                      >
+                        <option value="">Select…</option>
+                        {STUDENT_COUNT_OPTIONS.map((o) => (
+                          <option key={o} value={o}>{o}</option>
+                        ))}
+                      </select>
+                    </Field>
 
-                <Field label="How did you hear about CS Room?">
-                  <select
-                    value={referral}
-                    onChange={(e) => setReferral(e.target.value)}
-                    className={inputClass}
-                  >
-                    <option value="">Select…</option>
-                    {REFERRAL_OPTIONS.map((o) => (
-                      <option key={o} value={o}>{o}</option>
-                    ))}
-                  </select>
-                  {referral === 'Other' && (
-                    <input
-                      type="text"
-                      value={referralOther}
-                      onChange={(e) => setReferralOther(e.target.value)}
-                      placeholder="Tell us more (optional)"
-                      className={`${inputClass} mt-2`}
-                    />
-                  )}
-                </Field>
+                    <Field label="How did you hear about CS Room?">
+                      <select
+                        value={referral}
+                        onChange={(e) => setReferral(e.target.value)}
+                        className={inputClass}
+                      >
+                        <option value="">Select…</option>
+                        {REFERRAL_OPTIONS.map((o) => (
+                          <option key={o} value={o}>{o}</option>
+                        ))}
+                      </select>
+                      {referral === 'Other' && (
+                        <input
+                          type="text"
+                          value={referralOther}
+                          onChange={(e) => setReferralOther(e.target.value)}
+                          placeholder="Tell us more (optional)"
+                          className={`${inputClass} mt-2`}
+                        />
+                      )}
+                    </Field>
+                  </>
+                )}
 
                 <fieldset className="flex flex-col gap-3">
                   <legend className="block text-sm font-semibold text-ink-strong mb-1.5">
@@ -333,14 +359,16 @@ export default function RequestAccessPage() {
                     label="Send me a signup code I can share with students"
                     hint="Each student enters the code once to join the platform."
                   />
-                  <RadioOption
-                    name="student_access"
-                    value="none"
-                    checked={method === 'none'}
-                    onChange={() => setMethod('none')}
-                    label="Students already have access (or I'll set this up later)"
-                    hint="We'll only enable your teacher account. You can add additional student access at any time through your account."
-                  />
+                  {!isTeacher && (
+                    <RadioOption
+                      name="student_access"
+                      value="none"
+                      checked={method === 'none'}
+                      onChange={() => setMethod('none')}
+                      label="Students already have access (or I'll set this up later)"
+                      hint="We'll only enable your teacher account. You can add additional student access at any time through your account."
+                    />
+                  )}
                 </fieldset>
 
                 <label className="flex items-start gap-3 cursor-pointer select-none">
@@ -448,7 +476,7 @@ function RadioOption({
   );
 }
 
-function SubmittedCard({ email, isNonGoogle }: { email: string; isNonGoogle: boolean }) {
+function SubmittedCard({ email, isNonGoogle, isTeacher }: { email: string; isNonGoogle: boolean; isTeacher: boolean }) {
   return (
     <div className="bg-paper-elevated border border-rule rounded-xl p-10 shadow-md text-center">
       <div className="w-14 h-14 rounded-full bg-forest-soft text-forest mx-auto mb-4 inline-flex items-center justify-center">
@@ -456,7 +484,9 @@ function SubmittedCard({ email, isNonGoogle }: { email: string; isNonGoogle: boo
       </div>
       <h1 className="heading-1 mb-3">Request received</h1>
       <p className="body text-ink-muted mb-2">
-        We'll review your request and email <span className="font-semibold text-ink-strong">{email}</span> when you're approved.
+        {isTeacher
+          ? <>We'll review your request and email <span className="font-semibold text-ink-strong">{email}</span> once the additional access is set up.</>
+          : <>We'll review your request and email <span className="font-semibold text-ink-strong">{email}</span> when you're approved.</>}
       </p>
       <p className="body text-ink-muted">
         {isNonGoogle
@@ -464,10 +494,10 @@ function SubmittedCard({ email, isNonGoogle }: { email: string; isNonGoogle: boo
           : 'Most teachers hear back within a day or two.'}
       </p>
       <Link
-        to="/"
+        to={isTeacher ? '/classrooms' : '/'}
         className="inline-block mt-7 text-navy font-semibold no-underline"
       >
-        Back to home
+        {isTeacher ? 'Back to classrooms' : 'Back to home'}
       </Link>
     </div>
   );

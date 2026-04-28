@@ -5,6 +5,7 @@ import {
   School, Network, Activity,
 } from 'lucide-react';
 import { apiUrl, UserDataContext } from '../util/UserData';
+import { useVerifiedAdmin } from '../util/useVerifiedAdmin';
 import AdminRestricted from '../components/AdminRestricted';
 import AdminSubNav from '../components/AdminSubNav';
 import Footer from '../components/Footer';
@@ -115,8 +116,9 @@ export default function AdminPage() {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const loadRef = useRef<() => Promise<void>>(() => Promise.resolve());
 
-  const isAdmin = !!userData?.userInfo?.is_admin;
   const isLoggedIn = !!userData?.userInfo;
+  const adminVerified = useVerifiedAdmin(isLoggedIn);
+  const isAdmin = adminVerified === true;
 
   useEffect(() => {
     document.documentElement.style.overflowY = 'auto';
@@ -159,6 +161,10 @@ export default function AdminPage() {
 
   if (!isLoggedIn) {
     return <Navigate to="/" replace />;
+  }
+
+  if (adminVerified === null) {
+    return null;
   }
 
   if (!isAdmin) {

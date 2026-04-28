@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import FileResponse
 
 from ..database import User
-from ..dependencies import get_current_user
+from ..dependencies import require_teacher
 
 router = APIRouter()
 
@@ -22,10 +22,8 @@ def _safe_path(rel: str) -> Path:
 @router.get("/solution/{path:path}")
 def download_solution(
     path: str,
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_teacher),
 ):
-    if user.role != "teacher":
-        raise HTTPException(status_code=403, detail="Teachers only")
     target = _safe_path(path)
     if not target.is_file():
         raise HTTPException(status_code=404, detail="Solution not found")

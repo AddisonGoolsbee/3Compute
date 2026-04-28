@@ -1,4 +1,5 @@
 import { useEffect, type ReactNode } from 'react';
+import ObfuscatedEmail from '../components/ObfuscatedEmail';
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -24,7 +25,8 @@ export default function TermsPage() {
         CS Room is a free educational platform operated by Birdflop, a 501(c)(3) nonprofit
         organization (EIN: 93-2401009). By using CS Room, you agree to the terms below.
         If you are under 13, you may only use CS Room with the involvement and consent of a
-        parent, guardian, or teacher.
+        parent, guardian, or teacher. CS Room is intended for teachers and students based
+        in the United States; we do not direct the service to users outside the U.S.
       </p>
 
       {/* ------------------------------------------------------------------ */}
@@ -122,6 +124,10 @@ export default function TermsPage() {
           <li>Associate your work with your account</li>
           <li>Allow instructors to manage classroom membership</li>
           <li>Contact you about your account if necessary</li>
+          <li>
+            Send occasional product updates or short surveys about how
+            CS Room is going, with an option to opt-out.
+          </li>
         </ul>
         <p>
           We do not sell, rent, or share your personal information with third parties, except
@@ -160,12 +166,9 @@ export default function TermsPage() {
         <h2 className="heading-4 mb-2">Contact</h2>
         <p className="body text-ink-default">
           Questions about these terms or your data? Email us at{' '}
-          <a
-            href="mailto:csroom@birdflop.com"
-            className="text-navy font-semibold hover:underline"
-          >
-            csroom@birdflop.com
-          </a>
+          <ObfuscatedEmail
+            className="text-navy font-semibold hover:underline cursor-pointer"
+          />
           .
         </p>
         <p className="text-xs text-ink-subtle mt-4">

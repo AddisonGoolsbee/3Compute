@@ -7,6 +7,7 @@ export default [
   route('/', 'pages/landing.tsx'),
   route('/lessons', 'pages/lessons.tsx'),
   route('/terms', 'pages/terms.tsx'),
+  route('/about', 'pages/about.tsx'),
   route('/request-access', 'pages/request-access.tsx'),
   route('/classrooms', 'pages/classrooms.tsx'),
   route('/classrooms/:id', 'pages/classroom-detail.tsx'),

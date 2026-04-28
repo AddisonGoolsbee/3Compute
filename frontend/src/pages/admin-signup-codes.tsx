@@ -3,6 +3,7 @@ import { Navigate, useLocation } from 'react-router';
 import { AlertTriangle, Check, Copy, Plus, RefreshCw, Trash2 } from 'lucide-react';
 import { apiUrl, UserDataContext } from '../util/UserData';
 import AdminRestricted from '../components/AdminRestricted';
+import { useVerifiedAdmin } from '../util/useVerifiedAdmin';
 import AdminSubNav from '../components/AdminSubNav';
 import Footer from '../components/Footer';
 import { GhostButton, Pill, PrimaryButton } from '../components/ui/Buttons';
@@ -38,7 +39,8 @@ export default function AdminSignupCodesPage() {
   const [createError, setCreateError] = useState<string | null>(null);
 
   const isLoggedIn = !!userData?.userInfo;
-  const isAdmin = !!userData?.userInfo?.is_admin;
+  const adminVerified = useVerifiedAdmin(isLoggedIn);
+  const isAdmin = adminVerified === true;
 
   useEffect(() => {
     document.documentElement.style.overflowY = 'auto';
@@ -116,6 +118,7 @@ export default function AdminSignupCodesPage() {
   const isUsedUp = (c: Code) => c.max_uses != null && c.times_used >= c.max_uses;
 
   if (!isLoggedIn) return <Navigate to="/" replace />;
+  if (adminVerified === null) return null;
   if (!isAdmin) return <AdminRestricted />;
 
   return (

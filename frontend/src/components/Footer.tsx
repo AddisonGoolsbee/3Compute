@@ -18,6 +18,12 @@ export default function Footer() {
         <div className="flex items-center gap-5 text-xs text-ink-subtle shrink-0">
           <span>© 2026 Birdflop</span>
           <Link
+            to="/about"
+            className="text-ink-subtle no-underline hover:text-ink-default transition-colors"
+          >
+            About
+          </Link>
+          <Link
             to="/terms"
             className="text-ink-subtle no-underline hover:text-ink-default transition-colors"
           >

@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 from ..database import User
-from ..dependencies import get_current_user
+from ..dependencies import get_onboarded_user
 
 logger = logging.getLogger("tabs")
 router = APIRouter()
@@ -20,7 +20,7 @@ class TabState(BaseModel):
 
 
 @router.get("/")
-async def get_tabs(user: User = Depends(get_current_user)):
+async def get_tabs(user: User = Depends(get_onboarded_user)):
     try:
         if os.path.exists(USERS_JSON_FILE):
             with open(USERS_JSON_FILE) as f:
@@ -44,7 +44,7 @@ async def get_tabs(user: User = Depends(get_current_user)):
 
 
 @router.post("/")
-async def save_tabs(body: TabState, user: User = Depends(get_current_user)):
+async def save_tabs(body: TabState, user: User = Depends(get_onboarded_user)):
     if body.active_tab not in body.tabs:
         raise HTTPException(
             status_code=400, detail="Active tab must be in tabs list"

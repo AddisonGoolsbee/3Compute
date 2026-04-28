@@ -177,17 +177,37 @@ def add_missing_columns(engine) -> None:
         for column in table.columns:
             if column.name in existing_cols:
                 continue
-            if column.primary_key or not column.nullable:
+            if column.primary_key:
                 logger.warning(
-                    "Cannot auto-add column %s.%s (primary_key or NOT NULL); "
+                    "Cannot auto-add primary-key column %s.%s; manual migration required",
+                    table_name, column.name,
+                )
+                continue
+            # Try to derive a SQL DEFAULT from the model so existing rows get
+            # a sensible value. Required when the column is NOT NULL.
+            default_clause = ""
+            default = column.default.arg if column.default is not None else None
+            if default is not None and not callable(default):
+                if isinstance(default, bool):
+                    default_clause = f" DEFAULT {1 if default else 0}"
+                elif isinstance(default, (int, float)):
+                    default_clause = f" DEFAULT {default}"
+                elif isinstance(default, str):
+                    safe = default.replace("'", "''")
+                    default_clause = f" DEFAULT '{safe}'"
+            if not column.nullable and not default_clause:
+                logger.warning(
+                    "Cannot auto-add NOT NULL column %s.%s without a default; "
                     "manual migration required",
                     table_name, column.name,
                 )
                 continue
             col_type = column.type.compile(dialect=engine.dialect)
+            null_clause = "" if column.nullable else " NOT NULL"
             with engine.begin() as conn:
                 conn.execute(text(
-                    f'ALTER TABLE "{table_name}" ADD COLUMN "{column.name}" {col_type}'
+                    f'ALTER TABLE "{table_name}" ADD COLUMN "{column.name}" '
+                    f'{col_type}{null_clause}{default_clause}'
                 ))
             logger.info("Added column %s.%s (%s)", table_name, column.name, col_type)
 

@@ -6,7 +6,7 @@ from sqlmodel import Session, select
 
 from ..config import Settings
 from ..database import PortSubdomain, User
-from ..dependencies import get_current_user, get_db
+from ..dependencies import get_onboarded_user, get_db
 from ..subdomain_caddy import RESERVED, add_subdomain, is_valid_subdomain, remove_subdomain
 
 logger = logging.getLogger("subdomains")
@@ -21,7 +21,7 @@ class ClaimRequest(BaseModel):
 
 @router.get("/")
 async def list_subdomains(
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_onboarded_user),
     db: Session = Depends(get_db),
 ):
     rows = db.exec(
@@ -46,7 +46,7 @@ async def check_subdomain(subdomain: str, db: Session = Depends(get_db)):
 @router.post("/")
 async def claim_subdomain(
     body: ClaimRequest,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_onboarded_user),
     db: Session = Depends(get_db),
 ):
     subdomain = body.subdomain.lower().strip()
@@ -104,7 +104,7 @@ async def claim_subdomain(
 @router.delete("/{subdomain}")
 async def release_subdomain(
     subdomain: str,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_onboarded_user),
     db: Session = Depends(get_db),
 ):
     record = db.exec(

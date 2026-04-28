@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 from ..database import User
-from ..dependencies import get_current_user
+from ..dependencies import get_onboarded_user
 from ..terminal import close_tab
 
 router = APIRouter()
@@ -17,7 +17,7 @@ class CloseTabRequest(BaseModel):
 @router.post("/close-tab")
 async def close_tab_endpoint(
     body: CloseTabRequest,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_onboarded_user),
 ):
     tab_id = body.tabId.strip() or "1"
     message, status_code = await close_tab(user.id, tab_id)

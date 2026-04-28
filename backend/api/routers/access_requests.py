@@ -10,7 +10,7 @@ from pydantic import BaseModel, Field
 from sqlmodel import Session, select
 
 from ..database import AccessRequest, AllowlistEntry, SignupCode, User
-from ..dependencies import get_db
+from ..dependencies import get_db, get_optional_user
 from ..notifications import notify_admins
 from ..turnstile import verify_token
 from .admin import require_birdflop_admin
@@ -25,9 +25,12 @@ STUDENT_METHODS = {"domain", "list", "code", "none"}
 
 
 class SubmitRequest(BaseModel):
-    full_name: str = Field(min_length=1, max_length=200)
-    school_name: str = Field(min_length=1, max_length=200)
-    school_email: str = Field(min_length=3, max_length=200)
+    # Optional because authenticated teachers re-submitting (via Classrooms →
+    # "Request more access") have these derived from the session and a lookup
+    # of their prior request. Anonymous submissions must supply all three.
+    full_name: Optional[str] = Field(default=None, max_length=200)
+    school_name: Optional[str] = Field(default=None, max_length=200)
+    school_email: Optional[str] = Field(default=None, max_length=200)
     student_access_method: str
     student_emails_text: Optional[str] = None
     is_non_google: bool = False
@@ -43,12 +46,33 @@ class SubmitRequest(BaseModel):
 async def submit_access_request(
     body: SubmitRequest,
     request: Request,
+    user: User | None = Depends(get_optional_user),
     db: Session = Depends(get_db),
 ):
     if body.student_access_method not in STUDENT_METHODS:
         raise HTTPException(status_code=400, detail="Invalid student_access_method")
-    if "@" not in body.school_email or "." not in body.school_email.split("@", 1)[-1]:
-        raise HTTPException(status_code=400, detail="Please enter a valid email address")
+
+    # Authenticated teacher re-submitting? Derive identity from the session
+    # and look up the school name from their previous request.
+    teacher_resubmit = bool(user and user.role == "teacher")
+
+    if teacher_resubmit:
+        full_name = (user.name or "").strip() or (user.email or "").split("@", 1)[0]
+        school_email = (user.email or "").lower()
+        prior = db.exec(
+            select(AccessRequest)
+            .where(AccessRequest.school_email == school_email)
+            .order_by(AccessRequest.submitted_at.desc())
+        ).first()
+        school_name = (prior.school_name if prior else "") or "(existing teacher)"
+    else:
+        full_name = (body.full_name or "").strip()
+        school_name = (body.school_name or "").strip()
+        school_email = (body.school_email or "").strip().lower()
+        if not full_name or not school_name or not school_email:
+            raise HTTPException(status_code=400, detail="Name, school, and email are required")
+        if "@" not in school_email or "." not in school_email.split("@", 1)[-1]:
+            raise HTTPException(status_code=400, detail="Please enter a valid email address")
 
     # Cloudflare Turnstile honors the X-Forwarded-For header behind nginx;
     # fall back to the direct client IP if not present.
@@ -59,9 +83,9 @@ async def submit_access_request(
         raise HTTPException(status_code=400, detail="CAPTCHA verification failed")
 
     entry = AccessRequest(
-        full_name=body.full_name.strip(),
-        school_name=body.school_name.strip(),
-        school_email=str(body.school_email).lower(),
+        full_name=full_name,
+        school_name=school_name,
+        school_email=school_email,
         student_access_method=body.student_access_method,
         student_emails_text=(body.student_emails_text or "").strip() or None,
         is_non_google=body.is_non_google,
