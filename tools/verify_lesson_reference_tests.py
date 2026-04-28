@@ -29,8 +29,11 @@ LESSONS: list[dict] = [
     {
         "id": "tic_tac_toe",
         "template": "frontend/public/templateProjects/Tic-Tac-Toe",
-        "overlays": [("backend/solutions/tic-tac-toe/solution.py", "main.py")],
-        "test": ["python3", "test_game.py"],
+        "overlays": [
+            ("backend/solutions/tic-tac-toe/solution.py", "main.py"),
+            ("backend/solutions/tic-tac-toe/warmup_factorial.py", "warmup_factorial.py"),
+        ],
+        "test": ["sh", "-c", "python3 test_warmup.py && python3 test_game.py"],
     },
     {
         "id": "sorting_algorithms",

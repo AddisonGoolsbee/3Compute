@@ -68,13 +68,15 @@
     },
     "Tic-Tac-Toe": {
         "files": [
+            "warmup_factorial.py",
+            "test_warmup.py",
             "main.py",
             "test_game.py",
             "README.md",
             "requirements.txt"
         ],
         "description": "Build an unbeatable Tic-Tac-Toe AI with minimax",
-        "duration": "5-7 class periods",
+        "duration": "3-4 class periods",
         "lessonPlanDoc": "/docs/tic-tac-toe/lesson-plan.md",
         "solutionDoc": "/api/lessons/solution/tic-tac-toe/solution.py",
         "standards": [
@@ -103,7 +105,7 @@
                 "description": "Develop and use a series of test cases to verify that a program performs according to its design specifications."
             }
         ],
-        "testCount": 4
+        "testCount": 27
     },
     "Password-Security": {
         "files": [

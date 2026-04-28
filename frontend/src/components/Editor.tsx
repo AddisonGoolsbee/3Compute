@@ -19,7 +19,7 @@ import { apiUrl, UserDataContext } from '../util/UserData';
 import { languageMap } from '../util/languageMap';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { Files, FileType } from '../util/Files';
+import { Files, FileType, getLastOpenLocation, pickInitialFile } from '../util/Files';
 import { PrimaryButton } from './ui/Buttons';
 import { cn } from '../util/cn';
 
@@ -305,9 +305,17 @@ export default function Editor() {
       return;
     }
     if (userData.files && userData.files.length > 0) {
-      const defaultFile = findDefaultFile(userData.files);
-      if (defaultFile) {
-        userData.setCurrentFile(defaultFile);
+      // Prefer the user's last-open file (persisted across reloads / new
+      // tabs); fall back to the project README/index. This runs in
+      // Editor — not root — because we need userData.files to be loaded
+      // and that timing is unreliable in root's lazy state initializer.
+      const initial = pickInitialFile(
+        userData.files,
+        getLastOpenLocation(),
+        findDefaultFile,
+      );
+      if (initial) {
+        userData.setCurrentFile(initial);
         setInitialFileSet(true);
         return;
       }

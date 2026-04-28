@@ -66,6 +66,67 @@ export function setShowHidden(value: boolean): void {
   }
 }
 
+const LAST_OPEN_FILE_STORAGE_KEY = '3compute:last-open-file';
+
+export function getLastOpenLocation(): string | undefined {
+  if (typeof window === 'undefined') return undefined;
+  try {
+    const raw = window.localStorage.getItem(LAST_OPEN_FILE_STORAGE_KEY);
+    return raw && typeof raw === 'string' ? raw : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+export function setLastOpenLocation(location: string | undefined): void {
+  if (typeof window === 'undefined') return;
+  try {
+    if (location) {
+      window.localStorage.setItem(LAST_OPEN_FILE_STORAGE_KEY, location);
+    } else {
+      window.localStorage.removeItem(LAST_OPEN_FILE_STORAGE_KEY);
+    }
+  } catch {
+    // ignore
+  }
+}
+
+// Walks the file tree to find a non-folder entry whose location matches.
+// Returns undefined for folders or missing entries — used by the
+// last-open-file restore path to validate persisted locations after
+// reload (file may have been renamed/deleted in the container).
+export function findFileByLocation(
+  files: Files | undefined,
+  location: string | undefined,
+): FileType | undefined {
+  if (!files || !location) return undefined;
+  for (const item of files) {
+    if ('files' in item) {
+      const found = findFileByLocation(item.files, location);
+      if (found) return found;
+    } else if (item.location === location) {
+      return item;
+    }
+  }
+  return undefined;
+}
+
+// Decide which file the editor should open on first mount.
+// 1. Saved last-open file (if it still exists in the tree) — survives reloads.
+// 2. Caller's default-file picker (e.g. project README/index).
+// Returns undefined if neither applies, in which case Editor falls back
+// to its built-in static README.
+export function pickInitialFile(
+  files: Files | undefined,
+  savedLocation: string | undefined,
+  defaultPicker: (files: Files) => FileType | undefined,
+): FileType | undefined {
+  if (!files || files.length === 0) return undefined;
+  const restored = findFileByLocation(files, savedLocation);
+  if (restored) return restored;
+  return defaultPicker(files);
+}
+
 export async function fetchFilesList(): Promise<FilesResponse> {
   // Fetch the list of files
   const url = new URL(`${apiUrl}/files/list`, window.location.origin);

@@ -3,16 +3,26 @@ Tic-Tac-Toe with AI (Minimax Algorithm)
 =======================================
 
 In this project, you'll implement an unbeatable Tic-Tac-Toe AI using the
-minimax algorithm. The AI will look ahead at all possible future game states
-to make the optimal move every time.
+minimax algorithm. The AI looks ahead at every possible future game state
+and picks the optimal move every time.
 
-YOUR TASKS:
-1. Implement check_winner() - Detect if X or O has won
-2. Implement is_board_full() - Detect if the game is a draw
-3. Implement minimax() - The recursive AI decision algorithm
-4. Implement get_best_move() - Find the optimal move for AI
+START IN warmup_factorial.py — a small recursion warm-up. Get that one
+function passing first; it builds the muscle you'll need for minimax.
 
-Run the tests to check your work: python test_game.py
+YOUR TASKS IN THIS FILE (do them in order):
+    1. check_winner(board)          - detect if X or O has won
+    2. is_board_full(board)         - detect if the game is a draw
+    3. minimax(board, is_ai_turn)   - the recursive AI decision algorithm
+    4. get_best_move(board)         - find the optimal move for the AI
+
+HOW TO RUN:
+    pip install -r requirements.txt
+    python test_warmup.py   # warm-up tests (factorial)
+    python test_game.py     # main tests — check your work as you go
+    python main.py          # play against your AI once tests pass
+
+The README has the full conceptual walkthrough. Read it once before coding,
+then keep it open as a reference while you work.
 """
 
 # =============================================================================
@@ -61,8 +71,9 @@ def get_valid_moves(board):
 
 def make_move(board, position, player):
     """
-    Make a move on the board. Returns a NEW board (doesn't modify original).
-    This is important for the minimax algorithm to explore possibilities.
+    Make a move on the board. Returns a NEW board (does not modify the original).
+    Returning a new board lets minimax explore possibilities without disturbing
+    the real game state.
     """
     new_board = board.copy()
     new_board[position] = player
@@ -70,192 +81,123 @@ def make_move(board, position, player):
 
 
 # =============================================================================
-# TODO #1: IMPLEMENT WIN DETECTION
+# TODO #1: WIN DETECTION
 # =============================================================================
 
 def check_winner(board):
     """
-    Check if there's a winner on the board.
-    
+    Detect whether X or O has won the game.
+
     Args:
-        board: A list of 9 elements representing the game board
+        board: A list of 9 strings representing the board.
                Positions: 0|1|2
                           3|4|5
                           6|7|8
-    
+
     Returns:
-        "X" if X wins, "O" if O wins, None if no winner yet
-    
-    HINT: There are 8 ways to win in Tic-Tac-Toe:
-        - 3 rows: (0,1,2), (3,4,5), (6,7,8)
-        - 3 columns: (0,3,6), (1,4,7), (2,5,8)
+        "X" if X has three in a row,
+        "O" if O has three in a row,
+        None if neither player has won yet.
+
+    HINT: There are 8 winning lines in Tic-Tac-Toe:
+        - 3 rows:      (0,1,2), (3,4,5), (6,7,8)
+        - 3 columns:   (0,3,6), (1,4,7), (2,5,8)
         - 2 diagonals: (0,4,8), (2,4,6)
-    
-    HINT: You could define a list of winning combinations and loop through them,
-          or check each one individually.
+
+    Watch out: three EMPTY squares in a row are NOT a win!
     """
-    # TODO: Define the winning combinations
-    # winning_combinations = [
-    #     (0, 1, 2),  # Top row
-    #     ...
-    # ]
-    
-    # TODO: Check each winning combination
-    # For each combination, if all three positions have the same non-empty value,
-    # that player wins!
-    
-    pass  # Remove this line when you implement the function
+    raise NotImplementedError("Implement check_winner() in main.py")
 
 
 # =============================================================================
-# TODO #2: IMPLEMENT DRAW DETECTION
+# TODO #2: DRAW DETECTION
 # =============================================================================
 
 def is_board_full(board):
     """
-    Check if the board is completely full (no empty spaces).
-    
-    Args:
-        board: A list of 9 elements representing the game board
-    
-    Returns:
-        True if no empty spaces remain, False otherwise
-    
-    HINT: Check if EMPTY (" ") exists anywhere in the board.
-          You can use 'in' operator or check the length of get_valid_moves()
+    Return True if the board has no empty squares left, False otherwise.
+
+    HINT: Either check whether EMPTY (" ") still appears in the board,
+    or check the length of get_valid_moves(board).
     """
-    # TODO: Implement this function
-    
-    pass  # Remove this line when you implement the function
+    raise NotImplementedError("Implement is_board_full() in main.py")
 
 
 def is_game_over(board):
-    """Check if the game has ended (win or draw)."""
+    """Game ends when someone wins or the board is full."""
     return check_winner(board) is not None or is_board_full(board)
 
 
 # =============================================================================
-# TODO #3: IMPLEMENT THE MINIMAX ALGORITHM
+# TODO #3: THE MINIMAX ALGORITHM
 # =============================================================================
 
-def minimax(board, is_maximizing):
+def minimax(board, is_ai_turn):
     """
-    The minimax algorithm - a recursive algorithm that evaluates all possible
-    future game states to determine the best move.
-    
-    HOW MINIMAX WORKS:
-    ==================
-    Imagine you're playing chess and thinking ahead:
-    "If I move here, they'll probably move there, then I could move here..."
-    
-    Minimax does this EXHAUSTIVELY - it considers EVERY possible future move,
-    all the way to the end of the game. It assumes both players play optimally.
-    
-    The algorithm alternates between:
-    - MAXIMIZING: AI's turn - wants the HIGHEST score
-    - MINIMIZING: Human's turn - wants the LOWEST score (bad for AI)
-    
+    Recursively score every possible future game state and return the score
+    of the current position assuming both players play perfectly.
+
     SCORING:
-    - AI wins: +10 (good for AI)
-    - Human wins: -10 (bad for AI)  
-    - Draw: 0 (neutral)
-    
-    Args:
-        board: Current game state
-        is_maximizing: True if it's AI's turn (maximizing), False if human's turn
-    
-    Returns:
-        The score of the board position (-10, 0, or +10)
-    
+        AI (O) wins  -> +10
+        Human (X) wins -> -10
+        Draw          ->   0
+
     PSEUDOCODE:
-    ===========
-    1. BASE CASE - Check if game is over:
-       - If AI (O) wins, return +10
-       - If Human (X) wins, return -10
-       - If draw (board full, no winner), return 0
-    
-    2. RECURSIVE CASE - If game continues:
-       If maximizing (AI's turn):
-           - Start with worst possible score: -infinity
-           - For each valid move:
-               - Make the move for AI (O)
-               - Recursively call minimax with is_maximizing=False
-               - Keep track of the MAXIMUM score found
-           - Return the maximum score
-       
-       If minimizing (Human's turn):
-           - Start with worst possible score: +infinity
-           - For each valid move:
-               - Make the move for Human (X)
-               - Recursively call minimax with is_maximizing=True
-               - Keep track of the MINIMUM score found
-           - Return the minimum score
+
+        # Base case: the game is already over
+        if AI has won:    return +10
+        if human has won: return -10
+        if board is full: return 0
+
+        # Recursive case: try every move and pick the best score
+        if is_ai_turn:                        # AI wants the HIGHEST score
+            best = -infinity
+            for each valid move:
+                new_board = AI plays that move
+                score = minimax(new_board, False)   # next turn is human
+                best = max(best, score)
+            return best
+        else:                                 # human wants the LOWEST score
+            best = +infinity
+            for each valid move:
+                new_board = human plays that move
+                score = minimax(new_board, True)    # next turn is AI
+                best = min(best, score)
+            return best
+
+    Args:
+        board:      the current game state
+        is_ai_turn: True if it is the AI's turn to move (the maximizer),
+                    False if it is the human's turn (the minimizer)
+
+    Returns:
+        The score of the position (-10, 0, or +10).
     """
-    # TODO: Implement the base case
-    # Check for terminal states (game over)
-    # winner = check_winner(board)
-    # if winner == PLAYER_O:  # AI wins
-    #     return 10
-    # elif winner == PLAYER_X:  # Human wins
-    #     return -10
-    # elif is_board_full(board):  # Draw
-    #     return 0
-    
-    # TODO: Implement the recursive case
-    # if is_maximizing:
-    #     best_score = float('-inf')  # Start with worst possible
-    #     for move in get_valid_moves(board):
-    #         # Try this move
-    #         new_board = make_move(board, move, PLAYER_O)
-    #         # Recursively evaluate (now it's minimizing player's turn)
-    #         score = minimax(new_board, False)
-    #         # Keep the best score
-    #         best_score = max(best_score, score)
-    #     return best_score
-    # else:
-    #     # TODO: Implement minimizing case (similar but opposite)
-    #     pass
-    
-    pass  # Remove this line when you implement the function
+    raise NotImplementedError("Implement minimax() in main.py")
 
 
 # =============================================================================
-# TODO #4: IMPLEMENT BEST MOVE SELECTION
+# TODO #4: BEST MOVE SELECTION
 # =============================================================================
 
 def get_best_move(board):
     """
-    Find the best move for the AI using the minimax algorithm.
-    
+    Use minimax to find the AI's best move on the current board.
+
+    Try every empty square. For each one, simulate AI playing there and ask
+    minimax to score the resulting position. Return the square with the
+    highest score.
+
     Args:
-        board: Current game state
-    
+        board: the current game state
+
     Returns:
-        The position (0-8) of the best move for the AI
-    
-    HINT: 
-    - Try each valid move
-    - Use minimax to evaluate each move (with is_maximizing=False since 
-      after AI moves, it's the human's turn)
-    - Return the move with the highest score
+        The position (0-8) of the best move for the AI.
+
+    HINT: After the AI plays a move it is the human's turn, so the
+    recursive call should be minimax(new_board, False).
     """
-    best_score = float('-inf')
-    best_move = None
-    
-    # TODO: Loop through all valid moves
-    # for move in get_valid_moves(board):
-    #     # Make the move
-    #     new_board = make_move(board, move, PLAYER_O)
-    #     # Evaluate this move using minimax
-    #     score = minimax(new_board, False)  # False because next turn is human (minimizing)
-    #     # If this is the best move so far, remember it
-    #     if score > best_score:
-    #         best_score = score
-    #         best_move = move
-    
-    # return best_move
-    
-    pass  # Remove this line when you implement the function
+    raise NotImplementedError("Implement get_best_move() in main.py")
 
 
 # =============================================================================
@@ -263,66 +205,55 @@ def get_best_move(board):
 # =============================================================================
 
 def get_human_move(board):
-    """Get a valid move from the human player."""
+    """Read a valid move from the human player."""
     valid_moves = get_valid_moves(board)
-    
     while True:
         try:
             print(f"Valid positions: {valid_moves}")
             move = int(input("Enter your move (0-8): "))
             if move in valid_moves:
                 return move
-            else:
-                print("That position is not available. Try again.")
+            print("That position is not available. Try again.")
         except ValueError:
             print("Please enter a number between 0 and 8.")
 
 
 def play_game():
-    """Main game loop."""
+    """One full game from empty board to win/draw."""
     print("=" * 50)
     print("   TIC-TAC-TOE vs AI (Minimax Algorithm)")
     print("=" * 50)
     print("\nYou are X, the AI is O.")
     print("Position numbers:")
     print_board_positions()
-    
-    # Initialize empty board
+
+    choice = input("Who goes first? (you/ai) [you]: ").strip().lower()
+    current_player = PLAYER_O if choice.startswith("a") else PLAYER_X
+
     board = [EMPTY] * 9
-    current_player = PLAYER_X  # Human goes first
-    
     while not is_game_over(board):
         print_board(board)
-        
         if current_player == PLAYER_X:
-            # Human's turn
             print("Your turn!")
             move = get_human_move(board)
             board = make_move(board, move, PLAYER_X)
             current_player = PLAYER_O
         else:
-            # AI's turn
             print("AI is thinking...")
             move = get_best_move(board)
-            if move is None:
-                print("ERROR: AI couldn't find a move. Did you implement get_best_move()?")
-                break
             print(f"AI plays position {move}")
             board = make_move(board, move, PLAYER_O)
             current_player = PLAYER_X
-    
-    # Game over - show results
+
     print_board(board)
     winner = check_winner(board)
-    
     if winner == PLAYER_X:
-        print("🎉 Congratulations! You beat the AI!")
-        print("(Wait... that shouldn't be possible with a perfect minimax!)")
+        print("You beat the AI! That should not be possible with a correct minimax.")
         print("Double-check your implementation.")
     elif winner == PLAYER_O:
-        print("🤖 The AI wins! Don't feel bad - it's unbeatable!")
+        print("The AI wins. It's unbeatable!")
     else:
-        print("🤝 It's a draw! That's the best you can do against a perfect AI.")
+        print("It's a draw. That's the best you can do against a perfect AI.")
 
 
 # =============================================================================
@@ -330,16 +261,9 @@ def play_game():
 # =============================================================================
 
 if __name__ == "__main__":
-    # Check if core functions are implemented
-    test_board = [EMPTY] * 9
-    
-    if check_winner(test_board) is None and is_board_full(test_board) is None:
-        print("⚠️  It looks like you haven't implemented the required functions yet!")
-        print("Open main.py and complete the TODO sections:")
-        print("  1. check_winner()")
-        print("  2. is_board_full()")
-        print("  3. minimax()")
-        print("  4. get_best_move()")
-        print("\nRun 'python test_game.py' to test your implementations.")
-    else:
+    while True:
         play_game()
+        again = input("\nPlay again? (y/n): ").strip().lower()
+        if not again.startswith("y"):
+            print("Thanks for playing!")
+            break

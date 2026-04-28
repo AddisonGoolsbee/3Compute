@@ -2,7 +2,12 @@ import { ReactNode, useCallback, useEffect, useState } from 'react';
 import { Links, Meta, Outlet, Scripts, ScrollRestoration, useLoaderData } from 'react-router';
 import NavComponent from './components/Nav';
 import { UserData, UserDataContext, apiUrl, clientLoader, StudentViewContext } from './util/UserData';
-import { fetchFilesList, Files, FileType } from './util/Files';
+import {
+  fetchFilesList,
+  setLastOpenLocation,
+  Files,
+  FileType,
+} from './util/Files';
 
 // eslint-disable-next-line react-refresh/only-export-components
 export { clientLoader };
@@ -80,7 +85,11 @@ function collectFolderLocations(items: Files, out: Set<string>): void {
 export function Layout({ children }: { children: ReactNode }) {
   const loaderData = useLoaderData<UserData>();
   const [openFolders, setOpenFolders] = useState<string[]>(() => loadPersistedOpenFolders());
-  const [currentFile, setCurrentFile] = useState<FileType | undefined>();
+  // currentFile starts undefined. The actual restore-on-reload happens in
+  // Editor.tsx's initial-file effect — by the time it runs, the file tree
+  // is guaranteed to be loaded, which avoids a timing race against
+  // loaderData population that broke this when handled here.
+  const [currentFile, setCurrentFile] = useState<FileType | undefined>(undefined);
   const [openFiles, setOpenFiles] = useState<FileType[]>([]);
   const [files, setFilesClientSide] = useState<Files | undefined>(loaderData?.files);
   const [classroomSymlinks, setClassroomSymlinks] = useState(loaderData?.classroomSymlinks || {});
@@ -117,6 +126,14 @@ export function Layout({ children }: { children: ReactNode }) {
       prev.some((f) => f.location === currentFile.location) ? prev : [...prev, currentFile],
     );
   }, [currentFile]);
+
+  // Persist the last-open file location so reloads / new tabs reopen it.
+  // Reading happens once at mount (see useState initializer above); writes
+  // do NOT subscribe other tabs via storage events, so a file change in
+  // tab A leaves tab B's editor untouched until B is reloaded.
+  useEffect(() => {
+    setLastOpenLocation(currentFile?.location);
+  }, [currentFile?.location]);
 
   // Prune persisted open-folder entries that no longer exist in the current
   // file tree (renamed, deleted, archived classroom, etc.). Runs every time

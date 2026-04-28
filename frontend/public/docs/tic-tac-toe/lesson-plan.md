@@ -2,41 +2,16 @@
 
 ## Overview
 
-This project guides students through implementing an unbeatable Tic-Tac-Toe AI using the minimax algorithm. Students learn recursion, game theory, and algorithm design while building a working AI opponent.
+Students implement an unbeatable Tic-Tac-Toe AI using the minimax algorithm. They write five functions across two files (~50 lines of code total). The hard part is conceptual: recursion and looking ahead in a game tree.
 
-**Estimated Duration:** 5-7 class periods (45-50 minutes each)
+**Estimated Duration:** 3 class periods (45-50 minutes each), plus 1 optional extension day.
 
 **Prerequisites:**
-- Basic Python (variables, functions, loops, conditionals)
-- Lists and list operations
-- Understanding of functions and return values
-- Helpful but not required: prior exposure to recursion
+- Basic Python (variables, functions, loops, conditionals, lists)
 
----
+This project introduces recursion — no prior exposure required. The factorial warm-up on Day 2 is designed to give students who have never written a recursive function the muscle they need before tackling minimax.
 
-## CSTA Standards Addressed
-
-This project is designed to address the following CSTA K-12 Computer Science Standards for Grades 11-12:
-
-> **Note:** This content has not been submitted for official CSTA alignment review. The crosswalk below shows which standards this project is designed to address.
-
-### Primary Standards (Direct Instruction)
-
-| Standard | Description | How This Project Addresses It |
-|----------|-------------|-------------------------------|
-| **3B-AP-09** | Implement an artificial intelligence algorithm to play a game against a human opponent or solve a problem. | Students implement the minimax algorithm to create an AI that plays Tic-Tac-Toe optimally. |
-| **3B-AP-10** | Use and adapt classic algorithms to solve computational problems. | Minimax is a classic game theory algorithm (von Neumann, 1928). Students implement and may extend it with alpha-beta pruning. |
-| **3B-AP-11** | Evaluate algorithms in terms of their efficiency, correctness, and clarity. | Extension activities have students count recursive calls and discuss exponential growth; alpha-beta pruning demonstrates efficiency optimization. |
-| **3B-AP-13** | Illustrate the flow of execution of a recursive algorithm. | Minimax is inherently recursive. Students trace execution through game trees. |
-| **3B-AP-14** | Construct solutions to problems using student-created components, such as procedures, modules and/or objects. | Students implement modular functions (check_winner, minimax, get_best_move) that compose into a complete system. |
-| **3B-AP-21** | Develop and use a series of test cases to verify that a program performs according to its design specifications. | A test suite is provided; students run tests to verify each function before integration. |
-
-### Supporting Standards (Context & Discussion)
-
-| Standard | Description | How This Project Supports It |
-|----------|-------------|------------------------------|
-| **3B-AP-08** | Describe how artificial intelligence drives many software and physical systems. | README and discussion prompts connect minimax to chess engines, self-driving cars, and decision-making AI. |
-| **3B-AP-23** | Evaluate key qualities of a program through a process such as a code review. | Suggested code review activity; students evaluate correctness, efficiency, and clarity. |
+> A CSTA standards crosswalk is included at the end of this document.
 
 ---
 
@@ -44,10 +19,10 @@ This project is designed to address the following CSTA K-12 Computer Science Sta
 
 By the end of this project, students should be able to:
 
-1. **Explain** how the minimax algorithm evaluates game states recursively
+1. **Explain** how minimax evaluates game states recursively
 2. **Implement** recursive functions with proper base cases and recursive cases
-3. **Trace** the execution of a recursive algorithm through a game tree
-4. **Test** implementations systematically using provided test cases
+3. **Trace** a recursive algorithm through a game tree
+4. **Test** their implementation systematically using the provided suite
 5. **Connect** simple game AI to real-world AI applications
 6. **Analyze** algorithm efficiency (extension: alpha-beta pruning)
 
@@ -55,217 +30,120 @@ By the end of this project, students should be able to:
 
 ## Lesson Sequence
 
-### Day 1: Introduction to Game AI (45 min)
+### Day 1: Concept, Hand-Trace, and Game Logic (45 min)
 
-**Objectives:**
-- Understand what makes a game "solvable"
-- Develop intuition for looking ahead in games
+**Objectives:** Build intuition for game trees. Hand-trace a small minimax example. Implement `check_winner()` and `is_board_full()`.
 
-**Activities:**
+1. **Hook (5 min):** "Can Tic-Tac-Toe be solved? What does it mean for an AI to be 'unbeatable'?" Establish that perfect play always draws.
 
-1. **Warm-up (10 min):** Play Tic-Tac-Toe
-   - Pair students, play 3 games
-   - Discussion: "What strategy did you use? How far ahead did you think?"
+2. **Hand-Trace Minimax (15 min):** Use a board with three empty squares so the tree is small enough to draw on the board:
 
-2. **Discussion (15 min):** Perfect Play
-   - "Can Tic-Tac-Toe be solved?"
-   - "What does it mean for an AI to be 'unbeatable'?"
-   - Show that perfect play always results in a draw
+   ```
+   X | O | X
+   O | X | _
+   _ | _ | O
+   ```
 
-3. **Introduction to Minimax (15 min):**
-   - Draw a simple game tree on the board
-   - Example: Game with 2 moves left
-   - Concept: "If I go here, they'll go there..."
-
-4. **Wrap-up (5 min):**
-   - Preview the project
-   - Students access the template
-
-**Materials:**
-- Whiteboard for game tree diagrams
-- Project template access
-
----
-
-### Day 2: Understanding Minimax (45 min)
-
-**Objectives:**
-- Trace minimax execution by hand
-- Understand maximizing vs. minimizing players
-
-**Activities:**
-
-1. **Warm-up (5 min):** Quick review of game trees
-
-2. **Guided Practice (25 min):** Hand-trace Minimax
-   - Use this board state:
-     ```
-     X | O | X
-     O | X | _
-     _ | _ | O
-     ```
-   - Only 3 empty spaces = small game tree
-   - Students trace on paper: What move should O play?
-   - Walk through the complete minimax tree together
-
-3. **Key Concepts Discussion (10 min):**
-   - Why "minimax"? (Maximize your minimum guaranteed outcome)
+   Walk through the tree as a class. Establish:
    - Scoring: +10 (AI wins), -10 (human wins), 0 (draw)
+   - Maximizer (AI) vs. minimizer (human)
    - Base case vs. recursive case
 
-4. **Wrap-up (5 min):**
-   - Preview tomorrow's coding
-   - "You'll implement this algorithm in Python"
+3. **Open the project (5 min):** Tour `main.py`, `test_game.py`, `warmup_factorial.py`, `test_warmup.py`, `README.md`.
 
-**Materials:**
-- Worksheet with game tree template (optional)
-- Hand-trace example board states
+4. **Implement `check_winner()` and `is_board_full()` (20 min):** Whiteboard the 8 winning lines and the empty-row pitfall. Students code and run `python test_game.py` until the relevant test classes pass.
 
-**Instructor Notes:**
-- This conceptual foundation is critical!
-- Students who understand the algorithm by hand will implement it faster
-
----
-
-### Day 3: Implementing Game Logic (45 min)
-
-**Objectives:**
-- Implement `check_winner()` and `is_board_full()`
-- Run tests to verify implementations
-
-**Activities:**
-
-1. **Setup (5 min):**
-   - Open the template project
-   - Review file structure: `main.py`, `test_game.py`
-
-2. **Implement `check_winner()` (20 min):**
-   - Review the 8 winning combinations
-   - Students implement (use TODO comments as guide)
-   - Common issues:
-     - Forgetting to check that positions are non-empty
-     - Off-by-one errors in position indices
-
-3. **Implement `is_board_full()` (10 min):**
-   - Simple check for EMPTY in board
-   - Multiple valid approaches
-
-4. **Test (10 min):**
-   - Run `python test_game.py`
-   - Debug until check_winner and is_board_full pass
-   - Celebrate passing tests! 🎉
-
-**Common Student Errors:**
+**Common student error:**
 
 ```python
-# Wrong: Doesn't check that positions are non-empty
+# Wrong: doesn't check that positions are non-empty
 if board[0] == board[1] == board[2]:
-    return board[0]  # Returns " " for empty row!
+    return board[0]  # returns " " for an empty row!
 
-# Right: Check non-empty first
+# Right: check non-empty first
 if board[0] != EMPTY and board[0] == board[1] == board[2]:
     return board[0]
 ```
 
+**Tests progress incrementally:** the test suite reports `7/22` once `check_winner` is implemented and `10/22` once `is_board_full` is too. Students get visible progress as they go — they don't need to finish everything before tests are useful.
+
+**If students finish early:** start `warmup_factorial.py`. **If they get stuck:** finish game logic at home — Day 2 assumes it works.
+
 ---
 
-### Day 4: Implementing Minimax (45 min)
+### Day 2: Recursion and Minimax (45 min)
 
-**Objectives:**
-- Implement the core minimax algorithm
-- Understand recursion in practice
+**Objectives:** Teach recursion, then use it to implement minimax.
 
-**Activities:**
+1. **Teach Recursion (10 min):** Most students have not seen recursion before. Walk through the structure on the whiteboard:
 
-1. **Review (5 min):**
-   - Recap minimax concept from Day 2
-   - Pseudocode on board:
-     ```
-     minimax(board, is_maximizing):
-         if game_over: return score
-         if maximizing: find MAX of all children
-         else: find MIN of all children
-     ```
+   - Every recursive function has **two parts**: a *base case* (an input the function answers directly, with no further calls) and a *recursive case* (express the answer for the current input using the answer for a smaller input).
+   - Demo with factorial: `factorial(0) == 1` is the base case; `factorial(n) == n * factorial(n - 1)` is the recursive case.
+   - Optionally trace `factorial(3)` by hand on the board, showing how the calls stack and unwind.
 
-2. **Guided Implementation (30 min):**
-   - Work through base case together
-   - Students implement recursive case
-   - **Key scaffolding:** The TODO comments include pseudocode
+2. **Recursion Warm-Up (10 min):** Students open `warmup_factorial.py`, implement `factorial(n)`, and run `python test_warmup.py` until 5/5 passes. **A student who can't get factorial working will not get minimax working — pair them with a peer before moving on.**
 
-3. **Debug and Test (10 min):**
-   - Run tests for minimax
-   - Common issue: infinite recursion (base case not working)
-   - Common issue: Wrong score signs (+10 vs -10)
+3. **Bridge to Minimax (5 min):** Factorial had *one* base case and *one* recursive call. Minimax has *three* base cases (AI wins, human wins, board is full) and a *loop* of recursive calls (one per empty square). Same shape, more branches.
 
-**Instructor Notes:**
-- Walk around the room—students will have questions
-- If students are stuck, have them hand-trace with print statements
-- This is the hardest day—allow extra time if needed
+   ```
+   minimax(board, is_ai_turn):
+       if game_over: return score
+       if is_ai_turn: find MAX of children's scores
+       else:          find MIN of children's scores
+   ```
 
-**Debugging Tips for Students:**
+4. **Implement `minimax()` (20 min):** Work the base cases together. Students write the recursive case independently. Walk the room. Common issues: infinite recursion (base case not triggering), reversed score signs, forgetting to flip `is_ai_turn` on recursive calls.
+
+**Debugging tip for stuck students:**
+
 ```python
-# Add this to see what minimax is doing:
-def minimax(board, is_maximizing):
-    print(f"Evaluating: {board}, maximizing={is_maximizing}")
+def minimax(board, is_ai_turn):
+    print(f"Evaluating: {board}, ai_turn={is_ai_turn}")
     # ... rest of function
 ```
 
+**Instructor note:** This is the hardest day. Plan for it to run long. Day 3's first block is a buffer for anyone who isn't done.
+
 ---
 
-### Day 5: Completing the AI (45 min)
+### Day 3: Best Move, Play, Reflect (45 min)
 
-**Objectives:**
-- Implement `get_best_move()`
-- Test the complete AI
-- Play against your creation!
+**Objectives:** Finish the AI, play it, and reflect.
 
-**Activities:**
+1. **Buffer for Day 2 (10-15 min):** Anyone who didn't finish minimax catches up. This is real, expected time — Day 2 is hard and most classes will spill over.
 
-1. **Implement `get_best_move()` (15 min):**
-   - This function uses minimax to choose the best move
-   - Simpler than minimax—just loops through moves
+2. **Implement `get_best_move()` (15 min):** Loop empty squares, call `minimax(new_board, False)`, return the position with the highest score. The smallest function in the project. When students finish, they run `python test_game.py` and should see 22/22.
 
-2. **Test Complete System (10 min):**
-   - All tests should pass
-   - Debug any remaining issues
+3. **Play and break the AI (5 min):** Run `python main.py`. Try to beat it (you can't). The "play" segment is short on purpose — losing to your own AI is satisfying for about three games.
 
-3. **Play the Game! (15 min):**
-   - Run `python main.py`
-   - Try to beat the AI (spoiler: you can't)
-   - What's the best you can do? (draw)
-
-4. **Reflection Discussion (5 min):**
-   - "How did it feel playing against your own AI?"
+4. **Reflection discussion (10-15 min):**
+   - "How did it feel playing against your own code?"
    - "What would it take to beat this AI?"
+   - "How is this different from how ChatGPT decides what to say?" (Search vs. pattern matching.)
+   - "If we wanted to play chess this way, what would go wrong?" (Sets up the Day 4 efficiency discussion.)
 
 ---
 
-### Day 6 (Optional): Extensions & Analysis
+### Day 4 (Optional): Extensions
 
-**Objectives:**
-- Analyze algorithm efficiency
-- Implement optimizations
+1. **Move counter (10 min):** Add a global counter to `minimax` that increments at every call. Print positions evaluated per move. From an empty board it'll evaluate ~550,000 positions for the first move. Discuss exponential growth — for chess (~35 legal moves per position), going 8 plies deep is already 35^8 ≈ 2 trillion positions. *Brute-force minimax does not scale.*
 
-**Activities:**
+2. **Alpha-beta pruning (25 min):**
 
-1. **Efficiency Analysis (15 min):**
-   - Add a move counter to minimax
-   - How many positions does it evaluate from an empty board?
-   - Discuss: Why is this exponential?
+   **Teach the concept first.** Draw a small game tree on the board. Imagine the maximizer has already evaluated the first child and got a score of 5. Now look at the second child: the minimizer there has a child with score 2. The minimizer will pick *at most* 2 (it's minimizing), so the maximizer doesn't need to look at any more children of this branch — it already has 5 and can't get worse than 2 here. **Prune the rest of that subtree.**
 
-2. **Alpha-Beta Pruning (25 min):**
-   - Explain the concept: "Don't explore branches we know are bad"
-   - Provide or walk through the implementation
-   - Compare move counts: before vs. after
+   The implementation tracks two values:
+   - `alpha` — the best score the maximizer is guaranteed so far
+   - `beta` — the best score the minimizer is guaranteed so far
 
-3. **Discussion (5 min):**
-   - "Why can't we use basic minimax for chess?"
-   - "How do real chess engines handle this?"
+   When `beta <= alpha`, the current branch can't influence the final result, so we cut it off. The reference implementation below is a drop-in replacement for `minimax`. After implementing, re-run the move counter — students should see roughly a 5-10× reduction in positions evaluated.
 
-**Extension Code (Alpha-Beta):**
+   **Common misunderstanding:** alpha-beta does not change the *result*, only the *speed*. The chosen move is identical to plain minimax against a perfect opponent.
+
+**Reference implementation:**
 
 ```python
-def minimax_ab(board, is_maximizing, alpha, beta):
+def minimax_ab(board, is_ai_turn, alpha, beta):
     winner = check_winner(board)
     if winner == PLAYER_O:
         return 10
@@ -273,8 +151,8 @@ def minimax_ab(board, is_maximizing, alpha, beta):
         return -10
     elif is_board_full(board):
         return 0
-    
-    if is_maximizing:
+
+    if is_ai_turn:
         best_score = float('-inf')
         for move in get_valid_moves(board):
             new_board = make_move(board, move, PLAYER_O)
@@ -296,162 +174,74 @@ def minimax_ab(board, is_maximizing, alpha, beta):
         return best_score
 ```
 
----
+After the move counter is updated to also count alpha-beta calls, students can directly compare the two: roughly 550k positions plain vs. ~50k with pruning on the opening move.
 
-### Day 7 (Optional): Code Review & Real-World Connections
+3. **Real-world AI and wrap (10 min):** "Why isn't alpha-beta enough to solve chess?" — even with perfect pruning, chess has too many positions. Then tie back to where students see search-based AI in the wild:
+   - Chess engines (Deep Blue, Stockfish): alpha-beta + handcrafted evaluation for non-terminal positions, transposition tables, opening books
+   - Go (AlphaGo): Monte Carlo Tree Search guided by neural networks — same "search a tree of future positions" idea as minimax, but uses sampling instead of exhaustive evaluation
+   - LLMs (ChatGPT and friends): pattern matching on training data, *not* search. Worth contrasting explicitly so students don't lump all AI together.
 
-**Objectives:**
-- Practice code review
-- Connect to real-world AI
-
-**Activities:**
-
-1. **Peer Code Review (20 min):**
-   - Pairs exchange code
-   - Review checklist:
-     - [ ] Does it pass all tests?
-     - [ ] Is the code readable?
-     - [ ] Are variable names clear?
-     - [ ] Could any parts be simplified?
-   - Provide constructive feedback
-
-2. **Real-World AI Discussion (20 min):**
-   - How is minimax used in:
-     - Chess engines (Deep Blue, Stockfish)
-     - Go AI (AlphaGo combines minimax with neural networks)
-     - Decision-making systems
-   - How is this different from ChatGPT?
-     - Game AI: exhaustive search of defined rules
-     - LLMs: pattern matching on training data
-
-3. **Wrap-up (5 min):**
-   - Reflection: What did you learn?
-   - What would you explore further?
+Other extensions (in the README, for ambitious students): depth scoring for faster wins, Connect Four, Nim.
 
 ---
 
-## Assessment Ideas
+## Assessment
 
-### Formative Assessment
+**During the project (low-stakes, ongoing):** the 27-test suite gives immediate feedback as students implement each function. Optional exit ticket: "Explain in one sentence how minimax chooses a move."
 
-- **Test Suite:** Built-in tests provide immediate feedback
-- **Observation:** Monitor progress during implementation
-- **Exit Tickets:** "Explain in one sentence how minimax chooses a move"
-
-### Summative Assessment
-
-**Option A: Code Submission**
-- Submit completed `main.py`
-- Rubric:
-  - All tests pass (40%)
-  - Code readability (20%)
-  - Correct implementation approach (40%)
-
-**Option B: Written Reflection**
-- "Trace minimax for this board state" (show work)
-- "Explain why the AI is unbeatable"
-- "How would you modify this for a larger game?"
-
-**Option C: Extension Project**
-- Implement alpha-beta pruning
-- Add depth scoring (prefer faster wins)
-- Implement for a different game (Connect 4, Nim)
+**Final assessment (pick one):**
+- Code submission graded on test pass rate + readability.
+- Written: trace minimax for a given board state and explain why the AI is unbeatable.
+- Project: implement an extension (alpha-beta, depth scoring, or a different game).
 
 ---
 
-## Differentiation
+## Troubleshooting
 
-### For Struggling Students
-
-- Provide partially completed functions
-- Pair with stronger partner
-- Focus on Days 1-5; skip extensions
-- Use more scaffolded pseudocode
-
-### For Advanced Students
-
-- Skip to Day 4 if they already know recursion
-- Challenge: Implement alpha-beta without guidance
-- Challenge: Implement for Connect 4
-- Research and present on Monte Carlo Tree Search
+| Symptom | Likely cause | Fix |
+|---------|--------------|-----|
+| `RecursionError: maximum recursion depth exceeded` | Base case not firing | Verify `check_winner()` and `is_board_full()` |
+| AI plays seemingly random moves | Score signs reversed | +10 for AI win, -10 for human win |
+| Tests pass but AI loses | `get_best_move()` returns the score, not the position | Return `best_move`, not `best_score` |
+| Infinite loop in `play_game()` | `is_game_over()` never terminates | Manually test `check_winner()` and `is_board_full()` |
 
 ---
 
-## Discussion Prompts
-
-Use these throughout the unit to deepen understanding:
-
-1. "What makes Tic-Tac-Toe 'solvable'? What games are not solvable this way?"
-
-2. "The AI explores thousands of positions for one move. How do humans play without doing this?"
-
-3. "Is this AI 'intelligent'? What does intelligence mean in this context?"
-
-4. "Could we use minimax to solve real-world problems outside of games?"
-
-5. "What are the ethical implications of unbeatable game AI? (Think: casinos, competitive gaming)"
-
----
-
-## Common Misconceptions
-
-| Misconception | Reality |
-|--------------|---------|
-| "The AI learns from playing" | No learning—minimax always calculates from scratch. Every game is independent. |
-| "The AI is thinking like a human" | It's exhaustive search, not intuition. Humans use pattern recognition and heuristics. |
-| "Bigger games just need more time" | Exponential growth makes brute-force minimax impossible for chess (~10^120 positions). |
-| "The AI might make mistakes" | With correct implementation, minimax is provably optimal. Any loss indicates a bug. |
-
----
-
-## Troubleshooting Guide
-
-| Symptom | Likely Cause | Solution |
-|---------|--------------|----------|
-| "Maximum recursion depth exceeded" | Base case not triggering | Check `check_winner()` and `is_board_full()` |
-| AI makes random-seeming moves | Score signs reversed | Verify +10 for AI win, -10 for human win |
-| Tests pass but AI loses | `get_best_move()` returning wrong value | Check it returns position, not score |
-| Infinite loop in game | `is_game_over()` not working | Test `check_winner()` and `is_board_full()` manually |
-
----
-
-## Files in This Package
+## Files Students See
 
 | File | Purpose |
 |------|---------|
-| `solution.py` | Complete reference implementation (instructor only) |
-| `lesson-plan.md` | This document |
-| Tic-Tac-Toe` student template | |
-| → `main.py` | Scaffolded code with TODOs |
-| → `test_game.py` | Test suite for verification |
-| → `README.md` | Student-facing instructions |
+| `warmup_factorial.py` | Scaffolded recursion warm-up (Step 0) |
+| `test_warmup.py` | 5 tests for the warm-up |
+| `main.py` | Scaffolded code with TODOs for Steps 1-4 |
+| `test_game.py` | 22 tests for the four main TODOs |
+| `README.md` | Student-facing instructions |
 
 ---
 
-## Additional Resources
+## Appendix: CSTA Standards Crosswalk
 
-### For Instructors
+This project is designed to address the following CSTA K-12 Computer Science Standards for Grades 11-12.
 
-- [Minimax Wikipedia](https://en.wikipedia.org/wiki/Minimax) - Mathematical foundations
-- [Sebastian Lague's Minimax Video](https://www.youtube.com/watch?v=l-hh51ncgDI) - Excellent visual explanation to show in class
-- [CS Unplugged: Divide and Conquer](https://www.csunplugged.org/en/) - Related unplugged activities
+> **Note:** This content has not been submitted for official CSTA alignment review. The crosswalk below shows which standards this project is designed to address.
 
-### For Students (in README.md)
+### Primary Standards (Direct Instruction)
 
-- GeeksforGeeks tutorials
-- Python recursion guides
-- Game theory introductions
+| Standard | Description | How This Project Addresses It |
+|----------|-------------|-------------------------------|
+| **3B-AP-09** | Implement an artificial intelligence algorithm to play a game against a human opponent or solve a problem. | Students implement minimax to create an AI that plays Tic-Tac-Toe optimally. |
+| **3B-AP-10** | Use and adapt classic algorithms to solve computational problems. | Minimax is a classic game theory algorithm (von Neumann, 1928). Optional: alpha-beta pruning. |
+| **3B-AP-11** | Evaluate algorithms in terms of their efficiency, correctness, and clarity. | Extension activities count recursive calls and contrast minimax with alpha-beta. |
+| **3B-AP-13** | Illustrate the flow of execution of a recursive algorithm. | Day 1 hand-trace and Day 2 implementation both center on recursion. |
+| **3B-AP-14** | Construct solutions to problems using student-created components, such as procedures, modules and/or objects. | Students compose `check_winner`, `minimax`, and `get_best_move` into a complete system. |
+| **3B-AP-21** | Develop and use a series of test cases to verify that a program performs according to its design specifications. | Students run the 27-test suite as they implement each function. |
+
+### Supporting Standards (Context & Discussion)
+
+| Standard | Description | How This Project Supports It |
+|----------|-------------|------------------------------|
+| **3B-AP-08** | Describe how artificial intelligence drives many software and physical systems. | Day 4's wrap-up connects minimax to chess engines, AlphaGo, and contrasts it with LLMs. |
 
 ---
 
-## Feedback
-
-If you use this lesson plan, we'd love to hear how it went! Consider noting:
-- What worked well
-- What students struggled with
-- How you modified the pacing
-- Any resources you added
-
----
-
-*Last updated: January 2026*
+*Last updated: April 2026*

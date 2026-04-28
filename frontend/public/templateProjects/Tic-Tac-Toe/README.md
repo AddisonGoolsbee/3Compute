@@ -1,61 +1,71 @@
 # Tic-Tac-Toe AI (Minimax)
 
-In this project you build a Tic-Tac-Toe AI that cannot be beaten. The algorithm it uses, minimax, is the same foundational technique behind chess engines, other game-playing AIs, and many decision-making systems.
+Build a Tic-Tac-Toe AI that cannot be beaten. The algorithm you write — minimax — is the same foundational idea behind chess engines and many other game-playing AIs.
 
-This README covers background knowledge that may be necessary or helpful for this lesson. Read through it once before you start coding.
+## Quick Start
 
-## What You Will Learn
-
-- How an AI can "think ahead" by simulating every possible future outcome
-- How recursion lets a function solve a large problem by breaking it into smaller copies of itself
-- Game-theory basics such as optimal play and zero-sum games
-- Why minimax guarantees the best possible move given enough time
-
-## Setup
-
-Right-click the `Tic-Tac-Toe` folder in the file explorer on the left and select **Open in Terminal**. This executes `cd` (change directory) in your terminal to the project folder so the commands below will work.
-
-Install the dependencies:
+Right-click the `Tic-Tac-Toe` folder in the file explorer and choose **Open in Terminal**, then:
 
 ```bash
 pip install -r requirements.txt
+python test_warmup.py   # recursion warm-up — start here
+python test_game.py     # main tests — run as you implement each function
+python main.py          # play the game once test_game.py passes
 ```
 
-Open `main.py` and read through it before writing any code, so you know where the TODOs are and what each function should do. Complete the TODOs in order (1 through 4). As you work, run the tests:
+You'll write five functions across two files. Do them in order — each one prepares you for the next.
 
-```bash
-python test_game.py
-```
+**Step 0 — `warmup_factorial.py`**
 
-Once every test passes, play the game:
+- **`factorial(n)`** — return `n!`. A tiny recursive function so you've written one before tackling minimax.
 
-```bash
-python main.py
-```
+**Steps 1-4 — `main.py`**
 
-## What This README Covers
+1. **`check_winner(board)`** — return `"X"`, `"O"`, or `None`.
+2. **`is_board_full(board)`** — return `True` or `False`.
+3. **`minimax(board, is_ai_turn)`** — recursively score the position.
+4. **`get_best_move(board)`** — use minimax to pick the AI's move.
 
-- How the minimax algorithm explores every possible game
-- Why the algorithm is called "minimax"
-- A pseudocode view of the recursive structure
-- The four functions you will implement
-- Real-world applications in chess, checkers, Go, and decision-making systems
-- Extension challenges, reflection questions, and troubleshooting
+Run the matching test file after each step. Move on once it passes.
 
-## How the Minimax Algorithm Works
+Stuck on minimax? Skip down to [How Minimax Works](#how-minimax-works) and [Pseudocode](#pseudocode) before you start writing code.
 
-Imagine playing a game and thinking ahead: "If I move here, they will probably move there, and then I could move here..."
+## TODO Hints
 
-Minimax does this exhaustively. It considers every possible future move all the way to the end of the game, assuming both players play perfectly.
+### Step 0: `factorial(n)` (warmup_factorial.py)
 
-### The Core Idea
+Every recursive function has two parts: a **base case** that returns directly, and a **recursive case** that calls itself with a smaller input. For factorial: `factorial(0) == 1`, and `factorial(n) == n * factorial(n - 1)`. Internalize that shape — you'll use it again in `minimax`.
+
+### TODO #1: `check_winner(board)`
+
+There are eight winning lines: three rows, three columns, two diagonals. A line wins only if all three squares hold the same non-empty player. Three blanks in a row are not a win.
+
+### TODO #2: `is_board_full(board)`
+
+Either check whether `EMPTY` (`" "`) still appears in the board, or check the length of `get_valid_moves(board)`. Return `True` or `False`.
+
+### TODO #3: `minimax(board, is_ai_turn)`
+
+This is the hardest function. The shape is the same as `factorial` from Step 0 — a base case plus a recursive case — but with two differences: there are **three** base cases (AI won, human won, board full), and the recursive case loops over every empty square instead of taking one step `n - 1`.
+
+Handle the base cases first (somebody won, or the board is full). Then write the recursive case: try every empty square as the next move, recurse, and pick the best score. Maximize on the AI's turn, minimize on the human's turn. The pseudocode below maps directly to the code.
+
+### TODO #4: `get_best_move(board)`
+
+Call `minimax` once for each empty square (with `is_ai_turn=False`, because after the AI moves it's the human's turn) and return the square with the highest score.
+
+## How Minimax Works
+
+Imagine playing a game and thinking ahead: *"If I move here, they'll probably move there, then I could move here…"*
+
+Minimax does this exhaustively. From the current position it considers every possible future move, all the way to the end of the game, assuming both players play perfectly.
 
 ```
        Current Board
             |
      AI considers move A
            /    \
-    Human responds   Human responds
+  Human responds   Human responds
        X              Y
       /  \           /  \
    AI moves...    AI moves...
@@ -64,93 +74,94 @@ Minimax does this exhaustively. It considers every possible future move all the 
 The algorithm:
 
 1. **Simulate every possible game** from the current position.
-2. **Score end states:** AI wins (+10), Human wins (-10), Draw (0).
-3. **Back up those scores** through the tree. The AI picks moves that maximize the score; the human picks moves that minimize it.
-4. **Choose the best move:** the one that leads to the highest guaranteed outcome.
+2. **Score the end states:** AI wins (+10), Human wins (-10), Draw (0).
+3. **Back the scores up the tree.** The AI picks moves that maximize the score; the human picks moves that minimize it.
+4. **Choose the best move:** the one that leads to the highest guaranteed outcome against a perfect opponent.
 
-### Why the Name "Minimax"
+### Why the name "minimax"
 
 - The **MAX**imizing player (AI) wants the highest score.
 - The **MIN**imizing player (human) wants the lowest score.
 
-The AI assumes the human plays perfectly, meaning the human picks the move that minimizes the AI's score. The AI then picks the move that maximizes its minimum guaranteed outcome.
+The AI assumes the human plays perfectly — meaning the human picks the move that minimizes the AI's score — and then picks the move that maximizes its minimum guaranteed outcome.
 
-### Recursion in Action
+### Pseudocode
 
 ```
-minimax(board, is_maximizing):
+minimax(board, is_ai_turn):
     if game_over:
-        return score  # base case
+        return score                    # base case (+10, -10, or 0)
 
-    if is_maximizing:
+    if is_ai_turn:
         best = -infinity
-        for each move:
-            score = minimax(after_move, False)  # recursive call
+        for each empty square:
+            score = minimax(after_AI_move, False)
             best = max(best, score)
         return best
     else:
         best = +infinity
-        for each move:
-            score = minimax(after_move, True)   # recursive call
+        for each empty square:
+            score = minimax(after_human_move, True)
             best = min(best, score)
         return best
 ```
 
-## Your Tasks
+The `is_ai_turn` flag flips on every recursive call because the players alternate.
 
-Open `main.py` and complete these functions in order.
+## Extension Challenges
 
-### TODO #1: `check_winner(board)`
+Once your AI passes all tests, try these. They are listed roughly in order of how interesting most students find them.
 
-Detect whether X or O has won the game.
+### Depth Scoring (Make the AI Win Fast)
 
-**Hints:**
+Right now the AI scores a win in one move the same as a win in five moves, so it has no preference for finishing the game quickly. Sometimes it'll drag out a guaranteed win in a way that looks weird. Fix it by penalizing slow wins:
 
-- There are eight winning combinations: three rows, three columns, and two diagonals.
-- Return `"X"`, `"O"`, or `None`.
-
-### TODO #2: `is_board_full(board)`
-
-Check whether the board has any empty spaces. If not, the game is a draw.
-
-**Hints:**
-
-- Check whether `EMPTY` (the `" "` string) still appears in the board.
-- Return `True` or `False`.
-
-### TODO #3: `minimax(board, is_maximizing)`
-
-The core of the AI. Recursively evaluates every possible game.
-
-**Hints:**
-
-- Handle the base cases first (there is a winner, or the board is full).
-- Recursively explore every empty square as a possible move.
-- Maximize when it is the AI's turn; minimize when it is the human's turn.
-
-### TODO #4: `get_best_move(board)`
-
-Use `minimax` to find the best move for the current board.
-
-**Hints:**
-
-- Try every empty square.
-- Call `minimax` on each one and track the highest score.
-- Return the move index (the square), not the score.
-
-## Testing Your Implementation
-
-Run the test suite:
-
-```bash
-python test_game.py
+```python
+def minimax(board, is_ai_turn, depth=0):
+    winner = check_winner(board)
+    if winner == PLAYER_O:
+        return 10 - depth      # prefer winning sooner
+    elif winner == PLAYER_X:
+        return -10 + depth     # prefer losing later
+    elif is_board_full(board):
+        return 0
+    # ... in the recursive calls, pass depth + 1
 ```
 
-Implement the functions in order. Later tests depend on earlier functions working correctly.
+Now the AI will pick the *fastest* path to a guaranteed win.
+
+### Add a Move Counter
+
+Track how many positions minimax evaluates per move. The number grows fast.
+
+```python
+evaluation_count = 0
+
+def minimax(board, is_ai_turn):
+    global evaluation_count
+    evaluation_count += 1
+    # rest of function
+```
+
+Print the count after each AI move and watch the search-space shrink as the board fills up.
+
+### Alpha-Beta Pruning
+
+Optimize minimax by skipping branches that cannot affect the outcome. This is the technique that makes real chess engines fast enough to play.
+
+**Concept:** if you have already found a guaranteed win down one path, branches that are already worse don't need to be explored.
+
+### A Different Game
+
+Apply the same minimax idea to:
+
+- **Connect Four** (larger board, longer games)
+- **Nim** (a classic mathematical game)
+- **Simple chess endgames** such as King + Rook vs King
 
 ## Real-World Applications
 
-The minimax algorithm appears in far more places than Tic-Tac-Toe.
+Minimax shows up in far more places than Tic-Tac-Toe.
 
 ### Game AI
 
@@ -160,7 +171,7 @@ The minimax algorithm appears in far more places than Tic-Tac-Toe.
 
 ### Decision Making
 
-- Predicting how competitors will respond to a business move
+- Predicting how a competitor will respond to a business move
 - Anticipating an attacker's next step in security
 - Game theory in economics and market competition
 
@@ -170,47 +181,6 @@ The minimax algorithm appears in far more places than Tic-Tac-Toe.
 - **Planning systems:** robots look several steps ahead before acting.
 - **Adversarial AI:** security systems consider the worst-case input an attacker might send.
 
-## Extension Challenges
-
-Once the basic AI works, try these.
-
-### Easy: Add a Move Counter
-
-Track how many positions minimax evaluates. The number grows quickly.
-
-```python
-evaluation_count = 0
-
-def minimax(board, is_maximizing):
-    global evaluation_count
-    evaluation_count += 1
-    # rest of function
-```
-
-### Medium: Alpha-Beta Pruning
-
-Optimize minimax by skipping branches that cannot affect the outcome. This is the technique that makes real chess engines fast enough to play.
-
-**Concept:** If you have already found a guaranteed win down one path, paths that are already worse do not need to be explored.
-
-### Medium: Depth Scoring
-
-Right now, a win in one move scores the same as a win in five moves, so the AI has no preference for finishing quickly. Adjust the scoring so it prefers faster wins:
-
-```python
-# Instead of returning 10 or -10:
-return 10 - depth  # prefer winning sooner
-return -10 + depth  # prefer losing later
-```
-
-### Hard: A Different Game
-
-Apply the same minimax idea to:
-
-- **Connect Four** (larger board, longer games)
-- **Nim** (a classic mathematical game)
-- **Simple chess endgames** such as King + Rook vs King
-
 ## Reflection Questions
 
 1. Why is the AI unbeatable? What would it take to defeat an AI built this way?
@@ -218,16 +188,6 @@ Apply the same minimax idea to:
 3. Why does recursion feel natural for this problem? Could you write minimax without recursion?
 4. What are the limitations of minimax? Why is this approach not directly usable for real chess?
 5. How does this compare to how modern AI systems (such as ChatGPT or self-driving cars) make decisions?
-
-## Code Review Checklist
-
-Before submitting, verify:
-
-- [ ] All tests pass (`python test_game.py`)
-- [ ] The game runs without errors (`python main.py`)
-- [ ] The AI never loses. Play several games to confirm.
-- [ ] Variable names are clear.
-- [ ] You can explain each function aloud.
 
 ## Troubleshooting
 
@@ -238,18 +198,18 @@ Before submitting, verify:
 
 ### The AI Makes Strange Moves
 
-- Verify that `check_winner()` catches all eight winning patterns.
+- Verify that `check_winner()` catches all eight winning lines.
 - Confirm you are using `PLAYER_O` for the AI and `PLAYER_X` for the human consistently.
 
 ### Tests Fail but the Game Appears to Work
 
 - Check return values carefully: `None` vs `False`, `-10` vs `10`.
-- Confirm that `is_board_full()` returns `True` or `False`, not the result of a different check.
+- Confirm that `is_board_full()` returns `True`/`False`, not the result of a different check.
 
 ### "Maximum Recursion Depth Exceeded"
 
 - The base case is not triggering.
-- Confirm that `check_winner()` and `is_board_full()` are correct. Minimax loops forever if neither one ever returns a terminating result.
+- Confirm that `check_winner()` and `is_board_full()` work correctly. Minimax loops forever if neither one ever returns a terminating result.
 
 ## Learning Resources
 
@@ -257,7 +217,7 @@ Before submitting, verify:
 
 - [Minimax on Wikipedia](https://en.wikipedia.org/wiki/Minimax)
 - [GeeksforGeeks: Minimax in Game Theory](https://www.geeksforgeeks.org/minimax-algorithm-in-game-theory-set-1-introduction/)
-- [Sebastian Lague's YouTube Video](https://www.youtube.com/watch?v=l-hh51ncgDI) for a clear visual explanation
+- [Sebastian Lague's YouTube Video](https://www.youtube.com/watch?v=l-hh51ncgDI) — clear visual explanation
 
 ### Game Theory and AI
 
@@ -267,4 +227,4 @@ Before submitting, verify:
 ### Python Recursion
 
 - [Real Python: Recursion Tutorial](https://realpython.com/python-recursion/)
-- [Python Tutor](https://pythontutor.com/) for stepping through recursive calls visually
+- [Python Tutor](https://pythontutor.com/) — step through recursive calls visually
