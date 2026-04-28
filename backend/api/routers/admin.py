@@ -14,9 +14,23 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy import func
 from sqlmodel import Session, select
 
-from backend.docker import CLASSROOMS_ROOT
+from pydantic import BaseModel
 
-from ..database import Classroom, ClassroomMember, PortSubdomain, User
+from backend.docker import CLASSROOMS_ROOT, UPLOADS_ROOT
+
+from ..database import (
+    AccessRequest,
+    AllowlistEntry,
+    AssignmentWeight,
+    Classroom,
+    ClassroomMember,
+    ManualScore,
+    PortSubdomain,
+    SignupCode,
+    Template,
+    TestResult,
+    User,
+)
 from ..dependencies import get_current_user, get_db
 
 logger = logging.getLogger("admin")
@@ -476,3 +490,162 @@ async def admin_containers(
             "ports": ports,
         })
     return {"containers": containers}
+
+
+# ---------------------------------------------------------------------------
+# Per-user admin actions: change role, delete user.
+# ---------------------------------------------------------------------------
+
+
+VALID_ROLES = (None, "teacher", "student")
+
+
+class UpdateUserRequest(BaseModel):
+    role: str | None = None  # "teacher" | "student" | null to clear
+
+
+def _force_remove_container(user_id: str) -> None:
+    """Stop and remove the user's Docker container if present. Best-effort —
+    docker errors are logged, never raised, since the DB row removal must
+    proceed even if the daemon is wedged."""
+    name = f"user-container-{user_id}"
+    try:
+        subprocess.run(
+            ["docker", "rm", "-f", name],
+            capture_output=True, text=True, check=False, timeout=15,
+        )
+    except (subprocess.TimeoutExpired, FileNotFoundError) as e:
+        logger.warning("docker rm -f %s failed: %s", name, e)
+
+
+def _delete_uploads_dir(user_id: str) -> None:
+    """Delete the user's uploads directory tree. Files inside are owned by
+    the container UID/GID; the systemd unit grants CAP_CHOWN, and CHMOD is
+    fine via group membership. Use rm -rf to handle cross-ownership cleanup."""
+    user_dir = os.path.join(UPLOADS_ROOT, user_id)
+    if not os.path.exists(user_dir):
+        return
+    try:
+        subprocess.run(
+            ["rm", "-rf", "--", user_dir],
+            capture_output=True, text=True, check=False, timeout=30,
+        )
+    except (subprocess.TimeoutExpired, FileNotFoundError) as e:
+        logger.warning("rm -rf %s failed: %s", user_dir, e)
+
+
+@router.patch("/users/{user_id}")
+async def update_user(
+    user_id: str,
+    body: UpdateUserRequest,
+    admin: User = Depends(require_birdflop_admin),
+    db: Session = Depends(get_db),
+):
+    """Set a user's role. Tearing down the container forces the next attach
+    to respawn it, so classroom symlinks reflect the new role immediately."""
+    if body.role not in VALID_ROLES:
+        raise HTTPException(status_code=400, detail="Role must be 'teacher', 'student', or null")
+    target = db.get(User, user_id)
+    if not target:
+        raise HTTPException(status_code=404, detail="User not found")
+    if target.role == body.role:
+        return {"ok": True, "role": target.role}
+    target.role = body.role
+    db.add(target)
+    db.commit()
+    db.refresh(target)
+    # Drop the container so symlink mounts (which differ for teachers vs
+    # students) reflect the new role on next attach.
+    _force_remove_container(target.id)
+    logger.info("admin %s set role of %s to %s", admin.email, target.email, body.role)
+    return {"ok": True, "role": target.role}
+
+
+@router.delete("/users/{user_id}")
+async def delete_user(
+    user_id: str,
+    admin: User = Depends(require_birdflop_admin),
+    db: Session = Depends(get_db),
+):
+    """Hard-delete a user. Stops the container, removes the uploads dir,
+    deletes per-user rows, and nulls out admin-metadata FKs (created_by,
+    reviewed_by_id) on rows we want to preserve.
+
+    Refuses to delete:
+    - the requesting admin (foot-gun)
+    - other birdflop.com admins (use the database directly if you must)
+    - any user who still owns classrooms with members (their absence would
+      orphan student work)
+    """
+    target = db.get(User, user_id)
+    if not target:
+        raise HTTPException(status_code=404, detail="User not found")
+    if target.id == admin.id:
+        raise HTTPException(status_code=400, detail="You can't delete yourself")
+    # Other admin accounts CAN be deleted — typed-confirmation in the UI is
+    # the safeguard. Self-delete stays blocked because it would log you out
+    # mid-action.
+
+    # Refuse if they own a classroom that still has members other than themselves.
+    owned = db.exec(select(Classroom).where(Classroom.created_by == target.id)).all()
+    blocking = []
+    for c in owned:
+        member_count = db.exec(
+            select(func.count()).select_from(ClassroomMember).where(ClassroomMember.classroom_id == c.id)
+        ).one()
+        # SQLAlchemy returns a tuple/Row in some versions; normalize to int
+        if isinstance(member_count, tuple):
+            member_count = member_count[0]
+        if (member_count or 0) > 0:
+            blocking.append(c.name)
+    if blocking:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "User owns classrooms with members: "
+                + ", ".join(blocking)
+                + ". Reassign or delete those classrooms first."
+            ),
+        )
+
+    # Cascade-delete per-user rows.
+    for model in (ClassroomMember, TestResult, ManualScore, PortSubdomain):
+        for row in db.exec(select(model).where(model.user_id == target.id)).all():
+            db.delete(row)
+
+    # Empty classrooms owned by the target — safe to remove since no members.
+    for c in owned:
+        for w in db.exec(select(AssignmentWeight).where(AssignmentWeight.classroom_id == c.id)).all():
+            db.delete(w)
+        for tmpl in db.exec(select(Template).where(Template.classroom_id == c.id)).all():
+            db.delete(tmpl)
+        db.delete(c)
+
+    # Templates the user authored that don't belong to a classroom.
+    for tmpl in db.exec(
+        select(Template).where(Template.created_by == target.id, Template.classroom_id.is_(None))
+    ).all():
+        db.delete(tmpl)
+
+    # Null out admin-metadata FKs so historical rows survive.
+    for entry in db.exec(select(AllowlistEntry).where(AllowlistEntry.created_by == target.id)).all():
+        entry.created_by = None
+        db.add(entry)
+    for ar in db.exec(select(AccessRequest).where(AccessRequest.reviewed_by_id == target.id)).all():
+        ar.reviewed_by_id = None
+        db.add(ar)
+    for sc in db.exec(select(SignupCode).where(SignupCode.created_by == target.id)).all():
+        sc.created_by = None
+        db.add(sc)
+
+    email = target.email
+    db.delete(target)
+    db.commit()
+
+    # External cleanup after the DB commit succeeds — safer to leave files
+    # behind than to delete them and roll back.
+    _force_remove_container(user_id)
+    _delete_uploads_dir(user_id)
+
+    logger.info("admin %s deleted user %s (%s)", admin.email, user_id, email)
+    return {"ok": True}
