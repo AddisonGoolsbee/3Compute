@@ -96,7 +96,7 @@ export default function TemplateButton() {
     setTimeout(() => setStatus(null), 1000);
   };
 
-  const templateNames = Object.keys(manifest);
+  const templateNames = Object.keys(manifest).filter((name) => !name.startsWith('_'));
   if (!templateNames.length) {
     return (
       <div className="inline-flex items-center justify-center px-2 py-1.5">

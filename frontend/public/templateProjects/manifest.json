@@ -6,16 +6,18 @@
     "part5/app.py",
     "part5/requirements.txt"
   ],
-  "Website": [
-    "main.py",
-    "index.html",
-    "style.css",
-    "README.md",
-    "requirements.txt"
-  ],
-  "Discord-Bot": [
-    "main.py",
-    "README.md",
-    "requirements.txt"
-  ]
+  "_disabled": {
+    "Website": [
+      "main.py",
+      "index.html",
+      "style.css",
+      "README.md",
+      "requirements.txt"
+    ],
+    "Discord-Bot": [
+      "main.py",
+      "README.md",
+      "requirements.txt"
+    ]
+  }
 }
