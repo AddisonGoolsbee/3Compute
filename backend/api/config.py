@@ -22,6 +22,16 @@ class Settings(BaseSettings):
     caddy_admin_url: str = "http://localhost:2019"
     app_domain: str = "app.csroom.org"
 
+    # Cloudflare Turnstile (https://developers.cloudflare.com/turnstile/).
+    # Defaults are Cloudflare's documented test keys: site key always renders
+    # an invisible widget that auto-passes, secret always validates "true".
+    # Swap to real keys via env once a Turnstile widget is created.
+    turnstile_site_key: str = "1x00000000000000000000AA"
+    turnstile_secret_key: str = "1x0000000000000000000000000000000AA"
+
+    # Webhook URL receiving "request access" form notifications. Empty = no-op.
+    discord_webhook_url: str = ""
+
     @property
     def is_production(self) -> bool:
         return self.flask_env == "production"

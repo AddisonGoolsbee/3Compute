@@ -3,8 +3,8 @@ import LogoCsRoom from './LogoCsRoom';
 
 export default function Footer() {
   return (
-    <footer className="px-7 py-10 border-t border-rule-soft bg-paper-tinted">
-      <div className="max-w-[1100px] mx-auto flex flex-wrap items-center justify-between gap-x-8 gap-y-4">
+    <footer className="px-4 sm:px-7 py-10 border-t border-rule-soft bg-paper-tinted">
+      <div className="max-w-[1100px] mx-auto flex flex-wrap items-center justify-between gap-x-5 sm:gap-x-8 gap-y-4">
         <div className="flex items-center gap-2.5 shrink-0">
           <LogoCsRoom size={22} />
           <span className="font-serif font-semibold tracking-tight">

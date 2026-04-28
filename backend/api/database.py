@@ -86,6 +86,60 @@ class PortSubdomain(SQLModel, table=True):
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 
+class AllowlistEntry(SQLModel, table=True):
+    """A pattern that grants a specific role to matching emails. Patterns
+    support exact match (`teacher@school.edu`) or fnmatch globs
+    (`*@school.edu`). Empty table means only admins can sign in."""
+    __tablename__ = "allowlist_entry"
+    id: Optional[int] = Field(default=None, primary_key=True)
+    pattern: str = Field(index=True)
+    role: str  # "teacher" or "student"
+    notes: Optional[str] = None
+    created_by: Optional[str] = Field(default=None, foreign_key="user.id")
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class AccessRequest(SQLModel, table=True):
+    """A teacher's submission asking to be added to the allowlist."""
+    __tablename__ = "access_request"
+    id: Optional[int] = Field(default=None, primary_key=True)
+    full_name: str
+    school_name: str
+    school_email: str = Field(index=True)
+    # How they want their students to get access:
+    # "domain" — allow anyone matching @<domain> derived from school_email
+    # "list"   — explicit list of student emails (in student_emails_text)
+    # "code"   — admin should generate a signup code for them
+    student_access_method: str
+    student_emails_text: Optional[str] = None
+    is_non_google: bool = Field(default=False)
+    status: str = Field(default="pending", index=True)  # pending|approved|rejected
+    submitted_at: datetime = Field(default_factory=datetime.utcnow)
+    reviewed_at: Optional[datetime] = None
+    reviewed_by_id: Optional[str] = Field(default=None, foreign_key="user.id")
+    admin_notes: Optional[str] = None
+    # The signup code that was generated when approving (if method=code).
+    # Surfaced in the admin UI so the admin can copy it back to the teacher
+    # until SMTP is wired up.
+    generated_code: Optional[str] = None
+
+
+class SignupCode(SQLModel, table=True):
+    """A shareable code that grants a role on redemption. Cryptographically
+    random; honored only while not expired and under max_uses."""
+    __tablename__ = "signup_code"
+    id: Optional[int] = Field(default=None, primary_key=True)
+    code: str = Field(unique=True, index=True)
+    role: str  # "teacher" or "student"
+    notes: Optional[str] = None
+    expires_at: Optional[datetime] = None
+    max_uses: Optional[int] = None
+    times_used: int = Field(default=0)
+    created_by: Optional[str] = Field(default=None, foreign_key="user.id")
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    last_used_at: Optional[datetime] = None
+
+
 def get_engine(database_url: str = "sqlite:///backend/csroom.db"):
     return create_engine(database_url, echo=False)
 

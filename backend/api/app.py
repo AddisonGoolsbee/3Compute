@@ -9,7 +9,21 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from .config import Settings
 from .database import get_engine, create_db_and_tables
-from .routers import admin, auth, users, files, classrooms, templates, webhook, tabs, subdomains, lessons
+from .routers import (
+    access_requests,
+    admin,
+    allowlist,
+    auth,
+    classrooms,
+    files,
+    lessons,
+    signup_codes,
+    subdomains,
+    tabs,
+    templates,
+    users,
+    webhook,
+)
 
 logging.basicConfig(level=logging.DEBUG)
 logging.getLogger("engineio").setLevel(logging.WARNING)
@@ -217,6 +231,15 @@ def create_app():
     app.include_router(tabs.router, prefix="/api/tabs", tags=["tabs"])
     app.include_router(subdomains.router, prefix="/api/subdomains", tags=["subdomains"])
     app.include_router(lessons.router, prefix="/api/lessons", tags=["lessons"])
+    app.include_router(access_requests.router, prefix="/api/access-requests", tags=["access-requests"])
+    app.include_router(allowlist.router, prefix="/api/admin/allowlist", tags=["admin"])
+    app.include_router(signup_codes.router, prefix="/api/admin/signup-codes", tags=["admin"])
+
+    @app.get("/api/public-config")
+    async def public_config():
+        """Frontend-readable config (Turnstile site key etc.). No auth — these
+        values are intended to be embedded in the SPA at runtime."""
+        return {"turnstile_site_key": settings.turnstile_site_key}
 
     from .routers.terminal import router as terminal_router
 

@@ -1,8 +1,9 @@
 import { useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { Link, Navigate, useLocation } from 'react-router';
+import { Navigate, useLocation } from 'react-router';
 import { AlertTriangle, RefreshCw, Play, Pause } from 'lucide-react';
 import { apiUrl, UserDataContext } from '../util/UserData';
 import AdminRestricted from '../components/AdminRestricted';
+import AdminSubNav from '../components/AdminSubNav';
 import Footer from '../components/Footer';
 import { GhostButton, Pill } from '../components/ui/Buttons';
 import { cn } from '../util/cn';
@@ -15,38 +16,6 @@ interface LogsResponse {
 }
 
 const LINE_COUNT_OPTIONS = [100, 200, 500, 1000];
-
-const SUB_NAV: Array<{ label: string; to: string }> = [
-  { label: 'Overview', to: '/admin' },
-  { label: 'Users', to: '/admin/users' },
-  { label: 'Classrooms', to: '/admin/classrooms' },
-  { label: 'Containers', to: '/admin/containers' },
-  { label: 'Logs', to: '/admin/logs' },
-];
-
-function SubNav({ active }: { active: string }) {
-  return (
-    <div className="flex gap-1 mb-7 border-b border-rule-soft">
-      {SUB_NAV.map((tab) => {
-        const isActive = tab.to === active;
-        return (
-          <Link
-            key={tab.to}
-            to={tab.to}
-            className={cn(
-              'px-4 py-2.5 border-b-2 -mb-px text-sm font-semibold transition-colors',
-              isActive
-                ? 'border-navy text-ink-strong'
-                : 'border-transparent text-ink-muted hover:text-ink-strong',
-            )}
-          >
-            {tab.label}
-          </Link>
-        );
-      })}
-    </div>
-  );
-}
 
 function classifyLine(line: string): 'error' | 'warn' | 'debug' | 'info' {
   if (/\b(ERROR|CRITICAL|Error:|Traceback|OSError|PermissionError|FileNotFoundError|Failed)\b/.test(line)) {
@@ -157,7 +126,7 @@ export default function AdminLogsPage() {
             </GhostButton>
           </div>
 
-          <SubNav active={location.pathname} />
+          <AdminSubNav active={location.pathname} />
 
           <div className="flex flex-wrap items-center gap-3 mb-5">
             <div className="flex items-center gap-2">

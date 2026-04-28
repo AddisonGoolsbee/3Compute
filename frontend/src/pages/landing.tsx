@@ -189,7 +189,7 @@ function DemoStudentRow({
   return (
     <div
       className={cn(
-        'w-full flex items-center gap-3.5 px-3.5 py-3 rounded-md transition-colors',
+        'w-full flex items-center gap-2 sm:gap-3.5 px-2 sm:px-3.5 py-2.5 sm:py-3 rounded-md transition-colors',
         expanded ? 'bg-paper-tinted' : 'hover:bg-paper-tinted',
       )}
     >
@@ -203,18 +203,18 @@ function DemoStudentRow({
       </span>
       <span
         className={cn(
-          'w-8 h-8 rounded-full inline-flex items-center justify-center text-white text-xs font-bold shrink-0',
+          'w-7 h-7 sm:w-8 sm:h-8 rounded-full inline-flex items-center justify-center text-white text-[10px] sm:text-xs font-bold shrink-0',
           avatarBg,
         )}
       >
         {demoInitials(student.name)}
       </span>
       <div className="flex-1 min-w-0">
-        <div className="text-[14.5px] font-semibold text-ink-strong truncate">{student.name}</div>
-        <div className="text-[12.5px] text-ink-subtle truncate">{student.email}</div>
+        <div className="text-[13px] sm:text-[14.5px] font-semibold text-ink-strong truncate">{student.name}</div>
+        <div className="text-[11.5px] sm:text-[12.5px] text-ink-subtle truncate">{student.email}</div>
       </div>
-      <div className="flex items-center gap-3 shrink-0">
-        <div className="w-20 h-1.5 bg-paper-deeper rounded-full overflow-hidden">
+      <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+        <div className="w-12 sm:w-20 h-1.5 bg-paper-deeper rounded-full overflow-hidden">
           <div
             className={cn(
               'h-full',
@@ -285,7 +285,7 @@ function ClassroomDemo() {
 
   return (
     <div className="rounded-2xl border border-rule-soft bg-paper-elevated overflow-hidden shadow-md">
-      <div className="px-8 pt-8 pb-4 text-center">
+      <div className="px-4 sm:px-8 pt-6 sm:pt-8 pb-4 text-center">
         <span className="eyebrow text-tomato block mb-2">Inside the gradebook</span>
         <h3 className="heading-2">Track every student&rsquo;s progress</h3>
         <p className="body text-ink-muted max-w-lg mx-auto">
@@ -352,9 +352,9 @@ function ClassroomDemo() {
               t={DEMO_STUDENTS[0].scores['Data-Encoding'][1]}
               expanded
             />
-            <div className="ml-8 mr-3 mb-3 border border-rule-soft rounded-b-md overflow-hidden bg-paper-elevated">
+            <div className="ml-2 sm:ml-8 mr-1 sm:mr-3 mb-3 border border-rule-soft rounded-b-md overflow-hidden bg-paper-elevated">
               <div className="flex" style={{ height: 220 }}>
-                <div className="w-48 border-r border-rule-soft overflow-y-auto flex-shrink-0 bg-paper-tinted">
+                <div className="w-28 sm:w-48 border-r border-rule-soft overflow-y-auto flex-shrink-0 bg-paper-tinted">
                   <div className={
                     'px-3 py-1.5 text-sm flex items-center gap-2 ' +
                     (step === 2
@@ -568,21 +568,20 @@ export default function LandingPage() {
       {/* ============================================================
           1. Hero
          ============================================================ */}
-      <section className="relative overflow-hidden px-7 pt-[88px] pb-24">
+      <section className="relative overflow-hidden px-4 sm:px-7 pt-12 sm:pt-[88px] pb-16 sm:pb-24">
         <div
           aria-hidden
-          className="absolute top-[60px] -right-20 w-[280px] h-[280px] bg-ochre-soft rounded-full opacity-60 z-0"
+          className="hidden sm:block absolute top-[60px] -right-20 w-[280px] h-[280px] bg-ochre-soft rounded-full opacity-60 z-0"
         />
         <div
           aria-hidden
-          className="absolute top-[220px] right-20 w-20 h-20 bg-tomato rounded-[18px] rotate-12 opacity-85 z-0"
+          className="hidden sm:block absolute top-[220px] right-20 w-20 h-20 bg-tomato rounded-[18px] rotate-12 opacity-85 z-0"
         />
 
-        <div className="max-w-[1180px] mx-auto relative z-10 grid grid-cols-1 lg:grid-cols-[1.15fr_1fr] gap-14 items-center">
+        <div className="max-w-[1180px] mx-auto relative z-10 grid grid-cols-1 lg:grid-cols-[1.15fr_1fr] gap-10 lg:gap-14 items-center">
           <div>
             <h1
-              className="heading-display mb-7"
-              style={{ fontSize: 64, lineHeight: 1.05 }}
+              className="heading-display mb-6 sm:mb-7 text-[40px] sm:text-[56px] lg:text-[64px] leading-[1.05]"
             >
               The coding classroom<br />
               <span className="text-navy italic">that stays with students</span>
@@ -624,7 +623,7 @@ export default function LandingPage() {
       {/* ============================================================
           2. Mission band — navy
          ============================================================ */}
-      <section id="mission" className="bg-navy px-7 py-[88px] relative overflow-hidden" style={{ color: '#fff' }}>
+      <section id="mission" className="bg-navy px-4 sm:px-7 py-16 sm:py-[88px] relative overflow-hidden" style={{ color: '#fff' }}>
         <div
           aria-hidden
           className="absolute -top-10 -left-10 w-[180px] h-[180px] bg-tomato rounded-full opacity-40"
@@ -661,7 +660,7 @@ export default function LandingPage() {
       {/* ============================================================
           3. How it works (merged with role cards) — paper-tinted band
          ============================================================ */}
-      <section id="how-it-works" className="bg-paper-tinted px-7 py-[88px]">
+      <section id="how-it-works" className="bg-paper-tinted px-4 sm:px-7 py-16 sm:py-[88px]">
         <div className="max-w-[1180px] mx-auto">
           <div className="text-center mb-14">
             <span className="eyebrow text-forest block mb-3">How it works</span>
@@ -736,7 +735,7 @@ export default function LandingPage() {
       {/* ============================================================
           5. Feature grid (kit, expanded with original "What you get")
          ============================================================ */}
-      <section className="px-7 py-20">
+      <section className="px-4 sm:px-7 py-16 sm:py-20">
         <div className="max-w-[1100px] mx-auto">
           <h2 className="heading-2 text-center mb-10">What you get</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-10 gap-y-8">
@@ -760,7 +759,7 @@ export default function LandingPage() {
       {/* ============================================================
           6. Classroom demo (RESTORED) — paper-tinted band
          ============================================================ */}
-      <section className="bg-paper-tinted px-7 py-[88px]">
+      <section className="bg-paper-tinted px-4 sm:px-7 py-16 sm:py-[88px]">
         <div className="max-w-[1100px] mx-auto">
           <ClassroomDemo />
         </div>
@@ -769,7 +768,7 @@ export default function LandingPage() {
       {/* ============================================================
           7. Students own their projects (RESTORED) — deploy diagram
          ============================================================ */}
-      <section className="px-7 py-[88px]">
+      <section className="px-4 sm:px-7 py-16 sm:py-[88px]">
         <div className="max-w-[1100px] mx-auto">
           <div className="text-center mb-14">
             <span className="eyebrow text-forest block mb-3">Student ownership</span>
@@ -819,9 +818,9 @@ export default function LandingPage() {
               </div>
             </div>
 
-            {/* Branching connector */}
+            {/* Branching connector — only makes sense when cards are side-by-side (sm+). */}
             <div className="w-full max-w-[640px] mt-2">
-              <svg viewBox="0 0 600 60" className="w-full overflow-visible" style={{ height: 60 }} aria-hidden>
+              <svg viewBox="0 0 600 60" className="hidden sm:block w-full overflow-visible" style={{ height: 60 }} aria-hidden>
                 <defs>
                   <marker id="arr-forest" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
                     <path d="M0,0 L0,8 L8,4 z" fill="var(--c-forest)" />
@@ -870,6 +869,22 @@ export default function LandingPage() {
                 </path>
               </svg>
 
+              {/* On mobile, cards stack — show a single straight arrow instead of a fan-out. */}
+              <div className="sm:hidden flex justify-center py-2" aria-hidden>
+                <svg width="24" height="36" viewBox="0 0 24 36" fill="none">
+                  <line
+                    x1="12" y1="0" x2="12" y2="28"
+                    stroke="var(--c-forest)"
+                    strokeWidth="1.5"
+                    strokeDasharray="4 3"
+                    strokeLinecap="round"
+                  >
+                    <animate attributeName="stroke-dashoffset" from="0" to="-14" dur="1s" repeatCount="indefinite" />
+                  </line>
+                  <path d="M12 36 L4 26 L20 26 Z" fill="var(--c-forest)" />
+                </svg>
+              </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="bg-paper-elevated border border-rule-soft rounded-xl p-5 text-center">
                   <div className="w-11 h-11 rounded-md bg-navy-soft text-navy flex items-center justify-center mx-auto mb-3">
@@ -901,9 +916,9 @@ export default function LandingPage() {
       {/* ============================================================
           8. Closing CTA
          ============================================================ */}
-      <section className="px-7 py-[88px]">
+      <section className="px-4 sm:px-7 py-16 sm:py-[88px]">
         <div
-          className="max-w-[720px] mx-auto text-center bg-paper-elevated border border-rule-soft rounded-2xl p-14 shadow-md"
+          className="max-w-[720px] mx-auto text-center bg-paper-elevated border border-rule-soft rounded-2xl p-8 sm:p-14 shadow-md"
         >
           <h2 className="heading-2">Free for everyone</h2>
           <p className="body-lg text-ink-muted mb-7">

@@ -378,7 +378,7 @@ export function Layout({ children }: { children: ReactNode }) {
         <meta name="theme-color" content="#fdfaf2" />
         <meta name="description" content="Free, browser-based coding environments and classrooms for teachers and students." />
         <link rel="icon" type="image/svg+xml" href="/icon.svg" />
-        <link rel="apple-touch-icon" href="/icon.svg" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <meta property="og:type" content="website" />
         <meta property="og:site_name" content="CS Room" />
         <meta property="og:title" content="CS Room | Free Online Coding Classrooms" />

@@ -1,8 +1,9 @@
 import { useContext, useEffect, useRef, useState } from 'react';
-import { Link, Navigate, useLocation } from 'react-router';
+import { Navigate, useLocation } from 'react-router';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
 import { apiUrl, UserDataContext } from '../util/UserData';
 import AdminRestricted from '../components/AdminRestricted';
+import AdminSubNav from '../components/AdminSubNav';
 import Footer from '../components/Footer';
 import { GhostButton, Pill } from '../components/ui/Buttons';
 import { cn } from '../util/cn';
@@ -19,38 +20,6 @@ interface AdminUser {
   last_login: string | null;
   container_running: boolean;
   classroom_count: number;
-}
-
-const SUB_NAV: Array<{ label: string; to: string }> = [
-  { label: 'Overview', to: '/admin' },
-  { label: 'Users', to: '/admin/users' },
-  { label: 'Classrooms', to: '/admin/classrooms' },
-  { label: 'Containers', to: '/admin/containers' },
-  { label: 'Logs', to: '/admin/logs' },
-];
-
-function SubNav({ active }: { active: string }) {
-  return (
-    <div className="flex gap-1 mb-7 border-b border-rule-soft">
-      {SUB_NAV.map((tab) => {
-        const isActive = tab.to === active;
-        return (
-          <Link
-            key={tab.to}
-            to={tab.to}
-            className={cn(
-              'px-4 py-2.5 border-b-2 -mb-px text-sm font-semibold transition-colors',
-              isActive
-                ? 'border-navy text-ink-strong'
-                : 'border-transparent text-ink-muted hover:text-ink-strong',
-            )}
-          >
-            {tab.label}
-          </Link>
-        );
-      })}
-    </div>
-  );
 }
 
 const AVATAR_BG: string[] = ['bg-tomato', 'bg-navy', 'bg-forest', 'bg-ochre', 'bg-plum'];
@@ -159,7 +128,7 @@ export default function AdminUsersPage() {
             </GhostButton>
           </div>
 
-          <SubNav active={location.pathname} />
+          <AdminSubNav active={location.pathname} />
 
           {loading && users.length === 0 && (
             <div className="body text-ink-muted text-center py-10">Loading…</div>

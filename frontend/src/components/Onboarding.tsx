@@ -1,12 +1,16 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router';
 import LogoCsRoom from './LogoCsRoom';
-import { BookOpen, GraduationCap } from 'lucide-react';
+import { BookOpen, GraduationCap, KeyRound } from 'lucide-react';
 import { apiUrl } from '../util/UserData';
 import { PrimaryButton } from './ui/Buttons';
 
 export default function Onboarding() {
   const [loading, setLoading] = useState(false);
   const [allowedRoles, setAllowedRoles] = useState<string[] | null>(null);
+  const [code, setCode] = useState('');
+  const [redeemError, setRedeemError] = useState<string | null>(null);
+  const [redeeming, setRedeeming] = useState(false);
 
   useEffect(() => {
     fetch(`${apiUrl}/users/allowed-roles`, { credentials: 'include' })
@@ -26,6 +30,29 @@ export default function Onboarding() {
     window.location.href = '/ide';
   };
 
+  const redeemCode = async () => {
+    if (!code.trim() || redeeming) return;
+    setRedeeming(true);
+    setRedeemError(null);
+    try {
+      const res = await fetch(`${apiUrl}/users/redeem-code`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: code.trim() }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.detail || 'That code didn\'t work');
+      }
+      window.location.href = '/ide';
+    } catch (e) {
+      setRedeemError(e instanceof Error ? e.message : 'Something went wrong');
+    } finally {
+      setRedeeming(false);
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-paper p-8">
       <div className="bg-paper-elevated border border-rule rounded-xl p-10 max-w-[460px] w-full text-center shadow-md">
@@ -39,14 +66,53 @@ export default function Onboarding() {
         {allowedRoles === null ? (
           <p className="body text-ink-muted">Loading…</p>
         ) : allowedRoles.length === 0 ? (
-          <div className="flex flex-col items-center gap-3">
-            <p className="body text-ink-muted">You don't have access to any roles yet.</p>
-            <p className="body text-ink-muted">
-              Contact{' '}
-              <a href="mailto:csroom@birdflop.com" className="text-navy font-semibold no-underline">
-                csroom@birdflop.com
-              </a>{' '}
-              to request access.
+          <div className="flex flex-col gap-5 mt-5 text-left">
+            <p className="body text-ink-muted text-center">
+              You don't have access yet. If your teacher gave you a signup code, enter it below.
+            </p>
+
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-semibold text-ink-strong" htmlFor="signup-code">
+                Signup code
+              </label>
+              <input
+                id="signup-code"
+                type="text"
+                value={code}
+                onChange={(e) => setCode(e.target.value.toUpperCase())}
+                onKeyDown={(e) => { if (e.key === 'Enter') redeemCode(); }}
+                placeholder="XXXX-XXXX-XXXX"
+                autoComplete="off"
+                spellCheck={false}
+                className="px-3 py-2.5 bg-paper border border-rule rounded-md text-ink-strong text-[15px] font-mono tracking-wide focus:outline-none focus:border-navy focus:ring-2 focus:ring-navy/15 transition-colors text-center"
+              />
+              {redeemError && (
+                <p className="text-sm text-tomato">{redeemError}</p>
+              )}
+              <PrimaryButton
+                color="navy"
+                size="md"
+                icon={<KeyRound size={16} />}
+                onClick={redeemCode}
+                disabled={!code.trim() || redeeming}
+                className="w-full justify-center mt-1"
+              >
+                {redeeming ? 'Checking…' : 'Use code'}
+              </PrimaryButton>
+            </div>
+
+            <div className="flex items-center gap-3 text-xs text-ink-faint">
+              <span className="flex-1 h-px bg-rule-soft" />
+              <span>OR</span>
+              <span className="flex-1 h-px bg-rule-soft" />
+            </div>
+
+            <p className="body text-ink-muted text-center">
+              Teachers without a code can{' '}
+              <Link to="/request-access" className="text-navy font-semibold no-underline">
+                request access
+              </Link>
+              .
             </p>
           </div>
         ) : (

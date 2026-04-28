@@ -95,9 +95,8 @@ By the end of this project, students should be able to:
 
 **Instructor Notes:**
 
-- Most students finish in 25-45 minutes. Fast finishers can try the Welcome-to-CS-Room lesson next.
-- The clue files contain a null byte so the editor will refuse to open them. If a student complains that clicking a file shows "This file cannot be displayed in the editor," that is by design - push them back to the terminal.
-- The null byte also means you cannot easily preview the solution in the editor yourself. The `solution-reference.md` document (if provided) lists the correct answer as a reference.
+- Most students finish in 25-45 minutes. Fast finishers can try the Welcome-to-CS-Room template next.
+- The clue files contain a null byte so the editor will refuse to open them. If a student complains that clicking a file shows "This file cannot be displayed in the editor," that is by design; push them back to the terminal.
 
 ---
 
