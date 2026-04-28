@@ -117,7 +117,7 @@ export default function NavComponent() {
         </>
       ) : (
         <>
-          <NavLinkA href="#lessons" icon={<BookOpen size={15} />}>Lessons</NavLinkA>
+          <NavLinkA href="lessons" icon={<BookOpen size={15} />}>Lessons</NavLinkA>
           <PrimaryButton
             color="navy"
             size="md"

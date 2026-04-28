@@ -22,6 +22,12 @@ export default tseslint.config(
   reactHooks.configs.flat['recommended-latest'],
   reactRefresh.configs.vite,
   {
+    files: ['scripts/**/*.{js,mjs}'],
+    languageOptions: {
+      globals: globals.node,
+    },
+  },
+  {
     files: ['**/*.{ts,tsx}'],
     languageOptions: {
       globals: globals.browser,

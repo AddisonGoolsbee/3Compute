@@ -375,11 +375,26 @@ export function Layout({ children }: { children: ReactNode }) {
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="theme-color" content="#fdfaf2" />
+        <meta name="description" content="Free, browser-based coding environments and classrooms for teachers and students." />
         <link rel="icon" type="image/svg+xml" href="/icon.svg" />
         <link rel="apple-touch-icon" href="/icon.svg" />
+        <meta property="og:type" content="website" />
+        <meta property="og:site_name" content="CS Room" />
+        <meta property="og:title" content="CS Room | Free Online Coding Classrooms" />
+        <meta property="og:description" content="Free, browser-based coding environments and classrooms for teachers and students." />
+        <meta property="og:url" content="https://csroom.org" />
+        <meta property="og:image" content="https://www.csroom.org/og-card.png" />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+        <meta property="og:image:alt" content="CS Room — the coding classroom that stays with students" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="CS Room | Free Online Coding Classrooms" />
+        <meta name="twitter:description" content="Free, browser-based coding environments and classrooms for teachers and students." />
+        <meta name="twitter:image" content="https://www.csroom.org/og-card.png" />
         <Meta />
         <Links />
-        <title>CS Room</title>
+        <title>CS Room | Free Online Coding Classrooms</title>
       </head>
       <body className="bg-paper text-ink-default">
         <UserDataContext value={userData}>
