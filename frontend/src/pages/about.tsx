@@ -70,7 +70,7 @@ export default function AboutPage() {
               </li>
               <li>
                 <strong className="text-ink-strong">No setup, no cost.</strong>{' '}
-                Students sign in with Google and start coding for free
+                Students sign in with Google and start coding for free.
               </li>
             </ul>
           </Section>
