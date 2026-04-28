@@ -16,9 +16,14 @@ SITEVERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify"
 
 
 async def verify_token(token: str, remote_ip: str | None = None) -> bool:
+    settings = Settings()
+    # Dev-mode bypass: skip Cloudflare entirely so the form works offline,
+    # behind corporate networks, or in Docker setups that can't reach
+    # challenges.cloudflare.com. Production always verifies.
+    if settings.flask_env == "development":
+        return True
     if not token:
         return False
-    settings = Settings()
     data = {"secret": settings.turnstile_secret_key, "response": token}
     if remote_ip:
         data["remoteip"] = remote_ip

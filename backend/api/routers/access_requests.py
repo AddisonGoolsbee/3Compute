@@ -34,7 +34,9 @@ class SubmitRequest(BaseModel):
     student_count_estimate: Optional[str] = None
     grade_levels: Optional[str] = None
     referral_source: Optional[str] = None
-    turnstile_token: str
+    # Optional so dev-mode submissions (no captcha widget) can send null.
+    # Production rejects empty/missing tokens inside verify_token().
+    turnstile_token: Optional[str] = None
 
 
 @router.post("")

@@ -68,7 +68,7 @@ export default function Onboarding() {
         ) : allowedRoles.length === 0 ? (
           <div className="flex flex-col gap-5 mt-5 text-left">
             <p className="body text-ink-muted text-center">
-              You don't have access yet. If your teacher gave you a signup code, enter it below.
+              You don't have access yet. If you have a signup code, enter it below.
             </p>
 
             <div className="flex flex-col gap-2">

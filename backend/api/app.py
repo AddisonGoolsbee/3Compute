@@ -238,8 +238,11 @@ def create_app():
     @app.get("/api/public-config")
     async def public_config():
         """Frontend-readable config (Turnstile site key etc.). No auth — these
-        values are intended to be embedded in the SPA at runtime."""
-        return {"turnstile_site_key": settings.turnstile_site_key}
+        values are intended to be embedded in the SPA at runtime. In dev we
+        return an empty site key so the SPA skips rendering the widget and
+        the access-request form submits without a token."""
+        site_key = "" if settings.flask_env == "development" else settings.turnstile_site_key
+        return {"turnstile_site_key": site_key}
 
     from .routers.terminal import router as terminal_router
 

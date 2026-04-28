@@ -1,8 +1,12 @@
+import logging
 from datetime import datetime
 from typing import Optional
 import uuid
 
+from sqlalchemy import inspect, text
 from sqlmodel import SQLModel, Field, create_engine, Session
+
+logger = logging.getLogger("database")
 
 
 class User(SQLModel, table=True):
@@ -152,6 +156,40 @@ def get_engine(database_url: str = "sqlite:///backend/csroom.db"):
 
 def create_db_and_tables(engine):
     SQLModel.metadata.create_all(engine)
+    add_missing_columns(engine)
+
+
+def add_missing_columns(engine) -> None:
+    """Idempotent forward-only migration: for every existing table, ALTER TABLE
+    ADD COLUMN any nullable column that the model declares but the table is
+    missing. SQLModel's ``create_all`` only creates tables in full and never
+    alters them, so adding a new field to a model otherwise silently breaks
+    INSERTs against pre-existing prod databases (sqlite raises
+    ``no such column``). Skips primary-key and non-nullable columns to stay
+    safe — those need a deliberate manual migration.
+    """
+    inspector = inspect(engine)
+    existing_tables = set(inspector.get_table_names())
+    for table_name, table in SQLModel.metadata.tables.items():
+        if table_name not in existing_tables:
+            continue  # create_all just made it; nothing to add
+        existing_cols = {c["name"] for c in inspector.get_columns(table_name)}
+        for column in table.columns:
+            if column.name in existing_cols:
+                continue
+            if column.primary_key or not column.nullable:
+                logger.warning(
+                    "Cannot auto-add column %s.%s (primary_key or NOT NULL); "
+                    "manual migration required",
+                    table_name, column.name,
+                )
+                continue
+            col_type = column.type.compile(dialect=engine.dialect)
+            with engine.begin() as conn:
+                conn.execute(text(
+                    f'ALTER TABLE "{table_name}" ADD COLUMN "{column.name}" {col_type}'
+                ))
+            logger.info("Added column %s.%s (%s)", table_name, column.name, col_type)
 
 
 def get_session(engine):

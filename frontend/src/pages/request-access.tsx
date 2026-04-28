@@ -114,11 +114,14 @@ export default function RequestAccessPage() {
   }, [turnstileSiteKey, submitted]);
 
   const domain = emailDomain(schoolEmail);
+  // Empty site key from /public-config means captcha is intentionally off
+  // (dev mode). Don't require a token in that case.
+  const captchaRequired = turnstileSiteKey !== '' && turnstileSiteKey !== null;
   const canSubmit =
     !!fullName.trim() &&
     !!schoolName.trim() &&
     schoolEmail.includes('@') && schoolEmail.includes('.') &&
-    !!turnstileToken &&
+    (!captchaRequired || !!turnstileToken) &&
     !submitting;
 
   const submit = async () => {
@@ -302,7 +305,7 @@ export default function RequestAccessPage() {
                         to sign up
                       </span>
                     }
-                    hint="Easiest if your students all have school-issued email. A .edu email is not required."
+                    hint="Easiest if your students all have school-issued email."
                   />
                   <RadioOption
                     name="student_access"
@@ -336,7 +339,7 @@ export default function RequestAccessPage() {
                     checked={method === 'none'}
                     onChange={() => setMethod('none')}
                     label="Students already have access (or I'll set this up later)"
-                    hint="We'll only enable your teacher account. You can request additional student access at any time."
+                    hint="We'll only enable your teacher account. You can add additional student access at any time through your account."
                   />
                 </fieldset>
 
@@ -363,14 +366,11 @@ export default function RequestAccessPage() {
                   </div>
                 )}
 
-                <div>
-                  <div ref={turnstileRef} className="cf-turnstile" />
-                  {turnstileSiteKey === '' && (
-                    <p className="text-sm text-tomato mt-2">
-                      CAPTCHA is currently misconfigured. Please email csroom@birdflop.com.
-                    </p>
-                  )}
-                </div>
+                {captchaRequired && (
+                  <div>
+                    <div ref={turnstileRef} className="cf-turnstile" />
+                  </div>
+                )}
 
                 {submitError && (
                   <div className="bg-tomato-soft border border-tomato/30 rounded-lg p-4 text-sm text-ink-default">
