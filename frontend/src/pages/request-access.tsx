@@ -1,5 +1,5 @@
 import { useContext, useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 import { ArrowLeft, AtSign, Check, Mail, ShieldAlert } from 'lucide-react';
 import { apiUrl, UserDataContext } from '../util/UserData';
 import { PrimaryButton } from '../components/ui/Buttons';
@@ -56,6 +56,7 @@ export default function RequestAccessPage() {
   const userData = useContext(UserDataContext);
   const userInfo = userData?.userInfo;
   const isTeacher = userInfo?.role === 'teacher';
+  const navigate = useNavigate();
 
   const [fullName, setFullName] = useState(isTeacher ? (userInfo?.name || '') : '');
   const [schoolName, setSchoolName] = useState('');
@@ -164,7 +165,17 @@ export default function RequestAccessPage() {
         const data = await res.json().catch(() => ({}));
         throw new Error(data.detail || `${res.status} ${res.statusText}`);
       }
-      setSubmitted(true);
+      // Public flow lands on a dedicated thanks URL so Google Ads can fire a
+      // destination-based conversion. Signed-in teachers stay on this URL so
+      // their internal "request more access" submissions don't trip the conversion.
+      if (isTeacher) {
+        setSubmitted(true);
+      } else {
+        navigate('/request-access/thanks', {
+          state: { email: schoolEmail.trim(), isNonGoogle },
+          replace: true,
+        });
+      }
     } catch (e) {
       setSubmitError(e instanceof Error ? e.message : 'Something went wrong');
       // Reset Turnstile so the user can retry with a fresh token.
@@ -476,7 +487,7 @@ function RadioOption({
   );
 }
 
-function SubmittedCard({ email, isNonGoogle, isTeacher }: { email: string; isNonGoogle: boolean; isTeacher: boolean }) {
+export function SubmittedCard({ email, isNonGoogle, isTeacher }: { email: string; isNonGoogle: boolean; isTeacher: boolean }) {
   return (
     <div className="bg-paper-elevated border border-rule rounded-xl p-10 shadow-md text-center">
       <div className="w-14 h-14 rounded-full bg-forest-soft text-forest mx-auto mb-4 inline-flex items-center justify-center">

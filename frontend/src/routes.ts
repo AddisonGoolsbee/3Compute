@@ -9,6 +9,7 @@ export default [
   route('/terms', 'pages/terms.tsx'),
   route('/about', 'pages/about.tsx'),
   route('/request-access', 'pages/request-access.tsx'),
+  route('/request-access/thanks', 'pages/request-access-thanks.tsx'),
   route('/classrooms', 'pages/classrooms.tsx'),
   route('/classrooms/:id', 'pages/classroom-detail.tsx'),
   route('/admin', 'pages/admin.tsx'),
