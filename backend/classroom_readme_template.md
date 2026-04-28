@@ -51,39 +51,42 @@ Files named `test_*.py` inside an assignment are run for automated grading. Stud
 
 ### Writing your own tests
 
-Each test file must be named `test_*.py` and runnable as a standalone Python script. Drop the following snippet at the top of every test file so the gradebook gets a consistent score even if the student's code crashes partway through:
+Each test file must be named `test_*.py` and runnable as a standalone Python script. Use Python's built-in `unittest` module — no `pip install` needed. The script below is the canonical pattern: write your `unittest.TestCase` classes, then drop the runner block at the bottom. The runner emits an `N/M` score line that the gradebook reads automatically, no manual test counting required.
 
 ```python
-EXPECTED_TOTAL = 2  # total number of checks in this file
-
-import atexit, os
-passed = 0
-failed = 0
-if os.environ.get("TCOMPUTE_SCORE"):
-    atexit.register(lambda: print(f"{passed}/{EXPECTED_TOTAL}"))
-
-
-def check(description, got, expected):
-    global passed, failed
-    if got == expected:
-        print(f"  PASS  {description}")
-        passed += 1
-    else:
-        print(f"  FAIL  {description}")
-        print(f"          expected: {expected!r}")
-        print(f"          got:      {got!r}")
-        failed += 1
-
+import os
+import sys
+import unittest
 
 from main import add, multiply  # import the student's code
 
-check("add(2, 3) == 5", add(2, 3), 5)
-check("multiply(4, 5) == 20", multiply(4, 5), 20)
 
-print(f"Results: {passed}/{EXPECTED_TOTAL} tests passed")
+class TestAdd(unittest.TestCase):
+    def test_simple(self):
+        self.assertEqual(add(2, 3), 5)
+
+
+class TestMultiply(unittest.TestCase):
+    def test_simple(self):
+        self.assertEqual(multiply(4, 5), 20)
+
+
+if __name__ == "__main__":
+    runner = unittest.TextTestRunner(verbosity=2, stream=sys.stdout)
+    result = runner.run(
+        unittest.TestLoader().loadTestsFromModule(sys.modules[__name__])
+    )
+    n_failed = len(result.failures) + len(result.errors)
+    n_passed = result.testsRun - n_failed - len(result.skipped)
+
+    if os.environ.get("TCOMPUTE_SCORE"):
+        # Gradebook reads this line. Must be the last non-empty stdout line.
+        print(f"{n_passed}/{result.testsRun}")
+
+    sys.exit(0 if result.wasSuccessful() else 1)
 ```
 
-Set `EXPECTED_TOTAL` to the number of `check(...)` calls in your file. Students see the `Results: N/M tests passed` line when they run the test script themselves; the gradebook reads the score separately.
+Each `test_*` method counts as one test. If a student's code raises an exception (including `NotImplementedError`), the rest of the tests still run, and the gradebook still gets an honest `passed/total` score.
 
 If an assignment has multiple `test_*.py` files their results are summed into a single score.
 

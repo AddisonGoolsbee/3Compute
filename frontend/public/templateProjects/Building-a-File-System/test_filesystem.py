@@ -8,500 +8,293 @@ Run this file to check your implementations:
 
 Each test prints a pass/fail result. Work through the TODOs in
 file_system.py in order — the tests are grouped to match.
-
-A final summary shows how many tests passed.
 """
 
-EXPECTED_TOTAL = 36  # total number of checks in this file
+import os
+import sys
+import unittest
 
-import atexit, os
-passed = 0
-failed = 0
-if os.environ.get("TCOMPUTE_SCORE"):
-    atexit.register(lambda: print(f"{passed}/{EXPECTED_TOTAL}"))
-
-import traceback
 from file_system import MiniFS
 
 
 # =============================================================================
-# TEST RUNNER HELPERS
+# TODO #1: create_file
 # =============================================================================
 
-_results = []
+class TestCreateFile(unittest.TestCase):
+    def setUp(self):
+        self.fs = MiniFS()
 
+    def test_creates_a_file(self):
+        self.fs.create_dir("/docs")
+        self.fs.create_file("/docs/readme.txt", "hello")
+        self.assertTrue(self.fs.is_file("/docs/readme.txt"))
 
-def test(name: str, fn):
-    """Run fn(); record and print a pass or fail result."""
-    global passed, failed
-    try:
-        fn()
-        _results.append((name, True, None))
-        passed += 1
-        print(f"  PASS  {name}")
-    except AssertionError as e:
-        _results.append((name, False, str(e)))
-        failed += 1
-        print(f"  FAIL  {name}")
-        if str(e):
-            print(f"        {e}")
-    except Exception as e:
-        _results.append((name, False, f"{type(e).__name__}: {e}"))
-        failed += 1
-        print(f"  FAIL  {name}")
-        print(f"        {type(e).__name__}: {e}")
+    def test_default_content_is_empty_string(self):
+        self.fs.create_file("/empty.txt")
+        self.assertTrue(self.fs.is_file("/empty.txt"))
 
+    def test_file_at_root_level(self):
+        self.fs.create_file("/hello.txt", "root file")
+        self.assertTrue(self.fs.is_file("/hello.txt"))
 
-def section(title: str) -> None:
-    print(f"\n--- {title} ---")
+    def test_raises_file_exists_error_if_file_exists(self):
+        self.fs.create_file("/note.txt", "first")
+        with self.assertRaises(FileExistsError):
+            self.fs.create_file("/note.txt", "second")
 
+    def test_raises_file_not_found_if_parent_missing(self):
+        with self.assertRaises(FileNotFoundError):
+            self.fs.create_file("/ghost/notes.txt", "text")
 
-def fresh() -> MiniFS:
-    """Return a new, empty MiniFS instance."""
-    return MiniFS()
-
-
-# =============================================================================
-# TESTS: create_file
-# =============================================================================
-
-section("TODO #1: create_file")
-
-def _test_create_file_basic():
-    fs = fresh()
-    fs.create_dir("/docs")
-    fs.create_file("/docs/readme.txt", "hello")
-    assert fs.is_file("/docs/readme.txt"), "File should exist after create_file"
-
-test("create_file: creates a file", _test_create_file_basic)
-
-
-def _test_create_file_default_content():
-    fs = fresh()
-    fs.create_file("/empty.txt")
-    assert fs.is_file("/empty.txt"), "File should exist with default empty content"
-
-test("create_file: default content is empty string", _test_create_file_default_content)
-
-
-def _test_create_file_at_root():
-    fs = fresh()
-    fs.create_file("/hello.txt", "root file")
-    assert fs.is_file("/hello.txt"), "File at root level should exist"
-
-test("create_file: file at root level", _test_create_file_at_root)
-
-
-def _test_create_file_already_exists():
-    fs = fresh()
-    fs.create_file("/note.txt", "first")
-    try:
-        fs.create_file("/note.txt", "second")
-        assert False, "Should have raised FileExistsError"
-    except FileExistsError:
-        pass
-
-test("create_file: raises FileExistsError if file already exists", _test_create_file_already_exists)
-
-
-def _test_create_file_parent_missing():
-    fs = fresh()
-    try:
-        fs.create_file("/ghost/notes.txt", "text")
-        assert False, "Should have raised FileNotFoundError"
-    except FileNotFoundError:
-        pass
-
-test("create_file: raises FileNotFoundError if parent directory missing", _test_create_file_parent_missing)
-
-
-def _test_create_file_over_directory():
-    fs = fresh()
-    fs.create_dir("/mydir")
-    try:
-        fs.create_file("/mydir", "content")
-        assert False, "Should have raised FileExistsError for existing directory"
-    except FileExistsError:
-        pass
-
-test("create_file: raises FileExistsError if directory exists at path", _test_create_file_over_directory)
+    def test_raises_file_exists_error_if_directory_at_path(self):
+        self.fs.create_dir("/mydir")
+        with self.assertRaises(FileExistsError):
+            self.fs.create_file("/mydir", "content")
 
 
 # =============================================================================
-# TESTS: read_file
+# TODO #2: read_file
 # =============================================================================
 
-section("TODO #2: read_file")
+class TestReadFile(unittest.TestCase):
+    def setUp(self):
+        self.fs = MiniFS()
 
-def _test_read_file_basic():
-    fs = fresh()
-    fs.create_file("/greet.txt", "Hello, world!")
-    assert fs.read_file("/greet.txt") == "Hello, world!"
+    def test_returns_correct_content(self):
+        self.fs.create_file("/greet.txt", "Hello, world!")
+        self.assertEqual(self.fs.read_file("/greet.txt"), "Hello, world!")
 
-test("read_file: returns correct content", _test_read_file_basic)
+    def test_empty_file_returns_empty_string(self):
+        self.fs.create_file("/empty.txt")
+        self.assertEqual(self.fs.read_file("/empty.txt"), "")
 
+    def test_raises_file_not_found_for_missing_file(self):
+        with self.assertRaises(FileNotFoundError):
+            self.fs.read_file("/missing.txt")
 
-def _test_read_file_empty():
-    fs = fresh()
-    fs.create_file("/empty.txt")
-    assert fs.read_file("/empty.txt") == ""
+    def test_raises_is_a_directory_error_for_directory(self):
+        self.fs.create_dir("/mydir")
+        with self.assertRaises(IsADirectoryError):
+            self.fs.read_file("/mydir")
 
-test("read_file: returns empty string for empty file", _test_read_file_empty)
-
-
-def _test_read_file_not_found():
-    fs = fresh()
-    try:
-        fs.read_file("/missing.txt")
-        assert False, "Should have raised FileNotFoundError"
-    except FileNotFoundError:
-        pass
-
-test("read_file: raises FileNotFoundError for missing file", _test_read_file_not_found)
-
-
-def _test_read_file_is_directory():
-    fs = fresh()
-    fs.create_dir("/mydir")
-    try:
-        fs.read_file("/mydir")
-        assert False, "Should have raised IsADirectoryError"
-    except IsADirectoryError:
-        pass
-
-test("read_file: raises IsADirectoryError when path is a directory", _test_read_file_is_directory)
-
-
-def _test_read_file_nested():
-    fs = fresh()
-    fs.create_dir("/a")
-    fs.create_dir("/a/b")
-    fs.create_file("/a/b/deep.txt", "found it")
-    assert fs.read_file("/a/b/deep.txt") == "found it"
-
-test("read_file: reads deeply nested file", _test_read_file_nested)
+    def test_reads_deeply_nested_file(self):
+        self.fs.create_dir("/a")
+        self.fs.create_dir("/a/b")
+        self.fs.create_file("/a/b/deep.txt", "found it")
+        self.assertEqual(self.fs.read_file("/a/b/deep.txt"), "found it")
 
 
 # =============================================================================
-# TESTS: write_file
+# TODO #3: write_file
 # =============================================================================
 
-section("TODO #3: write_file")
+class TestWriteFile(unittest.TestCase):
+    def setUp(self):
+        self.fs = MiniFS()
 
-def _test_write_file_basic():
-    fs = fresh()
-    fs.create_file("/log.txt", "line 1")
-    fs.write_file("/log.txt", "line 2")
-    assert fs.read_file("/log.txt") == "line 2"
+    def test_overwrites_file_content(self):
+        self.fs.create_file("/log.txt", "line 1")
+        self.fs.write_file("/log.txt", "line 2")
+        self.assertEqual(self.fs.read_file("/log.txt"), "line 2")
 
-test("write_file: overwrites file content", _test_write_file_basic)
+    def test_writes_to_previously_empty_file(self):
+        self.fs.create_file("/blank.txt")
+        self.fs.write_file("/blank.txt", "now has content")
+        self.assertEqual(self.fs.read_file("/blank.txt"), "now has content")
 
+    def test_raises_file_not_found_if_file_missing(self):
+        with self.assertRaises(FileNotFoundError):
+            self.fs.write_file("/nope.txt", "content")
 
-def _test_write_file_to_empty():
-    fs = fresh()
-    fs.create_file("/blank.txt")
-    fs.write_file("/blank.txt", "now has content")
-    assert fs.read_file("/blank.txt") == "now has content"
-
-test("write_file: writes content to previously empty file", _test_write_file_to_empty)
-
-
-def _test_write_file_not_found():
-    fs = fresh()
-    try:
-        fs.write_file("/nope.txt", "content")
-        assert False, "Should have raised FileNotFoundError"
-    except FileNotFoundError:
-        pass
-
-test("write_file: raises FileNotFoundError if file does not exist", _test_write_file_not_found)
-
-
-def _test_write_file_multiple_times():
-    fs = fresh()
-    fs.create_file("/counter.txt", "0")
-    for i in range(1, 5):
-        fs.write_file("/counter.txt", str(i))
-    assert fs.read_file("/counter.txt") == "4"
-
-test("write_file: multiple writes keep latest value", _test_write_file_multiple_times)
+    def test_multiple_writes_keep_latest_value(self):
+        self.fs.create_file("/counter.txt", "0")
+        for i in range(1, 5):
+            self.fs.write_file("/counter.txt", str(i))
+        self.assertEqual(self.fs.read_file("/counter.txt"), "4")
 
 
 # =============================================================================
-# TESTS: create_dir
+# TODO #4: create_dir
 # =============================================================================
 
-section("TODO #4: create_dir")
+class TestCreateDir(unittest.TestCase):
+    def setUp(self):
+        self.fs = MiniFS()
 
-def _test_create_dir_basic():
-    fs = fresh()
-    fs.create_dir("/home")
-    assert fs.is_dir("/home"), "Directory should exist after create_dir"
+    def test_creates_a_directory(self):
+        self.fs.create_dir("/home")
+        self.assertTrue(self.fs.is_dir("/home"))
 
-test("create_dir: creates a directory", _test_create_dir_basic)
+    def test_creates_nested_directory(self):
+        self.fs.create_dir("/home")
+        self.fs.create_dir("/home/alice")
+        self.assertTrue(self.fs.is_dir("/home/alice"))
 
+    def test_raises_file_exists_error_if_directory_exists(self):
+        self.fs.create_dir("/home")
+        with self.assertRaises(FileExistsError):
+            self.fs.create_dir("/home")
 
-def _test_create_dir_nested():
-    fs = fresh()
-    fs.create_dir("/home")
-    fs.create_dir("/home/alice")
-    assert fs.is_dir("/home/alice")
+    def test_raises_file_not_found_if_parent_missing(self):
+        with self.assertRaises(FileNotFoundError):
+            self.fs.create_dir("/ghost/subdir")
 
-test("create_dir: creates nested directory", _test_create_dir_nested)
-
-
-def _test_create_dir_already_exists():
-    fs = fresh()
-    fs.create_dir("/home")
-    try:
-        fs.create_dir("/home")
-        assert False, "Should have raised FileExistsError"
-    except FileExistsError:
-        pass
-
-test("create_dir: raises FileExistsError if directory already exists", _test_create_dir_already_exists)
-
-
-def _test_create_dir_parent_missing():
-    fs = fresh()
-    try:
-        fs.create_dir("/ghost/subdir")
-        assert False, "Should have raised FileNotFoundError"
-    except FileNotFoundError:
-        pass
-
-test("create_dir: raises FileNotFoundError if parent directory missing", _test_create_dir_parent_missing)
-
-
-def _test_create_dir_file_at_path():
-    fs = fresh()
-    fs.create_file("/exists.txt", "i am a file")
-    try:
-        fs.create_dir("/exists.txt")
-        assert False, "Should have raised FileExistsError"
-    except FileExistsError:
-        pass
-
-test("create_dir: raises FileExistsError if file already at path", _test_create_dir_file_at_path)
+    def test_raises_file_exists_error_if_file_at_path(self):
+        self.fs.create_file("/exists.txt", "i am a file")
+        with self.assertRaises(FileExistsError):
+            self.fs.create_dir("/exists.txt")
 
 
 # =============================================================================
-# TESTS: list_dir
+# TODO #5: list_dir
 # =============================================================================
 
-section("TODO #5: list_dir")
+class TestListDir(unittest.TestCase):
+    def setUp(self):
+        self.fs = MiniFS()
 
-def _test_list_dir_basic():
-    fs = fresh()
-    fs.create_dir("/home")
-    fs.create_file("/home/notes.txt")
-    fs.create_dir("/home/photos")
-    result = fs.list_dir("/home")
-    assert result == ["notes.txt", "photos"], f"Got {result}"
+    def test_returns_sorted_list_of_names(self):
+        self.fs.create_dir("/home")
+        self.fs.create_file("/home/notes.txt")
+        self.fs.create_dir("/home/photos")
+        self.assertEqual(self.fs.list_dir("/home"), ["notes.txt", "photos"])
 
-test("list_dir: returns sorted list of names", _test_list_dir_basic)
+    def test_empty_directory_returns_empty_list(self):
+        self.fs.create_dir("/empty")
+        self.assertEqual(self.fs.list_dir("/empty"), [])
 
+    def test_lists_root_directory(self):
+        self.fs.create_dir("/a")
+        self.fs.create_dir("/b")
+        self.fs.create_file("/c.txt")
+        self.assertEqual(self.fs.list_dir("/"), ["a", "b", "c.txt"])
 
-def _test_list_dir_empty():
-    fs = fresh()
-    fs.create_dir("/empty")
-    assert fs.list_dir("/empty") == []
+    def test_raises_file_not_found_for_missing_path(self):
+        with self.assertRaises(FileNotFoundError):
+            self.fs.list_dir("/missing")
 
-test("list_dir: returns empty list for empty directory", _test_list_dir_empty)
+    def test_raises_not_a_directory_error_when_path_is_file(self):
+        self.fs.create_file("/note.txt", "text")
+        with self.assertRaises(NotADirectoryError):
+            self.fs.list_dir("/note.txt")
 
-
-def _test_list_dir_root():
-    fs = fresh()
-    fs.create_dir("/a")
-    fs.create_dir("/b")
-    fs.create_file("/c.txt")
-    result = fs.list_dir("/")
-    assert result == ["a", "b", "c.txt"], f"Got {result}"
-
-test("list_dir: lists root directory", _test_list_dir_root)
-
-
-def _test_list_dir_not_found():
-    fs = fresh()
-    try:
-        fs.list_dir("/missing")
-        assert False, "Should have raised FileNotFoundError"
-    except FileNotFoundError:
-        pass
-
-test("list_dir: raises FileNotFoundError for missing path", _test_list_dir_not_found)
-
-
-def _test_list_dir_on_file():
-    fs = fresh()
-    fs.create_file("/note.txt", "text")
-    try:
-        fs.list_dir("/note.txt")
-        assert False, "Should have raised NotADirectoryError"
-    except NotADirectoryError:
-        pass
-
-test("list_dir: raises NotADirectoryError when path is a file", _test_list_dir_on_file)
-
-
-def _test_list_dir_sorted():
-    fs = fresh()
-    fs.create_dir("/z")
-    fs.create_dir("/a")
-    fs.create_dir("/m")
-    result = fs.list_dir("/")
-    assert result == ["a", "m", "z"], f"Got {result}"
-
-test("list_dir: result is sorted alphabetically", _test_list_dir_sorted)
+    def test_result_is_sorted_alphabetically(self):
+        self.fs.create_dir("/z")
+        self.fs.create_dir("/a")
+        self.fs.create_dir("/m")
+        self.assertEqual(self.fs.list_dir("/"), ["a", "m", "z"])
 
 
 # =============================================================================
-# TESTS: delete
+# TODO #6: delete
 # =============================================================================
 
-section("TODO #6: delete")
+class TestDelete(unittest.TestCase):
+    def setUp(self):
+        self.fs = MiniFS()
 
-def _test_delete_file():
-    fs = fresh()
-    fs.create_file("/temp.txt", "data")
-    fs.delete("/temp.txt")
-    assert not fs.exists("/temp.txt"), "File should be gone after delete"
+    def test_removes_a_file(self):
+        self.fs.create_file("/temp.txt", "data")
+        self.fs.delete("/temp.txt")
+        self.assertFalse(self.fs.exists("/temp.txt"))
 
-test("delete: removes a file", _test_delete_file)
+    def test_removes_an_empty_directory(self):
+        self.fs.create_dir("/tmp")
+        self.fs.delete("/tmp")
+        self.assertFalse(self.fs.exists("/tmp"))
 
+    def test_raises_file_not_found_for_missing_path(self):
+        with self.assertRaises(FileNotFoundError):
+            self.fs.delete("/nowhere.txt")
 
-def _test_delete_empty_dir():
-    fs = fresh()
-    fs.create_dir("/tmp")
-    fs.delete("/tmp")
-    assert not fs.exists("/tmp"), "Empty directory should be gone after delete"
+    def test_raises_oserror_for_nonempty_directory(self):
+        self.fs.create_dir("/keep")
+        self.fs.create_file("/keep/important.txt", "do not delete")
+        with self.assertRaises(OSError) as ctx:
+            self.fs.delete("/keep")
+        self.assertIn("not empty", str(ctx.exception).lower())
 
-test("delete: removes an empty directory", _test_delete_empty_dir)
+    def test_deletes_nested_file_leaves_parent_intact(self):
+        self.fs.create_dir("/home")
+        self.fs.create_file("/home/old.txt", "stale")
+        self.fs.delete("/home/old.txt")
+        self.assertFalse(self.fs.exists("/home/old.txt"))
+        self.assertTrue(self.fs.exists("/home"))
 
-
-def _test_delete_not_found():
-    fs = fresh()
-    try:
-        fs.delete("/nowhere.txt")
-        assert False, "Should have raised FileNotFoundError"
-    except FileNotFoundError:
-        pass
-
-test("delete: raises FileNotFoundError for missing path", _test_delete_not_found)
-
-
-def _test_delete_nonempty_dir():
-    fs = fresh()
-    fs.create_dir("/keep")
-    fs.create_file("/keep/important.txt", "do not delete")
-    try:
-        fs.delete("/keep")
-        assert False, "Should have raised OSError for non-empty directory"
-    except OSError as e:
-        assert "not empty" in str(e).lower(), f"Expected 'not empty' in error, got: {e}"
-
-test("delete: raises OSError for non-empty directory", _test_delete_nonempty_dir)
-
-
-def _test_delete_nested_file():
-    fs = fresh()
-    fs.create_dir("/home")
-    fs.create_file("/home/old.txt", "stale")
-    fs.delete("/home/old.txt")
-    assert not fs.exists("/home/old.txt")
-    assert fs.exists("/home"), "Parent directory should still exist"
-
-test("delete: deletes nested file, leaves parent intact", _test_delete_nested_file)
-
-
-def _test_delete_then_recreate():
-    fs = fresh()
-    fs.create_file("/reuse.txt", "v1")
-    fs.delete("/reuse.txt")
-    fs.create_file("/reuse.txt", "v2")
-    assert fs.read_file("/reuse.txt") == "v2"
-
-test("delete: path can be reused after deletion", _test_delete_then_recreate)
+    def test_path_can_be_reused_after_deletion(self):
+        self.fs.create_file("/reuse.txt", "v1")
+        self.fs.delete("/reuse.txt")
+        self.fs.create_file("/reuse.txt", "v2")
+        self.assertEqual(self.fs.read_file("/reuse.txt"), "v2")
 
 
 # =============================================================================
-# INTEGRATION TESTS
+# Integration
 # =============================================================================
 
-section("Integration")
+class TestIntegration(unittest.TestCase):
+    def setUp(self):
+        self.fs = MiniFS()
 
-def _test_get_size():
-    fs = fresh()
-    assert fs.get_size() == 0
-    fs.create_dir("/home")
-    assert fs.get_size() == 0, "Directories don't count toward size"
-    fs.create_file("/home/a.txt")
-    fs.create_file("/home/b.txt")
-    assert fs.get_size() == 2
+    def test_get_size_counts_files(self):
+        self.assertEqual(self.fs.get_size(), 0)
+        self.fs.create_dir("/home")
+        self.assertEqual(self.fs.get_size(), 0)
+        self.fs.create_file("/home/a.txt")
+        self.fs.create_file("/home/b.txt")
+        self.assertEqual(self.fs.get_size(), 2)
 
-test("get_size: counts files correctly", _test_get_size)
+    def test_exists_works_for_files_and_directories(self):
+        self.assertFalse(self.fs.exists("/x"))
+        self.fs.create_dir("/x")
+        self.assertTrue(self.fs.exists("/x"))
+        self.fs.create_file("/x/y.txt")
+        self.assertTrue(self.fs.exists("/x/y.txt"))
 
+    def test_full_workflow(self):
+        self.fs.create_dir("/projects")
+        self.fs.create_dir("/projects/minifs")
+        self.fs.create_file("/projects/minifs/README.md", "# MiniFS")
+        self.fs.create_file("/projects/minifs/main.py", "print('hello')")
 
-def _test_exists_helper():
-    fs = fresh()
-    assert not fs.exists("/x")
-    fs.create_dir("/x")
-    assert fs.exists("/x")
-    fs.create_file("/x/y.txt")
-    assert fs.exists("/x/y.txt")
+        self.assertEqual(
+            self.fs.list_dir("/projects/minifs"),
+            ["README.md", "main.py"],
+        )
 
-test("exists: works for files and directories", _test_exists_helper)
+        self.fs.write_file("/projects/minifs/README.md", "# Updated")
+        self.assertEqual(self.fs.read_file("/projects/minifs/README.md"), "# Updated")
 
+        self.fs.delete("/projects/minifs/README.md")
+        self.fs.delete("/projects/minifs/main.py")
+        self.fs.delete("/projects/minifs")
+        self.assertEqual(self.fs.list_dir("/projects"), [])
 
-def _test_full_workflow():
-    fs = fresh()
-    # Build a directory tree
-    fs.create_dir("/projects")
-    fs.create_dir("/projects/minifs")
-    fs.create_file("/projects/minifs/README.md", "# MiniFS")
-    fs.create_file("/projects/minifs/main.py", "print('hello')")
-
-    # Verify structure
-    entries = fs.list_dir("/projects/minifs")
-    assert entries == ["README.md", "main.py"], f"Got {entries}"
-
-    # Edit a file
-    fs.write_file("/projects/minifs/README.md", "# Updated")
-    assert fs.read_file("/projects/minifs/README.md") == "# Updated"
-
-    # Delete one file, then the empty directory
-    fs.delete("/projects/minifs/README.md")
-    fs.delete("/projects/minifs/main.py")
-    fs.delete("/projects/minifs")
-    assert fs.list_dir("/projects") == []
-
-test("full workflow: create, read, write, delete", _test_full_workflow)
+    def test_root_path_is_a_directory(self):
+        self.assertTrue(self.fs.is_dir("/"))
 
 
-def _test_is_dir_root():
-    fs = fresh()
-    assert fs.is_dir("/"), "Root should always be a directory"
+if __name__ == "__main__":
+    runner = unittest.TextTestRunner(verbosity=2, stream=sys.stdout)
+    result = runner.run(
+        unittest.TestLoader().loadTestsFromModule(sys.modules[__name__])
+    )
+    n_failed = len(result.failures) + len(result.errors)
+    n_skipped = len(result.skipped)
+    n_passed = result.testsRun - n_failed - n_skipped
 
-test("is_dir: root path is a directory", _test_is_dir_root)
+    if os.environ.get("TCOMPUTE_SCORE"):
+        print(f"{n_passed}/{result.testsRun}")
+    else:
+        print()
+        print("=" * 40)
+        print(f"Results: {n_passed}/{result.testsRun} tests passed")
+        if result.wasSuccessful():
+            print("All tests pass. Try running the shell: python main.py")
+        else:
+            print(f"{n_failed} test(s) failed.")
+            print("Tip: implement the TODOs in file_system.py in order (1 through 6).")
+        print("=" * 40)
 
-
-# =============================================================================
-# SUMMARY
-# =============================================================================
-
-print(f"\n{'=' * 40}")
-print(f"Results: {passed}/{EXPECTED_TOTAL} tests passed")
-
-if failed > 0:
-    print(f"\nFailing tests:")
-    for name, ok, msg in _results:
-        if not ok:
-            print(f"  FAIL  {name}")
-            if msg:
-                print(f"        {msg}")
-    print()
-    print("Tip: implement the TODOs in file_system.py in order (1 through 6).")
-else:
-    print("All tests pass. Try running the shell: python main.py")
-
-print("=" * 40)
+    sys.exit(0 if result.wasSuccessful() else 1)

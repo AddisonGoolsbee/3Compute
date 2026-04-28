@@ -1,6 +1,6 @@
 """
-Test Suite: My Website
-========================
+Test Suite: Personal Website
+============================
 
 These tests verify that your Flask routes exist and return the right data.
 
@@ -14,16 +14,9 @@ NOTE: The quote test (Section 5) requires an internet connection and will
 be skipped automatically if the network is unavailable.
 """
 
-EXPECTED_TOTAL = 15  # total number of checks in this file
-
-import atexit, os
-passed = 0
-failed = 0
-if os.environ.get("TCOMPUTE_SCORE"):
-    atexit.register(lambda: print(f"{passed}/{EXPECTED_TOTAL}"))
-
-import sys
 import json
+import os
+import sys
 import unittest
 
 # ---------------------------------------------------------------------------
@@ -273,49 +266,24 @@ class TestSection7Visitors(unittest.TestCase):
         )
 
 
-# =============================================================================
-# TEST RUNNER
-# =============================================================================
-
-def run_tests():
-    """Run tests and print a clean summary."""
-    global passed, failed
-
-    loader = unittest.TestLoader()
-    suite = unittest.TestSuite()
-
-    # Load tests grouped by section
-    sections = [
-        ("Section 1: Home Page", TestSection1Homepage),
-        ("Section 4: Skills API", TestSection4Skills),
-        ("Section 5: Quote Route", TestSection5Quote),
-        ("Section 7: Visitor Counter", TestSection7Visitors),
-    ]
-
-    for label, test_class in sections:
-        tests = loader.loadTestsFromTestCase(test_class)
-        suite.addTests(tests)
-
-    runner = unittest.TextTestRunner(verbosity=2)
-    result = runner.run(suite)
-
+if __name__ == "__main__":
+    runner = unittest.TextTestRunner(verbosity=2, stream=sys.stdout)
+    result = runner.run(
+        unittest.TestLoader().loadTestsFromModule(sys.modules[__name__])
+    )
     n_failed = len(result.failures) + len(result.errors)
     n_skipped = len(result.skipped)
-    passed = result.testsRun - n_failed - n_skipped
-    failed = n_failed
+    n_passed = result.testsRun - n_failed - n_skipped
 
-    print()
-    print("=" * 60)
-    if result.wasSuccessful():
-        print("All tests passed!")
+    if os.environ.get("TCOMPUTE_SCORE"):
+        print(f"{n_passed}/{result.testsRun}")
     else:
-        print(f"{passed} passed, "
-              f"{n_failed} failed, {n_skipped} skipped")
-    print("=" * 60)
+        print()
+        print("=" * 60)
+        if result.wasSuccessful():
+            print("All tests passed!")
+        else:
+            print(f"{n_passed} passed, {n_failed} failed, {n_skipped} skipped")
+        print("=" * 60)
 
-    return result.wasSuccessful()
-
-
-if __name__ == "__main__":
-    success = run_tests()
-    sys.exit(0 if success else 1)
+    sys.exit(0 if result.wasSuccessful() else 1)
