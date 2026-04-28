@@ -283,5 +283,189 @@ class TestContainerLifecycle:
             assert "isolated_net" in command_str
 
 
+class TestRunInEphemeralContainer:
+    """Tests for ephemeral test-runner containers."""
+
+    @patch("subprocess.run")
+    def test_basic_execution(self, mock_run):
+        """Test that ephemeral container runs with correct args."""
+        from backend.docker import run_in_ephemeral_container
+
+        mock_run.return_value = Mock(returncode=0, stdout="3/3\n", stderr="")
+
+        rc, stdout, stderr = run_in_ephemeral_container(
+            student_dir="/var/lib/3compute/classrooms/c1/participants/a@b.com/lesson1",
+            test_files={"test_math.py": "/var/lib/3compute/classrooms/c1/assignments/lesson1/test_math.py"},
+            command=["python3", "/tmp/tests/test_math.py"],
+        )
+
+        assert rc == 0
+        assert stdout == "3/3\n"
+
+        args = mock_run.call_args[0][0]
+        cmd_str = " ".join(args)
+        assert "docker" in cmd_str
+        assert "--rm" in cmd_str
+        assert "3compute:latest" in cmd_str
+
+    @patch("subprocess.run")
+    def test_student_dir_mounted_read_only(self, mock_run):
+        """Student workspace must be read-only to prevent malicious code from modifying files."""
+        from backend.docker import run_in_ephemeral_container
+
+        mock_run.return_value = Mock(returncode=0, stdout="", stderr="")
+
+        run_in_ephemeral_container(
+            student_dir="/data/students/alice/lesson1",
+            test_files={"test_x.py": "/data/templates/test_x.py"},
+            command=["python3", "/tmp/tests/test_x.py"],
+        )
+
+        args = mock_run.call_args[0][0]
+        # Find the -v flag for student dir
+        found_ro = False
+        for i, arg in enumerate(args):
+            if arg == "-v" and i + 1 < len(args):
+                vol = args[i + 1]
+                if "/data/students/alice/lesson1:" in vol:
+                    assert vol.endswith(":ro"), (
+                        f"Student dir mount must be read-only, got: {vol}"
+                    )
+                    found_ro = True
+        assert found_ro, "Student dir volume mount not found in docker args"
+
+    @patch("subprocess.run")
+    def test_security_hardening(self, mock_run):
+        """Ephemeral containers must have security flags."""
+        from backend.docker import run_in_ephemeral_container
+
+        mock_run.return_value = Mock(returncode=0, stdout="", stderr="")
+
+        run_in_ephemeral_container(
+            student_dir="/data/student",
+            test_files={"t.py": "/data/t.py"},
+            command=["python3", "/tmp/tests/t.py"],
+        )
+
+        args = mock_run.call_args[0][0]
+        cmd_str = " ".join(args)
+        assert "--cap-drop=ALL" in cmd_str
+        assert "--read-only" in cmd_str
+        assert "no-new-privileges" in cmd_str
+        assert "--network=none" in cmd_str
+        assert "--pids-limit" in cmd_str
+        assert "--memory" in cmd_str
+
+    @patch("subprocess.run")
+    def test_timeout_kills_container(self, mock_run):
+        """On timeout, container should be force-removed."""
+        from backend.docker import run_in_ephemeral_container
+
+        mock_run.side_effect = [
+            subprocess.TimeoutExpired(cmd="docker run", timeout=35),
+            Mock(returncode=0),  # docker rm -f
+        ]
+
+        rc, stdout, stderr = run_in_ephemeral_container(
+            student_dir="/data/student",
+            test_files={"t.py": "/data/t.py"},
+            command=["python3", "/tmp/tests/t.py"],
+            timeout=30,
+        )
+
+        assert rc == -1
+        assert "Timeout" in stderr
+        # Verify docker rm -f was called
+        assert mock_run.call_count == 2
+        rm_args = mock_run.call_args_list[1][0][0]
+        assert "rm" in rm_args
+        assert "-f" in rm_args
+
+    @patch("subprocess.run")
+    def test_test_files_mounted_read_only(self, mock_run):
+        """Test files should be mounted read-only into a staging area."""
+        from backend.docker import run_in_ephemeral_container
+
+        mock_run.return_value = Mock(returncode=0, stdout="", stderr="")
+
+        run_in_ephemeral_container(
+            student_dir="/data/student",
+            test_files={
+                "test_a.py": "/data/templates/test_a.py",
+                "sub/test_b.py": "/data/templates/sub/test_b.py",
+            },
+            command=["python3", "/tmp/tests/test_a.py"],
+        )
+
+        args = mock_run.call_args[0][0]
+        # Find all -v mounts for staging
+        staging_mounts = []
+        for i, arg in enumerate(args):
+            if arg == "-v" and i + 1 < len(args) and "_staging" in args[i + 1]:
+                staging_mounts.append(args[i + 1])
+
+        assert len(staging_mounts) == 2, f"Expected 2 staging mounts, got: {staging_mounts}"
+        for m in staging_mounts:
+            assert m.endswith(":ro"), f"Staging mount must be read-only: {m}"
+
+
+class TestTestRunnerContainerIntegration:
+    """Test that test_runner functions use ephemeral containers."""
+
+    @patch("backend.test_runner.run_in_ephemeral_container")
+    @patch("backend.test_runner._find_test_files")
+    @patch("os.path.isdir")
+    def test_run_tests_uses_container(self, mock_isdir, mock_find, mock_container):
+        """run_tests_for_student should call run_in_ephemeral_container."""
+        from backend.test_runner import run_tests_for_student
+
+        mock_isdir.return_value = True
+        mock_find.return_value = ["test_math.py"]
+        mock_container.return_value = (0, "3/3\n", "")
+
+        passed, total = run_tests_for_student("c1", "lesson1", "alice@test.com")
+
+        assert passed == 3
+        assert total == 3
+        mock_container.assert_called_once()
+        call_kwargs = mock_container.call_args[1]
+        assert call_kwargs["command"] == ["python3", "/tmp/tests/test_math.py"]
+        assert ":ro" not in str(call_kwargs)  # ro is handled by docker.py, not test_runner
+
+    @patch("backend.test_runner.run_in_ephemeral_container")
+    @patch("backend.test_runner._find_test_files")
+    @patch("os.path.isdir")
+    def test_run_tests_with_output_uses_container(self, mock_isdir, mock_find, mock_container):
+        """run_tests_for_student_with_output should call run_in_ephemeral_container."""
+        from backend.test_runner import run_tests_for_student_with_output
+
+        mock_isdir.return_value = True
+        mock_find.return_value = ["test_math.py"]
+        mock_container.return_value = (0, "5/5\n", "")
+
+        passed, total, output = run_tests_for_student_with_output("c1", "lesson1", "bob@test.com")
+
+        assert passed == 5
+        assert total == 5
+        assert "5/5" in output
+        mock_container.assert_called_once()
+
+    @patch("backend.test_runner.run_in_ephemeral_container")
+    @patch("backend.test_runner._find_test_files")
+    @patch("os.path.isdir")
+    def test_timeout_handled(self, mock_isdir, mock_find, mock_container):
+        """Timeout from ephemeral container should be handled gracefully."""
+        from backend.test_runner import run_tests_for_student_with_output
+
+        mock_isdir.return_value = True
+        mock_find.return_value = ["test_slow.py"]
+        mock_container.return_value = (-1, "", "[Timeout] Container exceeded 30s limit\n")
+
+        passed, total, output = run_tests_for_student_with_output("c1", "lesson1", "alice@test.com")
+
+        assert passed == 0
+        assert "Timeout" in output
+
+
 if __name__ == "__main__":
     pytest.main([__file__])

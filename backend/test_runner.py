@@ -2,9 +2,13 @@ import logging
 import os
 import re
 import shutil
-import subprocess
 
-from backend.docker import CLASSROOMS_ROOT, CONTAINER_USER_GID, CONTAINER_USER_UID
+from backend.docker import (
+    CLASSROOMS_ROOT,
+    CONTAINER_USER_GID,
+    CONTAINER_USER_UID,
+    run_in_ephemeral_container,
+)
 
 logger = logging.getLogger("test_runner")
 
@@ -184,7 +188,6 @@ def run_tests_for_student_with_output(
     student_email: str,
 ) -> tuple[int, int, str]:
     """Like run_tests_for_student but also returns the raw test output."""
-    # Reuses the same logic but captures stdout/stderr text.
     student_email = (student_email or "participant").replace("/", "_")
 
     templates_dir = os.path.join(
@@ -209,94 +212,53 @@ def run_tests_for_student_with_output(
     if not test_files:
         return 0, 0, "No test files found."
 
-    copied_files: list[str] = []
+    # Build test file mapping: relative path -> host absolute path
+    test_file_map = {}
+    for tf in test_files:
+        test_file_map[tf] = os.path.join(templates_dir, tf)
+
+    py_tests = [f for f in test_files if f.endswith(".py")]
+    passed, total = 0, 0
     all_output = ""
-    try:
-        for tf in test_files:
-            src = os.path.join(templates_dir, tf)
-            dst = os.path.join(student_dir, tf)
-            try:
-                os.makedirs(os.path.dirname(dst), exist_ok=True)
-                # Remove any stale copy first so the copy2 doesn't EACCES on an
-                # existing file that was created with restrictive perms.
-                if os.path.exists(dst):
-                    try:
-                        os.remove(dst)
-                    except OSError:
-                        pass
-                shutil.copy2(src, dst)
-                try:
-                    os.chown(dst, CONTAINER_USER_UID, CONTAINER_USER_GID)
-                except OSError:
-                    pass
-                try:
-                    os.chmod(dst, 0o664)
-                except OSError:
-                    pass
-                copied_files.append(dst)
-            except (OSError, shutil.Error) as e:
-                # Surface the error instead of 500-ing the whole request. Most
-                # commonly this is a permission problem on the student's
-                # participant dir.
-                all_output += f"\n[Error] Failed to stage {tf} into {dst}: {e}\n"
-                logger.exception(
-                    "Failed to stage test file %s for %s/%s",
-                    tf, student_email, template_name,
-                )
 
-        py_tests = [f for f in test_files if f.endswith(".py")]
-        passed, total = 0, 0
+    if py_tests:
+        for tf in py_tests:
+            rc, stdout, stderr = run_in_ephemeral_container(
+                student_dir=student_dir,
+                test_files=test_file_map,
+                command=["python3", f"/tmp/tests/{tf}"],
+                timeout=30,
+            )
+            output = stdout + stderr
+            all_output += output
+            if rc == -1:
+                all_output += f"\n[Timeout] {tf} exceeded 30s limit\n"
+            else:
+                # Structured N/M score is emitted to stdout by the test
+                # script's atexit handler. Stderr (e.g. tracebacks) would
+                # come last in `output` and break the "last non-empty line"
+                # heuristic, so parse stdout in isolation.
+                p, t = _parse_script_output(stdout)
+                passed += p
+                total += t
 
-        test_env = {**os.environ, TEST_ENV_SIGNAL: "1"}
-        if py_tests:
-            for tf in py_tests:
-                try:
-                    result = subprocess.run(
-                        ["python3", os.path.join(student_dir, tf)],
-                        capture_output=True,
-                        text=True,
-                        timeout=30,
-                        cwd=student_dir,
-                        env=test_env,
-                    )
-                    output = result.stdout + result.stderr
-                    all_output += output
-                    p, t = _parse_script_output(output)
-                    passed += p
-                    total += t
-                except subprocess.TimeoutExpired:
-                    all_output += f"\n[Timeout] {tf} exceeded 30s limit\n"
-                except Exception as e:
-                    all_output += f"\n[Error] {tf}: {e}\n"
+        if total == 0:
+            rc, stdout, stderr = run_in_ephemeral_container(
+                student_dir=student_dir,
+                test_files=test_file_map,
+                command=["python3", "-m", "pytest", "--tb=short", "-q", "/app"],
+                timeout=30,
+            )
+            output = stdout + stderr
+            all_output += output
+            if rc == -1:
+                all_output += "\n[Timeout] pytest exceeded 30s limit\n"
+            else:
+                passed, total = _parse_pytest_output(output)
+                if total == 0:
+                    passed, total = _parse_unittest_output(output)
 
-            if total == 0:
-                try:
-                    result = subprocess.run(
-                        ["python3", "-m", "pytest", "--tb=short", "-q", student_dir],
-                        capture_output=True,
-                        text=True,
-                        timeout=30,
-                        cwd=student_dir,
-                        env=test_env,
-                    )
-                    output = result.stdout + result.stderr
-                    all_output += output
-                    passed, total = _parse_pytest_output(output)
-                    if total == 0:
-                        passed, total = _parse_unittest_output(output)
-                except subprocess.TimeoutExpired:
-                    all_output += "\n[Timeout] pytest exceeded 30s limit\n"
-                except Exception as e:
-                    all_output += f"\n[Error] pytest: {e}\n"
-
-        return passed, total, all_output
-
-    finally:
-        for f in copied_files:
-            try:
-                os.remove(f)
-            except OSError:
-                pass
+    return passed, total, all_output
 
 
 def run_tests_for_student(
@@ -304,16 +266,16 @@ def run_tests_for_student(
     template_name: str,
     student_email: str,
 ) -> tuple[int, int]:
-    """Run teacher's tests against a student's code.
+    """Run teacher's tests against a student's code in an ephemeral container.
 
-    Copies teacher test files into the student's workspace, runs the tests,
-    then cleans up. Returns (tests_passed, tests_total).
+    Student workspace is mounted read-only so malicious student code cannot
+    modify files. Test files are injected into /tmp inside the container.
+    Returns (tests_passed, tests_total).
 
     Strategy: try running each test file as a Python script first (most
     CS Room templates are designed as script-based runners). Fall back to
     pytest if the script approach yields no results.
     """
-    # Sanitize email the same way participant dirs are created
     student_email = (student_email or "participant").replace("/", "_")
 
     templates_dir = os.path.join(
@@ -328,8 +290,6 @@ def run_tests_for_student(
         return 0, 0
 
     if not os.path.isdir(student_dir):
-        # Student workspace doesn't exist yet (container never spawned).
-        # Initialize it from the template so tests can run against starter code.
         logger.info(f"Creating student dir from template: {student_dir}")
         try:
             shutil.copytree(templates_dir, student_dir)
@@ -343,108 +303,60 @@ def run_tests_for_student(
         logger.info(f"No test files found in {templates_dir}")
         return 0, 0
 
-    # Copy teacher test files into student workspace
-    copied_files: list[str] = []
-    try:
-        for tf in test_files:
-            src = os.path.join(templates_dir, tf)
-            dst = os.path.join(student_dir, tf)
-            os.makedirs(os.path.dirname(dst), exist_ok=True)
-            if os.path.exists(dst):
-                try:
-                    os.remove(dst)
-                except OSError:
-                    pass
-            shutil.copy2(src, dst)
-            try:
-                os.chown(dst, CONTAINER_USER_UID, CONTAINER_USER_GID)
-            except OSError:
-                pass
-            try:
-                os.chmod(dst, 0o664)
-            except OSError:
-                pass
-            copied_files.append(dst)
+    test_file_map = {}
+    for tf in test_files:
+        test_file_map[tf] = os.path.join(templates_dir, tf)
 
-        # Determine the test command based on file types
-        py_tests = [f for f in test_files if f.endswith(".py")]
-        js_tests = [f for f in test_files if f.endswith(".js")]
+    py_tests = [f for f in test_files if f.endswith(".py")]
+    passed, total = 0, 0
 
-        passed, total = 0, 0
-
-        test_env = {**os.environ, TEST_ENV_SIGNAL: "1"}
-        if py_tests:
-            # Strategy 1: Run test files as scripts (most templates are designed
-            # as standalone runners with their own output parsing)
-            script_passed, script_total = 0, 0
-            for tf in py_tests:
-                try:
-                    result = subprocess.run(
-                        ["python3", os.path.join(student_dir, tf)],
-                        capture_output=True,
-                        text=True,
-                        timeout=30,
-                        cwd=student_dir,
-                        env=test_env,
-                    )
-                    output = result.stdout + result.stderr
-                    logger.info(
-                        f"script output for {student_email}/{template_name}/{tf} "
-                        f"(exit={result.returncode}): {output[:500]}"
-                    )
-                    p, t = _parse_script_output(output)
-                    script_passed += p
-                    script_total += t
-                except subprocess.TimeoutExpired:
-                    logger.warning(
-                        f"Script timeout for {student_email} on {template_name}/{tf}"
-                    )
-                except Exception as e:
-                    logger.error(f"Script execution failed for {tf}: {e}")
-
-            if script_total > 0:
-                passed, total = script_passed, script_total
+    if py_tests:
+        script_passed, script_total = 0, 0
+        for tf in py_tests:
+            rc, stdout, stderr = run_in_ephemeral_container(
+                student_dir=student_dir,
+                test_files=test_file_map,
+                command=["python3", f"/tmp/tests/{tf}"],
+                timeout=30,
+            )
+            output = stdout + stderr
+            logger.info(
+                f"script output for {student_email}/{template_name}/{tf} "
+                f"(exit={rc}): {output[:500]}"
+            )
+            if rc == -1:
+                logger.warning(
+                    f"Script timeout for {student_email} on {template_name}/{tf}"
+                )
             else:
-                # Strategy 2: Fall back to pytest
-                try:
-                    result = subprocess.run(
-                        [
-                            "python3", "-m", "pytest",
-                            "--tb=no", "-q",
-                            student_dir,
-                        ],
-                        capture_output=True,
-                        text=True,
-                        timeout=30,
-                        cwd=student_dir,
-                        env=test_env,
-                    )
-                    output = result.stdout + result.stderr
-                    logger.info(
-                        f"pytest output for {student_email}/{template_name} "
-                        f"(exit={result.returncode}): {output[:500]}"
-                    )
-                    passed, total = _parse_pytest_output(output)
+                # See note in run_tests_for_student_with_output: parse stdout
+                # alone so a stderr traceback doesn't shadow the score.
+                p, t = _parse_script_output(stdout)
+                script_passed += p
+                script_total += t
 
-                    # Fallback to unittest parsing if pytest didn't find results
-                    if total == 0:
-                        passed, total = _parse_unittest_output(output)
+        if script_total > 0:
+            passed, total = script_passed, script_total
+        else:
+            rc, stdout, stderr = run_in_ephemeral_container(
+                student_dir=student_dir,
+                test_files=test_file_map,
+                command=["python3", "-m", "pytest", "--tb=no", "-q", "/app"],
+                timeout=30,
+            )
+            output = stdout + stderr
+            logger.info(
+                f"pytest output for {student_email}/{template_name} "
+                f"(exit={rc}): {output[:500]}"
+            )
+            if rc == -1:
+                logger.warning(
+                    f"Test timeout for {student_email} on {template_name}"
+                )
+                return 0, len(py_tests)
+            else:
+                passed, total = _parse_pytest_output(output)
+                if total == 0:
+                    passed, total = _parse_unittest_output(output)
 
-                except subprocess.TimeoutExpired:
-                    logger.warning(
-                        f"Test timeout for {student_email} on {template_name}"
-                    )
-                    return 0, len(py_tests)
-                except Exception as e:
-                    logger.error(f"Test execution failed: {e}")
-                    return 0, len(py_tests)
-
-        return passed, total
-
-    finally:
-        # Clean up: remove copied test files from student workspace
-        for f in copied_files:
-            try:
-                os.remove(f)
-            except OSError:
-                pass
+    return passed, total

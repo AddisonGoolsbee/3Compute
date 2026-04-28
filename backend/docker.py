@@ -661,10 +661,88 @@ def attach_to_container(container_name, tab_id="1", cols=80, rows=24):
     return proc, master_fd
 
 
+def run_in_ephemeral_container(
+    student_dir: str,
+    test_files: dict[str, str],
+    command: list[str],
+    timeout: int = 30,
+) -> tuple[int, str, str]:
+    """Run a command in a short-lived container with security hardening.
+
+    Args:
+        student_dir: Host path to the student's workspace (mounted read-only at /app).
+        test_files: Mapping of {relative_path: host_absolute_path} for test files
+                    to copy into the container before running.
+        command: Command to execute (e.g. ["python3", "/tmp/tests/test_math.py"]).
+        timeout: Seconds before the container is killed.
+
+    Returns:
+        (returncode, stdout, stderr)
+    """
+    import uuid
+
+    container_name = f"3compute-test-{uuid.uuid4().hex[:12]}"
+
+    # Build the command: copy test files to /tmp/tests, then run the test
+    copy_cmds = "mkdir -p /tmp/tests"
+    for rel_path in test_files:
+        dest = f"/tmp/tests/{rel_path}"
+        parent = os.path.dirname(dest)
+        if parent != "/tmp/tests":
+            copy_cmds += f" && mkdir -p {parent}"
+        copy_cmds += f" && cp /tmp/_staging/{rel_path} {dest}"
+
+    shell_cmd = f"{copy_cmds} && cd /app && {' '.join(command)}"
+
+    # Build volume mounts: student dir read-only, test files via a staging tmpfs
+    cmd = [
+        "docker", "run", "--rm",
+        "--name", container_name,
+        "--network=none",
+        "--cap-drop=ALL",
+        "--user=999:995",
+        "--security-opt", "no-new-privileges",
+        "--read-only",
+        "--tmpfs", "/tmp:exec,size=256m",
+        "-e", "TCOMPUTE_SCORE=1",
+        "-e", "HOME=/app",
+        "-e", "PYTHONPATH=/app",
+        "--cpus", "1.0",
+        "--memory", "512m",
+        "--memory-swap", "512m",
+        "--pids-limit", "128",
+        "-v", f"{student_dir}:/app:ro",
+    ]
+
+    # Mount each test file individually into the staging area
+    for rel_path, host_path in test_files.items():
+        cmd.extend(["-v", f"{host_path}:/tmp/_staging/{rel_path}:ro"])
+
+    cmd.extend(["3compute:latest", "sh", "-c", shell_cmd])
+
+    try:
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=timeout + 5,  # extra grace for container startup
+        )
+        return result.returncode, result.stdout, result.stderr
+    except subprocess.TimeoutExpired:
+        # Kill the container if it's still running
+        subprocess.run(
+            ["docker", "rm", "-f", container_name],
+            capture_output=True,
+            timeout=10,
+        )
+        return -1, "", f"[Timeout] Container exceeded {timeout}s limit\n"
+
+
 __all__ = [
     "setup_isolated_network",
     "spawn_container",
     "attach_to_container",
     "container_exists",
     "container_is_running",
+    "run_in_ephemeral_container",
 ]
