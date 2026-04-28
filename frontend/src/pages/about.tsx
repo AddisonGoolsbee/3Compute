@@ -105,7 +105,7 @@ export default function AboutPage() {
               CS Room is free for the students and teachers who use it, and it
               stays that way because of people who choose to give. Every
               donation goes directly toward running student environments,
-              supporting teachers when they reach out, and building the next
+              supporting teachers, and building the next
               set of features. Your contribution is what keeps the door open
               for the next class.
             </p>
