@@ -32,7 +32,9 @@ export default function Onboarding() {
         <div className="mb-5 mx-auto inline-flex">
           <LogoCsRoom size={56} />
         </div>
-        <h1 className="heading-1 mt-2 mb-2.5">Welcome to CS Room</h1>
+        <h1 className="heading-1 mt-2 mb-2.5">
+          Welcome to<br />CS Room
+        </h1>
 
         {allowedRoles === null ? (
           <p className="body text-ink-muted">Loading…</p>

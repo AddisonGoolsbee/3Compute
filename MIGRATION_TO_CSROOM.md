@@ -172,6 +172,8 @@ sudo rm -f /var/log/3compute-deploy.log /var/lock/3compute-deploy.lock
 
 ### 1c. Back up and remove the old systemd unit, nginx site, letsencrypt certs
 
+> If your host uses **Caddy for everything** (frontend + API + wildcard), the nginx and letsencrypt blocks below will no-op silently — there's nothing in `/etc/nginx/sites-*/3compute.org` or `/etc/letsencrypt/live/{www,api}.3compute.org` to back up because Caddy handled all of it. The commands include `2>/dev/null || true`, so they'll just skip those files. Only the systemd-unit block actually does work in that case.
+
 ```bash
 # Systemd unit
 sudo mv /etc/systemd/system/3compute.service "$BACKUP_DIR/3compute.service"
@@ -226,6 +228,14 @@ sudo cp /var/www/3compute/frontend/.env "$BACKUP_DIR/env/frontend.env" 2>/dev/nu
 sudo mv /var/www/3compute /var/www/csroom
 cd /var/www/csroom
 ```
+
+Tell Git the new path is safe to operate on (Git refuses to run in a repo owned by a different user — your existing config had `/var/www/3compute` in the safe-directory list; the renamed path needs adding):
+
+```bash
+sudo git config --global --add safe.directory /var/www/csroom
+```
+
+> The stale `/var/www/3compute` entry in `/root/.gitconfig` is harmless (it points at a path that no longer exists), so you don't need to remove it. If you want to clean it up: `sudo nano /root/.gitconfig` and delete the line manually.
 
 Verify the remote is unchanged:
 
@@ -323,13 +333,18 @@ sudo docker images | grep -E '3compute|csroom'    # both tags should appear
 
 ### 1i. Refresh the Python venv & frontend build
 
-The Python venv lives at `/var/www/csroom/.venv` (came along with the directory rename). Reinstall in case anything moved:
+The Python venv at `/var/www/csroom/.venv` should have come along with the directory rename — but if it was missing, broken, or never created on this host, the next command will fix it. `python3 -m venv .venv` is idempotent: creates it if absent, no-op if already healthy.
 
 ```bash
 cd /var/www/csroom
-sudo .venv/bin/pip install --upgrade pip
-sudo .venv/bin/pip install -r backend/requirements.txt
+sudo python3 -m venv .venv
+sudo .venv/bin/python -m pip install --upgrade pip
+sudo .venv/bin/python -m pip install -r backend/requirements.txt
 ```
+
+> Why `.venv/bin/python -m pip` instead of `.venv/bin/pip`? The `pip` standalone script can break if the venv was rebuilt (the script's shebang line ends up pointing at a python that isn't where pip expects). Calling python directly and asking it to run the `pip` module sidesteps that entirely.
+
+> If `python3 -m venv` complains that the `venv` module is missing, install it: `sudo apt-get install -y python3-venv`. Then re-run the three commands above.
 
 Rebuild the frontend (Vite bakes the new domain into the static bundle):
 
@@ -347,52 +362,62 @@ sudo chown -R www-data:www-data /var/www/csroom
 
 ### 1j. Update Caddy
 
-The Caddyfile previously had `*.app.3compute.org` as the wildcard hostname. The original was already backed up to `$BACKUP_DIR/caddy/Caddyfile` in step 1d. Now overwrite it:
+> **This server uses Caddy for everything** — frontend, API reverse-proxy, AND user-claimed `*.app.csroom.org` subdomains. The repo also ships an nginx config under `production/etc/nginx/`, but it's only relevant if you're running a hybrid nginx-front + Caddy-wildcard setup. Skip it on this host.
+
+The Caddyfile needs three blocks: frontend (static files), API (reverse proxy to the backend on :5555), and the `:80` HTTP→HTTPS redirect. The `*.app.csroom.org` wildcard does **not** need a Caddyfile block — the backend's `ensure_app_server()` adds the wildcard route + TLS automation policy at runtime via Caddy's admin API.
+
+Your previous Caddyfile was backed up to `$BACKUP_DIR/caddy/Caddyfile` in step 1d. Overwrite with the new one (mirrors the previous structure, swaps the domain and code path):
 
 ```bash
 sudo tee /etc/caddy/Caddyfile > /dev/null <<'EOF'
 {
     admin localhost:2019
+    email {$CADDY_EMAIL}
 }
 
-# Catchall for *.app.csroom.org — backend.api.subdomain_caddy adds per-subdomain
-# routes inside this server block at runtime via the admin API.
-*.app.csroom.org {
-    tls {
-        dns cloudflare {env.CF_API_TOKEN}
+www.csroom.org {
+    root * /var/www/csroom/frontend/build/client
+    encode gzip
+    try_files {path} {path}/ /index.html
+    file_server
+}
+
+api.csroom.org {
+    request_body {
+        max_size 256MB
     }
-    respond "subdomain not claimed" 404
+    reverse_proxy localhost:5555 {
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+        flush_interval -1
+        transport http {
+            read_timeout 600s
+            write_timeout 600s
+        }
+    }
+}
+
+:80 {
+    redir https://{host}{uri} permanent
 }
 EOF
 
-# Make sure the CF token is still available to Caddy. The existing systemd override
-# / /etc/default/caddy from your 3compute install should still work — just confirm:
-sudo systemctl cat caddy | grep -i cf_api_token
+# Confirm the CF token + ACME email env vars are still being supplied to Caddy's
+# process (likely via /etc/default/caddy or a systemd override drop-in). These were
+# already set up under your 3compute install and don't need to change.
+sudo systemctl cat caddy | grep -iE 'CF_API_TOKEN|CADDY_EMAIL'
 
 sudo systemctl start caddy
 sudo systemctl status caddy        # should be active (running)
-sudo journalctl -u caddy -n 30     # confirm no errors mentioning the cert
+sudo journalctl -u caddy -n 50     # watch for cert issuance for www/api.csroom.org
 ```
 
-The backend's `ensure_app_server()` calls the Caddy admin API at `localhost:2019` on startup; it will add the wildcard TLS automation policy and the catchall route into Caddy's runtime config. The Caddyfile above just guarantees the right server block exists.
+Caddy will obtain TLS certs for `www.csroom.org` and `api.csroom.org` automatically on first request via standard HTTP-01 (no certbot needed). The wildcard `*.app.csroom.org` cert uses DNS-01 against Cloudflare and is set up by the backend at startup — you'll see it issued shortly after the new service starts in step 1m.
 
-### 1k. nginx site & TLS certs for www/api.csroom.org
+### 1k. ~~nginx site & TLS certs~~ — **skip**
 
-Get TLS certs first (DNS for both subdomains must already point to this host — see section 0a):
-
-```bash
-sudo certbot certonly --nginx -d www.csroom.org
-sudo certbot certonly --nginx -d api.csroom.org
-```
-
-Install the new nginx site (the old `3compute.org` site file & symlink were backed up to `$BACKUP_DIR/nginx/` in step 1c):
-
-```bash
-sudo cp /var/www/csroom/production/etc/nginx/sites-available/csroom.org /etc/nginx/sites-available/csroom.org
-sudo ln -sf /etc/nginx/sites-available/csroom.org /etc/nginx/sites-enabled/csroom.org
-sudo nginx -t                       # syntax check
-sudo systemctl reload nginx
-```
+This step is for hybrid nginx-front + Caddy-wildcard setups. Your host uses Caddy for everything (handled in 1j), so there's nothing to do here. Move on to 1l.
 
 ### 1l. Install the new systemd unit and deploy script
 
