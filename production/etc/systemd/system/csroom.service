@@ -21,7 +21,11 @@ RestartSec=5
 User=www-data
 Group=www-data
 SupplementaryGroups=csroom-container
-AmbientCapabilities=CAP_CHOWN
+# CAP_CHOWN: chown of upload dirs to the container user.
+# CAP_NET_ADMIN: insert iptables rules into DOCKER-USER to isolate per-user
+# networks (backend/docker.py:90). Without it, iptables fails with
+# "Permission denied (you must be root)" and host-egress isolation breaks.
+AmbientCapabilities=CAP_CHOWN CAP_NET_ADMIN
 # systemd's default soft fd limit is 1024. The backend opens pty + dockerd
 # connection fds per terminal attach, and a leak in that path exhausted the
 # limit in prod (EMFILE cascade → 500s on saves/reads/login). The leak is
