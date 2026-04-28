@@ -40,8 +40,8 @@ export default function AboutPage() {
           <Section title="Our mission">
             <p>
               We built CS Room to remove the technical setup that often stands
-              between a curious learner and the work they want to do. Free
-              coding environments, real terminals, classroom tools for teachers,
+              between a curious learner and the work they want to do. We provide
+              free coding environments, classroom tools for teachers,
               and lessons that work out of the box.
             </p>
             <p>
