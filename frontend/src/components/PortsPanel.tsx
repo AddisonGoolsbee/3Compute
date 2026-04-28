@@ -7,11 +7,11 @@ import { cn } from '../util/cn';
 const isDev = import.meta.env.VITE_ENVIRONMENT !== 'production';
 
 function appUrl(subdomain: string, port: number): string {
-  return isDev ? `http://localhost:${port}` : `https://${subdomain}.app.3compute.org`;
+  return isDev ? `http://localhost:${port}` : `https://${subdomain}.app.csroom.org`;
 }
 
 function appUrlLabel(subdomain: string, port: number): string {
-  return isDev ? `localhost:${port}` : `${subdomain}.app.3compute.org`;
+  return isDev ? `localhost:${port}` : `${subdomain}.app.csroom.org`;
 }
 
 interface SubdomainRecord {

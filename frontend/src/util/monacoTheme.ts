@@ -1,6 +1,6 @@
 import type { Monaco } from '@monaco-editor/react';
 
-// 3Compute Daylight — paper-toned Monaco theme. Background matches --ide-bg,
+// CS Room Daylight — paper-toned Monaco theme. Background matches --ide-bg,
 // syntax tokens use the --code-* palette from index.css. Apply via:
 //   <MonacoEditor beforeMount={setupDaylightTheme} theme={DAYLIGHT_THEME} ... />
 

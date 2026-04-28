@@ -12,7 +12,7 @@ export function HydrateFallback() {
   return null;
 }
 
-const OPEN_FOLDERS_STORAGE_KEY = '3compute:open-folders';
+const OPEN_FOLDERS_STORAGE_KEY = 'csroom:open-folders';
 
 function loadPersistedOpenFolders(): string[] {
   if (typeof window === 'undefined') return [];
@@ -120,8 +120,8 @@ export function Layout({ children }: { children: ReactNode }) {
       });
       setFilesClientSide(mutate(files));
     };
-    document.addEventListener('3compute:rename', handler as EventListener);
-    return () => document.removeEventListener('3compute:rename', handler as EventListener);
+    document.addEventListener('csroom:rename', handler as EventListener);
+    return () => document.removeEventListener('csroom:rename', handler as EventListener);
   }, [files]);
 
   // Teacher-side: keep the "Viewing X's file" header in sync with which file
@@ -214,8 +214,8 @@ export function Layout({ children }: { children: ReactNode }) {
         return next;
       });
     };
-    document.addEventListener('3compute:rename', handler as EventListener);
-    return () => document.removeEventListener('3compute:rename', handler as EventListener);
+    document.addEventListener('csroom:rename', handler as EventListener);
+    return () => document.removeEventListener('csroom:rename', handler as EventListener);
   }, []);
 
   // Update files state when loaderData changes
@@ -232,8 +232,8 @@ export function Layout({ children }: { children: ReactNode }) {
     const handler = () => {
       if (!isUserEditingName) refreshFiles();
     };
-    window.addEventListener('3compute:files-changed', handler);
-    return () => window.removeEventListener('3compute:files-changed', handler);
+    window.addEventListener('csroom:files-changed', handler);
+    return () => window.removeEventListener('csroom:files-changed', handler);
   }, [loaderData?.userInfo, refreshFiles, isUserEditingName]);
 
   // Fallback poll to catch CLI changes inside the container (e.g. touch, rm)
@@ -328,8 +328,8 @@ export function Layout({ children }: { children: ReactNode }) {
       }
     };
 
-    window.addEventListener('3compute:classroom-action', handler as EventListener);
-    return () => window.removeEventListener('3compute:classroom-action', handler as EventListener);
+    window.addEventListener('csroom:classroom-action', handler as EventListener);
+    return () => window.removeEventListener('csroom:classroom-action', handler as EventListener);
   }, [refreshFiles, classroomSymlinks]);
 
   // Handler for restoring classrooms from the archive folder
@@ -366,8 +366,8 @@ export function Layout({ children }: { children: ReactNode }) {
       }
     };
 
-    window.addEventListener('3compute:archive-restore', handler as EventListener);
-    return () => window.removeEventListener('3compute:archive-restore', handler as EventListener);
+    window.addEventListener('csroom:archive-restore', handler as EventListener);
+    return () => window.removeEventListener('csroom:archive-restore', handler as EventListener);
   }, [refreshFiles]);
 
   return (
@@ -376,11 +376,10 @@ export function Layout({ children }: { children: ReactNode }) {
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <link rel="icon" type="image/svg+xml" href="/icon.svg" />
-        <link rel="icon" type="image/png" href="/icon.png" />
-        <link rel="apple-touch-icon" href="/icon.png" />
+        <link rel="apple-touch-icon" href="/icon.svg" />
         <Meta />
         <Links />
-        <title>3Compute</title>
+        <title>CS Room</title>
       </head>
       <body className="bg-paper text-ink-default">
         <UserDataContext value={userData}>

@@ -1,28 +1,28 @@
 # Redirect HTTP -> HTTPS for both domains
 server {
     listen 80;
-    server_name www.3compute.org;
+    server_name www.csroom.org;
     return 301 https://$host$request_uri;
 }
 
 server {
     listen 80;
-    server_name api.3compute.org;
+    server_name api.csroom.org;
     return 301 https://$host$request_uri;
 }
 
 # HTTPS server for the frontend
 server {
     listen 443 ssl;
-    server_name www.3compute.org;
+    server_name www.csroom.org;
 
-    ssl_certificate /etc/letsencrypt/live/www.3compute.org/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/www.3compute.org/privkey.pem;
+    ssl_certificate /etc/letsencrypt/live/www.csroom.org/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/www.csroom.org/privkey.pem;
     include /etc/letsencrypt/options-ssl-nginx.conf;
     ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
 
     # Serve static frontend files
-    root /var/www/3compute/frontend/build/client;
+    root /var/www/csroom/frontend/build/client;
     index index.html;
 
     location / {
@@ -33,10 +33,10 @@ server {
 # HTTPS server for the backend API
 server {
     listen 443 ssl;
-    server_name api.3compute.org;
+    server_name api.csroom.org;
 
-    ssl_certificate /etc/letsencrypt/live/api.3compute.org/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/api.3compute.org/privkey.pem;
+    ssl_certificate /etc/letsencrypt/live/api.csroom.org/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/api.csroom.org/privkey.pem;
     include /etc/letsencrypt/options-ssl-nginx.conf;
     ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
 

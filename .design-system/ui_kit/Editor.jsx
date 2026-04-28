@@ -1,5 +1,5 @@
 const EDITOR_FILES = {
-  'app.py': ['# A simple Flask website.', 'from flask import Flask', '', 'app = Flask(__name__)', '', '@app.route("/")', 'def home():', '    return "Welcome to my website!"', '', '@app.route("/about")', 'def about():', '    return "I am learning Python at 3Compute."', '', 'if __name__ == "__main__":', '    app.run(host="0.0.0.0", port=3000)'],
+  'app.py': ['# A simple Flask website.', 'from flask import Flask', '', 'app = Flask(__name__)', '', '@app.route("/")', 'def home():', '    return "Welcome to my website!"', '', '@app.route("/about")', 'def about():', '    return "I am learning Python at CS Room."', '', 'if __name__ == "__main__":', '    app.run(host="0.0.0.0", port=3000)'],
   'README.md': ['# first-website', '', 'My very first Flask app.', '', '## Run it', '', '    python app.py'],
   'requirements.txt': ['flask==3.0.0', 'pytest==8.0.0'],
   'test_app.py': ['from app import app', '', 'def test_home():', '    client = app.test_client()', '    response = client.get("/")', '    assert response.status_code == 200'],

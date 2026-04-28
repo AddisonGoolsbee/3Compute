@@ -1,4 +1,4 @@
-"""Manages *.app.3compute.org routing via the Caddy Admin API.
+"""Manages *.app.csroom.org routing via the Caddy Admin API.
 
 Routes are stored in Caddy's persistent config — they survive Caddy restarts
 without any file writes or sudo. TLS for the wildcard cert is handled by
@@ -161,7 +161,7 @@ def ensure_app_server() -> None:
     """Ensure the catchall route exists in the Caddy server that owns :443.
 
     The server itself (srv0) and its TLS config are managed by the Caddyfile.
-    This function only ensures the *.app.3compute.org catchall route is present.
+    This function only ensures the *.app.csroom.org catchall route is present.
     """
     try:
         with httpx.Client(timeout=10.0) as client:

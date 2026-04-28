@@ -229,7 +229,7 @@ export default function Editor() {
 
   // BroadcastChannel: reload editor when another tab saves the current file
   useEffect(() => {
-    const bc = new BroadcastChannel('3compute-files');
+    const bc = new BroadcastChannel('csroom-files');
     broadcastChannelRef.current = bc;
     bc.onmessage = (e) => {
       if (
@@ -567,7 +567,7 @@ export default function Editor() {
                 onClick={() => {
                   if (!runCommandFn || !currentFile.location) return;
                   const command = runCommandFn(currentFile.location);
-                  window.dispatchEvent(new CustomEvent('3compute:run-command', { detail: { command } }));
+                  window.dispatchEvent(new CustomEvent('csroom:run-command', { detail: { command } }));
                 }}
                 className="px-3! py-1.5! text-xs! gap-1.5!"
               >

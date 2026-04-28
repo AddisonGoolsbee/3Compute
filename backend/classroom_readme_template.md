@@ -2,9 +2,9 @@
 
 Access Code: `{{ACCESS_CODE}}`
 
-## What is a 3Compute Classroom?
+## What is a CS Room Classroom?
 
-A classroom groups a set of participants (students) with one or more instructors. Everything (distributing assignments, collecting work, grading) is managed through 3Compute: the **Classrooms** page (web UI) and your classroom folder in the IDE are the two places you'll work from.
+A classroom groups a set of participants (students) with one or more instructors. Everything (distributing assignments, collecting work, grading) is managed through CS Room: the **Classrooms** page (web UI) and your classroom folder in the IDE are the two places you'll work from.
 
 For each classroom you own:
 

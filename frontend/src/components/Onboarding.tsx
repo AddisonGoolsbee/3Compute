@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { LogoBirdflop } from '@luminescent/ui-react';
+import LogoCsRoom from './LogoCsRoom';
 import { BookOpen, GraduationCap } from 'lucide-react';
 import { apiUrl } from '../util/UserData';
 import { PrimaryButton } from './ui/Buttons';
@@ -30,9 +30,9 @@ export default function Onboarding() {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-paper p-8">
       <div className="bg-paper-elevated border border-rule rounded-xl p-10 max-w-[460px] w-full text-center shadow-md">
         <div className="mb-5 mx-auto inline-flex">
-          <LogoBirdflop size={56} fillGradient={['#54daf4', '#545eb6']} />
+          <LogoCsRoom size={56} />
         </div>
-        <h1 className="heading-1 mt-2 mb-2.5">Welcome to 3Compute</h1>
+        <h1 className="heading-1 mt-2 mb-2.5">Welcome to CS Room</h1>
 
         {allowedRoles === null ? (
           <p className="body text-ink-muted">Loading…</p>
@@ -41,8 +41,8 @@ export default function Onboarding() {
             <p className="body text-ink-muted">You don't have access to any roles yet.</p>
             <p className="body text-ink-muted">
               Contact{' '}
-              <a href="mailto:3compute@birdflop.com" className="text-navy font-semibold no-underline">
-                3compute@birdflop.com
+              <a href="mailto:csroom@birdflop.com" className="text-navy font-semibold no-underline">
+                csroom@birdflop.com
               </a>{' '}
               to request access.
             </p>

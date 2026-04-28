@@ -2,7 +2,7 @@
 
 You build this site section by section. Each section adds something real: your name, your bio, a skills chart, a live clock, a visitor counter. When you are done, you have a working site you can share with anyone.
 
-Your site runs on 3Compute's servers. As long as the server is running, the public URL works and anyone with the link can open the site in their browser. If you stop the server, visitors see a "connection refused" error until you start it again.
+Your site runs on CS Room's servers. As long as the server is running, the public URL works and anyone with the link can open the site in their browser. If you stop the server, visitors see a "connection refused" error until you start it again.
 
 This README covers background knowledge that may be necessary or helpful for this lesson. Read through it once before you start coding.
 
@@ -23,7 +23,7 @@ Keep the terminal running while you work. Every time you save a file, Flask relo
 
 ## What This README Covers
 
-- How sharing works on 3Compute
+- How sharing works on CS Room
 - The project structure
 - Eight sections to build in order, from your name through a dark mode toggle
 - Running the tests
@@ -32,7 +32,7 @@ Keep the terminal running while you work. Every time you save a file, Flask relo
 
 ## How Sharing Works
 
-When you run `python app.py` on 3Compute, the platform keeps your server reachable at a public URL. You can send that URL to anyone. As long as your container is running, the site is live.
+When you run `python app.py` on CS Room, the platform keeps your server reachable at a public URL. You can send that URL to anyone. As long as your container is running, the site is live.
 
 ## Project Structure
 
@@ -91,7 +91,7 @@ Your turn:
 2. Uncomment the HTML block.
 3. Replace the placeholder cards with your real projects.
    - Your class assignments count.
-   - If a project lives on 3Compute, link to it.
+   - If a project lives on CS Room, link to it.
    - If a link is not ready yet, use `href="#"` for now.
 4. Add at least three cards. Add more if you have them.
 
@@ -213,7 +213,7 @@ Once you have finished all eight sections, try one of these:
 - **Contact form.** A form that saves messages to a file, or emails them using Python's `smtplib`.
 - **Authentication.** A login page that gates a private admin area.
 - **Database.** Replace `counter.txt` with a SQLite database using Python's built-in `sqlite3` module.
-- **Deployment.** Learn how to deploy a Flask app to a cloud provider so the site stays online without 3Compute.
+- **Deployment.** Learn how to deploy a Flask app to a cloud provider so the site stays online without CS Room.
 
 ---
 

@@ -1,6 +1,6 @@
-# 3Compute · Daylight
+# CS Room · Daylight
 
-A warm, paper-toned visual language for 3Compute — a free coding classroom built by Birdflop, a 501(c)(3) nonprofit. Daylight diverges from the production dark-only app: it reads as a **scholastic, optimistic, printed-poster** aesthetic — cream paper surfaces, a serif display face, and a small palette of saturated section colors used as accents, never as a single brand hue.
+A warm, paper-toned visual language for CS Room — a free coding classroom built by Birdflop, a 501(c)(3) nonprofit. Daylight diverges from the production dark-only app: it reads as a **scholastic, optimistic, printed-poster** aesthetic — cream paper surfaces, a serif display face, and a small palette of saturated section colors used as accents, never as a single brand hue.
 
 This folder is the design-system handoff: tokens, component reference, and voice rules. Drop it into your project and point Claude Code at it.
 
@@ -13,7 +13,7 @@ This folder is the design-system handoff: tokens, component reference, and voice
 | `README.md` | This file. Voice + visual + iconography rules. |
 | `colors_and_type.css` | All design tokens (colors, type, spacing, radius, shadows) + utility classes (`.h-1`, `.body`, `.eyebrow`, etc.). Import once. |
 | `ui_kit/` | Click-thru React recreation of core screens (landing, login, IDE, classroom). Open `ui_kit/index.html` in a browser to view. Reference for component patterns. |
-| `assets/3compute-logo.svg` | Birdflop "bf" mark used as 3Compute's logo. |
+| `assets/csroom-logo.svg` | Folded notebook mark used as CS Room's logo. |
 
 ---
 
@@ -29,8 +29,8 @@ This folder is the design-system handoff: tokens, component reference, and voice
 
 ### Casing
 - **Sentence case** for headings, prose, and most buttons. "How it works", "Sign in to start".
-- **Title Case** only for proper nouns and product names: `3Compute`, `Birdflop`, `Sign in with Google`.
-- **Always `3Compute`** — capital C, no space. Never "3compute" or "3 Compute".
+- **Title Case** only for proper nouns and product names: `CS Room`, `Birdflop`, `Sign in with Google`.
+- **Always `CS Room`** — capital C and R, single space between the words. Never "CSRoom" or "Cs room".
 - **Always `Birdflop`** — capital B only.
 
 ### Tone in errors and edge states

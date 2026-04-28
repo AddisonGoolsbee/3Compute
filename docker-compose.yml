@@ -16,12 +16,12 @@ services:
       retries: 12
     volumes:
       - dind-storage:/var/lib/docker
-      - 3compute-uploads:/var/lib/3compute/uploads
-      - 3compute-classrooms:/var/lib/3compute/classrooms
+      - csroom-uploads:/var/lib/csroom/uploads
+      - csroom-classrooms:/var/lib/csroom/classrooms
     networks:
       - dev-net
 
-  # One-shot: builds the 3compute terminal image into DinD on every compose up.
+  # One-shot: builds the csroom terminal image into DinD on every compose up.
   image-builder:
     image: docker:27-cli
     environment:
@@ -29,7 +29,7 @@ services:
     volumes:
       - ./backend:/workspace
     working_dir: /workspace
-    command: docker build -t 3compute:latest .
+    command: docker build -t csroom:latest .
     depends_on:
       dind:
         condition: service_healthy
@@ -37,14 +37,14 @@ services:
       - dev-net
 
   # Prepare shared storage with the same permission model prod uses:
-  # owned by www-data (33) with supplementary group 3compute-container (995),
+  # owned by www-data (33) with supplementary group csroom-container (995),
   # setgid bit so new files inherit GID 995, and a shallow re-chown of existing
   # entries so re-running compose up on a stale volume self-heals.
   data-init:
     image: alpine:3
     command: >-
       sh -c "
-        addgroup -g 995 3compute-container 2>/dev/null || true &&
+        addgroup -g 995 csroom-container 2>/dev/null || true &&
         mkdir -p /data/uploads /data/classrooms &&
         chown 33:995 /data /data/uploads /data/classrooms &&
         chmod 2775 /data /data/uploads /data/classrooms &&
@@ -55,9 +55,9 @@ services:
         true
       "
     volumes:
-      - 3compute-base:/data
-      - 3compute-uploads:/data/uploads
-      - 3compute-classrooms:/data/classrooms
+      - csroom-base:/data
+      - csroom-uploads:/data/uploads
+      - csroom-classrooms:/data/classrooms
 
   # FastAPI backend with hot-reload
   backend:
@@ -66,25 +66,25 @@ services:
       dockerfile: Dockerfile.dev
     user: "33:33"  # www-data, mirrors prod
     group_add:
-      - "995"  # 3compute-container — supplementary group so the backend can
+      - "995"  # csroom-container — supplementary group so the backend can
                # read/write files the container user (999:995) creates, and
-               # vice versa. Mirrors prod `usermod -a -G 3compute-container www-data`.
+               # vice versa. Mirrors prod `usermod -a -G csroom-container www-data`.
     cap_add:
       - CHOWN  # mirrors AmbientCapabilities=CAP_CHOWN in systemd service
     environment:
       DOCKER_HOST: tcp://dind:2375
-      UPLOADS_ROOT: /var/lib/3compute/uploads
-      CLASSROOMS_ROOT: /var/lib/3compute/classrooms
-      USERS_JSON_FILE: /var/lib/3compute/users.json
+      UPLOADS_ROOT: /var/lib/csroom/uploads
+      CLASSROOMS_ROOT: /var/lib/csroom/classrooms
+      USERS_JSON_FILE: /var/lib/csroom/users.json
     env_file:
       - backend/.env
     volumes:
-      - .:/var/www/3compute
-      - backend-logs:/var/www/3compute/logs
-      - 3compute-base:/var/lib/3compute
-      - 3compute-uploads:/var/lib/3compute/uploads
-      - 3compute-classrooms:/var/lib/3compute/classrooms
-    working_dir: /var/www/3compute
+      - .:/var/www/csroom
+      - backend-logs:/var/www/csroom/logs
+      - csroom-base:/var/lib/csroom
+      - csroom-uploads:/var/lib/csroom/uploads
+      - csroom-classrooms:/var/lib/csroom/classrooms
+    working_dir: /var/www/csroom
     command: sh -c "pip install -q -r backend/requirements.txt && python -m backend.api --host 0.0.0.0 --port 5555 --reload"
     ports:
       - "5555:5555"
@@ -120,9 +120,9 @@ networks:
 
 volumes:
   dind-storage:
-  3compute-base:
-  3compute-uploads:
-  3compute-classrooms:
+  csroom-base:
+  csroom-uploads:
+  csroom-classrooms:
   frontend-node-modules:
   pnpm-store:
   backend-logs:

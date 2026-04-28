@@ -1,26 +1,26 @@
 [Unit]
-Description=3compute backend service
+Description=csroom backend service
 After=network.target
 
 [Service]
 Type=simple
-WorkingDirectory=/var/www/3compute
+WorkingDirectory=/var/www/csroom
 Environment=PYTHONUNBUFFERED=1
-Environment=USERS_JSON_FILE=/var/lib/3compute/users.json
-ExecStartPre=+/bin/mkdir -p /var/lib/3compute/uploads /var/lib/3compute/classrooms
+Environment=USERS_JSON_FILE=/var/lib/csroom/users.json
+ExecStartPre=+/bin/mkdir -p /var/lib/csroom/uploads /var/lib/csroom/classrooms
 # Shallow chown only on the three top-level dirs. Do NOT recurse: user files
 # inside are owned by the container user (999:995) and must stay that way so
-# they remain writable from the terminal. Group is 3compute-container (GID 995)
+# they remain writable from the terminal. Group is csroom-container (GID 995)
 # so www-data (with supplementary 995) can read/write via group perms.
-ExecStartPre=+/bin/chown www-data:3compute-container /var/lib/3compute /var/lib/3compute/uploads /var/lib/3compute/classrooms
+ExecStartPre=+/bin/chown www-data:csroom-container /var/lib/csroom /var/lib/csroom/uploads /var/lib/csroom/classrooms
 # Setgid bit (2775) makes new entries inherit GID 995 automatically.
-ExecStartPre=+/bin/chmod 2775 /var/lib/3compute /var/lib/3compute/uploads /var/lib/3compute/classrooms
-ExecStart=/var/www/3compute/.venv/bin/python3 -m backend.api
+ExecStartPre=+/bin/chmod 2775 /var/lib/csroom /var/lib/csroom/uploads /var/lib/csroom/classrooms
+ExecStart=/var/www/csroom/.venv/bin/python3 -m backend.api
 Restart=always
 RestartSec=5
 User=www-data
 Group=www-data
-SupplementaryGroups=3compute-container
+SupplementaryGroups=csroom-container
 AmbientCapabilities=CAP_CHOWN
 # systemd's default soft fd limit is 1024. The backend opens pty + dockerd
 # connection fds per terminal attach, and a leak in that path exhausted the

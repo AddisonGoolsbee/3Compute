@@ -1,5 +1,5 @@
 {
-    "Welcome-to-3Compute": {
+    "Welcome-to-CS-Room": {
         "files": [
             "README.md",
             "part3/hello.py",
@@ -7,9 +7,9 @@
             "part5/app.py",
             "part5/requirements.txt"
         ],
-        "description": "First day on 3Compute: use the terminal, run Python, and publish a live webpage",
+        "description": "First day on CS Room: use the terminal, run Python, and publish a live webpage",
         "duration": "2-3 class periods",
-        "lessonPlanDoc": "/docs/welcome-to-3compute/lesson-plan.md",
+        "lessonPlanDoc": "/docs/welcome-to-cs-room/lesson-plan.md",
         "standards": [
             {
                 "id": "3A-CS-02",

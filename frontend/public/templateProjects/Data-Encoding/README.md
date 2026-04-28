@@ -308,7 +308,7 @@ Before submitting:
 
 ### The Image Does Not Display Colors
 
-- ANSI color codes require a terminal that supports them. The Linux containers in 3Compute support this. On Windows, results may vary.
+- ANSI color codes require a terminal that supports them. The Linux containers in CS Room support this. On Windows, results may vary.
 
 ### Round-Trip Tests Fail Even Though Individual Tests Pass
 

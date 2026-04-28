@@ -1,4 +1,4 @@
-# 3Compute
+# CS Room
 
 Birdflop service for free educational server usage, with templates such as discord bot and personal website.
 
@@ -17,12 +17,12 @@ Birdflop service for free educational server usage, with templates such as disco
 
 - Make sure you have `Docker` installed and running.
 - `python -m venv .venv && source .venv/bin/activate && pip install -r backend/requirements.txt` to setup and install dependencies
-- `docker build -t 3compute:latest backend` to build the docker image
+- `docker build -t csroom:latest backend` to build the docker image
 - `python -m backend` to run the backend
 
 ### Testing
 
-3Compute includes some testing for both frontend and backend:
+CS Room includes some testing for both frontend and backend:
 
 ```bash
 # Run all tests
@@ -50,10 +50,14 @@ act -W .github/workflows/test.yml -j test-frontend
 
 ## Productionization (Debian 12)
 
-- github/3compute deploy key in /root/.ssh/id_rsa
+See `MIGRATION_TO_CSROOM.md` for a detailed step-by-step production setup guide.
+
+Quick reference:
+
+- github/csroom deploy key in /root/.ssh/id_rsa
 - mkdir /var/www && cd /var/www
 - apt install git
-- git clone git@github.com:birdflop/3compute.git && cd 3compute
+- git clone git@github.com:birdflop/csroom.git csroom && cd csroom
 
 # Add Docker's official GPG key:
 
@@ -80,7 +84,7 @@ sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin 
 sudo docker run hello-world
 ```
 
-`docker build -t 3compute:latest backend`
+`docker build -t csroom:latest backend`
 
 ```
 apt install python3.11-venv
@@ -97,8 +101,8 @@ Move the production/ files in
 ```
 sudo systemctl daemon-reexec
 sudo systemctl daemon-reload
-sudo systemctl enable 3compute
-sudo systemctl start 3compute
+sudo systemctl enable csroom
+sudo systemctl start csroom
 ```
 
 ```curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
@@ -113,13 +117,13 @@ pnpm build```
 ````
 
 apt install -y nginx certbot python3-certbot-nginx
-sudo certbot certonly --nginx -d www.3compute.org
-sudo certbot certonly --nginx -d api.3compute.org```
+sudo certbot certonly --nginx -d www.csroom.org
+sudo certbot certonly --nginx -d api.csroom.org```
 
 `rm /etc/nginx/sites-enabled/default`
 
-- symlink /etc/nginx/sites-available/3compute.org
+- symlink /etc/nginx/sites-available/csroom.org
 
-- sudo chown -R www-data:www-data /var/www/3compute
+- sudo chown -R www-data:www-data /var/www/csroom
 
 service nginx restart

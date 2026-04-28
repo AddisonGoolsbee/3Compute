@@ -2,11 +2,11 @@
 
 ## Overview
 
-Students build a personal portfolio website from scratch over 7-8 class periods. The site is publicly accessible once running on 3Compute, so students can genuinely share it with friends and family. Each class session adds a visible feature, and students fill in their own real content throughout. The bio is their bio. The projects are their projects.
+Students build a personal portfolio website from scratch over 7-8 class periods. The site is publicly accessible once running on CS Room, so students can genuinely share it with friends and family. Each class session adds a visible feature, and students fill in their own real content throughout. The bio is their bio. The projects are their projects.
 
 This is a project-based learning unit. There is no single right answer. The goal is that every student finishes with something they're proud of and would actually share.
 
-> **Online Safety Note:** All websites built on 3Compute are publicly accessible. Before students begin, let them know they can avoid putting personal information on their site or use a nickname instead of their real name if they prefer. Respect each student's comfort level and remind them to follow your school's guidelines for online safety. This is a good opportunity to discuss responsible web presence as part of the project.
+> **Online Safety Note:** All websites built on CS Room are publicly accessible. Before students begin, let them know they can avoid putting personal information on their site or use a nickname instead of their real name if they prefer. Respect each student's comfort level and remind them to follow your school's guidelines for online safety. This is a good opportunity to discuss responsible web presence as part of the project.
 
 **Estimated Duration:** 7-8 class periods (45-50 minutes each)
 
@@ -67,7 +67,7 @@ By the end of this project, students should be able to:
 - Customize the site's identity and color scheme
 
 **Setup (10 min):**
-- Students open the My Website template in 3Compute
+- Students open the My Website template in CS Room
 - Run `python app.py` and open the link
 - Confirm everyone can see the default welcome page
 
@@ -281,7 +281,7 @@ Encourage students to visit their own site on a phone (or use browser dev tools 
 Assign pairs (or have students pair up). Each student will review one other student's site.
 
 **How to Share the Site:**
-Students share the URL of their running 3Compute site with their partner. If URLs aren't available, share screens.
+Students share the URL of their running CS Room site with their partner. If URLs aren't available, share screens.
 
 **Structured Feedback (30 min):**
 Each student has 15 minutes to write feedback for their partner. Give them the following prompts:
@@ -368,7 +368,7 @@ Student implements one of the extension ideas (blog, gallery, database, contact 
 - Replace `counter.txt` with a SQLite database using Python's built-in `sqlite3`
 - Add a contact form that saves submissions
 - Add authentication so the site has a private admin area
-- Deploy to a free cloud provider (Render, Railway) so it stays running without 3Compute
+- Deploy to a free cloud provider (Render, Railway) so it stays running without CS Room
 
 ### For Students Who Need More Support
 

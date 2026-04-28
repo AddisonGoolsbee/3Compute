@@ -62,7 +62,7 @@ export default function JoinClassroomDialog({ open, onClose }: Props) {
           }),
         );
       }
-      window.dispatchEvent(new CustomEvent('3compute:files-changed'));
+      window.dispatchEvent(new CustomEvent('csroom:files-changed'));
       window.dispatchEvent(
         new CustomEvent('classroom-joined', {
           detail: { classroomId: data.classroom_id },

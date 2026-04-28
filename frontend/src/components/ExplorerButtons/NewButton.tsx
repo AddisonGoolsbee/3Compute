@@ -120,8 +120,8 @@ export default function NewButton() {
       if (detail.kind === 'file') handleFileClick(base);
       else if (detail.kind === 'folder') handleFolderClick(base);
     };
-    window.addEventListener('3compute:new-at', handler as EventListener);
-    return () => window.removeEventListener('3compute:new-at', handler as EventListener);
+    window.addEventListener('csroom:new-at', handler as EventListener);
+    return () => window.removeEventListener('csroom:new-at', handler as EventListener);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userData.files, userData.selectedLocation]);
 

@@ -1,14 +1,14 @@
-# Welcome to 3Compute
+# Welcome to CS Room
 
 This is your first lesson. By the end, you will have opened a terminal, run Linux commands, written and executed Python code, and put a live webpage on the internet with a URL you can text to a friend.
 
-Everything you do in 3compute runs on a real Linux server, not a simulator. The commands you learn here are the same ones professional developers type every day.
+Everything you do in CS Room runs on a real Linux server, not a simulator. The commands you learn here are the same ones professional developers type every day.
 
 This README covers background knowledge that may be necessary or helpful for this lesson. Read through it once before you start coding.
 
 ## What You Will Learn
 
-- How to use the three main panels of 3compute: the file explorer, the editor, and the terminal
+- How to use the three main panels of CS Room: the file explorer, the editor, and the terminal
 - Basic Linux commands to move around, inspect, create, and delete files
 - The edit-save-run loop: the workflow every developer uses every day
 - Working directories and relative paths
@@ -16,13 +16,13 @@ This README covers background knowledge that may be necessary or helpful for thi
 
 ## Setup
 
-Right-click the `Welcome-to-3Compute` folder in the file explorer on the left and select **Open in Terminal**. This executes `cd` (change directory) in your terminal to the project folder so the commands below will work.
+Right-click the `Welcome-to-CS-Room` folder in the file explorer on the left and select **Open in Terminal**. This executes `cd` (change directory) in your terminal to the project folder so the commands below will work.
 
 That's it. Nothing to install yet. Parts 4 and 5 will have you install one thing each.
 
 ## What This README Covers
 
-- **Part 1:** A tour of the 3compute interface (the three panels)
+- **Part 1:** A tour of the CS Room interface (the three panels)
 - **Part 2:** Terminal basics, including the commands you will reuse for years
 - **Part 3:** Writing, saving, and running your first Python program
 - **Part 4:** Reading and writing files, including how paths work
@@ -35,7 +35,7 @@ Work through the parts in order. Each part takes roughly 20 to 45 minutes depend
 
 ## Part 1: The Tour
 
-Look at your screen right now. 3compute is split into three main areas.
+Look at your screen right now. CS Room is split into three main areas.
 
 **The file explorer (left).** This is your files, organized as folders. Each classroom, lesson, and project lives somewhere in here. You can click a folder to expand it, click a file to open it in the editor, right-click anything for a menu, and drag files to move them around.
 
@@ -45,13 +45,13 @@ Look at your screen right now. 3compute is split into three main areas.
 
 ### Try It
 
-If you have not already, right-click the `Welcome-to-3Compute` folder and select **Open in Terminal**. Then type this and press Enter:
+If you have not already, right-click the `Welcome-to-CS-Room` folder and select **Open in Terminal**. Then type this and press Enter:
 
 ```
 pwd
 ```
 
-It will print something like `/app/Welcome-to-3Compute`. That is your current location inside the Linux server. `pwd` stands for "print working directory" and answers the question *where am I?*
+It will print something like `/app/Welcome-to-CS-Room`. That is your current location inside the Linux server. `pwd` stands for "print working directory" and answers the question *where am I?*
 
 That first piece of output is your first "aha" moment: you are running a real Linux machine from your browser.
 
@@ -83,11 +83,11 @@ The terminal accepts one command per line. You type a command, press Enter, and 
 - **Ctrl+C** stops whatever is running. Useful if a program is stuck or you launched something by accident.
 - **Ctrl+L** clears the screen, same as `clear`.
 
-> **Copying from the terminal.** In the 3compute terminal, plain `Ctrl+C` is reserved for stopping programs (just like a real Linux machine), so it does **not** copy selected text. To copy, select with the mouse and then press **Ctrl+Shift+C** (Windows / Linux / ChromeOS) or **Cmd+C** (Mac). To paste, use **Ctrl+Shift+V** or **Cmd+V**.
+> **Copying from the terminal.** In the CS Room terminal, plain `Ctrl+C` is reserved for stopping programs (just like a real Linux machine), so it does **not** copy selected text. To copy, select with the mouse and then press **Ctrl+Shift+C** (Windows / Linux / ChromeOS) or **Cmd+C** (Mac). To paste, use **Ctrl+Shift+V** or **Cmd+V**.
 
 ### A Small Exercise
 
-Create a small folder structure to practice. From inside `Welcome-to-3Compute/`, run:
+Create a small folder structure to practice. From inside `Welcome-to-CS-Room/`, run:
 
 ```bash
 mkdir practice
@@ -130,18 +130,18 @@ Open `part3/hello.py` in the editor. You should see this:
 print("Hello, world!")
 ```
 
-That's a complete Python program. Run it from the terminal. You are currently inside `Welcome-to-3Compute/`. Move into the `part3` folder first:
+That's a complete Python program. Run it from the terminal. You are currently inside `Welcome-to-CS-Room/`. Move into the `part3` folder first:
 
 ```bash
 cd part3
 python hello.py
 ```
 
-You should see `Hello, world!` printed. Congratulations, you ran your first program on 3compute.
+You should see `Hello, world!` printed. Congratulations, you ran your first program on CS Room.
 
 ### Why Run It From the Terminal?
 
-You might notice 3compute has a "Run" button. It works, but you should learn to run from the terminal because:
+You might notice CS Room has a "Run" button. It works, but you should learn to run from the terminal because:
 
 1. You control exactly what runs and how.
 2. You can pass extra information to the program (arguments).
@@ -260,20 +260,20 @@ Now start the server:
 python app.py
 ```
 
-You will see output ending in something like `Running on http://0.0.0.0:10000`. Above that, 3compute prints a public URL - look for a line like `Subdomain: something.app.3compute.org`. That is your site. Click it, or copy it into a new browser tab.
+You will see output ending in something like `Running on http://0.0.0.0:10000`. Above that, CS Room prints a public URL - look for a line like `Subdomain: something.app.CS Room.org`. That is your site. Click it, or copy it into a new browser tab.
 
-You should see a page that says "Hello from my 3compute server!"
+You should see a page that says "Hello from my CS Room server!"
 
 ### Share It
 
-Send that URL to a classmate or a friend. They can open it from their own laptop or phone. There is no special setup on their end - it is a real website running from your 3compute container.
+Send that URL to a classmate or a friend. They can open it from their own laptop or phone. There is no special setup on their end - it is a real website running from your CS Room container.
 
 ### Change the Page
 
 Leave the server running. Open `app.py` in the editor. Find the line:
 
 ```python
-return "<h1>Hello from my 3compute server!</h1>"
+return "<h1>Hello from my CS Room server!</h1>"
 ```
 
 Change the text between the `<h1>` tags to anything you want. Save the file. The server will restart automatically (that's what `debug=True` does in the code). Refresh the browser tab. Your new message is live.
@@ -335,13 +335,13 @@ Keep this handy for every future lesson.
 
 ## Where to Go Next
 
-You now know enough to start any other lesson in 3compute. A few suggestions based on what interests you:
+You now know enough to start any other lesson in CS Room. A few suggestions based on what interests you:
 
 - **Build a real personal website.** Open `My-Website` or `Website` to make a site with your name, bio, and projects. Both use the same Flask pattern you saw in Part 5.
 - **Learn how data works.** Open `Data-Analysis` to work with a CSV dataset of 150 students, or `Data-Encoding` to see how text and color are stored as numbers.
 - **Build a game.** Open `Snake-Game` to build a playable Snake clone with a leaderboard, or `Tic-Tac-Toe` to build an AI that cannot be beaten.
 - **Make a Discord bot.** Open `Discord-Bot` to build a bot that responds to commands in your own Discord server.
 
-Every lesson in 3compute follows the same pattern as this one: a README at the top of the folder explains what you are building, then you edit files and run them from the terminal.
+Every lesson in CS Room follows the same pattern as this one: a README at the top of the folder explains what you are building, then you edit files and run them from the terminal.
 
 Good luck.

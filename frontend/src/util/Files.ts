@@ -46,7 +46,7 @@ export type FilesResponse = {
   classroomSymlinks: Record<string, { id: string; name?: string; archived?: boolean; isInstructor?: boolean }>;
 };
 
-const SHOW_HIDDEN_STORAGE_KEY = '3compute:show-hidden-files';
+const SHOW_HIDDEN_STORAGE_KEY = 'csroom:show-hidden-files';
 
 export function getShowHidden(): boolean {
   if (typeof window === 'undefined') return false;

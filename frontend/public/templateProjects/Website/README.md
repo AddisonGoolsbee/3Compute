@@ -99,7 +99,7 @@ Now `/projects` and `/blog` on your site will serve those files.
 
 ### Port Already in Use or Permission Denied
 
-If you see a "port already in use" error, edit `main.py` and change the port number. 3Compute gives each user a specific range of ports, listed near the terminal. To kill whatever is using the port instead:
+If you see a "port already in use" error, edit `main.py` and change the port number. CS Room gives each user a specific range of ports, listed near the terminal. To kill whatever is using the port instead:
 
 ```bash
 lsof -ti:<port_number> | xargs kill -9

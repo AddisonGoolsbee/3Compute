@@ -99,7 +99,7 @@ def _parse_unittest_output(output: str) -> tuple[int, int]:
     return passed, total
 
 
-_RESULTS_MARKER = "###3COMPUTE_RESULTS:"
+_RESULTS_MARKER = "###CSROOM_RESULTS:"
 # Env var the backend sets when running a test as the grading host. Test
 # scripts register an atexit handler that emits the score to stdout only
 # when this is set, so students running the script locally don't see the
@@ -113,7 +113,7 @@ def _parse_structured_output(output: str) -> tuple[int, int]:
     Primary format is the last non-empty line of the form ``N/M`` — emitted
     by an atexit handler in the test script so the score is always reported
     even if the script crashed mid-way. Legacy tests that still use the
-    ``###3COMPUTE_RESULTS:N/M###`` marker are also supported.
+    ``###CSROOM_RESULTS:N/M###`` marker are also supported.
     """
     lines = output.split("\n")
     for line in reversed(lines):
@@ -148,7 +148,7 @@ def _parse_script_output(output: str) -> tuple[int, int]:
     if t > 0:
         return p, t
 
-    # Fallback heuristics for non-3Compute test scripts
+    # Fallback heuristics for non-CS Room test scripts
     lines = output.split("\n")
 
     for line in reversed(lines):
@@ -310,7 +310,7 @@ def run_tests_for_student(
     then cleans up. Returns (tests_passed, tests_total).
 
     Strategy: try running each test file as a Python script first (most
-    3Compute templates are designed as script-based runners). Fall back to
+    CS Room templates are designed as script-based runners). Fall back to
     pytest if the script approach yields no results.
     """
     # Sanitize email the same way participant dirs are created

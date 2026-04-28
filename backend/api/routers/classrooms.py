@@ -1668,7 +1668,7 @@ async def get_student_file(
 
 def _set_ownership_recursive(path: str) -> None:
     """Normalize ownership and permissions on a directory tree so that both
-    the backend (www-data, supplementary group 3compute-container=995) and
+    the backend (www-data, supplementary group csroom-container=995) and
     the container user (999:995) can read/write everything.
 
     Dirs: 999:995 mode 2775 — setgid so any new child inherits GID 995 even

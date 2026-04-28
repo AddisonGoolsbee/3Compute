@@ -3,18 +3,18 @@ const TerminalPane = () => {
   const [activeTab, setActiveTab] = React.useState(0);
   const tabs = [
     { id: 1, name: 'Terminal', lines: [
-      { kind: 'prompt', text: 'alex@3compute:~/first-website$ ', cmd: 'python app.py' },
+      { kind: 'prompt', text: 'alex@csroom:~/first-website$ ', cmd: 'python app.py' },
       { kind: 'out', text: ' * Serving Flask app "app"' },
       { kind: 'out', text: ' * Running on http://0.0.0.0:3000', color: 'var(--c-forest)' },
-      { kind: 'out', text: '   Live at: https://alex.app.3compute.org', color: 'var(--c-navy)' },
-      { kind: 'prompt', text: 'alex@3compute:~/first-website$ ', cmd: '' },
+      { kind: 'out', text: '   Live at: https://alex.app.csroom.org', color: 'var(--c-navy)' },
+      { kind: 'prompt', text: 'alex@csroom:~/first-website$ ', cmd: '' },
     ]},
     { id: 2, name: 'Tests', lines: [
-      { kind: 'prompt', text: 'alex@3compute:~/first-website$ ', cmd: 'pytest -v' },
+      { kind: 'prompt', text: 'alex@csroom:~/first-website$ ', cmd: 'pytest -v' },
       { kind: 'out', text: 'collected 1 item' },
       { kind: 'out', text: 'tests/test_app.py::test_home PASSED', color: 'var(--c-forest)' },
       { kind: 'out', text: '1 passed in 0.08s', color: 'var(--c-forest)' },
-      { kind: 'prompt', text: 'alex@3compute:~/first-website$ ', cmd: '' },
+      { kind: 'prompt', text: 'alex@csroom:~/first-website$ ', cmd: '' },
     ]},
   ];
   const tab = tabs[activeTab];

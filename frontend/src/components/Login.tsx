@@ -1,11 +1,11 @@
-import { LogoBirdflop } from '@luminescent/ui-react';
+import LogoCsRoom from './LogoCsRoom';
 import { apiUrl } from '../util/UserData';
 
 export default function Login() {
   return (
     <div className="min-h-[calc(100vh-80px)] flex items-center justify-center p-8">
       <div className="max-w-[460px] w-full bg-paper-elevated border border-rule rounded-xl p-12 shadow-md">
-        <LogoBirdflop size={56} fillGradient={['#54daf4', '#545eb6']} />
+        <LogoCsRoom size={56} />
         <h1 className="heading-1 mt-5 mb-2.5 whitespace-nowrap">Welcome back</h1>
         <p className="body mb-7 text-ink-muted">
           Sign in with Google to access your workspace and classrooms.

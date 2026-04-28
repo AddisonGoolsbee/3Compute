@@ -588,7 +588,7 @@ export default function LandingPage() {
               <span className="text-navy italic">that stays with students</span>
             </h1>
             <p className="body-lg mb-8 max-w-[540px]">
-              3Compute is a free coding environment for teachers and students. Create or import
+              CS Room is a free coding environment for teachers and students. Create or import
               lessons, run Python in the browser, and watch as students build projects
               they keep.
             </p>
@@ -642,7 +642,7 @@ export default function LandingPage() {
             Every classroom should have access
           </h2>
           <p className="body-lg" style={{ color: '#e8e1ce' }}>
-            Computer science classrooms shouldn't depend on whether a school can afford managed Chromebooks, software licenses, or cloud credits. 3Compute is a project by Birdflop, a 501(c)(3) nonprofit, and is funded by donations.
+            Computer science classrooms shouldn't depend on whether a school can afford managed Chromebooks, software licenses, or cloud credits. CS Room is a project by Birdflop, a 501(c)(3) nonprofit, and is funded by donations.
           </p>
           <div className="mt-8 inline-flex flex-wrap gap-3 justify-center">
             <a
@@ -814,7 +814,7 @@ export default function LandingPage() {
                 <Server size={20} />
               </div>
               <div>
-                <div className="text-sm font-semibold text-forest">Deploy to 3Compute</div>
+                <div className="text-sm font-semibold text-forest">Deploy to CS Room</div>
                 <div className="text-xs text-ink-muted">one command · stays running · free</div>
               </div>
             </div>
@@ -907,7 +907,7 @@ export default function LandingPage() {
         >
           <h2 className="heading-2">Free for everyone</h2>
           <p className="body-lg text-ink-muted mb-7">
-            3Compute is free for schools, clubs, and individual learners. No
+            CS Room is free for schools, clubs, and individual learners. No
             credit card, no trial period.
           </p>
           <div className="inline-flex flex-wrap gap-3 justify-center">

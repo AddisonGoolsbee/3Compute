@@ -42,7 +42,7 @@ jobs:
 
       - name: Docker build backend
         run: |
-          docker build -t 3compute:latest backend
+          docker build -t csroom:latest backend
 
       - name: Test backend run
         run: |

@@ -1,8 +1,8 @@
-# Welcome to 3Compute: Instructor Lesson Plan
+# Welcome to CS Room: Instructor Lesson Plan
 
 ## Overview
 
-The onboarding lesson for 3compute. Students learn the three-panel interface (file explorer, editor, terminal), run basic Linux commands, write and execute small Python programs, read and write files from Python, and finish by publishing a live webpage at a public URL they can share with anyone.
+The onboarding lesson for CS Room. Students learn the three-panel interface (file explorer, editor, terminal), run basic Linux commands, write and execute small Python programs, read and write files from Python, and finish by publishing a live webpage at a public URL they can share with anyone.
 
 The lesson is self-guided: every step is described in the student README with expected outputs and diagnostic notes. The instructor's role is to orient the class, troubleshoot snags, and lead a short closing discussion. Most of the time students work at their own pace.
 
@@ -11,7 +11,7 @@ The lesson is self-guided: every step is described in the student README with ex
 **Grade Level:** 9-12
 
 **Prerequisites:**
-- Logged-in 3compute account
+- Logged-in CS Room account
 - No prior Linux, terminal, or Python experience required
 
 ---
@@ -24,7 +24,7 @@ The lesson is self-guided: every step is described in the student README with ex
 
 | Standard | Description | How This Project Addresses It |
 |----------|-------------|-------------------------------|
-| **3A-CS-02** | Compare levels of abstraction, analogy, and paradigm for the interactions between application software, system software, and hardware. | Students see three concrete layers interact: their Python program (application), the Linux shell and filesystem (system software), and the remote 3compute container (hardware). Parts 1 and 2 make the interface between application and system explicit (running `python hello.py` in a terminal is the application invoking the OS). Part 5 exposes the third layer when the Flask server produces a URL served by the container's network stack. |
+| **3A-CS-02** | Compare levels of abstraction, analogy, and paradigm for the interactions between application software, system software, and hardware. | Students see three concrete layers interact: their Python program (application), the Linux shell and filesystem (system software), and the remote CS Room container (hardware). Parts 1 and 2 make the interface between application and system explicit (running `python hello.py` in a terminal is the application invoking the OS). Part 5 exposes the third layer when the Flask server produces a URL served by the container's network stack. |
 | **3A-AP-16** | Design and iteratively develop computational artifacts for practical intent, personal expression, or to address a societal need while evaluating intended and unintended consequences. | Part 5 has students publish a real webpage at their own public URL, modify the content, refresh, and share the URL with classmates. The iterative edit-save-refresh loop is the core developer workflow, applied to a personal creative artifact. |
 
 ### Supporting Standards (Context and Discussion)
@@ -40,13 +40,13 @@ The lesson is self-guided: every step is described in the student README with ex
 
 By the end of this project, students should be able to:
 
-1. **Navigate** the 3compute UI: open folders, open files in the editor, and open a terminal at a specific folder
+1. **Navigate** the CS Room UI: open folders, open files in the editor, and open a terminal at a specific folder
 2. **Use** basic Linux commands to move around and inspect files (`pwd`, `ls`, `cd`, `cd ..`, `cat`, `mkdir`, `touch`, `rm`)
 3. **Use** terminal shortcuts (tab completion, up-arrow history, Ctrl+C, Ctrl+L)
 4. **Write, save, and run** a Python program using the editor and the terminal together
 5. **Read and write** files from Python, including understanding that file paths are relative to the current working directory
 6. **Run** a Flask web server, open it at a public URL, and modify the returned content with the server still running
-7. **Explain** in their own words what each of the three 3compute panels is for and when to use each
+7. **Explain** in their own words what each of the three CS Room panels is for and when to use each
 
 ---
 
@@ -64,7 +64,7 @@ Covers student README Parts 1-3.
 
 1. **Orientation (10 min):**
 
-   Open a projected 3compute window. Walk the class through the three panels. Make these points concrete:
+   Open a projected CS Room window. Walk the class through the three panels. Make these points concrete:
    - File explorer is a view of folders on the server, not on the local laptop
    - The editor is where code is written but not where it runs
    - The terminal is where code runs
@@ -73,7 +73,7 @@ Covers student README Parts 1-3.
 
 2. **Distribute the template (2 min):**
 
-   Push the Welcome-to-3Compute template to your classroom, or have students create it from the Template button.
+   Push the Welcome-to-CS-Room template to your classroom, or have students create it from the Template button.
 
 3. **Self-guided Part 1 + Part 2 (20 min):**
 
@@ -153,7 +153,7 @@ Covers student README Part 5.
 
    "Today you will put your code on the internet. Not a simulation - a real webpage that any phone, computer, or tablet anywhere in the world can open."
 
-   Draw or project the flow: `app.py` runs inside the 3compute container. 3compute gives each user a set of ports. One of those ports maps to a public subdomain. When someone visits the URL, their browser asks the server, which asks Flask, which runs your function.
+   Draw or project the flow: `app.py` runs inside the CS Room container. CS Room gives each user a set of ports. One of those ports maps to a public subdomain. When someone visits the URL, their browser asks the server, which asks Flask, which runs your function.
 
 2. **Self-guided Part 5 (25 min):**
 
@@ -164,7 +164,7 @@ Covers student README Part 5.
    | Student is stuck on... | Helpful nudge |
    |------------------------|---------------|
    | Port already in use | Stop any Part 4 Python process first (Ctrl+C), or change the port in `app.py` |
-   | Can't find the public URL | Look at the terminal output above the Flask "running on" line - 3compute prints a subdomain line separately |
+   | Can't find the public URL | Look at the terminal output above the Flask "running on" line - CS Room prints a subdomain line separately |
    | Changes don't appear on refresh | Make sure `debug=True` is in `app.run(...)`; otherwise restart the server manually |
 
 3. **Share the URL (10 min):**
@@ -189,7 +189,7 @@ Covers student README Part 5.
 
 **Option A: Submit the URL.** Students paste the URL of their Part 5 webpage. Grade on:
 - URL is live (20%)
-- Page shows customized content, not the default "Hello from my 3compute server!" (40%)
+- Page shows customized content, not the default "Hello from my CS Room server!" (40%)
 - Student can explain what each file in the `part5/` folder does (40%)
 
 **Option B: Command Recall.** Ask students in writing:
@@ -236,7 +236,7 @@ Use these during debriefs or as written exit tickets:
 
 | Misconception | Reality |
 |--------------|---------|
-| "My code runs on my laptop." | The code runs inside a container on a 3compute server. Your laptop only runs the browser. |
+| "My code runs on my laptop." | The code runs inside a container on a CS Room server. Your laptop only runs the browser. |
 | "Saving a file runs it." | Saving writes the file to disk. Running executes it. These are separate steps. |
 | "The terminal and the editor are showing different files." | They are showing the same filesystem. Changes in one are visible to the other after a refresh or re-read. |
 | "Pressing the Run button is different from running `python hello.py`." | They do the same thing under the hood. The button is a convenience that shells out to the terminal command. |
@@ -249,7 +249,7 @@ Use these during debriefs or as written exit tickets:
 | File | Purpose |
 |------|---------|
 | `lesson-plan.md` | This document |
-| Welcome-to-3Compute student template: | |
+| Welcome-to-CS-Room student template: | |
 | `README.md` | Student-facing walkthrough of all 5 parts |
 | `part3/hello.py` | Starter "Hello, world!" Python file |
 | `part4/journal.py` | Partially implemented journal with a TODO for `read_journal()` |

@@ -243,7 +243,7 @@ class TestReadLoopTiming:
     sends resize with the real dimensions (e.g. 165x13), tmux redraws — but the
     stale 80x24 prompt is already buffered in the PTY and gets sent to xterm.js.
     Each reload adds another wrong-sized prompt to scrollback, visible as
-    repeated "3compute:~$" lines with blank gaps when scrolling up.
+    repeated "csroom:~$" lines with blank gaps when scrolling up.
 
     The fix: don't attach the PTY until the first resize event arrives with the
     real dimensions.  Pass those dimensions to attach_to_container so the PTY is

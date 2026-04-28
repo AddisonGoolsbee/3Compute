@@ -23,8 +23,8 @@ CONTAINER_USER_UID = 999
 CONTAINER_USER_GID = 995
 
 CLASSROOMS_JSON_FILE = "backend/classrooms.json"
-UPLOADS_ROOT = os.environ.get("UPLOADS_ROOT", "/var/lib/3compute/uploads")
-CLASSROOMS_ROOT = os.environ.get("CLASSROOMS_ROOT", "/var/lib/3compute/classrooms")
+UPLOADS_ROOT = os.environ.get("UPLOADS_ROOT", "/var/lib/csroom/uploads")
+CLASSROOMS_ROOT = os.environ.get("CLASSROOMS_ROOT", "/var/lib/csroom/classrooms")
 
 
 def prepare_user_directory(user_id):
@@ -246,7 +246,7 @@ def spawn_container(user_id, slave_fd, container_name, port_range=None, user_ema
         "--name",
         container_name,
         "--hostname",
-        "3compute",
+        "csroom",
         "--network=isolated_net",
         "--cap-drop=ALL",
         "--user=999:995",
@@ -330,7 +330,7 @@ def spawn_container(user_id, slave_fd, container_name, port_range=None, user_ema
         b64 = base64.b64encode(mapping_json.encode()).decode()
         cmd.extend(["-e", f"CLASSROOM_SLUG_MAP_B64={b64}"])
 
-    cmd.append("3compute")
+    cmd.append("csroom")
 
     logger.info(f"[{user_id}] Docker run building with {len(slug_map)} classroom mounts")
 
@@ -368,11 +368,11 @@ def spawn_container(user_id, slave_fd, container_name, port_range=None, user_ema
             link_commands.append(f"chmod 2775 /classrooms/{cid}/participants || true")
             # Relative target so the symlink resolves correctly from both
             # the container's namespace (/classrooms/ bind mount) and the
-            # host backend's namespace (/var/lib/3compute/classrooms/...).
+            # host backend's namespace (/var/lib/csroom/classrooms/...).
             # /app/{slug} → ../../classrooms/... gives:
             #   container: /app/../../classrooms/{cid} → /classrooms/{cid}
             #   host:      uploads/{uid}/../../classrooms/{cid}
-            #              → /var/lib/3compute/classrooms/{cid}
+            #              → /var/lib/csroom/classrooms/{cid}
             # Absolute "/classrooms/{cid}" used to break write paths on the
             # host (os.makedirs under the symlink followed the dangling
             # target and 404'd/500'd on uploads).
@@ -398,7 +398,7 @@ def spawn_container(user_id, slave_fd, container_name, port_range=None, user_ema
                 #
                 # Target MUST be relative (../../assignments). The symlink lives
                 # inside a participant dir that's bind-mounted into the container,
-                # so both the host backend (/var/lib/3compute/classrooms/...) and
+                # so both the host backend (/var/lib/csroom/classrooms/...) and
                 # the container (/classrooms/...) see the same symlink file. An
                 # absolute target like "/classrooms/..." works inside the
                 # container but breaks on the host — and the file read/download
@@ -605,7 +605,7 @@ def attach_to_container(container_name, tab_id="1", cols=80, rows=24):
     # Create unique dtach session for each tab.  dtach provides session
     # persistence (survives page refresh) without tmux's output coalescing
     # that swallowed scrollback lines during fast output (e.g. seq 50).
-    session_name = f"3compute-tab{tab_id}"
+    session_name = f"csroom-tab{tab_id}"
     sock_path = f"/tmp/{session_name}.sock"
     # dtach -A prints "Address in use" and exits when the socket file exists
     # on disk but no server is bound — e.g. the previous dtach was killed

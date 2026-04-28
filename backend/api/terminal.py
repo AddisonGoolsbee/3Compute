@@ -430,7 +430,7 @@ def _release_session_resources(sid: str, session: dict) -> None:
     container_name = session.get("container_name")
     tab_id = session.get("tab_id")
     if container_name and tab_id:
-        sock_path = f"/tmp/3compute-tab{tab_id}.sock"
+        sock_path = f"/tmp/csroom-tab{tab_id}.sock"
         try:
             subprocess.run(
                 [
@@ -851,7 +851,7 @@ async def close_tab(user_id: str, tab_id: str) -> tuple[str, int]:
         return "No container for user", 404
 
     container_name = container_info["container_name"]
-    session_name = f"3compute-tab{tab_id}"
+    session_name = f"csroom-tab{tab_id}"
     sock_path = f"/tmp/{session_name}.sock"
     try:
         # Find the dtach server process for this socket and kill it.

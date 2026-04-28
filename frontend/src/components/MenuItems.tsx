@@ -128,7 +128,7 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
                 draggable={!file.renaming}
                 onDragStart={(e) => {
                   if (file.renaming) return;
-                  try { e.dataTransfer.setData('text/x-3compute-source', file.location); } catch { void 0; }
+                  try { e.dataTransfer.setData('text/x-csroom-source', file.location); } catch { void 0; }
                   try { e.dataTransfer.setData('text/plain', file.location); } catch { void 0; }
                   e.dataTransfer.effectAllowed = 'move';
                 }}
@@ -176,7 +176,7 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
                     setOpenFolders((prev) => prev.includes(file.location) ? prev : [...prev, file.location]);
                     return;
                   }
-                  let source = e.dataTransfer.getData('text/x-3compute-source');
+                  let source = e.dataTransfer.getData('text/x-csroom-source');
                   if (!source) {
                     source = e.dataTransfer.getData('text/plain');
                   }
@@ -248,7 +248,7 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
                   draggable={!file.renaming}
                   onDragStart={(e) => {
                     if (file.renaming) return;
-                    try { e.dataTransfer.setData('text/x-3compute-source', file.location); } catch { void 0; }
+                    try { e.dataTransfer.setData('text/x-csroom-source', file.location); } catch { void 0; }
                     try { e.dataTransfer.setData('text/plain', file.location); } catch { void 0; }
                     e.dataTransfer.effectAllowed = 'move';
                   }}
@@ -522,7 +522,7 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
             return idx >= 0 ? loc.slice(0, idx + 1) || '/' : '/';
           })();
           const dispatchNew = (kind: 'file' | 'folder') => {
-            window.dispatchEvent(new CustomEvent('3compute:new-at', {
+            window.dispatchEvent(new CustomEvent('csroom:new-at', {
               detail: { kind, base: newBase },
             }));
             setContextMenu({ ...contextMenu, visible: false });
@@ -676,7 +676,7 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
                 const relPath = targetDir.replace(/^\//, '');
                 const escaped = relPath.replace(/'/g, '\'\\\'\'');
                 const command = relPath ? `cd ~/'${escaped}'\n` : 'cd ~\n';
-                window.dispatchEvent(new CustomEvent('3compute:run-command', {
+                window.dispatchEvent(new CustomEvent('csroom:run-command', {
                   detail: { command },
                 }));
                 setContextMenu({ ...contextMenu, visible: false });
@@ -852,12 +852,12 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
                     const slug = parts[0];
                     const classroom = slug ? classroomSymlinks?.[slug] : undefined;
                     if (classroom?.isInstructor) {
-                      window.dispatchEvent(new CustomEvent('3compute:classroom-action', {
+                      window.dispatchEvent(new CustomEvent('csroom:classroom-action', {
                         detail: { location: contextMenu.targetLocation, action: 'rename' },
                       }));
                     }
                   } else {
-                    document.dispatchEvent(new CustomEvent('3compute:rename', { detail: { location: contextMenu.targetLocation } }));
+                    document.dispatchEvent(new CustomEvent('csroom:rename', { detail: { location: contextMenu.targetLocation } }));
                   }
                 }}
               >
@@ -917,7 +917,7 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
                   const parts = contextMenu.targetLocation.split('/').filter(Boolean);
                   if (parts.length === 2) {
                     const archivedSlug = parts[1];
-                    window.dispatchEvent(new CustomEvent('3compute:archive-restore', {
+                    window.dispatchEvent(new CustomEvent('csroom:archive-restore', {
                       detail: { slug: archivedSlug },
                     }));
                   }
@@ -931,7 +931,7 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
 
                 // Handle classroom archive/restore - classroom roots can only be archived, not deleted
                 if (isClassroomRoot && classroom) {
-                  window.dispatchEvent(new CustomEvent('3compute:classroom-action', {
+                  window.dispatchEvent(new CustomEvent('csroom:classroom-action', {
                     detail: {
                       location: contextMenu.targetLocation,
                       action: classroom.archived ? 'restore' : 'archive',

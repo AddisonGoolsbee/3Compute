@@ -86,7 +86,7 @@ class PortSubdomain(SQLModel, table=True):
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 
-def get_engine(database_url: str = "sqlite:///backend/3compute.db"):
+def get_engine(database_url: str = "sqlite:///backend/csroom.db"):
     return create_engine(database_url, echo=False)
 
 

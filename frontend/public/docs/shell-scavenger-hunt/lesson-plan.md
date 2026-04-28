@@ -13,7 +13,7 @@ The lesson is designed to run unsupervised. Students work individually through t
 **Grade Level:** 9-12, or any age group with basic computer literacy
 
 **Prerequisites:**
-- Able to log in to 3compute
+- Able to log in to CS Room
 - Comfortable typing and using a mouse
 - No prior programming or Linux experience required
 
@@ -37,7 +37,7 @@ This lesson is primarily an onboarding / tool-fluency exercise rather than a com
 
 By the end of this project, students should be able to:
 
-1. **Open a terminal** at a specific project folder using the 3compute file explorer
+1. **Open a terminal** at a specific project folder using the CS Room file explorer
 2. **Navigate** the Linux filesystem using `pwd`, `ls`, `cd`, and `cd ..`
 3. **Read** a file's contents using `cat`
 4. **Use tab completion and up-arrow history** to type commands faster
@@ -63,7 +63,7 @@ By the end of this project, students should be able to:
 
    Briefly explain that a terminal is a way to type commands to a computer directly, bypassing the menus and buttons. Everything the file explorer can do, the terminal can also do, and a lot more. Tell them today they will use a terminal to play a puzzle.
 
-   Draw or project the 3compute three-panel layout: file explorer (left), editor (middle), terminal (bottom). Point out the right-click "Open in Terminal" option on any folder.
+   Draw or project the CS Room three-panel layout: file explorer (left), editor (middle), terminal (bottom). Point out the right-click "Open in Terminal" option on any folder.
 
 2. **Distribute the template (2 min):**
 
@@ -95,7 +95,7 @@ By the end of this project, students should be able to:
 
 **Instructor Notes:**
 
-- Most students finish in 25-45 minutes. Fast finishers can try the Welcome-to-3Compute lesson next.
+- Most students finish in 25-45 minutes. Fast finishers can try the Welcome-to-CS-Room lesson next.
 - The clue files contain a null byte so the editor will refuse to open them. If a student complains that clicking a file shows "This file cannot be displayed in the editor," that is by design - push them back to the terminal.
 - The null byte also means you cannot easily preview the solution in the editor yourself. The `solution-reference.md` document (if provided) lists the correct answer as a reference.
 

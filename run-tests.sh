@@ -1,11 +1,11 @@
 #!/bin/bash
 
-# 3Compute Test Runner
+# CS Room Test Runner
 # This script runs all tests for both frontend and backend
 
 set -e  # Exit on any error
 
-echo "🧪 Running 3Compute Test Suite"
+echo "🧪 Running CS Room Test Suite"
 echo "================================"
 
 # Colors for output
@@ -29,7 +29,7 @@ print_error() {
 
 # Check if we're in the right directory
 if [ ! -f "README.md" ] || [ ! -d "frontend" ] || [ ! -d "backend" ]; then
-    print_error "Please run this script from the 3Compute root directory"
+    print_error "Please run this script from the CS Room root directory"
     exit 1
 fi
 

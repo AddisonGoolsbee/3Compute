@@ -130,7 +130,7 @@ export default function App() {
     if (folderPath) {
       const containerPath = `/app${folderLocation}`.replace(/'/g, '\'\\\'\'');
       setTimeout(() => {
-        window.dispatchEvent(new CustomEvent('3compute:run-command', {
+        window.dispatchEvent(new CustomEvent('csroom:run-command', {
           detail: { command: `cd '${containerPath}'\n` },
         }));
       }, 1500);

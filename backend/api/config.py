@@ -15,12 +15,12 @@ class Settings(BaseSettings):
     flask_env: str = "development"
     flask_secret: str = "change-me-in-production"
     port_base: int = 10000
-    database_url: str = "sqlite:///backend/3compute.db"
+    database_url: str = "sqlite:///backend/csroom.db"
     max_users: int = 20
     memory_mb: int = 16384
     cf_api_token: str = ""
     caddy_admin_url: str = "http://localhost:2019"
-    app_domain: str = "app.3compute.org"
+    app_domain: str = "app.csroom.org"
 
     @property
     def is_production(self) -> bool:

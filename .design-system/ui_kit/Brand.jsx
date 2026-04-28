@@ -1,5 +1,5 @@
-// Brand mark + logotype — unchanged from the live 3Compute app.
-// Cyan→indigo Birdflop mark + sans-serif "3Compute" wordmark.
+// Brand mark + logotype — unchanged from the live CS Room app.
+// Cyan→indigo Birdflop mark + sans-serif "CS Room" wordmark.
 // This logo is locked across all kit variants.
 const BirdflopMark = ({ size = 28 }) => (
   <svg width={size} height={size} viewBox="0 0 1080 1080" aria-hidden="true">
@@ -18,7 +18,7 @@ const Logotype = ({ size = 26 }) => (
   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
     <BirdflopMark size={size} />
     <span style={{ fontFamily: 'var(--font-sans)', fontWeight: 600,
-      fontSize: size * 0.85, letterSpacing: '-0.01em', color: 'var(--ink-strong)' }}>3Compute</span>
+      fontSize: size * 0.85, letterSpacing: '-0.01em', color: 'var(--ink-strong)' }}>CS Room</span>
   </span>
 );
 

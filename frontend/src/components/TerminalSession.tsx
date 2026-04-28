@@ -75,7 +75,7 @@ export function TerminalSession({ tabId, isActive }: TerminalSessionProps) {
       fsRefreshTimer = setTimeout(() => {
         fsRefreshTimer = null;
         if (disposed) return;
-        window.dispatchEvent(new CustomEvent('3compute:files-changed'));
+        window.dispatchEvent(new CustomEvent('csroom:files-changed'));
       }, 500);
     };
 
@@ -218,7 +218,7 @@ export function TerminalSession({ tabId, isActive }: TerminalSessionProps) {
     });
 
     socket.on('files-changed', () => {
-      window.dispatchEvent(new CustomEvent('3compute:files-changed'));
+      window.dispatchEvent(new CustomEvent('csroom:files-changed'));
     });
 
     socket.on('terminal-restart-required', () => {
@@ -234,7 +234,7 @@ export function TerminalSession({ tabId, isActive }: TerminalSessionProps) {
       const { command } = (e as CustomEvent<{ command: string }>).detail;
       socket.emit('pty-input', { input: command });
     };
-    window.addEventListener('3compute:run-command', runHandler);
+    window.addEventListener('csroom:run-command', runHandler);
 
     const resizeObserver = new ResizeObserver(() => {
       if (disposed) return;
@@ -259,7 +259,7 @@ export function TerminalSession({ tabId, isActive }: TerminalSessionProps) {
     return () => {
       disposed = true;
       stopWaiting();
-      window.removeEventListener('3compute:run-command', runHandler);
+      window.removeEventListener('csroom:run-command', runHandler);
       resizeObserver.disconnect();
       if (fsRefreshTimer) clearTimeout(fsRefreshTimer);
       socket.disconnect();

@@ -116,7 +116,7 @@ class TestDockerModule:
             assert "docker" in args
             assert "exec" in args
             assert "test-container" in args
-            assert "3compute-tab1" in " ".join(args)  # dtach session name
+            assert "csroom-tab1" in " ".join(args)  # dtach session name
 
     def test_attach_to_container_not_running(self):
         """Test attach_to_container fails when container not running"""
@@ -144,7 +144,7 @@ class TestDockerModule:
             # Verify dtach session name includes tab ID
             args = mock_popen.call_args[0][0]
             command_str = " ".join(args)
-            assert "3compute-tab5" in command_str
+            assert "csroom-tab5" in command_str
 
     @patch("subprocess.run")
     def test_spawn_container_success(self, mock_run):
@@ -246,9 +246,9 @@ class TestContainerLifecycle:
         from backend.docker import attach_to_container
 
         test_cases = [
-            ("1", "3compute-tab1"),
-            ("2", "3compute-tab2"),
-            ("10", "3compute-tab10"),
+            ("1", "csroom-tab1"),
+            ("2", "csroom-tab2"),
+            ("10", "csroom-tab10"),
         ]
 
         with (

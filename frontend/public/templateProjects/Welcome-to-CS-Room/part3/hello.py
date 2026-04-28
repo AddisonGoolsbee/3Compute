@@ -1,4 +1,4 @@
-# Your first Python program on 3compute.
+# Your first Python program on CS Room.
 #
 # Run it from the terminal with:
 #   python hello.py

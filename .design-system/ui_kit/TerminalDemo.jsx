@@ -3,9 +3,9 @@ const DEMO_PROGRAMS = [
   {
     label: 'Hello, world',
     filename: 'hello.py',
-    code: ['# Your first Python program', 'name = "Alex"', 'print(f"Hello, {name}!")', 'print("Welcome to 3Compute.")'],
+    code: ['# Your first Python program', 'name = "Alex"', 'print(f"Hello, {name}!")', 'print("Welcome to CS Room.")'],
     runCommand: '$ python hello.py',
-    output: ['Hello, Alex!', 'Welcome to 3Compute.'],
+    output: ['Hello, Alex!', 'Welcome to CS Room.'],
   },
   {
     label: 'A simple calculator',

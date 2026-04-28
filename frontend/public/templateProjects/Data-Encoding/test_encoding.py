@@ -134,7 +134,7 @@ check("ascii_to_text([])           == ''",    ascii_to_text([]),           "")
 # =============================================================================
 
 print("\n--- Round-trip: text -> ascii -> text ---")
-for s in ["Hello", "CS rocks", "3Compute", "!@#"]:
+for s in ["Hello", "CS rocks", "CS Room", "!@#"]:
     result = ascii_to_text(text_to_ascii(s))
     check(f"round-trip({s!r}) == {s!r}", result, s)
 

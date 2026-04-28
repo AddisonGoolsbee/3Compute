@@ -20,14 +20,14 @@ if os.getenv("FLASK_ENV") != "production":
 
 
 def main():
-    parser = argparse.ArgumentParser(description="3Compute API server")
+    parser = argparse.ArgumentParser(description="CS Room API server")
     parser.add_argument("-p", "--port", default=5555, type=int)
     parser.add_argument("--host", default=os.getenv("HOST_IP", "127.0.0.1"))
     parser.add_argument("--reload", action="store_true")
     args = parser.parse_args()
 
-    logger = logging.getLogger("3compute")
-    logger.info(f"Starting 3Compute API on http://{args.host}:{args.port}")
+    logger = logging.getLogger("csroom")
+    logger.info(f"Starting CS Room API on http://{args.host}:{args.port}")
 
     signal.signal(signal.SIGTERM, lambda *_: sys.exit(0))
     signal.signal(signal.SIGINT, lambda *_: sys.exit(0))

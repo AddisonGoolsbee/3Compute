@@ -32,7 +32,7 @@ def set_container_ownership(path: str) -> None:
 
     Directories: 2775 — setgid-group-writable so children inherit GID 995.
     Files: 664 — group-writable so the backend (www-data, member of
-    3compute-container / GID 995) and the container user can both edit.
+    csroom-container / GID 995) and the container user can both edit.
     chown to 999:995 requires CAP_CHOWN; if unavailable we fall back to a
     group-only chgrp so group access still survives.
     """
@@ -130,7 +130,7 @@ def _is_hidden(name: str) -> bool:
 def _classroom_tail_from_symlink(link_path: str, target: str) -> str | None:
     """If *target* (raw readlink output) points into CLASSROOMS_ROOT, return
     the path suffix beneath CLASSROOMS_ROOT. Handles all three forms:
-    absolute host (``/var/lib/3compute/classrooms/...``), container-namespace
+    absolute host (``/var/lib/csroom/classrooms/...``), container-namespace
     absolute (``/classrooms/...``), and relative (``../../classrooms/...``)
     — docker.py switched to the relative form so symlinks resolve correctly
     from both namespaces, and the listing code has to mirror that.
@@ -411,9 +411,9 @@ class CopyRequest(BaseModel):
 # ---------------------------------------------------------------------------
 
 _STUDENT_README = """\
-# Welcome to 3Compute!
+# Welcome to CS Room!
 
-3Compute is a free educational platform that gives you a cloud-based development environment. No local setup required.
+CS Room is a free educational platform that gives you a cloud-based development environment. No local setup required.
 
 ## Getting Started
 
@@ -449,7 +449,7 @@ If your project runs a web server (Flask, FastAPI, etc.), you can expose it publ
 1. Start your app on any port in your assigned range (shown in the Ports panel).
 2. Click the **Globe** icon in the terminal tab bar to open the **Ports** panel.
 3. Enter a subdomain name (e.g. `myapp`) and the port your app is listening on.
-4. Your app will be live at `https://myapp.app.3compute.org`.
+4. Your app will be live at `https://myapp.app.csroom.org`.
 
 Subdomains must be 3-32 lowercase letters, numbers, or hyphens.
 
@@ -459,9 +459,9 @@ Open any template's `README.md` after creating it for project-specific instructi
 """
 
 _TEACHER_README = """\
-# Welcome to 3Compute!
+# Welcome to CS Room!
 
-3Compute is a free educational platform that gives you and your students cloud-based development environments. No local setup required.
+CS Room is a free educational platform that gives you and your students cloud-based development environments. No local setup required.
 
 ## Getting Started
 

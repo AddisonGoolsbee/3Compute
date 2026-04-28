@@ -144,7 +144,7 @@ export default function AdminLogsPage() {
               <p className="body-sm mt-1.5">
                 From{' '}
                 <code className="bg-paper-deeper text-ink-default font-mono px-1.5 py-0.5 rounded-sm text-[12.5px]">
-                  journalctl -u 3compute
+                  journalctl -u csroom
                 </code>
                 .
               </p>

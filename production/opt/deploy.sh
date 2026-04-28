@@ -2,20 +2,20 @@
 set -e
 
 # Prevent concurrent deploys
-exec 200>/var/lock/3compute-deploy.lock
+exec 200>/var/lock/csroom-deploy.lock
 if ! flock -n 200; then
-  echo "$(date '+%Y-%m-%d %H:%M:%S') Deploy already running, skipping" >> /var/log/3compute-deploy.log
+  echo "$(date '+%Y-%m-%d %H:%M:%S') Deploy already running, skipping" >> /var/log/csroom-deploy.log
   exit 0
 fi
 
 # Log all output to file AND stdout (so manual runs still show output)
-exec > >(tee -a /var/log/3compute-deploy.log) 2>&1
+exec > >(tee -a /var/log/csroom-deploy.log) 2>&1
 echo ""
 echo "=========================================="
 echo "Deploy started at $(date '+%Y-%m-%d %H:%M:%S')"
 echo "=========================================="
 
-cd /var/www/3compute
+cd /var/www/csroom
 
 echo "Fetching latest main"
 git fetch origin main
@@ -33,25 +33,25 @@ source .venv/bin/activate
 pip3 install -r backend/requirements.txt
 
 echo "Rebuilding backend image"
-docker build -t 3compute:latest backend
+docker build -t csroom:latest backend
 
 echo "Updating systemd service"
-cp /var/www/3compute/production/etc/systemd/system/3compute.service /etc/systemd/system/3compute.service
+cp /var/www/csroom/production/etc/systemd/system/csroom.service /etc/systemd/system/csroom.service
 systemctl daemon-reload
 
 echo "Ensuring runtime directories"
-mkdir -p /var/lib/3compute/uploads /var/lib/3compute/classrooms
-# Shallow chown (no -R): the three top-level dirs are www-data:3compute-container.
+mkdir -p /var/lib/csroom/uploads /var/lib/csroom/classrooms
+# Shallow chown (no -R): the three top-level dirs are www-data:csroom-container.
 # Anything inside is owned by the container user (999:995) and must stay so the
 # terminal can write. Setgid (2775) makes new items inherit GID 995.
-chown www-data:3compute-container /var/lib/3compute /var/lib/3compute/uploads /var/lib/3compute/classrooms
-chmod 2775 /var/lib/3compute /var/lib/3compute/uploads /var/lib/3compute/classrooms
+chown www-data:csroom-container /var/lib/csroom /var/lib/csroom/uploads /var/lib/csroom/classrooms
+chmod 2775 /var/lib/csroom /var/lib/csroom/uploads /var/lib/csroom/classrooms
 
 echo "Updating /opt/deploy.sh from repo"
-cp /var/www/3compute/production/opt/deploy.sh /opt/deploy.sh
+cp /var/www/csroom/production/opt/deploy.sh /opt/deploy.sh
 chmod +x /opt/deploy.sh
 
 echo "Restarting backend service"
-systemctl restart 3compute
+systemctl restart csroom
 
 echo "Deploy finished at $(date '+%Y-%m-%d %H:%M:%S')"

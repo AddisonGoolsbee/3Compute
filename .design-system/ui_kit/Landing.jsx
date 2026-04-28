@@ -21,7 +21,7 @@ const Landing = ({ onSignIn }) => (
             for free.
           </h1>
           <p className="body-lg" style={{ margin: '0 0 32px', color: 'var(--ink-default)', maxWidth: 540 }}>
-            3Compute is a coding classroom for high-school and college students.
+            CS Room is a coding classroom for high-school and college students.
             Open a browser, write Python, and publish what you build to a real web address.
             No installs, no payment, no expiration date.
           </p>
@@ -57,7 +57,7 @@ const Landing = ({ onSignIn }) => (
         </h2>
         <p className="body-lg" style={{ color: '#e8e1ce' }}>
           Computer science classrooms shouldn't depend on whether a school can afford
-          managed Chromebooks, software licenses, or cloud credits. 3Compute is run by
+          managed Chromebooks, software licenses, or cloud credits. CS Room is run by
           Birdflop, a 501(c)(3) nonprofit, and is funded by donations.
         </p>
         <div style={{ marginTop: 28, display: 'inline-flex', gap: 12, flexWrap: 'wrap', justifyContent: 'center' }}>
@@ -119,7 +119,7 @@ const Landing = ({ onSignIn }) => (
             { icon: <I.Terminal size={22} />, color: 'navy', title: 'A real Python workspace',
               body: 'A persistent Linux environment with editor, file explorer, and terminal.' },
             { icon: <I.Globe size={22} />, color: 'forest', title: 'Public web addresses',
-              body: 'Run any server and publish to name.app.3compute.org. Share with classmates or family.' },
+              body: 'Run any server and publish to name.app.csroom.org. Share with classmates or family.' },
             { icon: <I.FlaskConical size={22} />, color: 'plum', title: 'Auto-graded tests',
               body: "Lessons ship with tests. Students see what's passing as they work; teachers see the same view in the gradebook." },
             { icon: <I.BookOpen size={22} />, color: 'ochre', title: 'An open lesson library',

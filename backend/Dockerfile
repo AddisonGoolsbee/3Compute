@@ -13,8 +13,8 @@ RUN apk update && apk add --no-cache \
  && ln -sf python3 /usr/bin/python
 
 # Create a non-root user matching the dedicated host system user
-RUN addgroup -g 995 3compute-container \
-    && adduser -D -u 999 -G 3compute-container myuser \
+RUN addgroup -g 995 csroom-container \
+    && adduser -D -u 999 -G csroom-container myuser \
     && mkdir /app \
     && chown 999:995 /app
 

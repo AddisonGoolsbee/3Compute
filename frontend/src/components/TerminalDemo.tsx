@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Play, ChevronRight } from 'lucide-react';
 
 // ---------------------------------------------------------------------------
-// Demo programs (canonical 3Compute set — keep these as-is)
+// Demo programs (canonical CS Room set — keep these as-is)
 // ---------------------------------------------------------------------------
 
 interface DemoProgram {
@@ -37,7 +37,7 @@ const DEMO_PROGRAMS: DemoProgram[] = [
     output: [
       ' * Running on http://0.0.0.0:3000',
       ' * Your app is live at:',
-      '   https://jdoe.app.3compute.org/todos',
+      '   https://jdoe.app.csroom.org/todos',
     ],
   },
   {

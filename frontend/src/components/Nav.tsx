@@ -1,4 +1,4 @@
-import { LogoBirdflop } from '@luminescent/ui-react';
+import LogoCsRoom from './LogoCsRoom';
 import { LogOut, LogIn, BookOpen, School, Terminal, ShieldCheck } from 'lucide-react';
 import { useContext, type ReactNode } from 'react';
 import { Link, useLocation } from 'react-router';
@@ -85,8 +85,11 @@ export default function NavComponent() {
         to="/"
         className="inline-flex items-center gap-2.5 px-2 py-1 rounded-md hover:bg-paper-tinted transition-colors duration-150 no-underline"
       >
-        <LogoBirdflop size={26} fillGradient={['#54daf4', '#545eb6']} />
-        <span className="font-sans font-semibold text-[22px] text-ink-strong tracking-tight">3Compute</span>
+        <LogoCsRoom size={26} />
+        <span className="font-serif font-semibold text-[22px] tracking-tight">
+          <span className="text-tomato">CS</span>
+          <span className="text-ink-strong"> Room</span>
+        </span>
       </Link>
 
       <div className="flex-1" />

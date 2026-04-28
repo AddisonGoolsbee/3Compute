@@ -15,7 +15,7 @@ logging.basicConfig(level=logging.DEBUG)
 logging.getLogger("engineio").setLevel(logging.WARNING)
 logging.getLogger("socketio").setLevel(logging.INFO)
 
-logger = logging.getLogger("3compute")
+logger = logging.getLogger("csroom")
 
 settings = Settings()
 logger.info(
@@ -181,13 +181,13 @@ async def lifespan(app: FastAPI):
     from .subdomain_caddy import ensure_app_server
     ensure_app_server()
 
-    logger.info("3Compute API started")
+    logger.info("CS Room API started")
     yield
     logger.info("Shutting down")
 
 
 def create_app():
-    app = FastAPI(title="3Compute API", lifespan=lifespan)
+    app = FastAPI(title="CS Room API", lifespan=lifespan)
 
     app.add_middleware(
         SessionMiddleware,

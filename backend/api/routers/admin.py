@@ -360,7 +360,7 @@ async def admin_logs(
     hide_debug: bool = False,
     hide_info: bool = False,
 ):
-    """Recent entries from the systemd journal for the 3compute service.
+    """Recent entries from the systemd journal for the csroom service.
 
     On hosts without systemd (dev / docker-compose), returns an error. The
     production deployment needs www-data added to the ``systemd-journal``
@@ -381,7 +381,7 @@ async def admin_logs(
 
     cmd = [
         "journalctl",
-        "-u", "3compute",
+        "-u", "csroom",
         "-n", str(scan_lines),
         "--no-pager",
         "--output=short-iso",
@@ -407,7 +407,7 @@ async def admin_logs(
         stderr = (result.stderr or "").strip()
         hint = ""
         if "Hint:" in stderr or "permission" in stderr.lower() or "No journal files were opened" in stderr:
-            hint = " (Add www-data to the systemd-journal group: `usermod -aG systemd-journal www-data && systemctl restart 3compute`.)"
+            hint = " (Add www-data to the systemd-journal group: `usermod -aG systemd-journal www-data && systemctl restart csroom`.)"
         return {
             "available": False,
             "error": f"journalctl exit {result.returncode}: {stderr}{hint}",

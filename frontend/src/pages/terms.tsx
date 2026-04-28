@@ -21,9 +21,9 @@ export default function TermsPage() {
       <p className="body-sm mb-10">Effective date: March 23, 2026</p>
 
       <p className="body mb-10 text-ink-default">
-        3Compute is a free educational platform operated by Birdflop, a 501(c)(3) nonprofit
-        organization (EIN: 93-2401009). By using 3Compute, you agree to the terms below.
-        If you are under 13, you may only use 3Compute with the involvement and consent of a
+        CS Room is a free educational platform operated by Birdflop, a 501(c)(3) nonprofit
+        organization (EIN: 93-2401009). By using CS Room, you agree to the terms below.
+        If you are under 13, you may only use CS Room with the involvement and consent of a
         parent, guardian, or teacher.
       </p>
 
@@ -32,7 +32,7 @@ export default function TermsPage() {
 
       <Section title="1. Acceptable use">
         <p>
-          3Compute is provided for educational and personal learning purposes. You agree not to:
+          CS Room is provided for educational and personal learning purposes. You agree not to:
         </p>
         <ul className="list-disc list-inside space-y-1 text-ink-muted pl-2">
           <li>Use the platform for any unlawful purpose</li>
@@ -49,7 +49,7 @@ export default function TermsPage() {
 
       <Section title="2. File storage and admin access">
         <p>
-          Files you store in your 3Compute environment are hosted on Birdflop infrastructure.
+          Files you store in your CS Room environment are hosted on Birdflop infrastructure.
           Birdflop administrators have the technical ability
           to view the contents of any file stored on the platform. We access files
           only when necessary to operate, troubleshoot, or enforce these terms. We do not
@@ -61,13 +61,13 @@ export default function TermsPage() {
         </p>
         <p>
           Do not store sensitive personal information, passwords, private keys, or confidential
-          data on 3Compute.
+          data on CS Room.
         </p>
       </Section>
 
       <Section title="3. Service availability">
         <p>
-          3Compute is provided free of charge and on an as-is, as-available basis. We make no
+          CS Room is provided free of charge and on an as-is, as-available basis. We make no
           guarantees of uptime, data retention, or continuity of service. We may modify,
           suspend, or discontinue the platform at any time.
         </p>
@@ -78,18 +78,18 @@ export default function TermsPage() {
 
       <Section title="4. Intellectual property">
         <p>
-          You retain ownership of code and files you create. By using 3Compute, you grant
+          You retain ownership of code and files you create. By using CS Room, you grant
           Birdflop a limited license to host, store, and transmit your content as necessary
           to provide the service.
         </p>
         <p>
-          The 3Compute platform, its interface, and its code are the property of Birdflop.
+          The CS Room platform, its interface, and its code are the property of Birdflop.
         </p>
       </Section>
 
       <Section title="5. Disclaimer of warranties">
         <p>
-          3Compute is provided without warranty of any kind, express or implied. Birdflop is
+          CS Room is provided without warranty of any kind, express or implied. Birdflop is
           not liable for any loss of data, loss of work, or damages arising from your use of
           the platform.
         </p>
@@ -139,7 +139,7 @@ export default function TermsPage() {
 
       <Section title="9. Children's privacy">
         <p>
-          3Compute is intended for use in educational settings and may be used by students
+          CS Room is intended for use in educational settings and may be used by students
           under 13 only with teacher or parental oversight. We do not knowingly collect
           personal information from children under 13 outside of an educational context.
           Teachers and parents are responsible for supervising student use and ensuring
@@ -150,7 +150,7 @@ export default function TermsPage() {
       <Section title="10. Changes to these terms">
         <p>
           We may update these terms from time to time. The effective date at the top of this
-          page will reflect the most recent revision. Continued use of 3Compute after changes
+          page will reflect the most recent revision. Continued use of CS Room after changes
           are posted constitutes acceptance of the updated terms.
         </p>
       </Section>
@@ -161,10 +161,10 @@ export default function TermsPage() {
         <p className="body text-ink-default">
           Questions about these terms or your data? Email us at{' '}
           <a
-            href="mailto:3compute@birdflop.com"
+            href="mailto:csroom@birdflop.com"
             className="text-navy font-semibold hover:underline"
           >
-            3compute@birdflop.com
+            csroom@birdflop.com
           </a>
           .
         </p>

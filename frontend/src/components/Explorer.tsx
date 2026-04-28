@@ -107,7 +107,7 @@ export default function Explorer() {
             await uploadLocalFiles(e.dataTransfer.files, uploadBase, apiUrl, setStatus, userData.refreshFiles);
             return;
           }
-          let source = e.dataTransfer.getData('text/x-3compute-source');
+          let source = e.dataTransfer.getData('text/x-csroom-source');
           if (!source) source = e.dataTransfer.getData('text/plain');
           if (!source) return;
           const srcName = source.split('/').filter(Boolean).pop() || '';

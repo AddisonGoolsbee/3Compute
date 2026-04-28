@@ -1,12 +1,12 @@
-# Welcome to 3Compute!
+# Welcome to CS Room!
 
 ## Introduction
 
-3Compute is a free educational platform that provides cloud-based development environments for learning and building projects. With pre-configured templates for Discord bots, websites, and other projects, you can start coding immediately without any local setup required.
+CS Room is a free educational platform that provides cloud-based development environments for learning and building projects. With pre-configured templates for Discord bots, websites, and other projects, you can start coding immediately without any local setup required.
 
 ## Getting Started
 
-To get started with 3Compute, you can:
+To get started with CS Room, you can:
 
 1. Click on the `Templates` button to create a new project from a starter (e.g., Website, Discord Bot). This uploads the template into your workspace and opens its README—a file describing important information and instructions related to the project.
 2. Upload your own code using the `Upload` button (single files or entire folders).
@@ -56,7 +56,7 @@ You can also interact through the terminal below by typing commands:
 ### Terminal (bottom)
 
 - Full shell access in your container. Use it like you would locally in a Linux environment (e.g., `python`, `npm`, `pip`, `git`).
-  - *Note: depending on your 3Compute configuration, you may not have access to all commands.*
+  - *Note: depending on your CS Room configuration, you may not have access to all commands.*
 - Tabs: open multiple terminals. Closing a tab will stop all running processes within the tab.
 
 ## Learn more
