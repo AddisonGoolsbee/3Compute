@@ -110,9 +110,15 @@ class AccessRequest(SQLModel, table=True):
     # "domain" — allow anyone matching @<domain> derived from school_email
     # "list"   — explicit list of student emails (in student_emails_text)
     # "code"   — admin should generate a signup code for them
+    # "none"   — students already have access (e.g. district-managed); only
+    #            enable the teacher account
     student_access_method: str
     student_emails_text: Optional[str] = None
     is_non_google: bool = Field(default=False)
+    # Optional info-gathering fields. Free text; rendered verbatim in admin UI.
+    student_count_estimate: Optional[str] = None
+    grade_levels: Optional[str] = None  # comma-separated
+    referral_source: Optional[str] = None
     status: str = Field(default="pending", index=True)  # pending|approved|rejected
     submitted_at: datetime = Field(default_factory=datetime.utcnow)
     reviewed_at: Optional[datetime] = None

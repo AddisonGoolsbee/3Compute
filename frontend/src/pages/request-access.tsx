@@ -3,10 +3,30 @@ import { Link } from 'react-router';
 import { ArrowLeft, AtSign, Check, Mail, ShieldAlert } from 'lucide-react';
 import { apiUrl } from '../util/UserData';
 import { PrimaryButton } from '../components/ui/Buttons';
-import LogoCsRoom from '../components/LogoCsRoom';
 import Footer from '../components/Footer';
 
-type Method = 'domain' | 'list' | 'code';
+type Method = 'domain' | 'list' | 'code' | 'none';
+
+const STUDENT_COUNT_OPTIONS = [
+  'Just me / fewer than 5',
+  '5–15',
+  '16–30',
+  '31–60',
+  '61–150',
+  '150+',
+  'Not sure yet',
+];
+
+const GRADE_LEVEL_OPTIONS = ['K–2', '3–5', '6–8', '9–12', 'College / University', 'Other'];
+
+const REFERRAL_OPTIONS = [
+  'Another teacher or colleague',
+  'Online search',
+  'Social media',
+  'Conference or event',
+  'Article or blog post',
+  'Other',
+];
 
 declare global {
   interface Window {
@@ -35,6 +55,10 @@ export default function RequestAccessPage() {
   const [method, setMethod] = useState<Method>('domain');
   const [studentEmails, setStudentEmails] = useState('');
   const [isNonGoogle, setIsNonGoogle] = useState(false);
+  const [studentCount, setStudentCount] = useState('');
+  const [gradeLevels, setGradeLevels] = useState<string[]>([]);
+  const [referral, setReferral] = useState('');
+  const [referralOther, setReferralOther] = useState('');
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const [turnstileSiteKey, setTurnstileSiteKey] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -102,6 +126,9 @@ export default function RequestAccessPage() {
     setSubmitting(true);
     setSubmitError(null);
     try {
+      const referralValue = referral === 'Other'
+        ? (referralOther.trim() ? `Other: ${referralOther.trim()}` : 'Other')
+        : referral;
       const res = await fetch(`${apiUrl}/access-requests`, {
         method: 'POST',
         credentials: 'include',
@@ -113,6 +140,9 @@ export default function RequestAccessPage() {
           student_access_method: method,
           student_emails_text: method === 'list' ? studentEmails : null,
           is_non_google: isNonGoogle,
+          student_count_estimate: studentCount || null,
+          grade_levels: gradeLevels.length ? gradeLevels.join(', ') : null,
+          referral_source: referralValue || null,
           turnstile_token: turnstileToken,
         }),
       });
@@ -135,13 +165,6 @@ export default function RequestAccessPage() {
 
   return (
     <div className="min-h-screen bg-paper flex flex-col">
-      <header className="px-7 py-5 border-b border-rule-soft">
-        <Link to="/" className="inline-flex items-center gap-2.5 no-underline text-ink-strong">
-          <LogoCsRoom size={28} />
-          <span className="font-semibold tracking-tight">CS Room</span>
-        </Link>
-      </header>
-
       <main className="flex-1 flex items-start justify-center px-6 py-14">
         <div className="w-full max-w-[640px]">
           <Link to="/" className="inline-flex items-center gap-1.5 text-sm text-ink-muted no-underline hover:text-ink-strong mb-6">
@@ -199,6 +222,68 @@ export default function RequestAccessPage() {
                   </div>
                 </Field>
 
+                <fieldset className="flex flex-col gap-2">
+                  <legend className="block text-sm font-semibold text-ink-strong mb-1.5">
+                    Grade levels you teach
+                  </legend>
+                  <div className="flex flex-wrap gap-2">
+                    {GRADE_LEVEL_OPTIONS.map((g) => {
+                      const checked = gradeLevels.includes(g);
+                      return (
+                        <button
+                          type="button"
+                          key={g}
+                          onClick={() => setGradeLevels((prev) =>
+                            prev.includes(g) ? prev.filter((x) => x !== g) : [...prev, g],
+                          )}
+                          className={`px-3.5 py-2 rounded-full border text-sm font-medium transition-colors ${
+                            checked
+                              ? 'border-navy bg-navy-soft text-navy'
+                              : 'border-rule bg-paper-elevated text-ink-default hover:border-rule-soft'
+                          }`}
+                        >
+                          {g}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </fieldset>
+
+                <Field label="How many students do you plan to use CS Room with?">
+                  <select
+                    value={studentCount}
+                    onChange={(e) => setStudentCount(e.target.value)}
+                    className={inputClass}
+                  >
+                    <option value="">Select…</option>
+                    {STUDENT_COUNT_OPTIONS.map((o) => (
+                      <option key={o} value={o}>{o}</option>
+                    ))}
+                  </select>
+                </Field>
+
+                <Field label="How did you hear about CS Room?">
+                  <select
+                    value={referral}
+                    onChange={(e) => setReferral(e.target.value)}
+                    className={inputClass}
+                  >
+                    <option value="">Select…</option>
+                    {REFERRAL_OPTIONS.map((o) => (
+                      <option key={o} value={o}>{o}</option>
+                    ))}
+                  </select>
+                  {referral === 'Other' && (
+                    <input
+                      type="text"
+                      value={referralOther}
+                      onChange={(e) => setReferralOther(e.target.value)}
+                      placeholder="Tell us more (optional)"
+                      className={`${inputClass} mt-2`}
+                    />
+                  )}
+                </Field>
+
                 <fieldset className="flex flex-col gap-3">
                   <legend className="block text-sm font-semibold text-ink-strong mb-1.5">
                     How should your students get access?
@@ -244,6 +329,14 @@ export default function RequestAccessPage() {
                     onChange={() => setMethod('code')}
                     label="Send me a signup code I can share with students"
                     hint="Each student enters the code once to join the platform."
+                  />
+                  <RadioOption
+                    name="student_access"
+                    value="none"
+                    checked={method === 'none'}
+                    onChange={() => setMethod('none')}
+                    label="Students already have access (or I'll set this up later)"
+                    hint="We'll only enable your teacher account. You can request additional student access at any time."
                   />
                 </fieldset>
 

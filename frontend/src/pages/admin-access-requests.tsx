@@ -15,6 +15,9 @@ interface Request {
   student_access_method: string;
   student_emails_text: string | null;
   is_non_google: boolean;
+  student_count_estimate: string | null;
+  grade_levels: string | null;
+  referral_source: string | null;
   status: string;
   submitted_at: string | null;
   reviewed_at: string | null;
@@ -241,6 +244,29 @@ function RequestCard({
           </Pill>
         </div>
       </div>
+
+      {(req.grade_levels || req.student_count_estimate || req.referral_source) && (
+        <dl className="grid grid-cols-[max-content_1fr] gap-x-4 gap-y-1 text-sm mb-3">
+          {req.grade_levels && (
+            <>
+              <dt className="text-ink-muted">Grades</dt>
+              <dd className="text-ink-default">{req.grade_levels}</dd>
+            </>
+          )}
+          {req.student_count_estimate && (
+            <>
+              <dt className="text-ink-muted">Class size</dt>
+              <dd className="text-ink-default">{req.student_count_estimate}</dd>
+            </>
+          )}
+          {req.referral_source && (
+            <>
+              <dt className="text-ink-muted">Heard via</dt>
+              <dd className="text-ink-default">{req.referral_source}</dd>
+            </>
+          )}
+        </dl>
+      )}
 
       {req.student_access_method === 'list' && req.student_emails_text && (
         <div className="bg-paper border border-rule-soft rounded-md p-3 mb-3">

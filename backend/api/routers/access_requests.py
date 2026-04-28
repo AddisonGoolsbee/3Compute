@@ -21,7 +21,7 @@ router = APIRouter()
 
 
 # Acceptable values for AccessRequest.student_access_method
-STUDENT_METHODS = {"domain", "list", "code"}
+STUDENT_METHODS = {"domain", "list", "code", "none"}
 
 
 class SubmitRequest(BaseModel):
@@ -31,6 +31,9 @@ class SubmitRequest(BaseModel):
     student_access_method: str
     student_emails_text: Optional[str] = None
     is_non_google: bool = False
+    student_count_estimate: Optional[str] = None
+    grade_levels: Optional[str] = None
+    referral_source: Optional[str] = None
     turnstile_token: str
 
 
@@ -60,6 +63,9 @@ async def submit_access_request(
         student_access_method=body.student_access_method,
         student_emails_text=(body.student_emails_text or "").strip() or None,
         is_non_google=body.is_non_google,
+        student_count_estimate=(body.student_count_estimate or "").strip() or None,
+        grade_levels=(body.grade_levels or "").strip() or None,
+        referral_source=(body.referral_source or "").strip() or None,
     )
     db.add(entry)
     db.commit()
@@ -67,13 +73,21 @@ async def submit_access_request(
 
     # Fire-and-forget — failure is logged inside notify_admins, never raised.
     domain = entry.school_email.split("@", 1)[-1] if "@" in entry.school_email else "?"
+    extras = []
+    if entry.grade_levels:
+        extras.append(f"Grades: {entry.grade_levels}")
+    if entry.student_count_estimate:
+        extras.append(f"Class size: {entry.student_count_estimate}")
+    if entry.referral_source:
+        extras.append(f"Heard about us via: {entry.referral_source}")
     summary = (
         f"From: {entry.full_name} <{entry.school_email}>\n"
         f"School: {entry.school_name}\n"
         f"Student access: {entry.student_access_method}"
         + (" (non-Google)" if entry.is_non_google else "")
         + f"\nDomain: {domain}\n"
-        f"Review: /admin/access-requests"
+        + ("\n" + "\n".join(extras) + "\n" if extras else "")
+        + f"Review: /admin/access-requests"
     )
     await notify_admins("New CS Room access request", summary)
 
@@ -103,6 +117,9 @@ async def list_access_requests(
             "student_access_method": r.student_access_method,
             "student_emails_text": r.student_emails_text,
             "is_non_google": r.is_non_google,
+            "student_count_estimate": r.student_count_estimate,
+            "grade_levels": r.grade_levels,
+            "referral_source": r.referral_source,
             "status": r.status,
             "submitted_at": r.submitted_at.isoformat() if r.submitted_at else None,
             "reviewed_at": r.reviewed_at.isoformat() if r.reviewed_at else None,
