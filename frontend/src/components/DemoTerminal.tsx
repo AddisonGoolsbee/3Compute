@@ -80,6 +80,12 @@ export function DemoTerminal({
     buffer: '',
     cwd: initialCwd,
   });
+  // Mirror `files` into a ref so command handlers always see the latest
+  // prefetched FS without forcing the xterm-init effect to re-run. The demo
+  // streams ~60 files in one at a time; rebuilding xterm on every arrival
+  // produced visible jitter.
+  const filesRef = useRef(files);
+  useEffect(() => { filesRef.current = files; }, [files]);
 
   useEffect(() => {
     if (!ref.current) return;
@@ -168,7 +174,7 @@ export function DemoTerminal({
     const writePrompt = () => term.write(buildPrompt(promptUser, stateRef.current.cwd));
 
     const printFile = (p: string) => {
-      const content = files[p];
+      const content = filesRef.current[p];
       if (content === undefined) {
         term.writeln(`cat: ${p}: No such file or directory`);
         return;
@@ -234,11 +240,11 @@ export function DemoTerminal({
       }
       case 'ls': {
         const target = resolve(args[0] ?? '');
-        if (!dirExists(files, target)) {
+        if (!dirExists(filesRef.current, target)) {
           term.writeln(`ls: ${args[0] ?? target}: No such file or directory`);
           break;
         }
-        const { dirs, files: fs } = listDirEntries(files, target);
+        const { dirs, files: fs } = listDirEntries(filesRef.current, target);
         if (dirs.length === 0 && fs.length === 0) {
           // empty dir
           break;
@@ -252,7 +258,7 @@ export function DemoTerminal({
       }
       case 'cd': {
         const target = resolve(args[0] ?? '');
-        if (!dirExists(files, target)) {
+        if (!dirExists(filesRef.current, target)) {
           term.writeln(`cd: ${args[0] ?? ''}: No such file or directory`);
           break;
         }
@@ -275,7 +281,7 @@ export function DemoTerminal({
           break;
         }
         const target = resolve(args[0]);
-        if (files[target] === undefined) {
+        if (filesRef.current[target] === undefined) {
           term.writeln(`python: can't open file '${args[0]}': No such file`);
           break;
         }
@@ -290,14 +296,15 @@ export function DemoTerminal({
         // classroom root.
         const cwdNorm = cwd.replace(/\/$/, '');
         const prefix = cwdNorm ? cwdNorm + '/' : '';
+        const snapshot = filesRef.current;
         const testFiles: { rel: string; absKey: string; content: string }[] = [];
-        for (const k of Object.keys(files)) {
+        for (const k of Object.keys(snapshot)) {
           if (prefix && !k.startsWith(prefix)) continue;
           const rel = prefix ? k.slice(prefix.length) : k;
           // Only direct test_*.py descendants under cwd's tree.
           const base = rel.split('/').pop() ?? '';
           if (!base.startsWith('test_') || !base.endsWith('.py')) continue;
-          testFiles.push({ rel, absKey: k, content: files[k] });
+          testFiles.push({ rel, absKey: k, content: snapshot[k] });
         }
         // Parse out def test_*(...): names, in source order.
         const collected: { file: string; name: string }[] = [];
@@ -437,9 +444,11 @@ export function DemoTerminal({
       termRef.current = null;
       fitRef.current = null;
     };
-  // Recreate when files change (rare; demo classroom is static).
+  // Recreate only when the cosmetic shell config changes (role flip swaps
+  // promptUser, page nav swaps initialCwd/greeting). File contents stream
+  // in via `filesRef`, so prefetch progress doesn't tear xterm down.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [JSON.stringify(Object.keys(files)), greeting]);
+  }, [greeting, initialCwd, promptUser]);
 
   return (
     // bg-ide-bg matches the xterm theme background so the panel chrome

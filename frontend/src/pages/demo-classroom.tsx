@@ -257,10 +257,14 @@ function DemoIDE({ role }: { role: Role }) {
     return roots;
   }, [assignments, drafts, role]);
 
-  // Reset open tabs when role changes (paths are role-specific).
+  // Reset open tabs and the simulated FS when role changes — paths are
+  // role-specific, and stale paths from the previous role would otherwise
+  // pollute the terminal's `ls` (e.g. show student-mode `fizzbuzz/` at the
+  // classroom root alongside the teacher's real `assignments/`).
   useEffect(() => {
     setOpenTabs([]);
     setActivePath(null);
+    setFiles({});
   }, [role]);
 
   // Auto-open one file as soon as the tree is ready and nothing is open.
