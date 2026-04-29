@@ -17,7 +17,7 @@ export { clientLoader };
 // `loader` baked in until the user navigates — meaning a freshly
 // signed-in user lands on /ide, sees `userInfo === undefined`, and
 // main.tsx immediately Navigates them back to "/".
-clientLoader.hydrate = true;
+(clientLoader as typeof clientLoader & { hydrate: boolean }).hydrate = true;
 
 // Build-time loader: returns empty defaults so the prerender step has root
 // loaderData to render with. Without this, clientLoader-only routes can't
