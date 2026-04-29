@@ -188,15 +188,6 @@ async def lifespan(app: FastAPI):
     _migrate_participant_templates_symlink(CLASSROOMS_ROOT)
     _migrate_uploads_classroom_symlinks(UPLOADS_ROOT)
 
-    # Seed (or no-op refresh) the public demo classroom so /demo always has
-    # something to render. Idempotent: only writes the DB row + files if
-    # missing, never clobbers existing data.
-    try:
-        from .demo import seed_demo_classroom
-        seed_demo_classroom(engine, CLASSROOMS_ROOT)
-    except Exception as e:
-        logger.exception("Failed to seed demo classroom: %s", e)
-
     from .terminal import discover_existing_containers, start_pollers_for_orphaned
 
     discover_existing_containers()

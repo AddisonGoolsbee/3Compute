@@ -302,11 +302,18 @@ function DemoIDE({ role }: { role: Role }) {
   }, [activePath, fetchContent]);
 
   // Once the tree is loaded, prefetch every file so the simulated terminal
-  // ("cat", "ls" etc.) can answer without round trips.
+  // ("cat", "ls" etc.) can answer without round trips. Walk sequentially —
+  // the teacher view has ~60 files, and firing them all in parallel
+  // saturates the backend's DB pool and stalls the rest of the API.
   useEffect(() => {
-    for (const path of Object.keys(meta)) {
-      fetchContent(path);
-    }
+    let cancelled = false;
+    (async () => {
+      for (const path of Object.keys(meta)) {
+        if (cancelled) return;
+        await fetchContent(path);
+      }
+    })();
+    return () => { cancelled = true; };
   }, [meta, fetchContent]);
 
   const openFile = (path: string) => {

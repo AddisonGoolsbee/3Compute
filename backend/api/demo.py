@@ -1,34 +1,24 @@
-"""Seed and serve a single read-only demo classroom that anyone — signed in
-or not — can preview from the marketing site.
+"""Constants for the public read-only demo classroom.
 
-The demo classroom has stable IDs and a stable access code, lives alongside
-real classrooms in the same DB and on the same filesystem, but is never
-joined into a user's container. The public ``/api/demo/...`` router (in
-``routers/demo.py``) is the only way to read it, and it never exposes
-mutating operations.
+The demo is fully ephemeral: every response in ``routers/demo.py`` is
+built directly from the dicts in this file. No DB rows, no disk writes,
+no startup side effects. That keeps the demo isolated from the rest of
+the app — nothing it does can take a connection-pool slot, hold a write
+lock, or interact with real classroom data.
 """
-import logging
-import os
-from datetime import datetime, timedelta
 from typing import Optional
-
-from sqlmodel import Session, select
-
-from .database import (
-    AssignmentWeight,
-    Classroom,
-    ClassroomMember,
-    TestResult,
-    User,
-)
-
-logger = logging.getLogger("demo")
 
 
 # Stable, well-known IDs. Never auto-generated, so the demo URLs are
-# deterministic and the seed is idempotent.
+# deterministic.
 DEMO_CLASSROOM_ID = "00000000-0000-0000-0000-000000000d3a"  # "demo classroom anchor"
+DEMO_CLASSROOM_NAME = "CS 101 — Demo classroom"
+DEMO_GRADING_MODE = "equal"
+
 DEMO_INSTRUCTOR_ID = "demo-instructor"
+DEMO_INSTRUCTOR_EMAIL = "ms-rivera@csroom.demo"
+DEMO_INSTRUCTOR_NAME = "Ms. Rivera"
+
 DEMO_STUDENT_IDS = [
     "demo-student-1",
     "demo-student-2",
@@ -37,9 +27,6 @@ DEMO_STUDENT_IDS = [
     "demo-student-5",
 ]
 DEMO_ACCESS_CODE = "DEMO00"  # Visible in UI; meaningless because no one can join.
-
-DEMO_INSTRUCTOR_EMAIL = "ms-rivera@csroom.demo"
-DEMO_INSTRUCTOR_NAME = "Ms. Rivera"
 
 # (id, name, email)
 DEMO_STUDENTS: list[tuple[str, str, str]] = [
@@ -51,11 +38,9 @@ DEMO_STUDENTS: list[tuple[str, str, str]] = [
 ]
 
 
-# Three Python assignments. Each one ships with starter code for the
-# student to fill in, plus a ``test_*.py`` that exercises it.
 # A sample draft assignment so the demo Assignments tab shows what an
 # in-progress (unpublished) assignment looks like alongside the published
-# ones. Files mirror what a real draft folder contains.
+# ones.
 DEMO_DRAFTS: dict[str, dict[str, str]] = {
     "two-sum (draft)": {
         "two_sum.py": (
@@ -86,6 +71,8 @@ DEMO_DRAFTS: dict[str, dict[str, str]] = {
 }
 
 
+# Three Python assignments. Each one ships with starter code for the
+# student to fill in, plus a ``test_*.py`` that exercises it.
 DEMO_ASSIGNMENTS: dict[str, dict[str, str]] = {
     "fizzbuzz": {
         "fizzbuzz.py": (
@@ -194,10 +181,11 @@ DEMO_ASSIGNMENTS: dict[str, dict[str, str]] = {
 }
 
 
-# Each student's submission for each assignment. Empty string ⇒ falls back
-# to the starter code (so the student "hasn't started yet"). Mix of fully
-# correct, partially correct, buggy, and untouched submissions, so the
-# gradebook isn't all green.
+# Each student's submission for each assignment. Keyed by ``template/file``
+# (the same path the file endpoints accept). Missing keys ⇒ the student
+# hasn't touched that file, so we fall back to the assignment's starter
+# code. Mix of fully correct, partially correct, buggy, and untouched, so
+# the gradebook isn't all green.
 DEMO_SUBMISSIONS: dict[str, dict[str, str]] = {
     # Aiden — strong student
     DEMO_STUDENT_IDS[0]: {
@@ -283,9 +271,8 @@ DEMO_SUBMISSIONS: dict[str, dict[str, str]] = {
 }
 
 
-# Test results matching the submissions above. Hardcoded so the gradebook
-# is deterministic without actually running pytest at seed time. Each
-# template's ``test_*.py`` declares 4 test cases.
+# Hardcoded test results matching the submissions above. Each template's
+# ``test_*.py`` declares the count below.
 TESTS_PER_TEMPLATE = {
     "fizzbuzz": 4,
     "palindrome": 4,
@@ -301,174 +288,19 @@ DEMO_TEST_RESULTS: dict[str, dict[str, int]] = {
 }
 
 
-def _ensure_demo_user(
-    db: Session, user_id: str, email: str, name: str, role: str
-) -> User:
-    user = db.get(User, user_id)
-    if user:
-        return user
-    user = User(
-        id=user_id,
-        email=email,
-        name=name,
-        avatar_url=None,
-        role=role,
-        # Demo users never get containers, so port allocation is irrelevant.
-        port_start=0,
-        port_end=0,
-    )
-    db.add(user)
-    return user
+def student_file_content(student_id: str, rel_path: str) -> Optional[str]:
+    """Return the content the demo should serve for a student's file.
 
-
-def _write_demo_files(classrooms_root: str) -> None:
-    """Mirror DEMO_ASSIGNMENTS and DEMO_SUBMISSIONS to disk so the existing
-    student-file endpoint shape works unchanged. Idempotent: writes only when
-    the file is missing, so a re-seed doesn't clobber files an admin tweaked
-    by hand on a running system.
-    """
-    base = os.path.join(classrooms_root, DEMO_CLASSROOM_ID)
-    assignments_dir = os.path.join(base, "assignments")
-    participants_dir = os.path.join(base, "participants")
-    drafts_dir = os.path.join(base, "drafts")
-
-    try:
-        os.makedirs(assignments_dir, exist_ok=True)
-        os.makedirs(participants_dir, exist_ok=True)
-        os.makedirs(drafts_dir, exist_ok=True)
-    except PermissionError:
-        logger.warning(
-            "Demo seed: cannot create classroom dirs under %s (permission denied)",
-            base,
-        )
-        return
-
-    # Templates.
-    for template, files in DEMO_ASSIGNMENTS.items():
-        tdir = os.path.join(assignments_dir, template)
-        os.makedirs(tdir, exist_ok=True)
-        for filename, content in files.items():
-            fpath = os.path.join(tdir, filename)
-            if os.path.exists(fpath):
-                continue
-            with open(fpath, "w", encoding="utf-8") as fh:
-                fh.write(content)
-
-    # Drafts (instructor-only in the real app; demo shows them to anyone).
-    for draft, files in DEMO_DRAFTS.items():
-        ddir = os.path.join(drafts_dir, draft)
-        os.makedirs(ddir, exist_ok=True)
-        for filename, content in files.items():
-            fpath = os.path.join(ddir, filename)
-            if os.path.exists(fpath):
-                continue
-            with open(fpath, "w", encoding="utf-8") as fh:
-                fh.write(content)
-
-    # Per-participant submissions. Every participant gets a copy of every
-    # assignment (matching the real join flow), then any submitted files
-    # overwrite the starter code.
-    for student_id, _name, email in DEMO_STUDENTS:
-        sanitized = email.replace("/", "_")
-        student_dir = os.path.join(participants_dir, sanitized)
-        os.makedirs(student_dir, exist_ok=True)
-        for template, files in DEMO_ASSIGNMENTS.items():
-            tdir = os.path.join(student_dir, template)
-            os.makedirs(tdir, exist_ok=True)
-            for filename, content in files.items():
-                fpath = os.path.join(tdir, filename)
-                if not os.path.exists(fpath):
-                    with open(fpath, "w", encoding="utf-8") as fh:
-                        fh.write(content)
-        # Apply submission overrides (only files the student actually edited).
-        for relpath, content in DEMO_SUBMISSIONS.get(student_id, {}).items():
-            fpath = os.path.join(student_dir, relpath)
-            os.makedirs(os.path.dirname(fpath), exist_ok=True)
-            with open(fpath, "w", encoding="utf-8") as fh:
-                fh.write(content)
-
-
-def seed_demo_classroom(engine, classrooms_root: str) -> None:
-    """Idempotent: safe to call on every startup.
-
-    Creates the demo Classroom row, fake instructor and 5 fake participants,
-    membership rows, varied test results, and writes assignment files to
-    disk. No-op if the Classroom row already exists (we don't try to repair
-    drift — admins can delete the classroom row to force a re-seed)."""
-    with Session(engine) as db:
-        existing = db.get(Classroom, DEMO_CLASSROOM_ID)
-
-        if existing is None:
-            classroom = Classroom(
-                id=DEMO_CLASSROOM_ID,
-                name="CS 101 — Demo classroom",
-                access_code=DEMO_ACCESS_CODE,
-                created_by=DEMO_INSTRUCTOR_ID,
-                created_at=datetime.utcnow() - timedelta(days=14),
-                joins_paused=True,  # Cosmetic; nobody can join anyway.
-                grading_mode="equal",
-            )
-            db.add(classroom)
-
-            _ensure_demo_user(
-                db, DEMO_INSTRUCTOR_ID,
-                DEMO_INSTRUCTOR_EMAIL, DEMO_INSTRUCTOR_NAME, "teacher",
-            )
-            for sid, name, email in DEMO_STUDENTS:
-                _ensure_demo_user(db, sid, email, name, "student")
-
-            db.flush()
-
-            # Membership rows.
-            db.add(ClassroomMember(
-                classroom_id=DEMO_CLASSROOM_ID,
-                user_id=DEMO_INSTRUCTOR_ID,
-                role="instructor",
-                joined_at=datetime.utcnow() - timedelta(days=14),
-            ))
-            for i, (sid, _name, _email) in enumerate(DEMO_STUDENTS):
-                db.add(ClassroomMember(
-                    classroom_id=DEMO_CLASSROOM_ID,
-                    user_id=sid,
-                    role="participant",
-                    joined_at=datetime.utcnow() - timedelta(days=12 - i),
-                ))
-
-            # Hardcoded test results.
-            for sid, results in DEMO_TEST_RESULTS.items():
-                for template, passed in results.items():
-                    db.add(TestResult(
-                        classroom_id=DEMO_CLASSROOM_ID,
-                        user_id=sid,
-                        template_name=template,
-                        tests_passed=passed,
-                        tests_total=TESTS_PER_TEMPLATE[template],
-                        last_run=datetime.utcnow() - timedelta(hours=3),
-                    ))
-
-            # No weights — grading_mode="equal" doesn't need them. They'd be
-            # added if we ever switch the demo to "weighted".
-            _ = AssignmentWeight  # keep import explicit
-
-            db.commit()
-            logger.info("Seeded demo classroom %s", DEMO_CLASSROOM_ID)
-        else:
-            logger.debug("Demo classroom %s already seeded", DEMO_CLASSROOM_ID)
-
-    # Always write/repair files (cheap — only writes when missing).
-    _write_demo_files(classrooms_root)
-
-
-def get_demo_user(db: Session, user_id: str) -> Optional[User]:
-    """Helper for the demo router: only returns a user if they're a member
-    of the demo classroom. Prevents the public router from leaking info
-    about real accounts even if someone passes a real user ID."""
-    member = db.exec(
-        select(ClassroomMember).where(
-            ClassroomMember.classroom_id == DEMO_CLASSROOM_ID,
-            ClassroomMember.user_id == user_id,
-        )
-    ).first()
-    if not member:
+    Mirrors how a real classroom works: each student starts with a copy
+    of every assignment's starter code, then their submitted edits
+    overwrite specific files. So we look in ``DEMO_SUBMISSIONS`` first
+    (the student's own version), then fall back to ``DEMO_ASSIGNMENTS``
+    (the unedited starter)."""
+    submission = DEMO_SUBMISSIONS.get(student_id, {}).get(rel_path)
+    if submission is not None:
+        return submission
+    parts = rel_path.split("/", 1)
+    if len(parts) != 2:
         return None
-    return db.get(User, user_id)
+    template, file_name = parts
+    return DEMO_ASSIGNMENTS.get(template, {}).get(file_name)

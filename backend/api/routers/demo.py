@@ -1,353 +1,161 @@
 """Public read-only endpoints for the demo classroom.
 
-These mirror the response shapes of ``routers/classrooms.py`` so the same
-frontend page can render either with only the ``apiBase`` swapped. They
-intentionally accept no auth, expose no mutating verbs, and hardcode the
-demo classroom ID so a passed-in classroom id can never leak data from a
-real classroom.
+Every response is built from the constants in ``backend/api/demo.py`` —
+no DB access, no disk reads. That keeps the public demo isolated from
+the rest of the app: nothing it does can take a connection-pool slot,
+hold a write lock, or interact with real classroom data.
+
+These endpoints mirror the response shapes of ``routers/classrooms.py``
+so the same frontend page hydrates from either with only the ``apiBase``
+swapped.
 """
 import logging
 import os
+from datetime import datetime, timedelta
 
-from fastapi import APIRouter, Depends, HTTPException
-from sqlmodel import Session, select
+from fastapi import APIRouter, HTTPException
 
-from backend.docker import CLASSROOMS_ROOT
-
-from ..database import (
-    AssignmentWeight,
-    Classroom,
-    ClassroomMember,
-    ManualScore,
-    TestResult,
-    User,
+from ..demo import (
+    DEMO_ACCESS_CODE,
+    DEMO_ASSIGNMENTS,
+    DEMO_CLASSROOM_ID,
+    DEMO_CLASSROOM_NAME,
+    DEMO_DRAFTS,
+    DEMO_GRADING_MODE,
+    DEMO_INSTRUCTOR_ID,
+    DEMO_STUDENT_IDS,
+    DEMO_STUDENTS,
+    DEMO_TEST_RESULTS,
+    TESTS_PER_TEMPLATE,
+    student_file_content,
 )
-from ..demo import DEMO_CLASSROOM_ID, get_demo_user
-from ..dependencies import get_db
 
 logger = logging.getLogger("demo-router")
 
 router = APIRouter()
 
+# email -> student id, for the security check that gates the per-student
+# endpoints. Real emails should never appear here, so a request asking
+# for a real user's data via this router can never succeed.
+_EMAIL_TO_STUDENT_ID = {email: sid for sid, _name, email in DEMO_STUDENTS}
 
-def _require_demo_classroom(db: Session) -> Classroom:
-    classroom = db.get(Classroom, DEMO_CLASSROOM_ID)
-    if not classroom:
-        # Should never happen post-seed; surface as 503 so the frontend
-        # can show a "demo unavailable" state rather than a crash.
-        raise HTTPException(status_code=503, detail="Demo classroom not seeded")
-    return classroom
+
+def _reject_traversal(*parts: str) -> None:
+    for p in parts:
+        if ".." in os.path.normpath(p).lstrip("/").split(os.sep):
+            raise HTTPException(status_code=400, detail="Invalid path")
 
 
 @router.get("/classroom")
-async def get_demo_classroom(db: Session = Depends(get_db)):
-    """Single-classroom shape matching one entry of the regular
-    ``GET /classrooms/`` response, so the frontend can hydrate the same
-    state with no special casing."""
-    classroom = _require_demo_classroom(db)
-
-    members = db.exec(
-        select(ClassroomMember).where(
-            ClassroomMember.classroom_id == DEMO_CLASSROOM_ID
-        )
-    ).all()
-
+async def get_demo_classroom():
+    created_at = (datetime.utcnow() - timedelta(days=14)).isoformat() + "Z"
     return {
-        "id": classroom.id,
-        "name": classroom.name,
-        "created_at": classroom.created_at.isoformat() + "Z",
-        "instructors": [m.user_id for m in members if m.role == "instructor"],
-        "participants": [m.user_id for m in members if m.role == "participant"],
-        "access_code": classroom.access_code,
+        "id": DEMO_CLASSROOM_ID,
+        "name": DEMO_CLASSROOM_NAME,
+        "created_at": created_at,
+        "instructors": [DEMO_INSTRUCTOR_ID],
+        "participants": list(DEMO_STUDENT_IDS),
+        "access_code": DEMO_ACCESS_CODE,
         "archived": False,
         "archived_by": [],
-        "joins_paused": classroom.joins_paused,
-        "grading_mode": classroom.grading_mode,
+        "joins_paused": True,
+        "grading_mode": DEMO_GRADING_MODE,
     }
 
 
 @router.get("/progress")
-async def get_demo_progress(db: Session = Depends(get_db)):
-    classroom = _require_demo_classroom(db)
-
-    participant_members = db.exec(
-        select(ClassroomMember).where(
-            ClassroomMember.classroom_id == classroom.id,
-            ClassroomMember.role == "participant",
-        )
-    ).all()
-
-    participant_ids = [m.user_id for m in participant_members]
-    users = db.exec(
-        select(User).where(User.id.in_(participant_ids))
-    ).all() if participant_ids else []
-    user_map = {u.id: u for u in users}
-
-    participants_info = []
-    for pid in participant_ids:
-        u = user_map.get(pid)
-        participants_info.append({
-            "id": pid,
-            "email": u.email if u else pid,
-            "name": u.name if u else pid,
-        })
-    participants_info.sort(key=lambda p: (p["name"] or p["email"] or "").lower())
-
-    templates_dir = os.path.join(CLASSROOMS_ROOT, classroom.id, "assignments")
-    templates: list[str] = []
-    if os.path.isdir(templates_dir):
-        templates = sorted(
-            e for e in os.listdir(templates_dir)
-            if os.path.isdir(os.path.join(templates_dir, e))
-        )
-
-    results = db.exec(
-        select(TestResult).where(TestResult.classroom_id == classroom.id)
-    ).all()
-    result_map: dict[str, dict[str, dict]] = {}
-    for r in results:
-        result_map.setdefault(r.user_id, {})[r.template_name] = {
-            "passed": r.tests_passed,
-            "total": r.tests_total,
-        }
-
+async def get_demo_progress():
+    templates = list(DEMO_ASSIGNMENTS.keys())
     students = []
-    for p in participants_info:
-        student_results = result_map.get(p["id"], {})
+    for sid, name, email in DEMO_STUDENTS:
+        student_results = DEMO_TEST_RESULTS.get(sid, {})
         students.append({
-            "id": p["id"],
-            "email": p["email"],
-            "name": p["name"],
+            "id": sid,
+            "email": email,
+            "name": name,
             "results": {
-                t: student_results.get(t, {"passed": 0, "total": 0})
+                t: {
+                    "passed": student_results.get(t, 0),
+                    "total": TESTS_PER_TEMPLATE.get(t, 0),
+                }
                 for t in templates
             },
         })
-
+    students.sort(key=lambda p: (p["name"] or p["email"] or "").lower())
     return {"students": students, "templates": templates}
 
 
 @router.get("/weights")
-async def get_demo_weights(db: Session = Depends(get_db)):
-    classroom = _require_demo_classroom(db)
-    weights = db.exec(
-        select(AssignmentWeight).where(
-            AssignmentWeight.classroom_id == classroom.id
-        )
-    ).all()
-    return {
-        "grading_mode": classroom.grading_mode,
-        "weights": {w.template_name: w.weight for w in weights},
-    }
+async def get_demo_weights():
+    return {"grading_mode": DEMO_GRADING_MODE, "weights": {}}
 
 
 @router.get("/manual-scores")
-async def get_demo_manual_scores(db: Session = Depends(get_db)):
-    _require_demo_classroom(db)
-    scores = db.exec(
-        select(ManualScore).where(ManualScore.classroom_id == DEMO_CLASSROOM_ID)
-    ).all()
-    result: dict[str, dict[str, float]] = {}
-    for s in scores:
-        result.setdefault(s.user_id, {})[s.template_name] = s.score
-    return {"scores": result}
+async def get_demo_manual_scores():
+    return {"scores": {}}
 
 
 @router.get("/student-files")
-async def list_demo_student_files(
-    email: str,
-    template: str,
-    db: Session = Depends(get_db),
-):
-    """List files in a demo participant's assignment directory. Same shape
-    as ``/classrooms/{id}/student-files``, but only returns data for users
-    that are actually members of the demo classroom."""
-    target_user = db.exec(select(User).where(User.email == email)).first()
-    if not target_user or not get_demo_user(db, target_user.id):
+async def list_demo_student_files(email: str, template: str):
+    """List files in a demo participant's assignment directory."""
+    if email not in _EMAIL_TO_STUDENT_ID:
         raise HTTPException(status_code=404, detail="Student not found")
-
-    safe_template = os.path.normpath(template).lstrip("/")
-    if ".." in safe_template.split(os.sep):
-        raise HTTPException(status_code=400, detail="Invalid template name")
-
-    sanitized_email = (email or "").replace("/", "_")
-    base = os.path.join(
-        CLASSROOMS_ROOT, DEMO_CLASSROOM_ID, "participants",
-        sanitized_email, safe_template,
-    )
-    if not os.path.isdir(base):
+    template_files = DEMO_ASSIGNMENTS.get(template)
+    if template_files is None:
         return {"files": []}
-
-    files: set[str] = set()
-    for root, dirs, fnames in os.walk(base):
-        dirs[:] = [d for d in dirs if not d.startswith('.') and d != '__pycache__']
-        for fn in fnames:
-            if fn.startswith('.'):
-                continue
-            rel = os.path.relpath(os.path.join(root, fn), base)
-            files.add(rel)
-
-    templates_dir = os.path.join(
-        CLASSROOMS_ROOT, DEMO_CLASSROOM_ID, "assignments", safe_template
-    )
-    if os.path.isdir(templates_dir):
-        for root, dirs, fnames in os.walk(templates_dir):
-            dirs[:] = [d for d in dirs if not d.startswith('.') and d != '__pycache__']
-            for fn in fnames:
-                if fn.startswith('.'):
-                    continue
-                if fn.startswith('test_'):
-                    rel = os.path.relpath(os.path.join(root, fn), templates_dir)
-                    files.add(rel)
-
-    return {"files": sorted(files)}
+    return {"files": sorted(template_files.keys())}
 
 
 @router.get("/student-file")
-async def get_demo_student_file(
-    email: str,
-    path: str,
-    db: Session = Depends(get_db),
-):
-    target_user = db.exec(select(User).where(User.email == email)).first()
-    if not target_user or not get_demo_user(db, target_user.id):
+async def get_demo_student_file(email: str, path: str):
+    student_id = _EMAIL_TO_STUDENT_ID.get(email)
+    if student_id is None:
         raise HTTPException(status_code=404, detail="Student not found")
-
-    safe_path = os.path.normpath(path).lstrip("/")
-    if ".." in safe_path.split(os.sep):
-        raise HTTPException(status_code=400, detail="Invalid path")
-
-    sanitized_email = (email or "").replace("/", "_")
-    file_path = os.path.join(
-        CLASSROOMS_ROOT, DEMO_CLASSROOM_ID, "participants",
-        sanitized_email, safe_path,
-    )
-
-    if not os.path.isfile(file_path):
-        parts = safe_path.split(os.sep)
-        if len(parts) >= 2:
-            template_name = parts[0]
-            rel_file = os.sep.join(parts[1:])
-            template_file = os.path.join(
-                CLASSROOMS_ROOT, DEMO_CLASSROOM_ID, "assignments",
-                template_name, rel_file,
-            )
-            if os.path.isfile(template_file):
-                file_path = template_file
-
-    if not os.path.isfile(file_path):
+    _reject_traversal(path)
+    content = student_file_content(student_id, path.lstrip("/"))
+    if content is None:
         raise HTTPException(status_code=404, detail="File not found")
-
-    try:
-        with open(file_path, "r", encoding="utf-8") as f:
-            content = f.read()
-        return {"content": content, "path": path}
-    except UnicodeDecodeError:
-        raise HTTPException(status_code=400, detail="Binary file cannot be read")
+    return {"content": content, "path": path}
 
 
 @router.get("/draft-file")
-async def get_demo_draft_file(
-    draft: str,
-    path: str,
-    db: Session = Depends(get_db),
-):
-    """Read a file from the demo classroom's drafts directory."""
-    _require_demo_classroom(db)
-
-    safe_draft = os.path.normpath(draft).lstrip("/")
-    safe_path = os.path.normpath(path).lstrip("/")
-    if ".." in safe_draft.split(os.sep) or ".." in safe_path.split(os.sep):
-        raise HTTPException(status_code=400, detail="Invalid path")
-
-    file_path = os.path.join(
-        CLASSROOMS_ROOT, DEMO_CLASSROOM_ID, "drafts", safe_draft, safe_path,
-    )
-    if not os.path.isfile(file_path):
+async def get_demo_draft_file(draft: str, path: str):
+    _reject_traversal(draft, path)
+    files = DEMO_DRAFTS.get(draft)
+    rel = path.lstrip("/")
+    if files is None or rel not in files:
         raise HTTPException(status_code=404, detail="File not found")
-
-    try:
-        with open(file_path, "r", encoding="utf-8") as f:
-            content = f.read()
-        return {"content": content, "path": path}
-    except UnicodeDecodeError:
-        raise HTTPException(status_code=400, detail="Binary file cannot be read")
+    return {"content": files[rel], "path": path}
 
 
 @router.get("/assignment-file")
-async def get_demo_assignment_file(
-    template: str,
-    path: str,
-    db: Session = Depends(get_db),
-):
+async def get_demo_assignment_file(template: str, path: str):
     """Read a file directly out of the demo classroom's assignments
-    directory (no per-student copy). Used by the student-perspective demo
-    where there is no signed-in user to attribute submissions to."""
-    _require_demo_classroom(db)
-
-    safe_template = os.path.normpath(template).lstrip("/")
-    safe_path = os.path.normpath(path).lstrip("/")
-    if ".." in safe_template.split(os.sep) or ".." in safe_path.split(os.sep):
-        raise HTTPException(status_code=400, detail="Invalid path")
-
-    file_path = os.path.join(
-        CLASSROOMS_ROOT, DEMO_CLASSROOM_ID, "assignments", safe_template, safe_path,
-    )
-    if not os.path.isfile(file_path):
+    directory (no per-student copy). Used by the student-perspective
+    demo where there is no signed-in user to attribute submissions to."""
+    _reject_traversal(template, path)
+    files = DEMO_ASSIGNMENTS.get(template)
+    rel = path.lstrip("/")
+    if files is None or rel not in files:
         raise HTTPException(status_code=404, detail="File not found")
-
-    try:
-        with open(file_path, "r", encoding="utf-8") as f:
-            content = f.read()
-        return {"content": content, "path": path}
-    except UnicodeDecodeError:
-        raise HTTPException(status_code=400, detail="Binary file cannot be read")
+    return {"content": files[rel], "path": path}
 
 
 @router.get("/drafts")
-async def list_demo_drafts(db: Session = Depends(get_db)):
-    """Return the demo classroom's draft assignments. Same shape as the real
-    ``/classrooms/{id}/drafts`` endpoint so the existing UI hydrates with no
-    code changes."""
-    _require_demo_classroom(db)
-    drafts_dir = os.path.join(CLASSROOMS_ROOT, DEMO_CLASSROOM_ID, "drafts")
-    if not os.path.isdir(drafts_dir):
-        return {"drafts": []}
-
-    drafts = []
-    for entry in sorted(os.listdir(drafts_dir)):
-        ddir = os.path.join(drafts_dir, entry)
-        if not os.path.isdir(ddir):
-            continue
-        files: list[str] = []
-        for root, _dirs, fnames in os.walk(ddir):
-            for fn in fnames:
-                if fn.startswith('.'):
-                    continue
-                files.append(os.path.relpath(os.path.join(root, fn), ddir))
-        drafts.append({"name": entry, "files": sorted(files)})
-    return {"drafts": drafts}
+async def list_demo_drafts():
+    return {
+        "drafts": [
+            {"name": name, "files": sorted(files.keys())}
+            for name, files in DEMO_DRAFTS.items()
+        ],
+    }
 
 
 @router.get("/assignments")
-async def list_demo_assignments(db: Session = Depends(get_db)):
-    """Return template names and their files (relative paths). Used by the
-    student-view file explorer."""
-    _require_demo_classroom(db)
-    templates_dir = os.path.join(CLASSROOMS_ROOT, DEMO_CLASSROOM_ID, "assignments")
-    if not os.path.isdir(templates_dir):
-        return {"templates": []}
-
-    out = []
-    for entry in sorted(os.listdir(templates_dir)):
-        tdir = os.path.join(templates_dir, entry)
-        if not os.path.isdir(tdir):
-            continue
-        files: list[str] = []
-        for root, _dirs, fnames in os.walk(tdir):
-            for fn in fnames:
-                if fn.startswith('.'):
-                    continue
-                files.append(os.path.relpath(os.path.join(root, fn), tdir))
-        out.append({"name": entry, "files": sorted(files)})
-    return {"templates": out}
+async def list_demo_assignments():
+    return {
+        "templates": [
+            {"name": name, "files": sorted(files.keys())}
+            for name, files in DEMO_ASSIGNMENTS.items()
+        ],
+    }
