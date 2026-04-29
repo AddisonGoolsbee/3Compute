@@ -147,91 +147,6 @@
         ],
         "testCount": 29
     },
-    "Building-a-File-System": {
-        "files": [
-            "file_system.py",
-            "main.py",
-            "test_filesystem.py",
-            "README.md",
-            "requirements.txt"
-        ],
-        "description": "Build a mini file system to explore how operating systems work",
-        "duration": "4-5 class periods",
-        "lessonPlanDoc": "/docs/building-a-file-system/lesson-plan.md",
-        "solutionDoc": "/api/lessons/solution/building-a-file-system/solution.py",
-        "standards": [
-            {
-                "id": "3A-CS-01",
-                "description": "Explain how abstractions hide the underlying implementation details of computing systems embedded in everyday objects."
-            },
-            {
-                "id": "3A-CS-02",
-                "description": "Compare levels of abstraction, analogy, and paradigm for the interactions between application software, system software, and hardware."
-            },
-            {
-                "id": "3B-CS-01",
-                "description": "Categorize the roles of operating system software."
-            },
-            {
-                "id": "3A-DA-10",
-                "description": "Evaluate the tradeoffs in how data elements are organized and where data is stored."
-            }
-        ],
-        "testCount": 36
-    },
-    "Snake-Game": {
-        "files": [
-            "app.py",
-            "templates/game.html",
-            "static/game.js",
-            "static/style.css",
-            "README.md",
-            "requirements.txt"
-        ],
-        "description": "Build a browser-based Snake game with Flask and JavaScript",
-        "duration": "6-8 class periods",
-        "lessonPlanDoc": "/docs/snake-game/lesson-plan.md",
-        "solutionDoc": "/api/lessons/solution/snake-game/solution/game.js",
-        "standards": [
-            {
-                "id": "3A-AP-13",
-                "description": "Create prototypes that use algorithms to solve computational problems by leveraging prior student knowledge and personal interests."
-            },
-            {
-                "id": "3A-AP-15",
-                "description": "Justify the selection of specific control structures when tradeoffs involve implementation, readability, and program performance."
-            },
-            {
-                "id": "3A-AP-16",
-                "description": "Design and iteratively develop computational artifacts for practical intent, personal expression, or to address a societal need while evaluating intended and unintended consequences."
-            },
-            {
-                "id": "3A-AP-17",
-                "description": "Decompose problems into smaller components through systematic analysis, using constructs such as procedures, modules, and/or objects."
-            },
-            {
-                "id": "3A-AP-18",
-                "description": "Create artifacts by using procedures within a program, combinations of data and procedures, or independent but interrelated programs."
-            },
-            {
-                "id": "3B-AP-09",
-                "description": "Implement an artificial intelligence algorithm to play a game against a human opponent or solve a problem."
-            },
-            {
-                "id": "3B-AP-10",
-                "description": "Use and adapt classic algorithms to solve computational problems."
-            },
-            {
-                "id": "3B-AP-16",
-                "description": "Demonstrate code reuse by creating programming solutions using libraries and APIs."
-            },
-            {
-                "id": "3B-AP-19",
-                "description": "Develop programs for multiple computing platforms."
-            }
-        ],
-        "testCount": 0
-    },
     "Personal-Website": {
         "files": [
             "app.py",
@@ -280,6 +195,91 @@
         "testCount": 15
     },
     "_disabled": {
+        "Building-a-File-System": {
+            "files": [
+                "file_system.py",
+                "main.py",
+                "test_filesystem.py",
+                "README.md",
+                "requirements.txt"
+            ],
+            "description": "Build a mini file system to explore how operating systems work",
+            "duration": "4-5 class periods",
+            "lessonPlanDoc": "/docs/building-a-file-system/lesson-plan.md",
+            "solutionDoc": "/api/lessons/solution/building-a-file-system/solution.py",
+            "standards": [
+                {
+                    "id": "3A-CS-01",
+                    "description": "Explain how abstractions hide the underlying implementation details of computing systems embedded in everyday objects."
+                },
+                {
+                    "id": "3A-CS-02",
+                    "description": "Compare levels of abstraction, analogy, and paradigm for the interactions between application software, system software, and hardware."
+                },
+                {
+                    "id": "3B-CS-01",
+                    "description": "Categorize the roles of operating system software."
+                },
+                {
+                    "id": "3A-DA-10",
+                    "description": "Evaluate the tradeoffs in how data elements are organized and where data is stored."
+                }
+            ],
+            "testCount": 36
+        },
+        "Snake-Game": {
+            "files": [
+                "app.py",
+                "templates/game.html",
+                "static/game.js",
+                "static/style.css",
+                "README.md",
+                "requirements.txt"
+            ],
+            "description": "Build a browser-based Snake game with Flask and JavaScript",
+            "duration": "6-8 class periods",
+            "lessonPlanDoc": "/docs/snake-game/lesson-plan.md",
+            "solutionDoc": "/api/lessons/solution/snake-game/solution/game.js",
+            "standards": [
+                {
+                    "id": "3A-AP-13",
+                    "description": "Create prototypes that use algorithms to solve computational problems by leveraging prior student knowledge and personal interests."
+                },
+                {
+                    "id": "3A-AP-15",
+                    "description": "Justify the selection of specific control structures when tradeoffs involve implementation, readability, and program performance."
+                },
+                {
+                    "id": "3A-AP-16",
+                    "description": "Design and iteratively develop computational artifacts for practical intent, personal expression, or to address a societal need while evaluating intended and unintended consequences."
+                },
+                {
+                    "id": "3A-AP-17",
+                    "description": "Decompose problems into smaller components through systematic analysis, using constructs such as procedures, modules, and/or objects."
+                },
+                {
+                    "id": "3A-AP-18",
+                    "description": "Create artifacts by using procedures within a program, combinations of data and procedures, or independent but interrelated programs."
+                },
+                {
+                    "id": "3B-AP-09",
+                    "description": "Implement an artificial intelligence algorithm to play a game against a human opponent or solve a problem."
+                },
+                {
+                    "id": "3B-AP-10",
+                    "description": "Use and adapt classic algorithms to solve computational problems."
+                },
+                {
+                    "id": "3B-AP-16",
+                    "description": "Demonstrate code reuse by creating programming solutions using libraries and APIs."
+                },
+                {
+                    "id": "3B-AP-19",
+                    "description": "Develop programs for multiple computing platforms."
+                }
+            ],
+            "testCount": 0
+        },
         "Website": {
             "files": [
                 "main.py",
