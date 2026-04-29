@@ -11,6 +11,13 @@ import {
 
 // eslint-disable-next-line react-refresh/only-export-components
 export { clientLoader };
+// Run clientLoader on initial hydration too, not just SPA navigations.
+// Without this, prerendered routes (and the __spa-fallback.html that
+// non-prerendered routes serve from) would show whatever empty value
+// `loader` baked in until the user navigates — meaning a freshly
+// signed-in user lands on /ide, sees `userInfo === undefined`, and
+// main.tsx immediately Navigates them back to "/".
+clientLoader.hydrate = true;
 
 // Build-time loader: returns empty defaults so the prerender step has root
 // loaderData to render with. Without this, clientLoader-only routes can't
