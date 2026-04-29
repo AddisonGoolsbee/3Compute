@@ -1,8 +1,13 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, lazy, Suspense } from 'react';
 import { Globe } from 'lucide-react';
 import { cn } from '../util/cn';
 import { TerminalTabBar } from './TerminalTabBar';
-import { DemoTerminal } from './DemoTerminal';
+
+// Lazy-loaded so xterm (browser-only, references `self` at module init) is
+// never evaluated server-side during the prerender pass.
+const DemoTerminal = lazy(() =>
+  import('./DemoTerminal').then((m) => ({ default: m.DemoTerminal })),
+);
 
 const isMacLike =
   typeof navigator !== 'undefined' && /Mac|iPhone|iPad|iPod/i.test(navigator.userAgent);
@@ -87,22 +92,24 @@ export function DemoTerminalPanel({
         </div>
       </div>
       <div className="flex-1 relative bg-ide-bg">
-        {tabs.map((tabId) => (
-          <div
-            key={tabId}
-            className={cn(
-              'absolute inset-0',
-              tabId === activeTab ? '' : 'invisible pointer-events-none',
-            )}
-          >
-            <DemoTerminal
-              files={files}
-              greeting={tabId === '1' ? greeting : undefined}
-              initialCwd={initialCwd}
-              promptUser={promptUser}
-            />
-          </div>
-        ))}
+        <Suspense fallback={null}>
+          {tabs.map((tabId) => (
+            <div
+              key={tabId}
+              className={cn(
+                'absolute inset-0',
+                tabId === activeTab ? '' : 'invisible pointer-events-none',
+              )}
+            >
+              <DemoTerminal
+                files={files}
+                greeting={tabId === '1' ? greeting : undefined}
+                initialCwd={initialCwd}
+                promptUser={promptUser}
+              />
+            </div>
+          ))}
+        </Suspense>
       </div>
       {!isMacLike && (
         <div

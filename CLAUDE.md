@@ -130,13 +130,13 @@ Dynamic subdomain routes live in `srv0` — the Caddyfile-managed `:443` server.
 
 ## Production
 - Backend runs as systemd service `csroom` (user `www-data`) with `CAP_CHOWN` capability
-- Nginx reverse proxy: `www.csroom.org` serves frontend static files, `api.csroom.org` proxies to backend (:5555)
-- Caddy manages TLS with wildcard cert `*.app.csroom.org` via Cloudflare DNS-01 challenge (for user subdomain routing only)
+- Caddy fronts everything: `www.csroom.org` serves the frontend static files (with the React Router SPA fallback at `/__spa-fallback.html`), `api.csroom.org` reverse-proxies to backend (:5555), and `*.app.csroom.org` routes user subdomains via the Admin API. The Caddyfile lives at `/etc/caddy/Caddyfile` on the host and is **not tracked in this repo**.
+- Caddy manages TLS, including the wildcard cert `*.app.csroom.org` via Cloudflare DNS-01 challenge
 - Requires `caddy-dns/cloudflare` plugin built into Caddy binary (see the patched build using `ogerman/cloudflare` fork that supports `cfat_` tokens)
 - Uploads: `/var/lib/csroom/uploads/`, classrooms: `/var/lib/csroom/classrooms/`
 - Deploy: GitHub webhook triggers `/opt/deploy.sh` (copied from `production/opt/deploy.sh` in the repo). The script runs outside the repo so `git reset --hard` doesn't corrupt it mid-execution; it self-updates `/opt/deploy.sh` from the repo at the end of each run.
 - Deploy logs: `/var/log/csroom-deploy.log` (appended each run, includes timestamps)
-- Config files: `production/etc/systemd/system/csroom.service`, `production/etc/nginx/sites-available/csroom.org`
+- Config files: `production/etc/systemd/system/csroom.service`
 
 ### One-time server setup (run once on a fresh host, not part of deploy script)
 ```bash

@@ -1,8 +1,25 @@
 import { useEffect, type ReactNode } from 'react';
 import { Heart, ExternalLink } from 'lucide-react';
+import type { MetaFunction } from 'react-router';
 import Footer from '../components/Footer';
 import ObfuscatedEmail from '../components/ObfuscatedEmail';
 import { PrimaryButton } from '../components/ui/Buttons';
+import { mergeParentMeta } from '../util/seo';
+
+// eslint-disable-next-line react-refresh/only-export-components
+export const meta: MetaFunction = ({ matches }) => {
+  const title = 'About CS Room | Free Online Coding Classrooms';
+  const description =
+    'CS Room is a free, browser-based coding environment built by Birdflop for high school computer science classrooms.';
+  return mergeParentMeta(matches, [
+    { title },
+    { name: 'description', content: description },
+    { property: 'og:title', content: title },
+    { property: 'og:description', content: description },
+    { name: 'twitter:title', content: title },
+    { name: 'twitter:description', content: description },
+  ]);
+};
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (

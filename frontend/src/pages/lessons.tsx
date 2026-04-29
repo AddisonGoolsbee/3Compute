@@ -1,8 +1,8 @@
-import { useEffect, useState, useContext, useRef } from 'react';
-import { useNavigate } from 'react-router';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { useEffect, useState, useContext } from 'react';
+import { useNavigate, Outlet, useLoaderData, type MetaFunction } from 'react-router';
 import Footer from '../components/Footer';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
 import {
   BookOpen,
   Download,
@@ -14,7 +14,6 @@ import {
   ChevronDown,
   ChevronUp,
   Code,
-  Printer,
   FlaskConical,
   User,
   GraduationCap,
@@ -24,16 +23,16 @@ import {
   Search,
 } from 'lucide-react';
 import { apiUrl, backendUrl, UserDataContext } from '../util/UserData';
-import { printMarkdownElement } from '../util/printMarkdown';
 import { GhostButton, Pill, PrimaryButton } from '../components/ui/Buttons';
 import { cn } from '../util/cn';
+import { mergeParentMeta } from '../util/seo';
 
-interface Standard {
+export interface Standard {
   id: string;
   description: string;
 }
 
-interface LessonMeta {
+export interface LessonMeta {
   files: string[];
   description: string;
   duration?: string;
@@ -43,37 +42,82 @@ interface LessonMeta {
   testCount?: number;
 }
 
-type MetaManifest = Record<string, LessonMeta>;
+export type MetaManifest = Record<string, LessonMeta>;
 
-interface Classroom {
+export interface Classroom {
   id: string;
   name: string;
   studentCount: number;
 }
 
-type ImportDestination =
+export type ImportDestination =
   | { kind: 'workspace' }
   | { kind: 'draft'; classroomId: string }
   | { kind: 'publish'; classroomId: string };
 
-function destinationKey(dest: ImportDestination): string {
+// eslint-disable-next-line react-refresh/only-export-components
+export function destinationKey(dest: ImportDestination): string {
   if (dest.kind === 'workspace') return '_workspace';
   return `${dest.kind}:${dest.classroomId}`;
 }
 
+// What the lesson-detail child route reads from useOutletContext.
+export interface LessonOutletContext {
+  meta: MetaManifest;
+  isLoggedIn: boolean | null;
+  isTeacher: boolean;
+  classrooms: Classroom[];
+  loadingClassrooms: boolean;
+  importing: boolean;
+  importSuccess: string | null;
+  ensureClassroomsLoaded: () => void;
+  importLesson: (lessonName: string, dest: ImportDestination) => Promise<void>;
+}
+
+// Build-time loader: reads meta.json from disk so the prerendered HTML for
+// /lessons (and /lessons/:lessonId via the child route) embeds the full
+// lesson list. Without this the prerendered shell shows "Loading…" until
+// the client fetches it, which costs SEO ranking on the list page.
+// eslint-disable-next-line react-refresh/only-export-components
+export async function loader() {
+  const path = join(process.cwd(), 'public', 'templateProjects', 'meta.json');
+  const raw = readFileSync(path, 'utf-8');
+  return { meta: JSON.parse(raw) as MetaManifest };
+}
+
+// eslint-disable-next-line react-refresh/only-export-components
+export const meta: MetaFunction = ({ matches }) => {
+  const title = 'Free CSTA-aligned coding lesson plans | CS Room';
+  const description =
+    'Browse ready-to-use coding lesson plans for grades 9–12. Aligned to CSTA standards. Import to your classroom in one click.';
+  return mergeParentMeta(matches, [
+    { title },
+    { name: 'description', content: description },
+    { property: 'og:title', content: title },
+    { property: 'og:description', content: description },
+    { name: 'twitter:title', content: title },
+    { name: 'twitter:description', content: description },
+  ]);
+};
+
+// Runtime loader for non-prerendered paths (future community lessons under
+// /lessons/:lessonId that aren't in the build-time prerender list).
+// eslint-disable-next-line react-refresh/only-export-components
+export async function clientLoader() {
+  const res = await fetch('/templateProjects/meta.json');
+  if (!res.ok) return { meta: {} as MetaManifest };
+  return { meta: (await res.json()) as MetaManifest };
+}
+
 export default function LessonsPage() {
+  const { meta } = useLoaderData() as { meta: MetaManifest };
   const userData = useContext(UserDataContext);
   const navigate = useNavigate();
   const isTeacher = userData?.userInfo?.role === 'teacher';
-  const [meta, setMeta] = useState<MetaManifest>({});
+
   const [selectedStandards, setSelectedStandards] = useState<Set<string>>(new Set());
   const [filterOpen, setFilterOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-
-  const [activeLessonPlan, setActiveLessonPlan] = useState<string | null>(null);
-  const [lessonPlanContent, setLessonPlanContent] = useState('');
-  const [loadingPlan, setLoadingPlan] = useState(false);
-  const lessonPlanRef = useRef<HTMLDivElement>(null);
 
   const [showImportDialog, setShowImportDialog] = useState<string | null>(null);
   const [classrooms, setClassrooms] = useState<Classroom[]>([]);
@@ -82,19 +126,13 @@ export default function LessonsPage() {
   const [importSuccess, setImportSuccess] = useState<string | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
+  const [classroomsLoaded, setClassroomsLoaded] = useState(false);
 
   useEffect(() => {
     document.documentElement.style.overflowY = 'auto';
     return () => {
       document.documentElement.style.overflowY = 'hidden';
     };
-  }, []);
-
-  useEffect(() => {
-    fetch('/templateProjects/meta.json')
-      .then((r) => r.json())
-      .then((data: MetaManifest) => setMeta(data))
-      .catch((err) => console.error('Failed to load lesson metadata', err));
   }, []);
 
   useEffect(() => {
@@ -136,36 +174,10 @@ export default function LessonsPage() {
     return false;
   });
 
-  const openLessonPlan = async (name: string) => {
-    const lesson = meta[name];
-    if (!lesson.lessonPlanDoc) return;
-    setActiveLessonPlan(name);
-    setLoadingPlan(true);
-    try {
-      const res = await fetch(lesson.lessonPlanDoc);
-      // SPA fallback returns the index HTML for unknown paths with status
-      // 200, so the .ok check isn't enough — also reject anything that
-      // looks like an HTML document.
-      const text = res.ok ? await res.text() : '';
-      const looksLikeHtml = /^\s*<!doctype html|^\s*<html\b/i.test(text);
-      if (!res.ok || looksLikeHtml) {
-        setLessonPlanContent('Failed to load lesson plan.');
-      } else {
-        setLessonPlanContent(text);
-      }
-    } catch {
-      setLessonPlanContent('Failed to load lesson plan.');
-    } finally {
-      setLoadingPlan(false);
-    }
-  };
-
-  const openImportDialog = async (lessonName: string) => {
-    setShowImportDialog(lessonName);
+  const ensureClassroomsLoaded = async () => {
+    if (classroomsLoaded || loadingClassrooms) return;
     if (!isLoggedIn) return;
     setLoadingClassrooms(true);
-    setImportError(null);
-    setImportSuccess(null);
     try {
       const res = await fetch(`${apiUrl}/classrooms/`, { credentials: 'include' });
       if (res.ok) {
@@ -176,17 +188,23 @@ export default function LessonsPage() {
           name: c.name,
           studentCount: c.participants?.length ?? 0,
         });
-        // Only classrooms the user owns (is instructor of) — draft/publish
-        // require instructor privileges.
         setClassrooms((data.owner ?? []).map(toClassroom));
       } else {
         setClassrooms([]);
       }
+      setClassroomsLoaded(true);
     } catch {
       setClassrooms([]);
     } finally {
       setLoadingClassrooms(false);
     }
+  };
+
+  const openImportDialog = (lessonName: string) => {
+    setShowImportDialog(lessonName);
+    setImportError(null);
+    setImportSuccess(null);
+    ensureClassroomsLoaded();
   };
 
   const importLesson = async (lessonName: string, dest: ImportDestination) => {
@@ -224,9 +242,6 @@ export default function LessonsPage() {
       });
       if (!res.ok) throw new Error((await res.text()) || `Upload failed (${res.status})`);
       setImportSuccess(destinationKey(dest));
-      // When the teacher imported into a classroom, jump to that classroom's
-      // page so they can see the new draft / published assignment right away.
-      // Workspace imports stay on the lessons page.
       if (dest.kind === 'draft' || dest.kind === 'publish') {
         setTimeout(() => navigate(`/classrooms/${dest.classroomId}?tab=assignments`), 600);
       } else {
@@ -249,6 +264,18 @@ export default function LessonsPage() {
       else next.add(id);
       return next;
     });
+  };
+
+  const outletContext: LessonOutletContext = {
+    meta,
+    isLoggedIn,
+    isTeacher,
+    classrooms,
+    loadingClassrooms,
+    importing,
+    importSuccess,
+    ensureClassroomsLoaded,
+    importLesson,
   };
 
   return (
@@ -372,11 +399,14 @@ export default function LessonsPage() {
                 return (
                   <LessonCard
                     key={name}
+                    name={name}
                     displayName={displayName}
                     lesson={lesson}
                     isTeacher={isTeacher}
                     selectedStandards={selectedStandards}
-                    onViewPlan={() => openLessonPlan(name)}
+                    onViewPlan={() =>
+                      navigate(`/lessons/${name}`, { preventScrollReset: true })
+                    }
                     onImport={() => openImportDialog(name)}
                   />
                 );
@@ -388,34 +418,10 @@ export default function LessonsPage() {
 
       <Footer />
 
-      {/* Lesson plan viewer overlay */}
-      {activeLessonPlan && (
-        <LessonPlanPanel
-          lessonName={activeLessonPlan}
-          loading={loadingPlan}
-          content={lessonPlanContent}
-          markdownRef={lessonPlanRef}
-          isLoggedIn={!!isLoggedIn}
-          isTeacher={isTeacher}
-          classrooms={classrooms}
-          loadingClassrooms={loadingClassrooms}
-          importing={importing}
-          importSuccess={importSuccess}
-          onClose={() => setActiveLessonPlan(null)}
-          onPrint={() => {
-            if (lessonPlanRef.current) {
-              printMarkdownElement(
-                lessonPlanRef.current,
-                activeLessonPlan.replace(/[-_]/g, ' '),
-              );
-            }
-          }}
-          onOpenImportDialog={() => openImportDialog(activeLessonPlan)}
-          onImport={(dest) => importLesson(activeLessonPlan, dest)}
-        />
-      )}
+      {/* Lesson plan panel — rendered by the child route via Outlet */}
+      <Outlet context={outletContext} />
 
-      {/* Import dialog */}
+      {/* Import dialog (triggered by the Import button on a card) */}
       {showImportDialog && (
         <ImportDialog
           lessonName={showImportDialog}
@@ -439,6 +445,7 @@ export default function LessonsPage() {
 }
 
 function LessonCard({
+  name,
   displayName,
   lesson,
   isTeacher,
@@ -446,6 +453,7 @@ function LessonCard({
   onViewPlan,
   onImport,
 }: {
+  name: string;
   displayName: string;
   lesson: LessonMeta;
   isTeacher: boolean;
@@ -460,7 +468,17 @@ function LessonCard({
       className="bg-paper-elevated border border-rule-soft rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow flex flex-col gap-3 cursor-pointer"
     >
       {/* Title */}
-      <h2 className="heading-3">{displayName}</h2>
+      <h2 className="heading-3">
+        {/* Real anchor for crawlers + middle-click + open-in-new-tab. The
+            outer div handles SPA navigation for normal clicks. */}
+        <a
+          href={`/lessons/${name}`}
+          onClick={(e) => e.preventDefault()}
+          className="text-inherit no-underline"
+        >
+          {displayName}
+        </a>
+      </h2>
 
       {/* Standards */}
       {(lesson.standards ?? []).length > 0 && (
@@ -556,183 +574,6 @@ function LessonCard({
           >
             Import
           </PrimaryButton>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function LessonPlanPanel({
-  lessonName,
-  loading,
-  content,
-  markdownRef,
-  isLoggedIn,
-  isTeacher,
-  classrooms,
-  loadingClassrooms,
-  importing,
-  importSuccess,
-  onClose,
-  onPrint,
-  onOpenImportDialog,
-  onImport,
-}: {
-  lessonName: string;
-  loading: boolean;
-  content: string;
-  markdownRef: React.RefObject<HTMLDivElement | null>;
-  isLoggedIn: boolean;
-  isTeacher: boolean;
-  classrooms: Classroom[];
-  loadingClassrooms: boolean;
-  importing: boolean;
-  importSuccess: string | null;
-  onClose: () => void;
-  onPrint: () => void;
-  onOpenImportDialog: () => void;
-  onImport: (dest: ImportDestination) => void;
-}) {
-  const [importMenuOpen, setImportMenuOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!importMenuOpen) return;
-    const handler = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setImportMenuOpen(false);
-      }
-    };
-    window.addEventListener('mousedown', handler);
-    return () => window.removeEventListener('mousedown', handler);
-  }, [importMenuOpen]);
-
-  const handleImportClick = () => {
-    if (!isLoggedIn) {
-      onOpenImportDialog();
-      return;
-    }
-    setImportMenuOpen((v) => !v);
-  };
-
-  return (
-    <div className="fixed inset-0 z-50 flex">
-      <div
-        className="absolute inset-0 bg-ink-strong/60"
-        onClick={onClose}
-      />
-      <div className="relative ml-auto w-full max-w-3xl bg-paper-elevated border-l border-rule-soft flex flex-col h-full overflow-hidden shadow-lg slide-in-right">
-        <div className="px-7 py-4 border-b border-rule-soft flex items-center justify-between gap-3 flex-shrink-0">
-          <div className="min-w-0">
-            <div className="eyebrow text-ink-muted mb-0.5">Lesson plan</div>
-            <div className="heading-3 truncate">{lessonName.replace(/[-_]/g, ' ')}</div>
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <GhostButton icon={<Printer size={14} />} onClick={onPrint}>
-              Print
-            </GhostButton>
-            <div className="relative" ref={menuRef}>
-              <PrimaryButton
-                color="navy"
-                onClick={handleImportClick}
-                icon={<Download size={14} />}
-              >
-                Import
-                <ChevronDown size={14} />
-              </PrimaryButton>
-              {importMenuOpen && isLoggedIn && (
-                <div className="absolute right-0 top-full mt-2 w-[300px] bg-paper-elevated border border-rule-soft rounded-lg shadow-md z-10 overflow-hidden">
-                  <button
-                    type="button"
-                    disabled={importing}
-                    onClick={() => {
-                      setImportMenuOpen(false);
-                      onImport({ kind: 'workspace' });
-                    }}
-                    className="w-full text-left px-4 py-3 hover:bg-paper-tinted transition-colors flex items-start gap-2.5 disabled:opacity-50"
-                  >
-                    <User size={16} className="mt-0.5 text-navy shrink-0" />
-                    <div className="min-w-0 flex-1">
-                      <div className="text-sm font-semibold text-ink-strong">
-                        Import to my workspace
-                      </div>
-                      <div className="text-xs text-ink-muted">
-                        Private to you. Not linked to any classroom.
-                      </div>
-                    </div>
-                    {importSuccess === '_workspace' && (
-                      <Check size={14} className="text-forest mt-1 shrink-0" />
-                    )}
-                  </button>
-                  {isTeacher && classrooms.length > 0 && (
-                    <div className="border-t border-rule-soft">
-                      <div className="eyebrow text-ink-muted px-4 pt-3 pb-1">
-                        Your classrooms
-                      </div>
-                      {classrooms.map((classroom) => (
-                        <div
-                          key={classroom.id}
-                          className="px-4 py-2 hover:bg-paper-tinted transition-colors"
-                        >
-                          <div className="text-sm font-semibold text-ink-strong truncate">
-                            {classroom.name}
-                          </div>
-                          <div className="flex items-center gap-2 mt-1.5">
-                            <button
-                              type="button"
-                              disabled={importing}
-                              onClick={() => {
-                                setImportMenuOpen(false);
-                                onImport({ kind: 'draft', classroomId: classroom.id });
-                              }}
-                              className="inline-flex items-center gap-1 text-xs font-semibold text-ochre bg-ochre-soft px-2 py-1 rounded-md hover:brightness-95 transition-[filter] disabled:opacity-50"
-                            >
-                              <FileEdit size={12} />
-                              Save as draft
-                            </button>
-                            <button
-                              type="button"
-                              disabled={importing}
-                              onClick={() => {
-                                setImportMenuOpen(false);
-                                onImport({ kind: 'publish', classroomId: classroom.id });
-                              }}
-                              className="inline-flex items-center gap-1 text-xs font-semibold text-forest bg-forest-soft px-2 py-1 rounded-md hover:brightness-95 transition-[filter] disabled:opacity-50"
-                            >
-                              <Send size={12} />
-                              Publish
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  {isTeacher && !loadingClassrooms && classrooms.length === 0 && (
-                    <div className="border-t border-rule-soft px-4 py-3 text-xs text-ink-muted">
-                      You aren't a teacher in any classrooms yet.
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-            <button
-              type="button"
-              onClick={onClose}
-              aria-label="Close"
-              className="p-2 rounded-md hover:bg-paper-tinted text-ink-muted hover:text-ink-strong transition-colors"
-            >
-              <X size={18} />
-            </button>
-          </div>
-        </div>
-        <div className="flex-1 overflow-y-auto p-7">
-          {loading ? (
-            <div className="text-center body text-ink-muted py-12">Loading...</div>
-          ) : (
-            <div className="markdown-content" ref={markdownRef}>
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
-            </div>
-          )}
         </div>
       </div>
     </div>

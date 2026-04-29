@@ -1,10 +1,15 @@
-import { useEffect, useState, useCallback, useContext } from 'react';
+import { useEffect, useState, useCallback, useContext, lazy, Suspense } from 'react';
 import { apiUrl, UserDataContext } from '../util/UserData';
 import { TerminalTabBar } from './TerminalTabBar';
 import { cn } from '../util/cn';
 import { Globe, Loader2 } from 'lucide-react';
 import PortsPanel from './PortsPanel';
-import { TerminalSession } from './TerminalSession';
+
+// Lazy-loaded so xterm (browser-only, references `self` at module init) is
+// never evaluated server-side during the prerender pass.
+const TerminalSession = lazy(() =>
+  import('./TerminalSession').then((m) => ({ default: m.TerminalSession })),
+);
 
 // Suppress the Ctrl+Shift+C copy hint on macOS where Cmd+C works as expected.
 const isMacLike =
@@ -234,13 +239,15 @@ export default function TerminalTabs() {
         </div>
       </div>
       <div className="flex-1 relative bg-ide-bg">
-        {tabs.map((tabId) => (
-          <TerminalSession
-            key={tabId + '-' + restartToken}
-            tabId={tabId}
-            isActive={activeTab === tabId}
-          />
-        ))}
+        <Suspense fallback={null}>
+          {tabs.map((tabId) => (
+            <TerminalSession
+              key={tabId + '-' + restartToken}
+              tabId={tabId}
+              isActive={activeTab === tabId}
+            />
+          ))}
+        </Suspense>
       </div>
       {!isMacLike && (
         <div
