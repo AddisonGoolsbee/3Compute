@@ -2,12 +2,13 @@ import fnmatch
 import logging
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 from sqlmodel import Session, select
 
 from ..database import AllowlistEntry, SignupCode, User
 from ..dependencies import get_current_user, get_db
+from .auth import allocate_port_range
 
 logger = logging.getLogger("users")
 router = APIRouter()
@@ -57,9 +58,23 @@ async def get_allowed_roles(
     return {"roles": _get_allowed_roles(user.email, db)}
 
 
+def _ensure_port_range(user: User, request: Request, db: Session) -> None:
+    """Allocate a 10-port range to a user that doesn't have one yet.
+
+    New users sign in with port_start/port_end == 0 (sentinel). The first time
+    they finish onboarding (set_role or redeem_code) we hand them their slot.
+    """
+    if user.port_start and user.port_end:
+        return
+    port_start, port_end = allocate_port_range(db, request.app.state.settings.port_base)
+    user.port_start = port_start
+    user.port_end = port_end
+
+
 @router.post("/role")
 async def set_role(
     body: RoleRequest,
+    request: Request,
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -68,6 +83,7 @@ async def set_role(
     if body.role not in _get_allowed_roles(user.email, db):
         raise HTTPException(status_code=403, detail="Not authorized for this role")
     user.role = body.role
+    _ensure_port_range(user, request, db)
     db.add(user)
     db.commit()
     db.refresh(user)
@@ -77,6 +93,7 @@ async def set_role(
 @router.post("/redeem-code")
 async def redeem_code(
     body: RedeemCodeRequest,
+    request: Request,
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -99,6 +116,7 @@ async def redeem_code(
         raise HTTPException(status_code=500, detail="Code role is invalid")
 
     user.role = entry.role
+    _ensure_port_range(user, request, db)
     entry.times_used += 1
     entry.last_used_at = datetime.utcnow()
     db.add(user)

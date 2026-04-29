@@ -49,6 +49,26 @@ def _max_container_port_end() -> int | None:
     except Exception:
         logger.warning("Failed to query Docker for in-use port ranges", exc_info=True)
         return None
+
+
+def allocate_port_range(db: Session, port_base: int) -> tuple[int, int]:
+    """Pick the next free 10-port range (start, end inclusive).
+
+    Looks at MAX(port_end) across all users and the highest port currently
+    bound by a running user container, then takes the first 10-port slot above
+    both. Stored sentinels of 0 (unallocated, pre-onboarding) are ignored by
+    the truthiness check on max_port_end.
+    """
+    max_port_end = db.exec(select(func.max(User.port_end))).one()
+    port_start = (max_port_end + 1) if max_port_end else port_base
+
+    docker_max = _max_container_port_end()
+    if docker_max is not None and docker_max >= port_start:
+        port_start = docker_max + 1
+
+    return port_start, port_start + 9
+
+
 oauth = OAuth()
 _oauth_initialized = False
 
@@ -108,20 +128,16 @@ async def callback(request: Request, db: Session = Depends(get_db)):
         request.session["user_id"] = google_id
         return RedirectResponse(url=f"{settings.frontend_origin}/ide")
 
-    max_port_end = db.exec(select(func.max(User.port_end))).one()
-    port_start = (max_port_end + 1) if max_port_end is not None else settings.port_base
-
-    docker_max = _max_container_port_end()
-    if docker_max is not None and docker_max >= port_start:
-        port_start = docker_max + 1
-
+    # Defer port allocation until onboarding completes (set_role / redeem_code).
+    # New users get a 0/0 sentinel so unfinished signups don't burn a 10-port
+    # slot the user may never claim.
     user = User(
         id=google_id,
         email=email,
         name=name,
         avatar_url=avatar,
-        port_start=port_start,
-        port_end=port_start + 9,
+        port_start=0,
+        port_end=0,
     )
     db.add(user)
     db.commit()

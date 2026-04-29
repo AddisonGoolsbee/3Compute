@@ -96,6 +96,11 @@ export default function ClassroomDetailPage({
   const [classroom, setClassroom] = useState<ClassroomInfo | null>(null);
   const [progress, setProgress] = useState<ProgressData | null>(null);
   const [weights, setWeights] = useState<WeightsData | null>(null);
+  // Per-classroom membership role: instructors see Students/Gradebook tabs and
+  // teacher controls; participants see a stripped-down assignments-only view.
+  // The caller's *global* role (teacher/student) is not a substitute — a
+  // teacher can still join another classroom as a participant.
+  const [isInstructor, setIsInstructor] = useState<boolean>(demoMode);
   const [activeTab, setActiveTab] = useState<'students' | 'gradebook' | 'assignments'>(() => {
     // Honor `?tab=assignments` so links like post-import navigation land on
     // the right tab instead of the default Students view.
@@ -119,9 +124,19 @@ export default function ClassroomDetailPage({
     }
     const res = await fetch(`${apiUrl}/classrooms/`, { credentials: 'include' });
     const data = await res.json();
-    const all = [...(data.owner ?? []), ...(data.joined ?? [])];
-    const found = all.find((c: ClassroomInfo) => c.id === id);
-    if (found) setClassroom(found);
+    const owner = [...(data.owner ?? []), ...(data.owner_archived ?? [])];
+    const joined = [...(data.joined ?? []), ...(data.joined_archived ?? [])];
+    const ownerMatch = owner.find((c: ClassroomInfo) => c.id === id);
+    if (ownerMatch) {
+      setClassroom(ownerMatch);
+      setIsInstructor(true);
+      return;
+    }
+    const joinedMatch = joined.find((c: ClassroomInfo) => c.id === id);
+    if (joinedMatch) {
+      setClassroom(joinedMatch);
+      setIsInstructor(false);
+    }
   }, [id, demoMode, apiBase]);
 
   const fetchProgress = useCallback(async () => {
@@ -134,6 +149,17 @@ export default function ClassroomDetailPage({
       }
     }
   }, [apiBase, selectedTemplate]);
+
+  const fetchMyProgress = useCallback(async () => {
+    const res = await fetch(`${apiBase}/my-progress`, { credentials: 'include' });
+    if (res.ok) {
+      const data: { templates: string[]; results: Record<string, StudentResult> } = await res.json();
+      setProgress({
+        students: [],
+        templates: data.templates,
+      });
+    }
+  }, [apiBase]);
 
   const fetchWeights = useCallback(async () => {
     const res = await fetch(`${apiBase}/weights`, { credentials: 'include' });
@@ -148,9 +174,22 @@ export default function ClassroomDetailPage({
   }, []);
 
   useEffect(() => {
-    Promise.all([fetchClassroom(), fetchProgress(), fetchWeights()])
-      .finally(() => setLoading(false));
-  }, [fetchClassroom, fetchProgress, fetchWeights]);
+    // Resolve the classroom first so we know which detail endpoints to call:
+    // /progress and /weights are instructor-only (403 for participants), and
+    // /my-progress is participant-friendly. The second effect picks the right
+    // pair once `classroom` and `isInstructor` are known.
+    fetchClassroom().finally(() => setLoading(false));
+  }, [fetchClassroom]);
+
+  useEffect(() => {
+    if (!classroom) return;
+    if (demoMode || isInstructor) {
+      fetchProgress();
+      fetchWeights();
+    } else {
+      fetchMyProgress();
+    }
+  }, [classroom, demoMode, isInstructor, fetchProgress, fetchMyProgress, fetchWeights]);
 
   const runTests = async (templateName?: string) => {
     if (readOnly) return;
@@ -365,7 +404,7 @@ export default function ClassroomDetailPage({
                 <HelpCircle size={18} />
               </button>
 
-              {!readOnly && (
+              {!readOnly && isInstructor && (
                 <button
                   type="button"
                   onClick={() => setSettingsOpen(true)}
@@ -379,26 +418,28 @@ export default function ClassroomDetailPage({
             </div>
           </div>
 
-          {/* Tabs */}
-          <div className="flex gap-1 mb-5 border-b border-rule-soft">
-            {(['students', 'gradebook', 'assignments'] as const).map((tab) => (
-              <button
-                key={tab}
-                type="button"
-                onClick={() => setActiveTab(tab)}
-                className={cn(
-                  'px-4 py-3 bg-transparent border-0 cursor-pointer text-sm font-semibold border-b-2 -mb-px font-sans transition-colors capitalize',
-                  activeTab === tab
-                    ? 'border-navy text-ink-strong'
-                    : 'border-transparent text-ink-muted hover:text-ink-strong',
-                )}
-              >
-                {tab === 'students' ? 'Students' : tab === 'gradebook' ? 'Gradebook' : 'Assignments'}
-              </button>
-            ))}
-          </div>
+          {/* Tabs — instructor-only. Participants only see published assignments. */}
+          {(demoMode || isInstructor) && (
+            <div className="flex gap-1 mb-5 border-b border-rule-soft">
+              {(['students', 'gradebook', 'assignments'] as const).map((tab) => (
+                <button
+                  key={tab}
+                  type="button"
+                  onClick={() => setActiveTab(tab)}
+                  className={cn(
+                    'px-4 py-3 bg-transparent border-0 cursor-pointer text-sm font-semibold border-b-2 -mb-px font-sans transition-colors capitalize',
+                    activeTab === tab
+                      ? 'border-navy text-ink-strong'
+                      : 'border-transparent text-ink-muted hover:text-ink-strong',
+                  )}
+                >
+                  {tab === 'students' ? 'Students' : tab === 'gradebook' ? 'Gradebook' : 'Assignments'}
+                </button>
+              ))}
+            </div>
+          )}
 
-          {activeTab === 'students' ? (
+          {(demoMode || isInstructor) && activeTab === 'students' ? (
             <StudentsTab
               classroomId={id!}
               apiBase={apiBase}
@@ -409,7 +450,7 @@ export default function ClassroomDetailPage({
               onRunTests={runTests}
               runningTests={runningTests}
             />
-          ) : activeTab === 'gradebook' ? (
+          ) : (demoMode || isInstructor) && activeTab === 'gradebook' ? (
             <GradebookTab
               apiBase={apiBase}
               readOnly={readOnly}
@@ -424,8 +465,9 @@ export default function ClassroomDetailPage({
               classroomId={id!}
               apiBase={apiBase}
               readOnly={readOnly}
+              isInstructor={demoMode || isInstructor}
               templates={progress?.templates ?? []}
-              onPublished={fetchProgress}
+              onPublished={(demoMode || isInstructor) ? fetchProgress : fetchMyProgress}
             />
           )}
         </div>
@@ -820,7 +862,7 @@ function StudentsTab({
     setTestResult(null);
   }, [selectedTemplate]);
 
-  if (!progress || progress.templates.length === 0) {
+  if (!progress || (progress.templates.length === 0 && progress.students.length === 0)) {
     return (
       <div className="py-6 max-w-3xl mx-auto">
         <div className="text-center mb-8">
@@ -895,46 +937,49 @@ function StudentsTab({
 
   return (
     <div>
-      {/* Assignment selector pills */}
-      <div className="flex items-center justify-between gap-4 mb-3.5 flex-wrap">
-        <div className="flex items-center gap-1.5 flex-wrap">
-          <span className="text-ink-muted text-xs uppercase tracking-wider mr-2 font-semibold">
-            Assignment
-          </span>
-          {progress.templates.map((t) => {
-            const active = selectedTemplate === t;
-            return (
-              <button
-                key={t}
-                type="button"
-                onClick={() => onSelectTemplate(t)}
-                className={cn(
-                  'px-3.5 py-1.5 rounded-full text-[13px] border cursor-pointer font-sans font-semibold whitespace-nowrap transition-colors',
-                  active
-                    ? 'bg-navy text-white border-navy'
-                    : 'bg-transparent border-rule text-ink-muted hover:text-ink-strong',
-                )}
-              >
-                {t}
-              </button>
-            );
-          })}
-        </div>
-        {!readOnly && (
-          <div className="flex items-center gap-3 shrink-0">
-            <span className="caption">Scores update when you run tests.</span>
-            <button
-              type="button"
-              onClick={() => onRunTests(selectedTemplate)}
-              disabled={runningTests}
-              className="text-navy hover:text-navy/80 font-semibold inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md hover:bg-paper-tinted text-sm cursor-pointer transition-colors disabled:opacity-50"
-            >
-              {runningTests ? <RefreshCw size={14} className="animate-spin" /> : <Play size={14} />}
-              {runningTests ? 'Running…' : 'Run tests'}
-            </button>
+      {progress.templates.length > 0 ? (
+        <div className="flex items-center justify-between gap-4 mb-3.5 flex-wrap">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="text-ink-muted text-xs uppercase tracking-wider mr-2 font-semibold">
+              Assignment
+            </span>
+            {progress.templates.map((t) => {
+              const active = selectedTemplate === t;
+              return (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => onSelectTemplate(t)}
+                  className={cn(
+                    'px-3.5 py-1.5 rounded-full text-[13px] border cursor-pointer font-sans font-semibold whitespace-nowrap transition-colors',
+                    active
+                      ? 'bg-navy text-white border-navy'
+                      : 'bg-transparent border-rule text-ink-muted hover:text-ink-strong',
+                  )}
+                >
+                  {t}
+                </button>
+              );
+            })}
           </div>
-        )}
-      </div>
+          {!readOnly && (
+            <div className="flex items-center gap-3 shrink-0">
+              <span className="caption">Scores update when you run tests.</span>
+              <button
+                type="button"
+                onClick={() => onRunTests(selectedTemplate)}
+                disabled={runningTests}
+                className="text-navy hover:text-navy/80 font-semibold inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md hover:bg-paper-tinted text-sm cursor-pointer transition-colors disabled:opacity-50"
+              >
+                {runningTests ? <RefreshCw size={14} className="animate-spin" /> : <Play size={14} />}
+                {runningTests ? 'Running…' : 'Run tests'}
+              </button>
+            </div>
+          )}
+        </div>
+      ) : (
+        <p className="body-sm mb-3.5">No assignments yet — upload one in the Assignments tab to start grading.</p>
+      )}
 
       {progress.students.length === 0 ? (
         <div className="bg-paper-elevated border border-rule-soft rounded-lg shadow-sm p-10 text-center body-sm">
@@ -1545,12 +1590,14 @@ function AssignmentsTab({
   classroomId,
   apiBase,
   readOnly,
+  isInstructor,
   templates,
   onPublished,
 }: {
   classroomId: string;
   apiBase: string;
   readOnly: boolean;
+  isInstructor: boolean;
   templates: string[];
   onPublished: () => Promise<void> | void;
 }) {
@@ -1564,6 +1611,11 @@ function AssignmentsTab({
   const folderInputRef = useRef<HTMLInputElement>(null);
 
   const fetchDrafts = useCallback(async () => {
+    if (!isInstructor) {
+      // /drafts is instructor-only; participants don't have drafts to see.
+      setLoading(false);
+      return;
+    }
     try {
       const res = await fetch(`${apiBase}/drafts`, { credentials: 'include' });
       if (res.ok) {
@@ -1573,7 +1625,7 @@ function AssignmentsTab({
     } finally {
       setLoading(false);
     }
-  }, [apiBase]);
+  }, [apiBase, isInstructor]);
 
   useEffect(() => { fetchDrafts(); }, [fetchDrafts]);
 
@@ -1697,10 +1749,12 @@ function AssignmentsTab({
         <div>
           <h3 className="heading-3">Assignments</h3>
           <p className="body-sm mt-1">
-            {readOnly ? 'Published templates for this classroom.' : 'Drafts and published templates for this classroom.'}
+            {!isInstructor
+              ? 'Assignments published to this classroom.'
+              : readOnly ? 'Published templates for this classroom.' : 'Drafts and published templates for this classroom.'}
           </p>
         </div>
-        {!readOnly && (
+        {!readOnly && isInstructor && (
           <div className="flex items-center gap-2">
             <Link
               to="/lessons"
@@ -1710,142 +1764,150 @@ function AssignmentsTab({
               <BookOpen size={14} />
             Browse lessons
             </Link>
-            <label className="cursor-pointer">
-              <PrimaryButton size="sm" color="navy" icon={<Upload size={14} />}>
-                {uploading ? 'Uploading…' : 'Upload assignment'}
-              </PrimaryButton>
-              <input
-                ref={folderInputRef}
-                type="file"
-                className="hidden"
-                {...{ webkitdirectory: '', directory: '' } as React.InputHTMLAttributes<HTMLInputElement>}
-                onChange={(e) => e.target.files && handleUpload(e.target.files)}
-                disabled={uploading}
-              />
-            </label>
+            <PrimaryButton
+              size="sm"
+              color="navy"
+              icon={<Upload size={14} />}
+              onClick={() => folderInputRef.current?.click()}
+              disabled={uploading}
+            >
+              {uploading ? 'Uploading…' : 'Upload assignment'}
+            </PrimaryButton>
+            <input
+              ref={folderInputRef}
+              type="file"
+              className="hidden"
+              {...{ webkitdirectory: '', directory: '' } as React.InputHTMLAttributes<HTMLInputElement>}
+              onChange={(e) => e.target.files && handleUpload(e.target.files)}
+              disabled={uploading}
+            />
           </div>
         )}
       </div>
 
-      {/* Drafts */}
-      <div className="mb-6">
-        <div className="flex items-center gap-2 mb-3">
-          <span className="eyebrow text-ochre">Drafts</span>
-          <span className="caption">Edit and preview before publishing.</span>
-        </div>
-        {drafts.length === 0 ? (
-          <div className="bg-paper-elevated border border-rule-soft rounded-lg shadow-sm p-6 text-center body-sm">
+      {/* Drafts (instructor-only) */}
+      {isInstructor && (
+        <div className="mb-6">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="eyebrow text-ochre">Drafts</span>
+            <span className="caption">Edit and preview before publishing.</span>
+          </div>
+          {drafts.length === 0 ? (
+            <div className="bg-paper-elevated border border-rule-soft rounded-lg shadow-sm p-6 text-center body-sm">
           No drafts. Upload a folder above to create one.
-          </div>
-        ) : (
-          <div className="flex flex-col gap-3">
-            {drafts.map((draft) => (
-              <div
-                key={draft.name}
-                className="bg-paper-elevated border border-rule-soft rounded-lg p-5 shadow-sm flex items-start justify-between gap-4"
-              >
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    {renamingDraft === draft.name && !readOnly ? (
-                      <input
-                        autoFocus
-                        value={renameDraftValue}
-                        onChange={(e) => setRenameDraftValue(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault();
-                            commitRenameDraft(draft.name);
-                          } else if (e.key === 'Escape') {
-                            e.preventDefault();
-                            cancelRenameDraft();
-                          }
-                        }}
-                        onBlur={() => commitRenameDraft(draft.name)}
-                        onFocus={(e) => e.currentTarget.select()}
-                        className="bg-paper border border-rule rounded-md px-3 py-1.5 text-ink-strong text-base font-semibold outline-none focus:ring-2 focus:ring-navy/30 w-full"
-                      />
-                    ) : (
-                      <>
-                        <p className="heading-4 truncate mb-0">{draft.name}</p>
-                        <Pill color="ochre">Draft</Pill>
-                      </>
-                    )}
+            </div>
+          ) : (
+            <div className="flex flex-col gap-3">
+              {drafts.map((draft) => (
+                <div
+                  key={draft.name}
+                  className="bg-paper-elevated border border-rule-soft rounded-lg p-5 shadow-sm flex items-start justify-between gap-4"
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      {renamingDraft === draft.name && !readOnly ? (
+                        <input
+                          autoFocus
+                          value={renameDraftValue}
+                          onChange={(e) => setRenameDraftValue(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              commitRenameDraft(draft.name);
+                            } else if (e.key === 'Escape') {
+                              e.preventDefault();
+                              cancelRenameDraft();
+                            }
+                          }}
+                          onBlur={() => commitRenameDraft(draft.name)}
+                          onFocus={(e) => e.currentTarget.select()}
+                          className="bg-paper border border-rule rounded-md px-3 py-1.5 text-ink-strong text-base font-semibold outline-none focus:ring-2 focus:ring-navy/30 w-full"
+                        />
+                      ) : (
+                        <>
+                          <p className="heading-4 truncate mb-0">{draft.name}</p>
+                          <Pill color="ochre">Draft</Pill>
+                        </>
+                      )}
+                    </div>
+                    <p className="body-sm mt-1">
+                      {draft.files.length} {draft.files.length === 1 ? 'file' : 'files'}
+                    </p>
                   </div>
-                  <p className="body-sm mt-1">
-                    {draft.files.length} {draft.files.length === 1 ? 'file' : 'files'}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
-                  {readOnly ? (
-                    <span
-                      className="text-ink-muted inline-flex items-center gap-1.5 px-3 py-2 rounded-md text-sm cursor-not-allowed opacity-60"
-                      title="Sign up to edit drafts in your own workspace."
-                    >
-                      <ExternalLink size={14} />
+                  <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+                    {readOnly ? (
+                      <span
+                        className="text-ink-muted inline-flex items-center gap-1.5 px-3 py-2 rounded-md text-sm cursor-not-allowed opacity-60"
+                        title="Sign up to edit drafts in your own workspace."
+                      >
+                        <ExternalLink size={14} />
                       Edit in workspace
-                    </span>
-                  ) : (
-                    <Link
-                      to={`/ide?classroom=${classroomId}&folder=${encodeURIComponent('drafts/' + draft.name)}`}
-                      className="text-navy hover:text-navy/80 font-semibold inline-flex items-center gap-1.5 px-3 py-2 rounded-md hover:bg-paper-tinted text-sm no-underline transition-colors"
-                      title="Open in workspace to edit"
-                    >
-                      <ExternalLink size={14} />
+                      </span>
+                    ) : (
+                      <Link
+                        to={`/ide?classroom=${classroomId}&folder=${encodeURIComponent('drafts/' + draft.name)}`}
+                        className="text-navy hover:text-navy/80 font-semibold inline-flex items-center gap-1.5 px-3 py-2 rounded-md hover:bg-paper-tinted text-sm no-underline transition-colors"
+                        title="Open in workspace to edit"
+                      >
+                        <ExternalLink size={14} />
                     Edit in workspace
-                    </Link>
-                  )}
-                  <PrimaryButton
-                    size="sm"
-                    color="forest"
-                    icon={<Send size={14} />}
-                    onClick={() => { if (!readOnly) publishDraft(draft.name); }}
-                    disabled={readOnly || publishing === draft.name || renamingDraft === draft.name}
-                    title={readOnly ? 'Sign up to publish drafts.' : undefined}
-                  >
-                    {publishing === draft.name ? 'Publishing…' : 'Publish'}
-                  </PrimaryButton>
-                  <button
-                    type="button"
-                    onClick={() => { if (!readOnly) startRenameDraft(draft.name); }}
-                    disabled={readOnly}
-                    className={cn(
-                      'p-2 rounded-md text-ink-muted transition-colors',
-                      readOnly ? 'opacity-60 cursor-not-allowed' : 'hover:text-ink-strong hover:bg-paper-tinted cursor-pointer',
+                      </Link>
                     )}
-                    title={readOnly ? 'Sign up to rename drafts.' : 'Rename draft'}
-                    aria-label="Rename draft"
-                  >
-                    <Pencil size={14} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => { if (!readOnly) deleteDraft(draft.name); }}
-                    disabled={readOnly}
-                    className={cn(
-                      'p-2 rounded-md text-tomato transition-colors',
-                      readOnly ? 'opacity-60 cursor-not-allowed' : 'hover:bg-tomato/10 cursor-pointer',
-                    )}
-                    title={readOnly ? 'Sign up to delete drafts.' : 'Delete draft'}
-                    aria-label="Delete draft"
-                  >
-                    <Trash2 size={14} />
-                  </button>
+                    <PrimaryButton
+                      size="sm"
+                      color="forest"
+                      icon={<Send size={14} />}
+                      onClick={() => { if (!readOnly) publishDraft(draft.name); }}
+                      disabled={readOnly || publishing === draft.name || renamingDraft === draft.name}
+                      title={readOnly ? 'Sign up to publish drafts.' : undefined}
+                    >
+                      {publishing === draft.name ? 'Publishing…' : 'Publish'}
+                    </PrimaryButton>
+                    <button
+                      type="button"
+                      onClick={() => { if (!readOnly) startRenameDraft(draft.name); }}
+                      disabled={readOnly}
+                      className={cn(
+                        'p-2 rounded-md text-ink-muted transition-colors',
+                        readOnly ? 'opacity-60 cursor-not-allowed' : 'hover:text-ink-strong hover:bg-paper-tinted cursor-pointer',
+                      )}
+                      title={readOnly ? 'Sign up to rename drafts.' : 'Rename draft'}
+                      aria-label="Rename draft"
+                    >
+                      <Pencil size={14} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { if (!readOnly) deleteDraft(draft.name); }}
+                      disabled={readOnly}
+                      className={cn(
+                        'p-2 rounded-md text-tomato transition-colors',
+                        readOnly ? 'opacity-60 cursor-not-allowed' : 'hover:bg-tomato/10 cursor-pointer',
+                      )}
+                      title={readOnly ? 'Sign up to delete drafts.' : 'Delete draft'}
+                      aria-label="Delete draft"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Published */}
       <div>
         <div className="flex items-center gap-2 mb-3">
           <span className="eyebrow text-forest">Published</span>
-          <span className="caption">Distributed to students.</span>
+          <span className="caption">{isInstructor ? 'Distributed to students.' : 'Available in your classroom folder.'}</span>
         </div>
         {templates.length === 0 && drafts.length === 0 ? (
           <div className="bg-paper-elevated border border-rule-soft rounded-lg shadow-sm p-6 text-center body-sm">
-            No assignments yet. Upload a folder to create a draft, then publish it to distribute to students.
+            {isInstructor
+              ? 'No assignments yet. Upload a folder to create a draft, then publish it to distribute to students.'
+              : 'No assignments yet. Your teacher will publish them here.'}
           </div>
         ) : templates.length === 0 ? (
           <div className="bg-paper-elevated border border-rule-soft rounded-lg shadow-sm p-6 text-center body-sm">
@@ -1863,7 +1925,7 @@ function AssignmentsTab({
                   <p className="heading-4 truncate mb-0">{t}</p>
                   <Pill color="forest">Published</Pill>
                 </div>
-                {!readOnly && (
+                {!readOnly && isInstructor && (
                   <div className="flex items-center gap-2 shrink-0">
                     <button
                       type="button"

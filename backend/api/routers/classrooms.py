@@ -1201,6 +1201,53 @@ async def get_classroom_progress(
     }
 
 
+@router.get("/{classroom_id}/my-progress")
+async def get_my_progress(
+    classroom_id: str,
+    user: User = Depends(get_onboarded_user),
+    db: Session = Depends(get_db),
+):
+    """Participant-facing view: published assignments + the caller's own scores.
+
+    Distinct from /progress (which is instructor-only and lists every student).
+    Available to any member of the classroom so students can see what they've
+    been assigned without exposing the rest of the cohort.
+    """
+    _require_classroom(db, classroom_id)
+    member = db.exec(
+        select(ClassroomMember).where(
+            ClassroomMember.classroom_id == classroom_id,
+            ClassroomMember.user_id == str(user.id),
+        )
+    ).first()
+    if not member:
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+    templates_dir = os.path.join(CLASSROOMS_ROOT, classroom_id, "assignments")
+    templates: list[str] = []
+    if os.path.isdir(templates_dir):
+        templates = sorted(
+            e for e in os.listdir(templates_dir)
+            if os.path.isdir(os.path.join(templates_dir, e))
+        )
+
+    own_results = db.exec(
+        select(TestResult).where(
+            TestResult.classroom_id == classroom_id,
+            TestResult.user_id == str(user.id),
+        )
+    ).all()
+    result_map = {
+        r.template_name: {"passed": r.tests_passed, "total": r.tests_total}
+        for r in own_results
+    }
+
+    return {
+        "templates": templates,
+        "results": {t: result_map.get(t, {"passed": 0, "total": 0}) for t in templates},
+    }
+
+
 class RunStudentTestsRequest(BaseModel):
     student_email: str
     template_name: str
