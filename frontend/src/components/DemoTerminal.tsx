@@ -69,6 +69,19 @@ function dirExists(files: Record<string, string>, dir: string): boolean {
   return Object.keys(files).some((p) => p.startsWith(norm));
 }
 
+// Split a command line into argv, honoring single + double quotes so
+// e.g. ``cd "two-sum (draft)/"`` arrives as one arg with a space in it.
+// Trailing slash and other glob metacharacters are passed through verbatim.
+function tokenize(line: string): string[] {
+  const tokens: string[] = [];
+  const re = /"((?:[^"\\]|\\.)*)"|'([^']*)'|(\S+)/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(line)) !== null) {
+    tokens.push(m[1] ?? m[2] ?? m[3] ?? '');
+  }
+  return tokens;
+}
+
 export function DemoTerminal({
   files, greeting, initialCwd = '', promptUser = 'student@demo',
 }: DemoTerminalProps) {
@@ -187,23 +200,25 @@ export function DemoTerminal({
     const runCommand = (raw: string) => {
       const line = raw.trim();
       if (!line) return;
-      const parts = line.split(/\s+/);
+      const parts = tokenize(line);
+      if (parts.length === 0) return;
       const cmd = parts[0];
-      // Strip shell quoting and expand ``~`` so commands the IDE dispatches
-      // (e.g. ``cd ~/'classroom/assignments/fibonacci'`` from the explorer's
-      // "Open in terminal") work the same as in the real shell. Treat ``~``
-      // as the simulated root, so ``~/x`` becomes the absolute path ``/x``
-      // which ``resolve`` handles below.
+      // Expand ``~`` so commands the IDE dispatches (e.g.
+      // ``cd ~/'classroom/assignments/fibonacci'`` from the explorer's
+      // "Open in terminal") work the same as in the real shell. Treat
+      // ``~`` as the simulated root, so ``~/x`` becomes the absolute path
+      // ``/x`` which ``resolve`` handles below. Quotes are already removed
+      // by ``tokenize`` above, so a path like ``two-sum (draft)/`` shows
+      // up here as a single arg.
       const expandArg = (raw: string): string => {
-        const unquoted = raw.replace(/['"]/g, '');
-        if (unquoted === '~') return '/';
-        if (unquoted.startsWith('~/')) return '/' + unquoted.slice(2);
+        if (raw === '~') return '/';
+        if (raw.startsWith('~/')) return '/' + raw.slice(2);
         // The IDE Run button emits ``/app/...`` to match the real container
         // mount point; the simulated FS doesn't have that prefix, so strip
         // it transparently.
-        if (unquoted === '/app' || unquoted === '/app/') return '/';
-        if (unquoted.startsWith('/app/')) return unquoted.slice(4);
-        return unquoted;
+        if (raw === '/app' || raw === '/app/') return '/';
+        if (raw.startsWith('/app/')) return raw.slice(4);
+        return raw;
       };
       const args = parts.slice(1).map(expandArg);
       const cwd = stateRef.current.cwd;
@@ -392,13 +407,121 @@ export function DemoTerminal({
     };
     window.addEventListener('csroom:demo-run', onRunCommand as EventListener);
 
+    // Per-session command history. Lives inside this effect so a role
+    // flip (which recreates the xterm) starts with a clean slate.
+    const history: string[] = [];
+    let historyIdx = -1; // -1 ⇒ at the live input line, not in history.
+
+    const replaceLine = (newBuf: string) => {
+      // \x1b[2K clears the entire current row; \r snaps the cursor back to
+      // column 0 so we can re-emit prompt + buffer cleanly.
+      term.write('\x1b[2K\r');
+      writePrompt();
+      term.write(newBuf);
+      stateRef.current.buffer = newBuf;
+    };
+
+    // Tab completion: complete the last whitespace-separated word against
+    // entries in the simulated FS, treating ``"foo`` / ``'foo`` as a quoted
+    // partial that should round-trip with quotes added on completion.
+    const handleTab = () => {
+      const buf = stateRef.current.buffer;
+      // Tokenize the last argv slot the user is typing. We only care about
+      // the trailing word; everything before it is held verbatim as prefix.
+      let wordStart = buf.length;
+      while (wordStart > 0 && buf[wordStart - 1] !== ' ') wordStart--;
+      const prefixText = buf.slice(0, wordStart);
+      const wordRaw = buf.slice(wordStart);
+      const quoteMatch = wordRaw.match(/^(["'])(.*)$/);
+      const openQuote = quoteMatch ? quoteMatch[1] : '';
+      const wordCore = quoteMatch ? quoteMatch[2] : wordRaw;
+      const lastSlash = wordCore.lastIndexOf('/');
+      const dirRaw = lastSlash === -1 ? '' : wordCore.slice(0, lastSlash);
+      const partial = lastSlash === -1 ? wordCore : wordCore.slice(lastSlash + 1);
+
+      // Mirror the resolve() logic for the directory we should list.
+      const cwd = stateRef.current.cwd;
+      const resolveDir = (p: string): string => {
+        if (!p) return cwd;
+        if (p === '/') return '';
+        let base = p.startsWith('/') ? '' : cwd;
+        for (const seg of p.split('/')) {
+          if (!seg || seg === '.') continue;
+          if (seg === '..') {
+            base = base.includes('/') ? base.replace(/\/[^/]+$/, '') : '';
+          } else {
+            base = base ? `${base}/${seg}` : seg;
+          }
+        }
+        return base;
+      };
+      const targetDir = resolveDir(dirRaw);
+      if (!dirExists(filesRef.current, targetDir)) return;
+      const { dirs, files: fs } = listDirEntries(filesRef.current, targetDir);
+      const candidates: { name: string; isDir: boolean }[] = [
+        ...dirs.map((d) => ({ name: d, isDir: true })),
+        ...fs.map((f) => ({ name: f, isDir: false })),
+      ];
+      const matches = candidates.filter((c) => c.name.startsWith(partial));
+      if (matches.length === 0) return;
+
+      // Helper: rebuild the trailing-word text given a name to land on. If
+      // the name needs quoting (spaces or shell metacharacters) we emit the
+      // whole word inside double quotes so re-tabbing keeps working.
+      const rebuildWord = (name: string, isDir: boolean, complete: boolean): string => {
+        const dirPrefix = lastSlash === -1 ? '' : wordCore.slice(0, lastSlash + 1);
+        const tail = isDir ? '/' : (complete ? ' ' : '');
+        const full = dirPrefix + name + tail;
+        const needsQuotes = /[\s()'"`$&|;<>*?[\]{}\\]/.test(full);
+        if (needsQuotes) {
+          // Drop the trailing space inside the quotes; the shell re-adds it
+          // for files. For dirs we end with `/` inside the quotes.
+          const inside = isDir ? dirPrefix + name + '/' : dirPrefix + name;
+          return `"${inside}"${complete && !isDir ? ' ' : ''}`;
+        }
+        return openQuote ? `${full}` : full;
+      };
+
+      if (matches.length === 1) {
+        const m = matches[0];
+        replaceLine(prefixText + rebuildWord(m.name, m.isDir, true));
+        return;
+      }
+
+      // Multiple matches — extend to the longest common prefix, or list.
+      let lcp = matches[0].name;
+      for (let i = 1; i < matches.length && lcp; i++) {
+        while (lcp && !matches[i].name.startsWith(lcp)) lcp = lcp.slice(0, -1);
+      }
+      if (lcp.length > partial.length) {
+        // Treat the extension as a non-final completion (no trailing space).
+        replaceLine(prefixText + rebuildWord(lcp, false, false));
+        return;
+      }
+      // No common extension — list candidates and reprint the prompt.
+      term.write('\r\n');
+      term.writeln(
+        matches.map((m) => (m.isDir ? `\x1b[34m${m.name}/\x1b[0m` : m.name)).join('  '),
+      );
+      writePrompt();
+      term.write(buf);
+    };
+
     const onKey = term.onData((data: string) => {
       const buf = stateRef.current.buffer;
       // Handle a few control sequences explicitly.
       if (data === '\r') {
         term.write('\r\n');
-        runCommand(buf);
+        const submitted = buf;
+        runCommand(submitted);
         stateRef.current.buffer = '';
+        // Push to history (skip duplicates of the most recent entry and
+        // empty lines, like bash with HISTCONTROL=ignoredups:ignorespace).
+        const trimmed = submitted.trim();
+        if (trimmed && history[history.length - 1] !== trimmed) {
+          history.push(trimmed);
+        }
+        historyIdx = -1;
         writePrompt();
         return;
       }
@@ -414,6 +537,7 @@ export function DemoTerminal({
         // Ctrl+C — cancel current line.
         term.write('^C\r\n');
         stateRef.current.buffer = '';
+        historyIdx = -1;
         writePrompt();
         return;
       }
@@ -424,8 +548,38 @@ export function DemoTerminal({
         term.write(buf);
         return;
       }
-      // Ignore other control sequences to keep the demo honest about what
-      // works (no arrow-key history, no tab completion). Visible ASCII only.
+      if (data === '\t') {
+        handleTab();
+        return;
+      }
+      if (data === '\x1b[A') {
+        // Up arrow — walk back through history.
+        if (history.length === 0) return;
+        if (historyIdx === -1) historyIdx = history.length - 1;
+        else if (historyIdx > 0) historyIdx -= 1;
+        else return;
+        replaceLine(history[historyIdx]);
+        return;
+      }
+      if (data === '\x1b[B') {
+        // Down arrow — walk forward; falling off the end clears the line.
+        if (historyIdx === -1) return;
+        historyIdx += 1;
+        if (historyIdx >= history.length) {
+          historyIdx = -1;
+          replaceLine('');
+        } else {
+          replaceLine(history[historyIdx]);
+        }
+        return;
+      }
+      if (data === '\x1b[C' || data === '\x1b[D') {
+        // Left/right arrow — silently ignored. Mid-line cursor editing
+        // isn't worth the complexity in the demo and would otherwise leak
+        // the raw escape into the buffer.
+        return;
+      }
+      // Visible ASCII only — drop anything else (function keys, etc.).
       const printable = [...data].filter((c) => {
         const code = c.charCodeAt(0);
         return code >= 0x20 && code !== 0x7f;
