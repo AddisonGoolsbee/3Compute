@@ -302,6 +302,22 @@ export default function MenuItems({
                       setCurrentFile(file);
                     }
                   }}
+                  onKeyDown={(e) => {
+                    if (file.renaming) return;
+                    // WAI-ARIA tree pattern: Shift+F10 or Menu key opens the
+                    // context menu at the focused row.
+                    if ((e.shiftKey && e.key === 'F10') || e.key === 'ContextMenu') {
+                      e.preventDefault();
+                      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                      setSelectedLocation?.(file.location);
+                      setContextMenu?.({
+                        visible: true,
+                        x: rect.left + 16,
+                        y: rect.bottom,
+                        targetLocation: file.location,
+                      });
+                    }
+                  }}
                   className={cn(
                     'flex flex-1 items-center gap-1.5 w-full min-w-0 text-left py-1 px-2 bg-transparent border-0 font-sans',
                     'text-[13.5px]',
