@@ -78,7 +78,7 @@
         "description": "Build an unbeatable Tic-Tac-Toe AI with minimax",
         "duration": "3-4 class periods",
         "lessonPlanDoc": "/docs/tic-tac-toe/lesson-plan.md",
-        "solutionDoc": "/api/lessons/solution/tic-tac-toe/solution.py",
+        "solutionDoc": "/api/lessons/solutions/tic-tac-toe",
         "standards": [
             {
                 "id": "3B-AP-09",
@@ -161,7 +161,7 @@
         "description": "Build and host your own personal portfolio website with Flask",
         "duration": "7-8 class periods",
         "lessonPlanDoc": "/docs/personal-website/lesson-plan.md",
-        "solutionDoc": "/api/lessons/solution/personal-website/solution/app.py",
+        "solutionDoc": "/api/lessons/solutions/personal-website",
         "standards": [
             {
                 "id": "3A-AP-13",
@@ -239,7 +239,7 @@
             "description": "Build a browser-based Snake game with Flask and JavaScript",
             "duration": "6-8 class periods",
             "lessonPlanDoc": "/docs/snake-game/lesson-plan.md",
-            "solutionDoc": "/api/lessons/solution/snake-game/solution/game.js",
+            "solutionDoc": "/api/lessons/solutions/snake-game",
             "standards": [
                 {
                     "id": "3A-AP-13",
@@ -476,7 +476,7 @@
             "description": "Fetch live weather data from an API and display forecasts",
             "duration": "4-5 class periods",
             "lessonPlanDoc": "/docs/weather-app/lesson-plan.md",
-            "solutionDoc": "/api/lessons/solution/weather-app/solution/weather_api.py",
+            "solutionDoc": "/api/lessons/solutions/weather-app",
             "standards": [
                 {
                     "id": "3B-AP-16",

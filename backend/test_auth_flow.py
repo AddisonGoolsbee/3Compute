@@ -181,9 +181,11 @@ class TestCallbackHappyPath:
             assert row.email == "alice@example.com"
             assert row.name == "Alice"
             assert row.avatar_url == "https://example.com/a.png"
-            # First user gets ports starting at port_base.
-            assert row.port_start == 10000
-            assert row.port_end == 10009
+            # Ports stay unallocated (0/0 sentinel) until the user finishes
+            # onboarding. /api/users/role hands them their slot — that lets
+            # us avoid burning a 10-port range on signups that never finish.
+            assert row.port_start == 0
+            assert row.port_end == 0
             # role left null → frontend should send through onboarding.
             assert row.role is None
 
@@ -210,7 +212,11 @@ class TestCallbackHappyPath:
             assert row.role == "teacher"
             assert len(db.exec(select(User)).all()) == 1
 
-    def test_second_user_gets_next_port_block(self, client, mock_google, engine):
+    def test_allocate_port_range_picks_next_block(self, engine):
+        """Allocation is now driven by /api/users/role, but the underlying
+        helper still has to step over existing port_end values to keep ranges
+        non-overlapping. This is the regression that the old callback test
+        used to guard."""
         with Session(engine) as db:
             db.add(User(
                 id="first", email="first@example.com",
@@ -218,19 +224,13 @@ class TestCallbackHappyPath:
             ))
             db.commit()
 
-        mock_google.authorize_access_token.return_value = {
-            "userinfo": _userinfo(sub="second", email="second@example.com")
-        }
-        # Patch the docker-port probe so it doesn't try to shell out.
-        with patch.object(
+        with Session(engine) as db, patch.object(
             auth_router_module, "_max_container_port_end", return_value=None
         ):
-            client.get("/api/auth/callback", follow_redirects=False)
-
-        with Session(engine) as db:
-            row = db.get(User, "second")
-            assert row.port_start == 10010
-            assert row.port_end == 10019
+            port_start, port_end = auth_router_module.allocate_port_range(
+                db, port_base=10000
+            )
+            assert (port_start, port_end) == (10010, 10019)
 
     def test_session_cookie_is_set_so_me_works(self, client, mock_google):
         """The whole point of sign-in: after callback, /me returns the user."""

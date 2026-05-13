@@ -1925,8 +1925,26 @@ function AssignmentsTab({
                   <p className="heading-4 truncate mb-0">{t}</p>
                   <Pill color="forest">Published</Pill>
                 </div>
-                {!readOnly && isInstructor && (
-                  <div className="flex items-center gap-2 shrink-0">
+                <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+                  {readOnly ? (
+                    <span
+                      className="text-ink-muted inline-flex items-center gap-1.5 px-3 py-2 rounded-md text-sm cursor-not-allowed opacity-60"
+                      title="Sign up to open assignments in your workspace."
+                    >
+                      <ExternalLink size={14} />
+                      Open in workspace
+                    </span>
+                  ) : (
+                    <Link
+                      to={`/ide?classroom=${classroomId}&folder=${encodeURIComponent(t)}`}
+                      className="text-navy hover:text-navy/80 font-semibold inline-flex items-center gap-1.5 px-3 py-2 rounded-md hover:bg-paper-tinted text-sm no-underline transition-colors"
+                      title="Open in workspace"
+                    >
+                      <ExternalLink size={14} />
+                      Open in workspace
+                    </Link>
+                  )}
+                  {!readOnly && isInstructor && (
                     <button
                       type="button"
                       onClick={() => deleteAssignment(t)}
@@ -1936,8 +1954,8 @@ function AssignmentsTab({
                     >
                       <Trash2 size={14} />
                     </button>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
             ))}
           </div>

@@ -122,19 +122,17 @@ export default function App() {
       openParentFolders(folderLocation + '/placeholder');
     }
 
-    // cd the terminal only when we're deep-linking into a specific folder
-    // (e.g. "Edit in IDE" on a draft). Plain "Open in IDE" on a classroom
-    // leaves the terminal where it is. Delay long enough for the pty to
-    // connect and the shell prompt to draw; the run-command handler only
-    // fires on the active tab, so an early dispatch would be dropped.
-    if (folderPath) {
-      const containerPath = `/app${folderLocation}`.replace(/'/g, '\'\\\'\'');
-      setTimeout(() => {
-        window.dispatchEvent(new CustomEvent('csroom:run-command', {
-          detail: { command: `cd '${containerPath}'\n` },
-        }));
-      }, 1500);
-    }
+    // Always cd the terminal to match the deep-link target — opening a
+    // classroom should land you inside it, not back at /app from the last
+    // session. Delay long enough for the pty to connect and the prompt to
+    // draw; the run-command handler only fires on the active tab, so an
+    // early dispatch would be dropped.
+    const containerPath = `/app${folderLocation}`.replace(/'/g, '\'\\\'\'');
+    setTimeout(() => {
+      window.dispatchEvent(new CustomEvent('csroom:run-command', {
+        detail: { command: `cd '${containerPath}'\n` },
+      }));
+    }, 1500);
 
     setSearchParams({}, { replace: true });
   }, [searchParams, userData]); // eslint-disable-line react-hooks/exhaustive-deps

@@ -105,11 +105,16 @@ services:
     working_dir: /app
     environment:
       PNPM_HOME: /pnpm
+      # Skip pnpm's "purge node_modules?" interactive prompt — pnpm 10 aborts
+      # in a non-TTY environment otherwise, looping the container into restart.
+      CI: "true"
     volumes:
       - ./frontend:/app
       - frontend-node-modules:/app/node_modules
       - pnpm-store:/pnpm
-    command: sh -c "npm install -g pnpm@latest --silent && pnpm install && pnpm dev"
+    # Pinned to pnpm 9: lockfile is v9.0, and pnpm 10 added an interactive
+    # "approve builds" gate that aborts in a non-TTY container.
+    command: sh -c "npm install -g pnpm@9 --silent && pnpm install && pnpm dev"
     ports:
       - "5173:5173"
     networks:

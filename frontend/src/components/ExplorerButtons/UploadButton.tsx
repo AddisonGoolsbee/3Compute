@@ -1,8 +1,44 @@
 import { Files, Folder, Upload } from 'lucide-react';
 import { useRef, useContext, useState, useEffect } from 'react';
 import { apiUrl, UserDataContext } from '../../util/UserData';
-import { StatusContext } from '../../util/Files';
+import { StatusContext, type Files as FileTree } from '../../util/Files';
+import { uploadFolderFiles, uploadLocalFiles } from '../../util/uploadLocalFiles';
 import { cn } from '../../util/cn';
+
+/**
+ * Resolve the upload destination from the explorer's selected item.
+ *
+ * - If a folder is selected, upload into it.
+ * - If a file is selected, upload into the file's parent folder.
+ * - If nothing is selected (or the path can't be resolved), upload to root.
+ *
+ * Returns a path without leading/trailing slashes (the format the backend's
+ * /files/upload `destination` form field expects), or empty string for root.
+ */
+function resolveUploadDestination(
+  selectedLocation: string | undefined,
+  tree: FileTree | undefined,
+): string {
+  if (!selectedLocation || selectedLocation === '/' || !tree) return '';
+  const findItem = (items: FileTree, loc: string): { isFolder: boolean } | null => {
+    for (const item of items) {
+      if (item.location === loc) return { isFolder: 'files' in item };
+      if ('files' in item) {
+        const found = findItem(item.files, loc);
+        if (found) return found;
+      }
+    }
+    return null;
+  };
+  const match = findItem(tree, selectedLocation);
+  // If we couldn't find the item, fall back to root rather than risking a
+  // path that points at a file (the backend would try to mkdir over it).
+  if (!match) return '';
+  const folderPath = match.isFolder
+    ? selectedLocation
+    : selectedLocation.slice(0, selectedLocation.lastIndexOf('/')) || '/';
+  return folderPath.replace(/^\/|\/$/g, '');
+}
 
 export default function UploadButton() {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -29,45 +65,26 @@ export default function UploadButton() {
 
   const handleFiles = async (fileList: FileList | null, isFolder: boolean) => {
     if (!fileList || fileList.length === 0) return;
-
-    setStatus('Uploading...');
     setOpen(false);
 
-    const formData = new FormData();
-    Array.from(fileList).forEach((file) => {
-      formData.append('files', file, file.webkitRelativePath || file.name);
-    });
+    const destination = resolveUploadDestination(userData.selectedLocation, userData.files);
 
-    const endpoint = isFolder
-      ? `${apiUrl}/files/upload-folder`
-      : `${apiUrl}/files/upload`;
-
-    // Add a timeout so we don't hang forever on network/proxy issues
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10 * 60 * 1000); // 10 minutes
-
-    try {
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        body: formData,
-        credentials: 'include',
-        signal: controller.signal,
-      });
-
-      setStatus(res.ok ? 'Upload successful' : 'Upload failed');
-      if (res.status === 413) {
-        setStatus('Failed: File too large');
-      }
-      if (res.ok) {
-        await userData.refreshFiles();
-      }
-    } catch {
-      // Network error, timeout, or abort
-      setStatus('Upload failed: network error');
-    } finally {
-      clearTimeout(timeoutId);
-      setTimeout(() => setStatus(null), 1000);
+    // File mode shares uploadLocalFiles with drag-and-drop so the 409
+    // "Replace?" prompt is consistent across both entry points.
+    if (!isFolder) {
+      const destPath = destination ? `/${destination}/` : '/';
+      await uploadLocalFiles(fileList, destPath, apiUrl, setStatus, userData.refreshFiles);
+      return;
     }
+
+    // Folder mode shares uploadFolderFiles with drag-and-drop so the 409
+    // "Replace?" prompt is consistent across both entry points.
+    const entries = Array.from(fileList).map((file) => ({
+      file,
+      path: file.webkitRelativePath || file.name,
+    }));
+    const destPath = destination ? `/${destination}/` : '/';
+    await uploadFolderFiles(entries, destPath, apiUrl, setStatus, userData.refreshFiles);
   };
 
   return (

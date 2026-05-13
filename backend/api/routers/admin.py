@@ -6,6 +6,7 @@ backend-process stats, Docker/user/classroom counts, and port allocation.
 import logging
 import os
 import resource
+import shutil
 import subprocess
 import time
 
@@ -648,4 +649,104 @@ async def delete_user(
     _delete_uploads_dir(user_id)
 
     logger.info("admin %s deleted user %s (%s)", admin.email, user_id, email)
+    return {"ok": True}
+
+
+# ---------------------------------------------------------------------------
+# Per-classroom admin actions: reassign owner, delete classroom.
+# ---------------------------------------------------------------------------
+
+
+class ReassignClassroomRequest(BaseModel):
+    created_by: str  # target user id
+
+
+@router.patch("/classrooms/{classroom_id}")
+async def reassign_classroom(
+    classroom_id: str,
+    body: ReassignClassroomRequest,
+    admin: User = Depends(require_birdflop_admin),
+    db: Session = Depends(get_db),
+):
+    """Reassign a classroom to a new owner.
+
+    Sets ``created_by`` and upserts an instructor membership for the target.
+    Existing instructors are left in place — admins can prune them via the
+    classroom UI if needed.
+    """
+    classroom = db.get(Classroom, classroom_id)
+    if not classroom:
+        raise HTTPException(status_code=404, detail="Classroom not found")
+    target = db.get(User, body.created_by)
+    if not target:
+        raise HTTPException(status_code=404, detail="Target user not found")
+
+    classroom.created_by = target.id
+    db.add(classroom)
+
+    existing = db.exec(
+        select(ClassroomMember).where(
+            ClassroomMember.classroom_id == classroom_id,
+            ClassroomMember.user_id == target.id,
+        )
+    ).first()
+    if existing is None:
+        db.add(ClassroomMember(
+            classroom_id=classroom_id,
+            user_id=target.id,
+            role="instructor",
+        ))
+    elif existing.role != "instructor":
+        existing.role = "instructor"
+        existing.archived = False
+        db.add(existing)
+    elif existing.archived:
+        existing.archived = False
+        db.add(existing)
+
+    db.commit()
+    logger.info(
+        "admin %s reassigned classroom %s (%s) to %s",
+        admin.email, classroom_id, classroom.name, target.email,
+    )
+    return {"ok": True, "created_by": target.id, "created_by_email": target.email}
+
+
+@router.delete("/classrooms/{classroom_id}")
+async def delete_classroom_admin(
+    classroom_id: str,
+    admin: User = Depends(require_birdflop_admin),
+    db: Session = Depends(get_db),
+):
+    """Hard-delete a classroom. Removes all classroom-scoped rows
+    (memberships, weights, templates, test results, manual scores), then the
+    classroom directory tree, then the classroom row itself."""
+    classroom = db.get(Classroom, classroom_id)
+    if not classroom:
+        raise HTTPException(status_code=404, detail="Classroom not found")
+    name = classroom.name
+
+    for model in (
+        ClassroomMember,
+        AssignmentWeight,
+        Template,
+        TestResult,
+        ManualScore,
+    ):
+        for row in db.exec(
+            select(model).where(model.classroom_id == classroom_id)
+        ).all():
+            db.delete(row)
+
+    db.delete(classroom)
+    db.commit()
+
+    base = os.path.join(CLASSROOMS_ROOT, classroom_id)
+    if os.path.isdir(base):
+        try:
+            shutil.rmtree(base)
+        except Exception as e:
+            logger.warning("failed removing classroom dir %s: %s", base, e)
+
+    logger.info("admin %s deleted classroom %s (%s)", admin.email, classroom_id, name)
     return {"ok": True}

@@ -6,7 +6,7 @@ import NewButton from './ExplorerButtons/NewButton';
 import MenuItems from './MenuItems';
 import { cn } from '../util/cn';
 import { StatusContext, getShowHidden, setShowHidden } from '../util/Files';
-import { uploadLocalFiles } from '../util/uploadLocalFiles';
+import { uploadDroppedItems } from '../util/uploadLocalFiles';
 
 export default function Explorer() {
   const userData = useContext(UserDataContext);
@@ -86,11 +86,18 @@ export default function Explorer() {
           (e.currentTarget as HTMLElement).classList.remove('ring-1', 'ring-navy/30');
         }}
         onDrop={async (e) => {
-          // Drops on folder rows are handled by the folder itself; anything
-          // else (file rows, blank space) falls through to this handler.
-          if ((e.target as HTMLElement).closest('[data-kind="folder"]')) return;
+          // preventDefault unconditionally so the browser never navigates to
+          // a dropped file (which would tear down any in-flight fetch and
+          // surface as "network error"). The folder-row handler runs first
+          // for drops on folders; this branch only handles file rows and
+          // blank space.
           e.preventDefault();
+          if ((e.target as HTMLElement).closest('[data-kind="folder"]')) return;
           (e.currentTarget as HTMLElement).classList.remove('ring-1', 'ring-navy/30');
+          // Clear the folder highlight — the row handler only fires when the
+          // cursor is on the folder row itself, but drops onto child rows
+          // bubble up to here and leave dragOverLocation set otherwise.
+          userData.setDragOverLocation?.(undefined);
           // Determine the destination folder: if the drop target is inside a
           // folder's contents container (e.g. between two sibling files in an
           // expanded folder), use that folder; otherwise fall back to root.
@@ -99,12 +106,18 @@ export default function Explorer() {
           const parentBase = parentLocation === '/' || parentLocation === ''
             ? ''
             : parentLocation.replace(/\/$/, '');
-          // Handle OS file drops
-          if (e.dataTransfer.files.length > 0) {
+          // Handle OS file/folder drops. Internal CSRoom moves also populate
+          // dataTransfer.items (with string entries for text/plain etc.), so
+          // gate on a file-kind item or non-empty .files — otherwise we'd
+          // route an internal rename-by-drag into the upload path.
+          const hasFileItem = e.dataTransfer.files.length > 0 || (
+            e.dataTransfer.items && Array.from(e.dataTransfer.items).some((it) => it.kind === 'file')
+          );
+          if (hasFileItem) {
             const uploadBase = parentLocation === '/' || parentLocation === ''
               ? '/'
               : `${parentBase}/`;
-            await uploadLocalFiles(e.dataTransfer.files, uploadBase, apiUrl, setStatus, userData.refreshFiles);
+            await uploadDroppedItems(e.dataTransfer, uploadBase, apiUrl, setStatus, userData.refreshFiles);
             return;
           }
           let source = e.dataTransfer.getData('text/x-csroom-source');

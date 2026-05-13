@@ -648,6 +648,16 @@ async def handle_connect(sid, environ, auth=None):
         logger.warning("User %s not found in database", user_id)
         return False
 
+    # Mirror get_onboarded_user on the HTTP side: a signed-in user whose role
+    # is still NULL has port_start/port_end == 0 (sentinel) and shouldn't
+    # spawn a container — docker would reject "-p 0-0:0-0" and we'd leak a
+    # tracked entry. The frontend gates /ide on needs_onboarding before
+    # opening any sockets, so this is only reachable by a direct websocket
+    # hit; reject cleanly rather than relying on docker to fail.
+    if user.role not in ("teacher", "student"):
+        logger.warning("Pre-onboarded user %s tried to connect to terminal", user_id)
+        return False
+
     tab_id = _get_query_param(environ, "tabId", "1")
     port_range = (user.port_start, user.port_end)
     email = user.email

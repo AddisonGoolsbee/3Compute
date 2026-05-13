@@ -2,12 +2,24 @@ import { ChevronDown, ChevronRight, ClipboardCopy, Copy, ClipboardPaste, Downloa
 import { useContext, Fragment, useEffect, useRef } from 'react';
 import { apiUrl, UserData, UserDataContext } from '../util/UserData';
 import { languageMap } from '../util/languageMap';
-import { uploadLocalFiles } from '../util/uploadLocalFiles';
+import { uploadDroppedItems } from '../util/uploadLocalFiles';
 import { StatusContext } from '../util/Files';
 import { isActiveTerminalBusy } from '../util/terminalActivity';
 import { cn } from '../util/cn';
 
-export default function MenuItems({ files, count = 0 }: { files: UserData['files'], count?: number }) {
+export default function MenuItems({
+  files,
+  count = 0,
+  parentLocation,
+}: {
+  files: UserData['files'];
+  count?: number;
+  // Location of the folder whose contents are being rendered here. Used so
+  // file rows can keep the parent folder highlighted while you drag over the
+  // expanded children — without this, the highlight blinks off the moment
+  // the cursor crosses from the folder row into its children.
+  parentLocation?: string;
+}) {
   const {
     currentFile,
     setCurrentFile,
@@ -149,6 +161,13 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
                     if (!openFolders.includes(file.location)) {
                       scheduleExpand(file.location);
                     }
+                  } else if (parentLocation) {
+                    // Dragging over a file row inside an open folder — keep
+                    // the surrounding folder highlighted so the user can see
+                    // where the drop will land. The actual drop is still
+                    // routed to that folder by the file-tree handler.
+                    e.preventDefault();
+                    setDragOverLocation?.(parentLocation);
                   }
                 }}
                 onDragLeave={(e) => {
@@ -166,13 +185,29 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
                   cancelExpandTimer();
                 }}
                 onDrop={async (e) => {
-                  if (!isFolder) return; // only drop into folders
+                  // Always preventDefault — without it the browser navigates
+                  // to the dropped file's URL when dropping on a file row,
+                  // which aborts any in-flight upload mid-request.
                   e.preventDefault();
+                  if (!isFolder) {
+                    // Drop on a file row bubbles up to Explorer which handles
+                    // the upload. Clear the parent-folder highlight here so
+                    // the soft tint on the contents container goes away.
+                    setDragOverLocation?.(undefined);
+                    cancelExpandTimer();
+                    return;
+                  }
                   setDragOverLocation?.(undefined);
                   cancelExpandTimer();
-                  // Handle OS file drops into this folder
-                  if (e.dataTransfer.files.length > 0) {
-                    await uploadLocalFiles(e.dataTransfer.files, file.location, apiUrl, setStatus, refreshFiles);
+                  // Handle OS file/folder drops into this folder. Internal
+                  // CSRoom moves also populate dataTransfer.items with string
+                  // entries — gate on a file-kind item so we don't route a
+                  // rename-by-drag into the upload path.
+                  const hasFileItem = e.dataTransfer.files.length > 0 || (
+                    e.dataTransfer.items && Array.from(e.dataTransfer.items).some((it) => it.kind === 'file')
+                  );
+                  if (hasFileItem) {
+                    await uploadDroppedItems(e.dataTransfer, file.location, apiUrl, setStatus, refreshFiles);
                     setOpenFolders((prev) => prev.includes(file.location) ? prev : [...prev, file.location]);
                     return;
                   }
@@ -486,12 +521,16 @@ export default function MenuItems({ files, count = 0 }: { files: UserData['files
                 <div
                   data-folder-location={file.location}
                   className={cn(
-                    'transition-all duration-200 overflow-hidden',
+                    'transition-all duration-200 overflow-hidden rounded-sm',
                     !openFolders.includes(file.location) && 'max-h-0 opacity-0 -mt-0.5',
                     openFolders.includes(file.location) && 'max-h-screen opacity-100',
+                    // Softer tint on the contents while the parent folder is
+                    // the drop target, so the destination scope is visible
+                    // even while the cursor is over a child row.
+                    isDragOver && 'bg-navy-soft/40',
                   )}
                 >
-                  <MenuItems files={file.files} count={count + 1} />
+                  <MenuItems files={file.files} count={count + 1} parentLocation={file.location} />
                 </div>
               )}
             </Fragment>

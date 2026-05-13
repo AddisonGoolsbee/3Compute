@@ -6,7 +6,7 @@ import subprocess
 import zipfile
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
-from fastapi.responses import FileResponse, PlainTextResponse, StreamingResponse
+from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse, StreamingResponse
 from pydantic import BaseModel
 from sqlmodel import Session, select
 
@@ -909,6 +909,7 @@ async def copy_file_or_folder(
 async def upload(
     files: list[UploadFile] = File(...),
     destination: str = Form(default=""),
+    overwrite: bool = Form(default=False),
     user: User = Depends(get_onboarded_user),
     db: Session = Depends(get_db),
 ):
@@ -940,6 +941,21 @@ async def upload(
     else:
         target_dir = upload_dir
 
+    # Mirror /files/move: if any uploaded name already exists at target,
+    # return 409 with the conflicting names so the frontend can prompt
+    # ("Replace? This cannot be undone.") and retry with overwrite=True.
+    if not overwrite:
+        conflicts = [
+            os.path.basename(f.filename)
+            for f in files
+            if os.path.exists(os.path.join(target_dir, os.path.basename(f.filename)))
+        ]
+        if conflicts:
+            return JSONResponse(
+                status_code=409,
+                content={"detail": "Files already exist", "conflicts": conflicts},
+            )
+
     total_size = 0
     for f in files:
         file_path = os.path.join(target_dir, os.path.basename(f.filename))
@@ -947,6 +963,10 @@ async def upload(
         total_size += len(content)
         if total_size > MAX_UPLOAD_BYTES:
             raise HTTPException(status_code=413, detail="Upload exceeds 1 GB limit")
+        # On overwrite, replace existing files/dirs cleanly. A pre-existing
+        # directory of the same name would otherwise break `open(..., "wb")`.
+        if os.path.isdir(file_path):
+            shutil.rmtree(file_path)
         with open(file_path, "wb") as fh:
             fh.write(content)
         set_container_ownership(file_path)
@@ -1050,6 +1070,7 @@ async def upload_folder(
     # When classroom_id is provided, import into that classroom's templates dir
     form = await request.form()
     classroom_id = form.get("classroom_id")
+    destination_form = form.get("destination") if not classroom_id else None
     target_base = upload_dir
 
     if classroom_id:
@@ -1066,6 +1087,49 @@ async def upload_folder(
         target_base = os.path.join(CLASSROOMS_ROOT, str(classroom_id), "assignments")
         os.makedirs(target_base, exist_ok=True)
         set_container_ownership(target_base)
+    elif destination_form:
+        # Upload into a specific subfolder of the user's workspace (e.g. the
+        # explorer's currently-selected folder). Strip slashes so the join
+        # below is safe; reject anything that escapes upload_dir.
+        rel = str(destination_form).strip("/")
+        if rel:
+            classroom_dest = _resolve_classroom_path(upload_dir, rel)
+            if classroom_dest:
+                err = _check_participant_scope(classroom_dest, user.id, db)
+                if err:
+                    raise HTTPException(status_code=403, detail=err)
+                target_base = classroom_dest
+            else:
+                target_base = os.path.normpath(os.path.join(upload_dir, rel))
+                if not target_base.startswith(upload_dir):
+                    raise HTTPException(status_code=400, detail="Invalid destination")
+            os.makedirs(target_base, exist_ok=True)
+            set_container_ownership(target_base)
+
+    # Mirror /files/upload's 409-then-retry pattern, but at the top-level
+    # entry granularity (the folder name the user dropped, not every file
+    # inside it). Without this, uploading "solution/" over an existing
+    # "solution/" silently merges files — old extras stay, new files
+    # overwrite, no warning. The retry path rm-rf's the colliding top-level
+    # before the write loop recreates it from the upload.
+    overwrite = (str(form.get("overwrite") or "").lower() in ("1", "true", "yes"))
+    top_levels = {str(f.filename).split("/", 1)[0] for f in files if f.filename}
+    conflicting_tops = sorted(
+        t for t in top_levels
+        if t and os.path.exists(os.path.join(target_base, t))
+    )
+    if conflicting_tops and not overwrite:
+        return JSONResponse(
+            status_code=409,
+            content={"detail": "Files already exist", "conflicts": conflicting_tops},
+        )
+    if overwrite:
+        for t in conflicting_tops:
+            existing = os.path.join(target_base, t)
+            if os.path.isdir(existing) and not os.path.islink(existing):
+                shutil.rmtree(existing)
+            else:
+                os.remove(existing)
 
     # Track (classroom_id, template_name) pairs written to assignments
     classroom_templates_written: set[tuple[str, str]] = set()
