@@ -302,22 +302,6 @@ export default function MenuItems({
                       setCurrentFile(file);
                     }
                   }}
-                  onKeyDown={(e) => {
-                    if (file.renaming) return;
-                    // WAI-ARIA tree pattern: Shift+F10 or Menu key opens the
-                    // context menu at the focused row.
-                    if ((e.shiftKey && e.key === 'F10') || e.key === 'ContextMenu') {
-                      e.preventDefault();
-                      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-                      setSelectedLocation?.(file.location);
-                      setContextMenu?.({
-                        visible: true,
-                        x: rect.left + 16,
-                        y: rect.bottom,
-                        targetLocation: file.location,
-                      });
-                    }
-                  }}
                   className={cn(
                     'flex flex-1 items-center gap-1.5 w-full min-w-0 text-left py-1 px-2 bg-transparent border-0 font-sans',
                     'text-[13.5px]',
@@ -519,9 +503,6 @@ export default function MenuItems({
                   <span className="text-ink-faint text-xs px-1 shrink-0 font-sans">{file.files.length}</span>
                 )}
                 <button
-                  type="button"
-                  tabIndex={-1}
-                  aria-label={file.renaming ? `Cancel renaming ${file.name}` : `More options for ${file.name}`}
                   className="cursor-pointer p-0.5 mr-1 rounded text-ink-subtle hover:text-ink-strong hover:bg-paper-tinted transition-colors shrink-0"
                   onClick={async (e) => {
                     if (file.renaming) return await refreshFiles();
@@ -530,9 +511,9 @@ export default function MenuItems({
                   }}
                 >
                   {file.renaming ? (
-                    <X size={14} aria-hidden="true" />
+                    <X size={14} />
                   ) : (
-                    <MoreHorizontal size={14} aria-hidden="true" />
+                    <MoreHorizontal size={14} />
                   )}
                 </button>
               </div>
