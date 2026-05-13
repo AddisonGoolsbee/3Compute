@@ -937,7 +937,16 @@ async def upload(
         if os.path.isfile(target_dir):
             os.remove(target_dir)
         os.makedirs(target_dir, exist_ok=True)
-        os.chmod(target_dir, 0o777)
+        # Best-effort chmod. Fails with EPERM when target sits inside a
+        # classroom symlink (owned by container UID 999:995 — www-data can
+        # write via the csroom-container group + setgid, but `chmod` needs
+        # ownership or CAP_FOWNER, which the systemd unit doesn't grant).
+        # In that case the dir is already 2775 from data-init and writable,
+        # so it's safe to skip.
+        try:
+            os.chmod(target_dir, 0o777)
+        except PermissionError:
+            pass
     else:
         target_dir = upload_dir
 
