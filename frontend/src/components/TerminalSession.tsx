@@ -17,6 +17,37 @@ interface TerminalSessionProps {
   isActive: boolean;
 }
 
+const FOCUSABLE_SELECTOR =
+  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+function focusOutsidePanel(panel: HTMLElement, direction: 'forward' | 'backward') {
+  const all = Array.from(document.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR));
+  // Filter to elements that are NOT inside the terminal panel and are visible.
+  const candidates = all.filter((el) => {
+    if (panel.contains(el)) return false;
+    if (el.offsetParent === null && el !== document.activeElement) return false;
+    return true;
+  });
+  if (!candidates.length) return;
+  if (direction === 'forward') {
+    const next = candidates.find((el) =>
+      panel.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+    (next ?? candidates[0]).focus();
+  } else {
+    // Pick the last candidate that precedes the panel.
+    let prev: HTMLElement | null = null;
+    for (const el of candidates) {
+      if (panel.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_PRECEDING) {
+        prev = el;
+      } else {
+        break;
+      }
+    }
+    (prev ?? candidates[candidates.length - 1]).focus();
+  }
+}
+
 export function TerminalSession({ tabId, isActive }: TerminalSessionProps) {
   const terminalRef = useRef<HTMLDivElement>(null);
   const socketRef = useRef<Socket>(null);
@@ -24,7 +55,6 @@ export function TerminalSession({ tabId, isActive }: TerminalSessionProps) {
   const fitAddonRef = useRef<FitAddon>(null);
   const wasActiveRef = useRef<boolean>(isActive);
   const announcedRef = useRef(false);
-  const previousFocusRef = useRef<HTMLElement | null>(null);
   const [liveMessage, setLiveMessage] = useState('');
 
   const waitForFitReady = (
@@ -159,21 +189,18 @@ export function TerminalSession({ tabId, isActive }: TerminalSessionProps) {
     });
 
     // Cmd+C (macOS) / Ctrl+Shift+C (Linux) copies selected text.
-    // F6 releases focus from the terminal back to whatever element the
-    // user came from, so they continue in the tab flow they were already
-    // in. Sighted users never see this advertised; screen reader users
-    // hear the live region hint on focus.
+    // F6 jumps focus PAST the terminal region (next focusable element
+    // outside the panel in DOM order). Shift+F6 jumps BEFORE it.
+    // Mirrors VS Code's next-region / previous-region convention.
+    // Sighted users never see this advertised; screen reader users hear
+    // the live region hint on focus.
     term.attachCustomKeyEventHandler((event) => {
       if (event.type !== 'keydown') return true;
       if (event.key === 'F6') {
         event.preventDefault();
-        const prev = previousFocusRef.current;
-        if (prev && document.contains(prev) && !terminalRef.current?.contains(prev)) {
-          prev.focus();
-        } else {
-          // Fallback: the active terminal tab button is the next thing
-          // outside the terminal that's reliably focusable.
-          document.getElementById(`terminal-tab-${tabId}`)?.focus();
+        const panel = document.getElementById(`terminal-panel-${tabId}`);
+        if (panel) {
+          focusOutsidePanel(panel, event.shiftKey ? 'backward' : 'forward');
         }
         return false;
       }
@@ -191,18 +218,12 @@ export function TerminalSession({ tabId, isActive }: TerminalSessionProps) {
     // Announce the F6 exit hint once per session when the terminal first
     // gains focus. Toggling the string (with a clearing tick) ensures the
     // live region re-announces on subsequent terminal focuses if needed.
-    const handleTerminalFocus = (event: FocusEvent) => {
-      // Remember what was focused before entering the terminal so F6 can
-      // return the user there — keeps their tab flow continuous.
-      const prev = event.relatedTarget as HTMLElement | null;
-      if (prev && !terminalRef.current?.contains(prev) && prev !== document.body) {
-        previousFocusRef.current = prev;
-      }
+    const handleTerminalFocus = () => {
       if (announcedRef.current) return;
       announcedRef.current = true;
       setLiveMessage('');
       requestAnimationFrame(() => {
-        setLiveMessage(`Terminal ${tabId} focused. Press F6 to exit the terminal.`);
+        setLiveMessage(`Terminal ${tabId} focused. Press F6 to exit the terminal, Shift F6 to step back.`);
       });
     };
     const helperTextarea = terminalRef.current.querySelector<HTMLTextAreaElement>('.xterm-helper-textarea');
