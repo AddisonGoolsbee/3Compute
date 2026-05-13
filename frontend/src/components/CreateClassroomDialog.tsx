@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Check, Copy, X } from 'lucide-react';
+import { Check, Copy } from 'lucide-react';
 import { apiUrl } from '../util/UserData';
 import { GhostButton, PrimaryButton } from './ui/Buttons';
+import { Dialog } from './a11y/Dialog';
 
 interface Props {
   open: boolean;
@@ -79,33 +80,14 @@ export default function CreateClassroomDialog({ open, onClose }: Props) {
     }
   };
 
-  if (!open) return null;
-
   return (
-    <div className="fixed inset-0 z-50 bg-ink-strong/60 flex items-center justify-center p-7">
-      <div
-        className="absolute inset-0"
-        onClick={onClose}
-        aria-hidden
-      />
-      <form
-        onSubmit={handleSubmit}
-        className="relative bg-paper-elevated border border-rule-soft rounded-xl shadow-lg p-7 max-w-[480px] w-full"
-      >
-        <div className="flex items-start justify-between gap-4 mb-2">
-          <h2 className="heading-3">Create a classroom</h2>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close"
-            className="text-ink-muted hover:text-ink-strong p-1 rounded hover:bg-paper-tinted transition-colors"
-          >
-            <X size={18} />
-          </button>
-        </div>
-        <p className="body-sm text-ink-muted mb-4">
-          Give your classroom a name. Students join with the access code we generate next.
-        </p>
+    <Dialog
+      open={open}
+      onClose={onClose}
+      title="Create a classroom"
+      description="Give your classroom a name. Students join with the access code we generate next."
+    >
+      <form onSubmit={handleSubmit}>
         <div className="flex flex-col gap-1.5 mb-4">
           <label
             htmlFor="create-classroom-name"
@@ -244,6 +226,6 @@ export default function CreateClassroomDialog({ open, onClose }: Props) {
           </div>
         )}
       </form>
-    </div>
+    </Dialog>
   );
 }
