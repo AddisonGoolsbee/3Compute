@@ -21,6 +21,7 @@ import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Files, FileType, getLastOpenLocation, pickInitialFile } from '../util/Files';
 import { PrimaryButton } from './ui/Buttons';
+import { Menu, MenuTrigger, MenuContent, MenuItem } from './a11y/Menu';
 import { cn } from '../util/cn';
 
 function findDefaultFile(files: Files): FileType | undefined {
@@ -107,7 +108,6 @@ export default function Editor() {
   const [langMenuOpen, setLangMenuOpen] = useState(false);
   const editorRef = useRef<unknown>(null);
   const markdownRef = useRef<HTMLDivElement>(null);
-  const langMenuRef = useRef<HTMLDivElement>(null);
   const tabBarRef = useRef<HTMLDivElement>(null);
   const autosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const currentFileLocationRef = useRef<string | undefined>(undefined);
@@ -278,23 +278,6 @@ export default function Editor() {
     loadError,
     mdPreview,
   ]);
-
-  // Close language menu on outside click / escape
-  useEffect(() => {
-    if (!langMenuOpen) return;
-    const handler = (e: MouseEvent) => {
-      if (langMenuRef.current && !langMenuRef.current.contains(e.target as Node)) {
-        setLangMenuOpen(false);
-      }
-    };
-    const escHandler = (e: KeyboardEvent) => { if (e.key === 'Escape') setLangMenuOpen(false); };
-    document.addEventListener('mousedown', handler);
-    document.addEventListener('keydown', escHandler);
-    return () => {
-      document.removeEventListener('mousedown', handler);
-      document.removeEventListener('keydown', escHandler);
-    };
-  }, [langMenuOpen]);
 
   const [initialFileSet, setInitialFileSet] = useState(false);
 
@@ -561,47 +544,39 @@ export default function Editor() {
             )}
 
             {!isImage && (
-              <div ref={langMenuRef} className="relative">
-                <button
-                  onClick={() => setLangMenuOpen((v) => !v)}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-xs font-mono text-ink-muted hover:bg-paper-tinted hover:text-ink-strong transition-colors cursor-pointer"
-                >
-                  {currentLanguageInfo?.icon && <currentLanguageInfo.icon size={14} />}
-                  <span>{currentLanguageInfo?.name ?? currentLanguage}</span>
-                  <ChevronDown size={14} />
-                </button>
-                {langMenuOpen && (
-                  <ul className="absolute right-0 top-full mt-1 max-h-[260px] overflow-y-auto bg-paper-elevated border border-rule-soft rounded-md shadow-md py-1 min-w-[180px] z-50">
-                    {Object.entries(languageMap).map(([key, lang]) => {
-                      const isActive = key === currentLanguage;
-                      const Icon = lang.icon;
-                      return (
-                        <li
-                          key={key}
-                          onClick={() => {
-                            setCurrentLanguage(key as keyof typeof languageMap);
-                            setLangMenuOpen(false);
-                          }}
-                          className={cn(
-                            'flex items-center gap-2 px-3 py-1.5 text-sm cursor-pointer font-mono',
-                            isActive
-                              ? 'text-ink-strong bg-paper-tinted'
-                              : 'text-ink-default hover:bg-paper-tinted hover:text-ink-strong',
-                          )}
-                        >
-                          {isActive ? (
-                            <Check size={12} className="text-navy shrink-0" />
-                          ) : (
-                            <span className="w-3 shrink-0" />
-                          )}
-                          <Icon size={14} className="shrink-0" />
-                          <span>{lang.name}</span>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                )}
-              </div>
+              <Menu open={langMenuOpen} onOpenChange={setLangMenuOpen}>
+                <MenuTrigger asChild>
+                  <button
+                    aria-label="Change language"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-xs font-mono text-ink-muted hover:bg-paper-tinted hover:text-ink-strong transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy/30"
+                  >
+                    {currentLanguageInfo?.icon && <currentLanguageInfo.icon size={14} aria-hidden="true" />}
+                    <span>{currentLanguageInfo?.name ?? currentLanguage}</span>
+                    <ChevronDown size={14} aria-hidden="true" />
+                  </button>
+                </MenuTrigger>
+                <MenuContent align="end" className="max-h-[260px] overflow-y-auto font-mono">
+                  {Object.entries(languageMap).map(([key, lang]) => {
+                    const isActive = key === currentLanguage;
+                    const Icon = lang.icon;
+                    return (
+                      <MenuItem
+                        key={key}
+                        onSelect={() => setCurrentLanguage(key as keyof typeof languageMap)}
+                        className={cn(isActive && 'bg-paper-tinted text-ink-strong')}
+                      >
+                        {isActive ? (
+                          <Check size={12} className="text-navy shrink-0" aria-hidden="true" />
+                        ) : (
+                          <span className="w-3 shrink-0" aria-hidden="true" />
+                        )}
+                        <Icon size={14} className="shrink-0" aria-hidden="true" />
+                        <span>{lang.name}</span>
+                      </MenuItem>
+                    );
+                  })}
+                </MenuContent>
+              </Menu>
             )}
 
             {canRun && (

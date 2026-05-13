@@ -503,6 +503,9 @@ export default function MenuItems({
                   <span className="text-ink-faint text-xs px-1 shrink-0 font-sans">{file.files.length}</span>
                 )}
                 <button
+                  type="button"
+                  tabIndex={-1}
+                  aria-label={file.renaming ? `Cancel renaming ${file.name}` : `More options for ${file.name}`}
                   className="cursor-pointer p-0.5 mr-1 rounded text-ink-subtle hover:text-ink-strong hover:bg-paper-tinted transition-colors shrink-0"
                   onClick={async (e) => {
                     if (file.renaming) return await refreshFiles();
@@ -511,9 +514,9 @@ export default function MenuItems({
                   }}
                 >
                   {file.renaming ? (
-                    <X size={14} />
+                    <X size={14} aria-hidden="true" />
                   ) : (
-                    <MoreHorizontal size={14} />
+                    <MoreHorizontal size={14} aria-hidden="true" />
                   )}
                 </button>
               </div>
