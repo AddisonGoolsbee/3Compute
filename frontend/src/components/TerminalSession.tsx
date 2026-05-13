@@ -278,6 +278,10 @@ export function TerminalSession({ tabId, isActive }: TerminalSessionProps) {
 
   return (
     <div
+      role="tabpanel"
+      id={`terminal-panel-${tabId}`}
+      aria-labelledby={`terminal-tab-${tabId}`}
+      aria-hidden={!isActive}
       className={cn(
         'absolute inset-0 w-full h-full',
         isActive ? 'visible' : 'invisible pointer-events-none',
