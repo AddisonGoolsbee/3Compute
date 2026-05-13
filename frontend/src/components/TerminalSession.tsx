@@ -20,18 +20,33 @@ interface TerminalSessionProps {
 const FOCUSABLE_SELECTOR =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
-function focusOutsidePanel(panel: HTMLElement) {
+function focusOutsidePanel(panel: HTMLElement, direction: 'forward' | 'backward') {
+  // All terminal panels (active + hidden inactive) contain helper textareas
+  // we must never land on. Build the exclusion set first.
+  const allPanels = document.querySelectorAll<HTMLElement>('[id^="terminal-panel-"]');
   const all = Array.from(document.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR));
   const candidates = all.filter((el) => {
-    if (panel.contains(el)) return false;
-    if (el.offsetParent === null && el !== document.activeElement) return false;
+    for (const p of allPanels) if (p.contains(el)) return false;
+    if (el.offsetParent === null) return false;
     return true;
   });
   if (!candidates.length) return;
-  const next = candidates.find((el) =>
-    panel.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING,
-  );
-  (next ?? candidates[0]).focus();
+  if (direction === 'forward') {
+    const next = candidates.find((el) =>
+      panel.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+    (next ?? candidates[0]).focus();
+  } else {
+    let prev: HTMLElement | null = null;
+    for (const el of candidates) {
+      if (panel.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_PRECEDING) {
+        prev = el;
+      } else {
+        break;
+      }
+    }
+    (prev ?? candidates[candidates.length - 1]).focus();
+  }
 }
 
 export function TerminalSession({ tabId, isActive }: TerminalSessionProps) {
@@ -185,7 +200,7 @@ export function TerminalSession({ tabId, isActive }: TerminalSessionProps) {
       if (event.key === 'F6') {
         event.preventDefault();
         const panel = document.getElementById(`terminal-panel-${tabId}`);
-        if (panel) focusOutsidePanel(panel);
+        if (panel) focusOutsidePanel(panel, event.shiftKey ? 'backward' : 'forward');
         return false;
       }
       const isCopy = (event.metaKey && event.key === 'c') || (event.ctrlKey && event.shiftKey && event.key === 'C');
@@ -207,7 +222,7 @@ export function TerminalSession({ tabId, isActive }: TerminalSessionProps) {
       announcedRef.current = true;
       setLiveMessage('');
       requestAnimationFrame(() => {
-        setLiveMessage(`Terminal ${tabId} focused. Press F6 to exit the terminal.`);
+        setLiveMessage(`Terminal ${tabId} focused. Press F6 to exit the terminal, Shift F6 to step back.`);
       });
     };
     const helperTextarea = terminalRef.current.querySelector<HTMLTextAreaElement>('.xterm-helper-textarea');
