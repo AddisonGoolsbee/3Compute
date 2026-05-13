@@ -20,32 +20,18 @@ interface TerminalSessionProps {
 const FOCUSABLE_SELECTOR =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
-function focusOutsidePanel(panel: HTMLElement, direction: 'forward' | 'backward') {
+function focusOutsidePanel(panel: HTMLElement) {
   const all = Array.from(document.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR));
-  // Filter to elements that are NOT inside the terminal panel and are visible.
   const candidates = all.filter((el) => {
     if (panel.contains(el)) return false;
     if (el.offsetParent === null && el !== document.activeElement) return false;
     return true;
   });
   if (!candidates.length) return;
-  if (direction === 'forward') {
-    const next = candidates.find((el) =>
-      panel.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING,
-    );
-    (next ?? candidates[0]).focus();
-  } else {
-    // Pick the last candidate that precedes the panel.
-    let prev: HTMLElement | null = null;
-    for (const el of candidates) {
-      if (panel.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_PRECEDING) {
-        prev = el;
-      } else {
-        break;
-      }
-    }
-    (prev ?? candidates[candidates.length - 1]).focus();
-  }
+  const next = candidates.find((el) =>
+    panel.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING,
+  );
+  (next ?? candidates[0]).focus();
 }
 
 export function TerminalSession({ tabId, isActive }: TerminalSessionProps) {
@@ -190,8 +176,8 @@ export function TerminalSession({ tabId, isActive }: TerminalSessionProps) {
 
     // Cmd+C (macOS) / Ctrl+Shift+C (Linux) copies selected text.
     // F6 jumps focus PAST the terminal region (next focusable element
-    // outside the panel in DOM order). Shift+F6 jumps BEFORE it.
-    // Mirrors VS Code's next-region / previous-region convention.
+    // outside the panel in DOM order), so the user continues forward in
+    // the tab flow. From there they can Shift+Tab back if they need.
     // Sighted users never see this advertised; screen reader users hear
     // the live region hint on focus.
     term.attachCustomKeyEventHandler((event) => {
@@ -199,9 +185,7 @@ export function TerminalSession({ tabId, isActive }: TerminalSessionProps) {
       if (event.key === 'F6') {
         event.preventDefault();
         const panel = document.getElementById(`terminal-panel-${tabId}`);
-        if (panel) {
-          focusOutsidePanel(panel, event.shiftKey ? 'backward' : 'forward');
-        }
+        if (panel) focusOutsidePanel(panel);
         return false;
       }
       const isCopy = (event.metaKey && event.key === 'c') || (event.ctrlKey && event.shiftKey && event.key === 'C');
@@ -223,7 +207,7 @@ export function TerminalSession({ tabId, isActive }: TerminalSessionProps) {
       announcedRef.current = true;
       setLiveMessage('');
       requestAnimationFrame(() => {
-        setLiveMessage(`Terminal ${tabId} focused. Press F6 to exit the terminal, Shift F6 to step back.`);
+        setLiveMessage(`Terminal ${tabId} focused. Press F6 to exit the terminal.`);
       });
     };
     const helperTextarea = terminalRef.current.querySelector<HTMLTextAreaElement>('.xterm-helper-textarea');
