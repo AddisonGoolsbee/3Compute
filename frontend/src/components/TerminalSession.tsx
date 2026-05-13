@@ -3,7 +3,7 @@ import { FitAddon } from '@xterm/addon-fit';
 import { Terminal } from '@xterm/xterm';
 import { WebLinksAddon } from '@xterm/addon-web-links';
 import { SearchAddon } from '@xterm/addon-search';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { backendUrl } from '../util/UserData';
 import { cn } from '../util/cn';
@@ -23,6 +23,8 @@ export function TerminalSession({ tabId, isActive }: TerminalSessionProps) {
   const terminalInstanceRef = useRef<Terminal>(null);
   const fitAddonRef = useRef<FitAddon>(null);
   const wasActiveRef = useRef<boolean>(isActive);
+  const announcedRef = useRef(false);
+  const [liveMessage, setLiveMessage] = useState('');
 
   const waitForFitReady = (
     term: Terminal,
@@ -156,8 +158,21 @@ export function TerminalSession({ tabId, isActive }: TerminalSessionProps) {
     });
 
     // Cmd+C (macOS) / Ctrl+Shift+C (Linux) copies selected text
+    // F6 releases focus from the terminal (a11y escape hatch — sighted users
+    // never see this advertised; screen reader users hear the live region
+    // hint on focus).
     term.attachCustomKeyEventHandler((event) => {
       if (event.type !== 'keydown') return true;
+      if (event.key === 'F6') {
+        event.preventDefault();
+        const tabButton = document.getElementById(`terminal-tab-${tabId}`);
+        if (tabButton) {
+          tabButton.focus();
+        } else {
+          (document.activeElement as HTMLElement | null)?.blur?.();
+        }
+        return false;
+      }
       const isCopy = (event.metaKey && event.key === 'c') || (event.ctrlKey && event.shiftKey && event.key === 'C');
       if (isCopy) {
         const selection = term.getSelection();
@@ -168,6 +183,20 @@ export function TerminalSession({ tabId, isActive }: TerminalSessionProps) {
       }
       return true;
     });
+
+    // Announce the F6 exit hint once per session when the terminal first
+    // gains focus. Toggling the string (with a clearing tick) ensures the
+    // live region re-announces on subsequent terminal focuses if needed.
+    const handleTerminalFocus = () => {
+      if (announcedRef.current) return;
+      announcedRef.current = true;
+      setLiveMessage('');
+      requestAnimationFrame(() => {
+        setLiveMessage(`Terminal ${tabId} focused. Press F6 to exit the terminal.`);
+      });
+    };
+    const helperTextarea = terminalRef.current.querySelector<HTMLTextAreaElement>('.xterm-helper-textarea');
+    helperTextarea?.addEventListener('focus', handleTerminalFocus);
 
     term.onResize(({ cols, rows }) => {
       socket.emit('resize', { cols, rows });
@@ -262,6 +291,7 @@ export function TerminalSession({ tabId, isActive }: TerminalSessionProps) {
       window.removeEventListener('csroom:run-command', runHandler);
       resizeObserver.disconnect();
       if (fsRefreshTimer) clearTimeout(fsRefreshTimer);
+      helperTextarea?.removeEventListener('focus', handleTerminalFocus);
       socket.disconnect();
       term.dispose();
     };
@@ -292,6 +322,7 @@ export function TerminalSession({ tabId, isActive }: TerminalSessionProps) {
         ref={terminalRef}
         className="bg-ide-bg w-full h-full overflow-hidden px-1"
       />
+      <div role="status" aria-live="polite" className="sr-only">{liveMessage}</div>
     </div>
   );
 }
