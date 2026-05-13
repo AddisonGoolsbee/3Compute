@@ -23,6 +23,11 @@ git reset --hard origin/main
 
 echo "Building frontend"
 cd frontend
+# Pin pnpm 9: lockfile is v9.0, and pnpm 10 aborts the install with
+# ERR_PNPM_IGNORED_BUILDS on esbuild without an interactive approve-builds
+# step. Reinstalling on every deploy is cheap and keeps the host version
+# from silently breaking us.
+npm install -g pnpm@9 --silent
 pnpm install
 pnpm build
 
