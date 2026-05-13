@@ -20,7 +20,7 @@ interface TerminalSessionProps {
 const FOCUSABLE_SELECTOR =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
-function focusOutsidePanel(panel: HTMLElement, direction: 'forward' | 'backward') {
+function focusOutsidePanel(panel: HTMLElement) {
   // All terminal panels (active + hidden inactive) contain helper textareas
   // we must never land on. Build the exclusion set first.
   const allPanels = document.querySelectorAll<HTMLElement>('[id^="terminal-panel-"]');
@@ -31,22 +31,10 @@ function focusOutsidePanel(panel: HTMLElement, direction: 'forward' | 'backward'
     return true;
   });
   if (!candidates.length) return;
-  if (direction === 'forward') {
-    const next = candidates.find((el) =>
-      panel.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING,
-    );
-    (next ?? candidates[0]).focus();
-  } else {
-    let prev: HTMLElement | null = null;
-    for (const el of candidates) {
-      if (panel.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_PRECEDING) {
-        prev = el;
-      } else {
-        break;
-      }
-    }
-    (prev ?? candidates[candidates.length - 1]).focus();
-  }
+  const next = candidates.find((el) =>
+    panel.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING,
+  );
+  (next ?? candidates[0]).focus();
 }
 
 export function TerminalSession({ tabId, isActive }: TerminalSessionProps) {
@@ -200,7 +188,7 @@ export function TerminalSession({ tabId, isActive }: TerminalSessionProps) {
       if (event.key === 'F6') {
         event.preventDefault();
         const panel = document.getElementById(`terminal-panel-${tabId}`);
-        if (panel) focusOutsidePanel(panel, event.shiftKey ? 'backward' : 'forward');
+        if (panel) focusOutsidePanel(panel);
         return false;
       }
       const isCopy = (event.metaKey && event.key === 'c') || (event.ctrlKey && event.shiftKey && event.key === 'C');
@@ -222,7 +210,7 @@ export function TerminalSession({ tabId, isActive }: TerminalSessionProps) {
       announcedRef.current = true;
       setLiveMessage('');
       requestAnimationFrame(() => {
-        setLiveMessage(`Terminal ${tabId} focused. Press F6 to exit the terminal, Shift F6 to step back.`);
+        setLiveMessage(`Terminal ${tabId} focused. Press F6 to exit the terminal.`);
       });
     };
     const helperTextarea = terminalRef.current.querySelector<HTMLTextAreaElement>('.xterm-helper-textarea');
