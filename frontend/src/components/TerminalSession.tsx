@@ -3,7 +3,7 @@ import { FitAddon } from '@xterm/addon-fit';
 import { Terminal } from '@xterm/xterm';
 import { WebLinksAddon } from '@xterm/addon-web-links';
 import { SearchAddon } from '@xterm/addon-search';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { backendUrl } from '../util/UserData';
 import { cn } from '../util/cn';
@@ -17,12 +17,34 @@ interface TerminalSessionProps {
   isActive: boolean;
 }
 
+const FOCUSABLE_SELECTOR =
+  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+function focusOutsidePanel(panel: HTMLElement) {
+  // All terminal panels (active + hidden inactive) contain helper textareas
+  // we must never land on. Build the exclusion set first.
+  const allPanels = document.querySelectorAll<HTMLElement>('[id^="terminal-panel-"]');
+  const all = Array.from(document.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR));
+  const candidates = all.filter((el) => {
+    for (const p of allPanels) if (p.contains(el)) return false;
+    if (el.offsetParent === null) return false;
+    return true;
+  });
+  if (!candidates.length) return;
+  const next = candidates.find((el) =>
+    panel.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING,
+  );
+  (next ?? candidates[0]).focus();
+}
+
 export function TerminalSession({ tabId, isActive }: TerminalSessionProps) {
   const terminalRef = useRef<HTMLDivElement>(null);
   const socketRef = useRef<Socket>(null);
   const terminalInstanceRef = useRef<Terminal>(null);
   const fitAddonRef = useRef<FitAddon>(null);
   const wasActiveRef = useRef<boolean>(isActive);
+  const announcedRef = useRef(false);
+  const [liveMessage, setLiveMessage] = useState('');
 
   const waitForFitReady = (
     term: Terminal,
@@ -155,9 +177,20 @@ export function TerminalSession({ tabId, isActive }: TerminalSessionProps) {
       if (filtered) socket.emit('pty-input', { input: filtered });
     });
 
-    // Cmd+C (macOS) / Ctrl+Shift+C (Linux) copies selected text
+    // Cmd+C (macOS) / Ctrl+Shift+C (Linux) copies selected text.
+    // F6 jumps focus PAST the terminal region (next focusable element
+    // outside the panel in DOM order), so the user continues forward in
+    // the tab flow. From there they can Shift+Tab back if they need.
+    // Sighted users never see this advertised; screen reader users hear
+    // the live region hint on focus.
     term.attachCustomKeyEventHandler((event) => {
       if (event.type !== 'keydown') return true;
+      if (event.key === 'F6') {
+        event.preventDefault();
+        const panel = document.getElementById(`terminal-panel-${tabId}`);
+        if (panel) focusOutsidePanel(panel);
+        return false;
+      }
       const isCopy = (event.metaKey && event.key === 'c') || (event.ctrlKey && event.shiftKey && event.key === 'C');
       if (isCopy) {
         const selection = term.getSelection();
@@ -168,6 +201,20 @@ export function TerminalSession({ tabId, isActive }: TerminalSessionProps) {
       }
       return true;
     });
+
+    // Announce the F6 exit hint once per session when the terminal first
+    // gains focus. Toggling the string (with a clearing tick) ensures the
+    // live region re-announces on subsequent terminal focuses if needed.
+    const handleTerminalFocus = () => {
+      if (announcedRef.current) return;
+      announcedRef.current = true;
+      setLiveMessage('');
+      requestAnimationFrame(() => {
+        setLiveMessage(`Terminal ${tabId} focused. Press F6 to exit the terminal.`);
+      });
+    };
+    const helperTextarea = terminalRef.current.querySelector<HTMLTextAreaElement>('.xterm-helper-textarea');
+    helperTextarea?.addEventListener('focus', handleTerminalFocus);
 
     term.onResize(({ cols, rows }) => {
       socket.emit('resize', { cols, rows });
@@ -262,6 +309,7 @@ export function TerminalSession({ tabId, isActive }: TerminalSessionProps) {
       window.removeEventListener('csroom:run-command', runHandler);
       resizeObserver.disconnect();
       if (fsRefreshTimer) clearTimeout(fsRefreshTimer);
+      helperTextarea?.removeEventListener('focus', handleTerminalFocus);
       socket.disconnect();
       term.dispose();
     };
@@ -278,6 +326,10 @@ export function TerminalSession({ tabId, isActive }: TerminalSessionProps) {
 
   return (
     <div
+      role="tabpanel"
+      id={`terminal-panel-${tabId}`}
+      aria-labelledby={`terminal-tab-${tabId}`}
+      aria-hidden={!isActive}
       className={cn(
         'absolute inset-0 w-full h-full',
         isActive ? 'visible' : 'invisible pointer-events-none',
@@ -288,6 +340,7 @@ export function TerminalSession({ tabId, isActive }: TerminalSessionProps) {
         ref={terminalRef}
         className="bg-ide-bg w-full h-full overflow-hidden px-1"
       />
+      <div role="status" aria-live="polite" className="sr-only">{liveMessage}</div>
     </div>
   );
 }

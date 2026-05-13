@@ -156,7 +156,7 @@ describe('TerminalTabBar', () => {
 
     render(<TerminalTabBar {...mockProps} />);
 
-    await user.click(screen.getByTitle('New Terminal'));
+    await user.click(screen.getByLabelText('New terminal'));
 
     expect(mockProps.onNew).toHaveBeenCalled();
   });

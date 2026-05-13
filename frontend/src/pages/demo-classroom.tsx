@@ -82,7 +82,26 @@ function DemoBanner({
             <School size={14} />
             Open classroom dashboard
           </Link>
-          <div role="tablist" aria-label="Demo perspective" className="inline-flex items-center bg-paper border border-rule rounded-full p-1">
+          <div
+            role="tablist"
+            aria-label="Demo perspective"
+            aria-orientation="horizontal"
+            className="inline-flex items-center bg-paper border border-rule rounded-full p-1"
+            onKeyDown={(e) => {
+              const roles = ['teacher', 'student'] as const;
+              const idx = roles.indexOf(role);
+              let nextIdx: number | null = null;
+              if (e.key === 'ArrowRight') nextIdx = (idx + 1) % roles.length;
+              else if (e.key === 'ArrowLeft') nextIdx = (idx - 1 + roles.length) % roles.length;
+              else if (e.key === 'Home') nextIdx = 0;
+              else if (e.key === 'End') nextIdx = roles.length - 1;
+              if (nextIdx !== null) {
+                e.preventDefault();
+                onChangeRole(roles[nextIdx]);
+                (e.currentTarget.querySelectorAll<HTMLButtonElement>('[role="tab"]')[nextIdx])?.focus();
+              }
+            }}
+          >
             {(['teacher', 'student'] as const).map((r) => {
               const active = r === role;
               return (
@@ -91,13 +110,14 @@ function DemoBanner({
                   type="button"
                   role="tab"
                   aria-selected={active}
+                  tabIndex={active ? 0 : -1}
                   onClick={() => onChangeRole(r)}
                   className={cn(
-                    'px-3 py-1 rounded-full text-xs font-semibold cursor-pointer transition-colors inline-flex items-center gap-1.5',
+                    'px-3 py-1 rounded-full text-xs font-semibold cursor-pointer transition-colors inline-flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy/30',
                     active ? 'bg-navy text-white' : 'text-ink-muted hover:text-ink-strong',
                   )}
                 >
-                  {r === 'teacher' ? <GraduationCap size={12} /> : <School size={12} />}
+                  {r === 'teacher' ? <GraduationCap size={12} aria-hidden="true" /> : <School size={12} aria-hidden="true" />}
                   View as {r}
                 </button>
               );

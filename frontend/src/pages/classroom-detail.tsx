@@ -7,11 +7,12 @@ import {
   Copy, Check, Settings, Play,
   RefreshCw, KeyRound, Pencil,
   FileText, ExternalLink, ChevronRight, FlaskConical,
-  HelpCircle, BookOpen, Upload, Trash2, Send, X,
+  HelpCircle, BookOpen, Upload, Trash2, Send,
 } from 'lucide-react';
 import { apiUrl, UserDataContext } from '../util/UserData';
 import { languageMap } from '../util/languageMap';
 import { PrimaryButton, GhostButton, Pill } from '../components/ui/Buttons';
+import { Dialog } from '../components/a11y/Dialog';
 import { cn } from '../util/cn';
 
 interface StudentResult {
@@ -548,80 +549,65 @@ function SettingsDialog({
   };
 
   return (
-    <div
-      className="fixed inset-0 z-50 bg-ink-strong/60 flex items-center justify-center p-7"
-      onClick={onClose}
+    <Dialog
+      open
+      onClose={onClose}
+      title="Classroom settings"
+      contentClassName="max-w-[520px]"
     >
-      <div
-        className="bg-paper-elevated border border-rule-soft rounded-xl shadow-lg p-7 max-w-[520px] w-full"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-start justify-between gap-4 mb-5">
-          <h2 className="heading-3">Classroom settings</h2>
+      <div className="flex flex-col">
+        <div className="flex items-center justify-between gap-4 py-3 border-b border-rule-soft">
+          <div className="flex-1 min-w-0">
+            <p className="body text-ink-strong font-semibold">Pause joins</p>
+            <p className="body-sm">New students cannot join with the code while paused.</p>
+          </div>
+          <label className="inline-flex items-center cursor-pointer">
+            <input
+              type="checkbox"
+              className="accent-navy w-4 h-4 cursor-pointer"
+              checked={paused}
+              onChange={handleTogglePause}
+              disabled={working}
+            />
+          </label>
+        </div>
+
+        <div className="flex items-center justify-between gap-4 py-3 border-b border-rule-soft">
+          <div className="flex-1 min-w-0">
+            <p className="body text-ink-strong font-semibold">Regenerate join code</p>
+            <p className="body-sm">Old code stops working. Existing students stay enrolled.</p>
+          </div>
           <button
             type="button"
-            onClick={onClose}
-            className="p-1.5 rounded-sm text-ink-muted hover:text-ink-strong hover:bg-paper-tinted cursor-pointer transition-colors"
-            aria-label="Close settings"
+            onClick={handleRegenerate}
+            disabled={working}
+            className="text-navy hover:text-navy/80 font-semibold inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md hover:bg-paper-tinted text-sm cursor-pointer transition-colors disabled:opacity-50"
           >
-            <X size={16} />
+            <KeyRound size={14} />
+              Regenerate
           </button>
         </div>
 
-        <div className="flex flex-col">
-          <div className="flex items-center justify-between gap-4 py-3 border-b border-rule-soft">
-            <div className="flex-1 min-w-0">
-              <p className="body text-ink-strong font-semibold">Pause joins</p>
-              <p className="body-sm">New students cannot join with the code while paused.</p>
-            </div>
-            <label className="inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                className="accent-navy w-4 h-4 cursor-pointer"
-                checked={paused}
-                onChange={handleTogglePause}
-                disabled={working}
-              />
-            </label>
+        <div className="flex items-center justify-between gap-4 py-3">
+          <div className="flex-1 min-w-0">
+            <p className="body text-ink-strong font-semibold">Rename classroom</p>
+            <p className="body-sm">Change the display name of this classroom.</p>
           </div>
-
-          <div className="flex items-center justify-between gap-4 py-3 border-b border-rule-soft">
-            <div className="flex-1 min-w-0">
-              <p className="body text-ink-strong font-semibold">Regenerate join code</p>
-              <p className="body-sm">Old code stops working. Existing students stay enrolled.</p>
-            </div>
-            <button
-              type="button"
-              onClick={handleRegenerate}
-              disabled={working}
-              className="text-navy hover:text-navy/80 font-semibold inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md hover:bg-paper-tinted text-sm cursor-pointer transition-colors disabled:opacity-50"
-            >
-              <KeyRound size={14} />
-              Regenerate
-            </button>
-          </div>
-
-          <div className="flex items-center justify-between gap-4 py-3">
-            <div className="flex-1 min-w-0">
-              <p className="body text-ink-strong font-semibold">Rename classroom</p>
-              <p className="body-sm">Change the display name of this classroom.</p>
-            </div>
-            <button
-              type="button"
-              onClick={onRename}
-              className="text-navy hover:text-navy/80 font-semibold inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md hover:bg-paper-tinted text-sm cursor-pointer transition-colors"
-            >
-              <Pencil size={14} />
+          <button
+            type="button"
+            onClick={onRename}
+            className="text-navy hover:text-navy/80 font-semibold inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md hover:bg-paper-tinted text-sm cursor-pointer transition-colors"
+          >
+            <Pencil size={14} />
               Rename
-            </button>
-          </div>
-        </div>
-
-        <div className="flex justify-end gap-2 mt-5">
-          <GhostButton onClick={onClose}>Close</GhostButton>
+          </button>
         </div>
       </div>
-    </div>
+
+      <div className="flex justify-end gap-2 mt-5">
+        <GhostButton onClick={onClose}>Close</GhostButton>
+      </div>
+    </Dialog>
   );
 }
 
@@ -631,81 +617,66 @@ function SettingsDialog({
 
 function HelpDialog({ onClose }: { onClose: () => void }) {
   return (
-    <div
-      className="fixed inset-0 z-50 bg-ink-strong/60 flex items-center justify-center p-7 overflow-auto"
-      onClick={onClose}
+    <Dialog
+      open
+      onClose={onClose}
+      title="How classrooms work"
+      contentClassName="max-w-[640px]"
     >
-      <div
-        className="bg-paper-elevated border border-rule-soft rounded-xl shadow-lg p-7 max-w-[640px] w-full my-auto"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-start justify-between gap-4 mb-5">
-          <h2 className="heading-3">How classrooms work</h2>
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-1.5 rounded-sm text-ink-muted hover:text-ink-strong hover:bg-paper-tinted cursor-pointer transition-colors"
-            aria-label="Close help"
-          >
-            <X size={16} />
-          </button>
-        </div>
-
-        <div className="flex flex-col gap-4">
-          <HelpStep n={1} title="Upload your assignment folder">
+      <div className="flex flex-col gap-4">
+        <HelpStep n={1} title="Upload your assignment folder">
             Go to the <strong className="text-ink-strong font-semibold">Assignments</strong> tab and click{' '}
-            <strong className="text-ink-strong font-semibold">Upload assignment</strong> to add a folder with your
+          <strong className="text-ink-strong font-semibold">Upload assignment</strong> to add a folder with your
             starter code and any <code className="bg-paper-tinted text-navy font-mono text-sm px-1.5 py-0.5 rounded-sm">test_*.py</code> files.
             This is exactly what students will start with. Or, import a lesson from the{' '}
-            <strong className="text-ink-strong font-semibold">Lessons</strong> page directly into your classroom
+          <strong className="text-ink-strong font-semibold">Lessons</strong> page directly into your classroom
             to use its code as-is.
-          </HelpStep>
+        </HelpStep>
 
-          <HelpStep n={2} title="Edit your draft and publish">
+        <HelpStep n={2} title="Edit your draft and publish">
             Uploaded folders appear as drafts in the{' '}
-            <strong className="text-ink-strong font-semibold">Assignments</strong> tab. Click{' '}
-            <strong className="text-ink-strong font-semibold">Edit in workspace</strong> to refine files before
+          <strong className="text-ink-strong font-semibold">Assignments</strong> tab. Click{' '}
+          <strong className="text-ink-strong font-semibold">Edit in workspace</strong> to refine files before
             distributing, then click <strong className="text-ink-strong font-semibold">Publish</strong> when
             ready. Drafts are synced with the classroom's drafts folder in your workspace, so you can also create and
             manage drafts there. To publish from the workspace, move the folder into{' '}
-            <code className="bg-paper-tinted text-navy font-mono text-sm px-1.5 py-0.5 rounded-sm">assignments</code>.
-          </HelpStep>
+          <code className="bg-paper-tinted text-navy font-mono text-sm px-1.5 py-0.5 rounded-sm">assignments</code>.
+        </HelpStep>
 
-          <HelpStep n={3} title="Students get a copy automatically">
+        <HelpStep n={3} title="Students get a copy automatically">
             When you publish, every current student gets their own editable copy, and future students who join
             pick up every published assignment automatically. You can keep editing{' '}
-            <code className="bg-paper-tinted text-navy font-mono text-sm px-1.5 py-0.5 rounded-sm">assignments/</code>{' '}
+          <code className="bg-paper-tinted text-navy font-mono text-sm px-1.5 py-0.5 rounded-sm">assignments/</code>{' '}
             freely — existing students' copies aren't touched, so their work is safe. They can always see your
             latest version through a hidden{' '}
-            <code className="bg-paper-tinted text-navy font-mono text-sm px-1.5 py-0.5 rounded-sm">.templates/</code>{' '}
+          <code className="bg-paper-tinted text-navy font-mono text-sm px-1.5 py-0.5 rounded-sm">.templates/</code>{' '}
             folder.
-          </HelpStep>
+        </HelpStep>
 
-          <HelpStep n={4} title="Share the join code with students">
+        <HelpStep n={4} title="Share the join code with students">
             Students enter the code on the Classrooms page to join. You can pause joins or regenerate the code
             from the settings menu above.
-          </HelpStep>
+        </HelpStep>
 
-          <div className="border-t border-rule-soft pt-4 flex flex-col gap-2">
-            <p className="body-sm text-ink-default">
-              <strong className="text-ink-strong font-semibold">Test files:</strong>{' '}
+        <div className="border-t border-rule-soft pt-4 flex flex-col gap-2">
+          <p className="body-sm text-ink-default">
+            <strong className="text-ink-strong font-semibold">Test files:</strong>{' '}
               Files named <code className="bg-paper-tinted text-navy font-mono text-sm px-1.5 py-0.5 rounded-sm">test_*.py</code> are
               used for automated grading. Students can see them but can't modify them.
-            </p>
-            <p className="body-sm text-ink-default">
-              <strong className="text-ink-strong font-semibold">Removing assignments:</strong>{' '}
+          </p>
+          <p className="body-sm text-ink-default">
+            <strong className="text-ink-strong font-semibold">Removing assignments:</strong>{' '}
               Delete the assignment from the{' '}
-              <strong className="text-ink-strong font-semibold">Assignments</strong> tab. Students keep their
+            <strong className="text-ink-strong font-semibold">Assignments</strong> tab. Students keep their
               existing copies, but it won't appear in the gradebook or be given to new students.
-            </p>
-          </div>
-        </div>
-
-        <div className="flex justify-end mt-5">
-          <PrimaryButton color="navy" onClick={onClose}>Got it</PrimaryButton>
+          </p>
         </div>
       </div>
-    </div>
+
+      <div className="flex justify-end mt-5">
+        <PrimaryButton color="navy" onClick={onClose}>Got it</PrimaryButton>
+      </div>
+    </Dialog>
   );
 }
 
@@ -1366,7 +1337,24 @@ function GradebookTab({
         <div
           role="tablist"
           aria-label="Grading mode"
+          aria-orientation="horizontal"
           className="inline-flex items-center bg-paper-elevated border border-rule-soft rounded-full p-1"
+          onKeyDown={(e) => {
+            const idx = GRADING_MODES.findIndex((m) => m.value === localMode);
+            let nextIdx: number | null = null;
+            if (e.key === 'ArrowRight') nextIdx = (idx + 1) % GRADING_MODES.length;
+            else if (e.key === 'ArrowLeft') nextIdx = (idx - 1 + GRADING_MODES.length) % GRADING_MODES.length;
+            else if (e.key === 'Home') nextIdx = 0;
+            else if (e.key === 'End') nextIdx = GRADING_MODES.length - 1;
+            if (nextIdx !== null) {
+              e.preventDefault();
+              const target = GRADING_MODES[nextIdx];
+              if (!readOnly || target.value === localMode) {
+                changeMode(target.value);
+              }
+              (e.currentTarget.querySelectorAll<HTMLButtonElement>('[role="tab"]')[nextIdx])?.focus();
+            }
+          }}
         >
           {GRADING_MODES.map((m) => {
             const active = m.value === localMode;
@@ -1376,10 +1364,11 @@ function GradebookTab({
                 type="button"
                 role="tab"
                 aria-selected={active}
+                tabIndex={active ? 0 : -1}
                 onClick={() => changeMode(m.value)}
                 disabled={readOnly && !active}
                 className={cn(
-                  'px-4 py-1.5 rounded-full text-sm font-semibold transition-colors whitespace-nowrap',
+                  'px-4 py-1.5 rounded-full text-sm font-semibold transition-colors whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy/30',
                   active
                     ? 'bg-navy text-white'
                     : 'text-ink-muted hover:text-ink-strong',

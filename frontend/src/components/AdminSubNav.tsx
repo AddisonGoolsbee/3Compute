@@ -14,15 +14,16 @@ const TABS: Array<{ label: string; to: string }> = [
 
 export default function AdminSubNav({ active }: { active: string }) {
   return (
-    <div className="flex flex-wrap gap-1 mb-7 border-b border-rule-soft">
+    <nav aria-label="Admin sections" className="flex flex-wrap gap-1 mb-7 border-b border-rule-soft">
       {TABS.map((tab) => {
         const isActive = tab.to === active;
         return (
           <Link
             key={tab.to}
             to={tab.to}
+            aria-current={isActive ? 'page' : undefined}
             className={cn(
-              'px-4 py-2.5 border-b-2 -mb-px text-sm font-semibold transition-colors',
+              'px-4 py-2.5 border-b-2 -mb-px text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy/30 rounded-sm',
               isActive
                 ? 'border-navy text-ink-strong'
                 : 'border-transparent text-ink-muted hover:text-ink-strong',
@@ -32,6 +33,6 @@ export default function AdminSubNav({ active }: { active: string }) {
           </Link>
         );
       })}
-    </div>
+    </nav>
   );
 }

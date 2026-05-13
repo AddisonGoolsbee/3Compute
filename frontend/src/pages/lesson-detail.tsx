@@ -15,6 +15,7 @@ import {
   Send,
 } from 'lucide-react';
 import type { LoaderFunctionArgs, ClientLoaderFunctionArgs, MetaFunction } from 'react-router';
+import * as RPopover from '@radix-ui/react-popover';
 import { GhostButton, PrimaryButton } from '../components/ui/Buttons';
 import { printMarkdownElement } from '../util/printMarkdown';
 import { mergeParentMeta } from '../util/seo';
@@ -144,24 +145,12 @@ export default function LessonDetailPage() {
   const { isLoggedIn, isTeacher, ensureClassroomsLoaded } = ctx;
   const markdownRef = useRef<HTMLDivElement>(null);
   const [importMenuOpen, setImportMenuOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
 
   // Prefetch the teacher's classroom list as soon as the panel opens, so the
   // import menu has data ready by the time the user clicks Import.
   useEffect(() => {
     if (isLoggedIn && isTeacher) ensureClassroomsLoaded();
   }, [isLoggedIn, isTeacher, ensureClassroomsLoaded]);
-
-  useEffect(() => {
-    if (!importMenuOpen) return;
-    const handler = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setImportMenuOpen(false);
-      }
-    };
-    window.addEventListener('mousedown', handler);
-    return () => window.removeEventListener('mousedown', handler);
-  }, [importMenuOpen]);
 
   const close = () => navigate('/lessons', { preventScrollReset: true });
 
@@ -213,17 +202,24 @@ export default function LessonDetailPage() {
               </GhostButton>
             )}
             {!notFound && (
-              <div className="relative" ref={menuRef}>
-                <PrimaryButton
-                  color="navy"
-                  onClick={handleImportClick}
-                  icon={<Download size={14} />}
-                >
-                  Import
-                  <ChevronDown size={14} />
-                </PrimaryButton>
-                {importMenuOpen && ctx.isLoggedIn && (
-                  <div className="absolute right-0 top-full mt-2 w-[300px] bg-paper-elevated border border-rule-soft rounded-lg shadow-md z-10 overflow-hidden">
+              <RPopover.Root open={importMenuOpen && !!ctx.isLoggedIn} onOpenChange={(o) => { if (!o) setImportMenuOpen(false); }}>
+                <RPopover.Trigger asChild>
+                  <PrimaryButton
+                    color="navy"
+                    onClick={handleImportClick}
+                    icon={<Download size={14} />}
+                  >
+                    Import
+                    <ChevronDown size={14} />
+                  </PrimaryButton>
+                </RPopover.Trigger>
+                <RPopover.Portal>
+                  <RPopover.Content
+                    align="end"
+                    sideOffset={8}
+                    aria-label="Import destinations"
+                    className="w-[300px] bg-paper-elevated border border-rule-soft rounded-lg shadow-md z-50 overflow-hidden focus:outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0"
+                  >
                     <button
                       type="button"
                       disabled={ctx.importing}
@@ -297,9 +293,9 @@ export default function LessonDetailPage() {
                         You aren't a teacher in any classrooms yet.
                       </div>
                     )}
-                  </div>
-                )}
-              </div>
+                  </RPopover.Content>
+                </RPopover.Portal>
+              </RPopover.Root>
             )}
             <button
               type="button"

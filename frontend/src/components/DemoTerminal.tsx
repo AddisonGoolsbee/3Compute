@@ -598,10 +598,10 @@ export function DemoTerminal({
       termRef.current = null;
       fitRef.current = null;
     };
-  // Recreate only when the cosmetic shell config changes (role flip swaps
-  // promptUser, page nav swaps initialCwd/greeting). File contents stream
-  // in via `filesRef`, so prefetch progress doesn't tear xterm down.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // Recreate only when the cosmetic shell config changes (role flip swaps
+    // promptUser, page nav swaps initialCwd/greeting). File contents stream
+    // in via `filesRef`, so prefetch progress doesn't tear xterm down.
+
   }, [greeting, initialCwd, promptUser]);
 
   return (

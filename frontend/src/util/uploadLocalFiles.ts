@@ -102,7 +102,7 @@ async function walkEntry(
   // readEntries returns a *batch* (typically 100) — loop until we get an empty
   // batch, otherwise we silently miss files in directories with >100 entries.
   const children: FileSystemEntry[] = [];
-  // eslint-disable-next-line no-constant-condition
+
   while (true) {
     const batch: FileSystemEntry[] = await new Promise((resolve, reject) =>
       reader.readEntries(resolve, reject),

@@ -1,6 +1,7 @@
 import { useContext, useEffect, useRef, useState } from 'react';
 import { Navigate, useLocation } from 'react-router';
-import { AlertTriangle, Pencil, RefreshCw, Trash2, X } from 'lucide-react';
+import { AlertTriangle, Pencil, RefreshCw, Trash2 } from 'lucide-react';
+import { Dialog } from '../components/a11y/Dialog';
 import { apiUrl, UserDataContext } from '../util/UserData';
 import AdminRestricted from '../components/AdminRestricted';
 import { useVerifiedAdmin } from '../util/useVerifiedAdmin';
@@ -445,26 +446,16 @@ function DialogShell({
   children: React.ReactNode;
 }) {
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-ink-strong/30 p-4"
-      onClick={onClose}
+    <Dialog
+      open={true}
+      onClose={onClose}
+      title={title}
+      overlayClassName="bg-ink-strong/30"
+      contentClassName="bg-paper-elevated border border-rule rounded-xl shadow-lg w-full max-w-[480px] p-6"
+      containerPadding="p-4"
+      titleClassName="text-lg font-semibold text-ink-strong"
     >
-      <div
-        className="bg-paper-elevated border border-rule rounded-xl shadow-lg w-full max-w-[480px] p-6"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-start justify-between mb-4">
-          <h2 className="text-lg font-semibold text-ink-strong">{title}</h2>
-          <button
-            onClick={onClose}
-            className="p-1 rounded text-ink-muted hover:bg-paper-tinted hover:text-ink-strong"
-            aria-label="Close"
-          >
-            <X size={18} />
-          </button>
-        </div>
-        {children}
-      </div>
-    </div>
+      {children}
+    </Dialog>
   );
 }

@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { LogIn, X } from 'lucide-react';
+import { LogIn } from 'lucide-react';
 import { apiUrl } from '../util/UserData';
 import { GhostButton, PrimaryButton } from './ui/Buttons';
+import { Dialog } from './a11y/Dialog';
 
 interface Props {
   open: boolean;
@@ -76,33 +77,14 @@ export default function JoinClassroomDialog({ open, onClose }: Props) {
     }
   };
 
-  if (!open) return null;
-
   return (
-    <div className="fixed inset-0 z-50 bg-ink-strong/60 flex items-center justify-center p-7">
-      <div
-        className="absolute inset-0"
-        onClick={onClose}
-        aria-hidden
-      />
-      <form
-        onSubmit={handleSubmit}
-        className="relative bg-paper-elevated border border-rule-soft rounded-xl shadow-lg p-7 max-w-[480px] w-full"
-      >
-        <div className="flex items-start justify-between gap-4 mb-2">
-          <h2 className="heading-3">Join a classroom</h2>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close"
-            className="text-ink-muted hover:text-ink-strong p-1 rounded hover:bg-paper-tinted transition-colors"
-          >
-            <X size={18} />
-          </button>
-        </div>
-        <p className="body-sm text-ink-muted mb-4">
-          Enter the six-character access code your teacher shared with you.
-        </p>
+    <Dialog
+      open={open}
+      onClose={onClose}
+      title="Join a classroom"
+      description="Enter the six-character access code your teacher shared with you."
+    >
+      <form onSubmit={handleSubmit}>
         <div className="flex flex-col gap-1.5 mb-4">
           <label
             htmlFor="join-classroom-code"
@@ -141,6 +123,6 @@ export default function JoinClassroomDialog({ open, onClose }: Props) {
           </PrimaryButton>
         </div>
       </form>
-    </div>
+    </Dialog>
   );
 }
