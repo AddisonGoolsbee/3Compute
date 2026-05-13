@@ -17,14 +17,14 @@ For each classroom you own:
 
 There are three ways to create an assignment. Pick whichever fits the moment:
 
-1. **Upload a folder** (Classrooms page → your classroom → Assignments tab → **Upload Folder**). The uploaded folder lands as a draft.
+1. **Upload a folder** (Classrooms page → your classroom → Assignments tab → **Upload assignment**). The uploaded folder lands as a draft.
 2. **Import a lesson** from the **Lessons** page, then pick this classroom and choose **Save as draft** or **Publish** directly.
-3. **Work in the IDE**. Drop a folder into `drafts/`, or drop one straight into `assignments/` to publish immediately.
+3. **Work in the IDE**. Drag a folder from your computer into `drafts/` to add it as a draft, or straight into `assignments/` to upload and publish in one step. To promote an existing draft, use the **Publish** button on the Assignments tab (moving folders between `drafts/` and `assignments/` inside the IDE does not push them to students).
 
 ### Drafts vs. published
 
 - **Drafts** (`drafts/`): private to you. Edit freely in the IDE, preview as many times as you want. Students don't see them.
-- **Published** (`assignments/`): the moment a folder lands in `assignments/`, it's distributed. In the Assignments tab, click **Publish** on a draft to move it. Or in the IDE, drag a folder from `drafts/` into `assignments/` for the same effect.
+- **Published** (`assignments/`): a folder lands in `assignments/` either via the **Publish** button on the Assignments tab, or by uploading directly into the folder from your computer. Once it's there, it's distributed to every current student and to anyone who joins later. (Dragging a folder between `drafts/` and `assignments/` inside the IDE rearranges the files but does not push them to students — use **Publish** to do that.)
 
 ### What happens when you publish
 
@@ -99,7 +99,7 @@ If you no longer need this classroom visible in your file explorer:
 3. The classroom moves to your `archive/` folder (gray folder at the bottom of the explorer)
 4. To restore: right-click the classroom in `archive/` and select **Restore**
 
-Archiving is personal; it only affects your view. Other users still see the classroom normally. Users cannot join an archived classroom.
+Archiving is personal; it only affects your view. Other users still see the classroom normally, and new participants can still join with the access code.
 
 ## Access Code
 
