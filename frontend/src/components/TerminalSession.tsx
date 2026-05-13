@@ -24,6 +24,7 @@ export function TerminalSession({ tabId, isActive }: TerminalSessionProps) {
   const fitAddonRef = useRef<FitAddon>(null);
   const wasActiveRef = useRef<boolean>(isActive);
   const announcedRef = useRef(false);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
   const [liveMessage, setLiveMessage] = useState('');
 
   const waitForFitReady = (
@@ -158,22 +159,21 @@ export function TerminalSession({ tabId, isActive }: TerminalSessionProps) {
     });
 
     // Cmd+C (macOS) / Ctrl+Shift+C (Linux) copies selected text.
-    // F6 / Ctrl+\ release focus from the terminal (a11y escape hatch —
-    // sighted users never see this advertised; screen reader users hear
-    // the live region hint on focus). Ctrl+\ is the mac-friendly variant
-    // since F-row keys require Fn by default on macOS.
+    // F6 releases focus from the terminal back to whatever element the
+    // user came from, so they continue in the tab flow they were already
+    // in. Sighted users never see this advertised; screen reader users
+    // hear the live region hint on focus.
     term.attachCustomKeyEventHandler((event) => {
       if (event.type !== 'keydown') return true;
-      const isEscapeKey =
-        event.key === 'F6' ||
-        (event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey && event.key === '\\');
-      if (isEscapeKey) {
+      if (event.key === 'F6') {
         event.preventDefault();
-        const tabButton = document.getElementById(`terminal-tab-${tabId}`);
-        if (tabButton) {
-          tabButton.focus();
+        const prev = previousFocusRef.current;
+        if (prev && document.contains(prev) && !terminalRef.current?.contains(prev)) {
+          prev.focus();
         } else {
-          (document.activeElement as HTMLElement | null)?.blur?.();
+          // Fallback: the active terminal tab button is the next thing
+          // outside the terminal that's reliably focusable.
+          document.getElementById(`terminal-tab-${tabId}`)?.focus();
         }
         return false;
       }
@@ -191,12 +191,18 @@ export function TerminalSession({ tabId, isActive }: TerminalSessionProps) {
     // Announce the F6 exit hint once per session when the terminal first
     // gains focus. Toggling the string (with a clearing tick) ensures the
     // live region re-announces on subsequent terminal focuses if needed.
-    const handleTerminalFocus = () => {
+    const handleTerminalFocus = (event: FocusEvent) => {
+      // Remember what was focused before entering the terminal so F6 can
+      // return the user there — keeps their tab flow continuous.
+      const prev = event.relatedTarget as HTMLElement | null;
+      if (prev && !terminalRef.current?.contains(prev) && prev !== document.body) {
+        previousFocusRef.current = prev;
+      }
       if (announcedRef.current) return;
       announcedRef.current = true;
       setLiveMessage('');
       requestAnimationFrame(() => {
-        setLiveMessage(`Terminal ${tabId} focused. Press F6 or Control+Backslash to exit the terminal.`);
+        setLiveMessage(`Terminal ${tabId} focused. Press F6 to exit the terminal.`);
       });
     };
     const helperTextarea = terminalRef.current.querySelector<HTMLTextAreaElement>('.xterm-helper-textarea');
