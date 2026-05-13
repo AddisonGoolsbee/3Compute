@@ -23,7 +23,10 @@ jobs:
           node-version: '22'
 
       - name: Install pnpm
-        run: npm install -g pnpm
+        # Pinned to 9: lockfile is v9.0, and pnpm 10 errors with
+        # ERR_PNPM_IGNORED_BUILDS on esbuild without an approve-builds step
+        # that's awkward to drive in CI.
+        run: npm install -g pnpm@9
 
       - name: Install frontend dependencies
         working-directory: frontend
