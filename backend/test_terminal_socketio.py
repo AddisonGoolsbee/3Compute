@@ -190,6 +190,10 @@ class TestFullConnectFlow:
         mock_user.port_start = 10000
         mock_user.port_end = 10009
         mock_user.email = "test@test.com"
+        # handle_connect now rejects users whose role isn't teacher/student
+        # (pre-onboarding gate); MagicMock would otherwise return an auto
+        # MagicMock for .role and fail the check.
+        mock_user.role = "student"
         mock_get_user.return_value = mock_user
 
         mock_ensure.return_value = f"user-container-{TEST_USER_ID}"
@@ -264,6 +268,10 @@ class TestReadLoopTiming:
         mock_user.port_start = 10000
         mock_user.port_end = 10009
         mock_user.email = "test@test.com"
+        # handle_connect now rejects users whose role isn't teacher/student
+        # (pre-onboarding gate); MagicMock would otherwise return an auto
+        # MagicMock for .role and fail the check.
+        mock_user.role = "student"
         mock_get_user.return_value = mock_user
 
         mock_ensure.return_value = f"user-container-{TEST_USER_ID}"
@@ -315,6 +323,10 @@ class TestReadLoopTiming:
         mock_user.port_start = 10000
         mock_user.port_end = 10009
         mock_user.email = "test@test.com"
+        # handle_connect now rejects users whose role isn't teacher/student
+        # (pre-onboarding gate); MagicMock would otherwise return an auto
+        # MagicMock for .role and fail the check.
+        mock_user.role = "student"
         mock_get_user.return_value = mock_user
 
         mock_ensure.return_value = f"user-container-{TEST_USER_ID}"
