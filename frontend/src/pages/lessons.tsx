@@ -300,6 +300,7 @@ export default function LessonsPage() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search lessons"
+              aria-label="Search lessons"
               className="bg-paper border border-rule rounded-md pl-9 pr-3.5 py-2 text-ink-default placeholder:text-ink-subtle w-full focus:outline-none focus:ring-2 focus:ring-navy/30"
             />
           </div>
