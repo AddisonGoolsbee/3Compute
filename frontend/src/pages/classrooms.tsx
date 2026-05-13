@@ -287,30 +287,41 @@ function ClassroomCard({
           {classroom.joins_paused && <Pill color="ochre">Joins paused</Pill>}
         </div>
         <p className="body-sm mt-1.5">
-          {studentCount} {studentCount === 1 ? 'student' : 'students'}
-          {assignments.length > 0 && (
+          {isOwner ? (
             <>
-              {' · '}
+              {studentCount} {studentCount === 1 ? 'student' : 'students'}
+              {assignments.length > 0 && (
+                <>
+                  {' · '}
+                  {assignments.length}{' '}
+                  {assignments.length === 1 ? 'assignment' : 'assignments'}
+                </>
+              )}
+            </>
+          ) : (
+            <>
               {assignments.length}{' '}
               {assignments.length === 1 ? 'assignment' : 'assignments'}
             </>
           )}
         </p>
 
-        <div className="flex items-center gap-2 mt-4 flex-wrap">
-          <code className="bg-ochre-soft text-ochre border border-ochre/30 px-3 py-1.5 rounded-md font-mono text-sm tracking-[0.12em] font-semibold inline-flex items-center gap-2">
-            {formatCode(classroom.access_code)}
-          </code>
-          <button
-            type="button"
-            onClick={(e) => onCopy(e, classroom)}
-            className="text-ochre hover:bg-ochre/10 rounded-sm p-1 transition-colors cursor-pointer"
-            title="Copy join code"
-            aria-label="Copy join code"
-          >
-            {copiedId === classroom.id ? <Check size={14} /> : <Copy size={14} />}
-          </button>
-        </div>
+        {isOwner && (
+          <div className="flex items-center gap-2 mt-4 flex-wrap">
+            <code className="bg-ochre-soft text-ochre border border-ochre/30 px-3 py-1.5 rounded-md font-mono text-sm tracking-[0.12em] font-semibold inline-flex items-center gap-2">
+              {formatCode(classroom.access_code)}
+            </code>
+            <button
+              type="button"
+              onClick={(e) => onCopy(e, classroom)}
+              className="text-ochre hover:bg-ochre/10 rounded-sm p-1 transition-colors cursor-pointer"
+              title="Copy join code"
+              aria-label="Copy join code"
+            >
+              {copiedId === classroom.id ? <Check size={14} /> : <Copy size={14} />}
+            </button>
+          </div>
+        )}
 
         {visibleAssignments.length > 0 && (
           <div className="flex items-center gap-2 mt-4 flex-wrap">

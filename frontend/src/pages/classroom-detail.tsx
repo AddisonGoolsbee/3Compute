@@ -358,9 +358,13 @@ export default function ClassroomDetailPage({
                 )}
               </div>
               <p className="body-sm mt-2">
-                {studentCount} {studentCount === 1 ? 'student' : 'students'} ·{' '}
+                {(isInstructor || demoMode) && (
+                  <>
+                    {studentCount} {studentCount === 1 ? 'student' : 'students'} ·{' '}
+                  </>
+                )}
                 {templateCount} {templateCount === 1 ? 'assignment' : 'assignments'}
-                {classroom.joins_paused && (
+                {classroom.joins_paused && (isInstructor || demoMode) && (
                   <>
                     {' · '}
                     <span className="text-ochre font-semibold">Joins paused</span>
@@ -370,18 +374,22 @@ export default function ClassroomDetailPage({
             </div>
 
             <div className="flex items-center gap-2">
-              <code className="bg-ochre-soft text-ochre border border-ochre/30 px-3 py-1.5 rounded-md font-mono text-sm tracking-[0.12em] font-semibold inline-flex items-center gap-2">
-                {formattedCode}
-              </code>
-              <button
-                type="button"
-                onClick={copyCode}
-                className="text-ochre hover:bg-ochre/10 rounded-sm p-1.5 cursor-pointer transition-colors"
-                title="Copy join code"
-                aria-label="Copy join code"
-              >
-                {copiedCode ? <Check size={14} /> : <Copy size={14} />}
-              </button>
+              {(isInstructor || demoMode) && (
+                <>
+                  <code className="bg-ochre-soft text-ochre border border-ochre/30 px-3 py-1.5 rounded-md font-mono text-sm tracking-[0.12em] font-semibold inline-flex items-center gap-2">
+                    {formattedCode}
+                  </code>
+                  <button
+                    type="button"
+                    onClick={copyCode}
+                    className="text-ochre hover:bg-ochre/10 rounded-sm p-1.5 cursor-pointer transition-colors"
+                    title="Copy join code"
+                    aria-label="Copy join code"
+                  >
+                    {copiedCode ? <Check size={14} /> : <Copy size={14} />}
+                  </button>
+                </>
+              )}
 
               {!readOnly && (
                 <Link
@@ -394,15 +402,17 @@ export default function ClassroomDetailPage({
                 </Link>
               )}
 
-              <button
-                type="button"
-                onClick={() => setHelpOpen(true)}
-                className="p-2 rounded-md hover:bg-paper-tinted text-ink-muted hover:text-ink-strong cursor-pointer transition-colors"
-                title="How classrooms work"
-                aria-label="How classrooms work"
-              >
-                <HelpCircle size={18} />
-              </button>
+              {(isInstructor || demoMode) && (
+                <button
+                  type="button"
+                  onClick={() => setHelpOpen(true)}
+                  className="p-2 rounded-md hover:bg-paper-tinted text-ink-muted hover:text-ink-strong cursor-pointer transition-colors"
+                  title="How classrooms work"
+                  aria-label="How classrooms work"
+                >
+                  <HelpCircle size={18} />
+                </button>
+              )}
 
               {!readOnly && isInstructor && (
                 <button
