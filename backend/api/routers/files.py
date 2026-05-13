@@ -410,146 +410,10 @@ class CopyRequest(BaseModel):
 # Auto-generated README
 # ---------------------------------------------------------------------------
 
-_STUDENT_README = """\
-# Welcome to CS Room!
-
-CS Room is a free educational platform that gives you a cloud-based development environment. No local setup required.
-
-## Getting Started
-
-1. **Templates**: click Templates in the file explorer to create a new project from a starter (e.g. Website, Discord Bot). The template files are copied into your workspace.
-2. **Upload**: upload your own files or folders using the Upload button.
-3. **New**: create new files or folders with the New button.
-
-You also have a full Linux terminal below the editor. Some useful commands:
-- `python file.py` to run a Python script
-- `mkdir folder_name` to create a folder
-- `rm file_name` to delete a file (irreversible!)
-- `cd folder_name` to change to a folder
-
-## Classrooms
-
-If your teacher gave you a **join code**, go to the Classrooms page and enter it.
-Once you join, assignment folders appear in your workspace automatically.
-You can edit files inside assignment folders, but you cannot create new top-level folders in the classroom. Just work inside the assignments your teacher provides.
-You can view or copy the assignment templates in the classroom's `.templates/` folder for reference of the original files. It is hidden by default — enable **Show hidden files** in the explorer to see it.
-
-Files named `test_*.py` are **test files** written by your teacher for automated evaluation. You can see them but cannot modify them.
-
-## Workspace Tour
-
-- **File Explorer** (left): browse, upload, create, and delete files.
-- **Editor** (center): edit code with syntax highlighting. Use the Save button or the language selector to change highlighting mode. Toggle Markdown preview for `.md` files.
-- **Terminal** (bottom): full shell access. This is where you will type commands. Open multiple tabs; closing a tab stops its processes.
-
-## Publishing a Web App (custom subdomain)
-
-If your project runs a web server (Flask, FastAPI, etc.), you can expose it publicly:
-
-1. Start your app on any port in your assigned range (shown in the Ports panel).
-2. Click the **Globe** icon in the terminal tab bar to open the **Ports** panel.
-3. Enter a subdomain name (e.g. `myapp`) and the port your app is listening on.
-4. Your app will be live at `https://myapp.app.csroom.org`.
-
-Subdomains must be 3-32 lowercase letters, numbers, or hyphens.
-
-## Learn more
-
-Open any template's `README.md` after creating it for project-specific instructions.
-"""
-
-_TEACHER_README = """\
-# Welcome to CS Room!
-
-CS Room is a free educational platform that gives you and your students cloud-based development environments. No local setup required.
-
-## Getting Started
-
-1. **Templates**: click Templates in the file explorer to create a new project from a starter (e.g. Website, Discord Bot). The template files are copied into your workspace.
-2. **Upload**: upload your own files or folders using the Upload button.
-3. **New**: create new files or folders with the New button.
-
-You also have a full Linux terminal below the editor. Some useful commands:
-- `python file.py` to run a Python script
-- `mkdir folder_name` to create a folder
-- `rm file_name` to delete a file (irreversible!)
-- `cd folder_name` to change to a folder
-
-## Managing Classrooms
-
-### Creating a classroom
-Go to the **Classrooms** page and click **Create**. Share the join code with your students.
-
-### Adding assignments
-1. Open your classroom from the **Classrooms** page, go to the **Assignments** tab, and click **Upload Folder** to upload a folder with your starter code and any `test_*.py` test files.
-2. Your upload appears as a draft. Click **Edit in IDE** to refine it, then click **Publish** when ready.
-3. You can also manage assignments in the IDE. Drafts are synced with the classroom's `drafts/` folder. Moving a folder into the `assignments/` folder publishes it immediately.
-
-Every current student receives a copy when you publish. Students who join later also get all assignments automatically. Once published, edits to the original are not synced to existing students, but the template is updated for future students. Current students can view the modifications in their classroom's `.templates/` folder (hidden by default — they enable **Show hidden files** in the explorer to see it), even if it is not on their copy of the assignment.
-
-### Deleting assignments
-Delete the assignment from the **Assignments** tab, or remove the folder from your classroom's `assignments/` folder in the IDE. Students keep their existing copies, but the assignment will no longer appear in the gradebook or be distributed to new students.
-
-### Test files & grading
-Files named `test_*.py` are used for automated grading. Students can see them but cannot modify them. Run tests from the classroom detail page to see scores.
-
-You can also import lessons with pre-written tests from the **Lessons** page.
-
-### Writing your own tests
-Test files must be named `test_*.py` (e.g. `test_math.py`) and be runnable as a standalone Python script. Drop the following snippet at the top of every test file so the gradebook gets a consistent score even if the student's code crashes partway through:
-
-```python
-EXPECTED_TOTAL = 2  # total number of checks in this file
-
-import atexit, os
-passed = 0
-failed = 0
-if os.environ.get("TCOMPUTE_SCORE"):
-    atexit.register(lambda: print(f"{passed}/{EXPECTED_TOTAL}"))
-
-
-def check(description, got, expected):
-    global passed, failed
-    if got == expected:
-        print(f"  PASS  {description}")
-        passed += 1
-    else:
-        print(f"  FAIL  {description}")
-        print(f"          expected: {expected!r}")
-        print(f"          got:      {got!r}")
-        failed += 1
-
-
-from main import add, multiply  # import student code
-
-check("add(2, 3) == 5", add(2, 3), 5)
-check("multiply(4, 5) == 20", multiply(4, 5), 20)
-
-print(f"Results: {passed}/{EXPECTED_TOTAL} tests passed")
-```
-
-Set `EXPECTED_TOTAL` to the number of `check(...)` calls in the file. Students running the script locally see only the `Results: N/M tests passed` line; the gradebook reads the score separately.
-
-If an assignment has multiple `test_*.py` files, their results are combined into a single score.
-
-### Tracking progress
-The **Students** tab lets you view each student's progress. Select an assignment, then click on a student to see their files and test results. You can also run tests from here.
-
-The **Gradebook** tab shows a matrix of all students and assignments with their scores. You can grade assignments automatically through test cases or use manual scoring. Students cannot see the gradebook.
-
-### Student restrictions
-Students can only create and edit files inside their assignment folders. They cannot create new top-level folders in the classroom.
-
-## Workspace Tour
-
-- **File Explorer** (left): browse, upload, create, and delete files.
-- **Editor** (center): edit code with syntax highlighting. Use the Save button or the language selector to change highlighting mode. Toggle Markdown preview for `.md` files.
-- **Terminal** (bottom): full shell access. Open multiple tabs; closing a tab stops its processes.
-
-## Learn more
-
-Open any template's `README.md` after creating it for project-specific instructions.
-"""
+_ROLE_README_TEMPLATES = {
+    "teacher": os.path.join("backend", "teacher_readme_template.md"),
+    "student": os.path.join("backend", "student_readme_template.md"),
+}
 
 
 def _ensure_readme(upload_dir: str, user: User) -> None:
@@ -559,8 +423,16 @@ def _ensure_readme(upload_dir: str, user: User) -> None:
     readme_path = os.path.join(upload_dir, "README.md")
     if os.path.exists(readme_path):
         return
+    template_path = _ROLE_README_TEMPLATES.get(
+        user.role, _ROLE_README_TEMPLATES["student"]
+    )
+    try:
+        with open(template_path, "r") as tf:
+            content = tf.read()
+    except OSError as e:
+        logger.warning(f"Failed to read README template {template_path}: {e}")
+        return
     os.makedirs(upload_dir, exist_ok=True)
-    content = _TEACHER_README if user.role == "teacher" else _STUDENT_README
     try:
         with open(readme_path, "w") as fh:
             fh.write(content)

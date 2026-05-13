@@ -78,6 +78,8 @@ export function DemoTerminalPanel({
             type="button"
             onClick={() => setShowPorts((v) => !v)}
             title="Public URLs"
+            aria-label="Toggle ports panel"
+            aria-expanded={showPorts}
             className={cn(
               'inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-sm text-xs font-medium transition-colors cursor-pointer',
               showPorts

@@ -48,7 +48,7 @@ python main.py
 
 | Column | Type | Description |
 |--------|------|-------------|
-| `student_id` | integer | Unique student identifier (1-150) |
+| `student_id` | string | Unique student identifier (1-150, kept as a string after loading) |
 | `grade` | integer | Grade level (9, 10, 11, or 12) |
 | `gender` | string | M, F, or Other |
 | `hours_sleep` | float | Average hours of sleep per night |
