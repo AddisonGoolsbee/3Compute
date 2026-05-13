@@ -157,13 +157,17 @@ export function TerminalSession({ tabId, isActive }: TerminalSessionProps) {
       if (filtered) socket.emit('pty-input', { input: filtered });
     });
 
-    // Cmd+C (macOS) / Ctrl+Shift+C (Linux) copies selected text
-    // F6 releases focus from the terminal (a11y escape hatch — sighted users
-    // never see this advertised; screen reader users hear the live region
-    // hint on focus).
+    // Cmd+C (macOS) / Ctrl+Shift+C (Linux) copies selected text.
+    // F6 / Ctrl+\ release focus from the terminal (a11y escape hatch —
+    // sighted users never see this advertised; screen reader users hear
+    // the live region hint on focus). Ctrl+\ is the mac-friendly variant
+    // since F-row keys require Fn by default on macOS.
     term.attachCustomKeyEventHandler((event) => {
       if (event.type !== 'keydown') return true;
-      if (event.key === 'F6') {
+      const isEscapeKey =
+        event.key === 'F6' ||
+        (event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey && event.key === '\\');
+      if (isEscapeKey) {
         event.preventDefault();
         const tabButton = document.getElementById(`terminal-tab-${tabId}`);
         if (tabButton) {
@@ -192,7 +196,7 @@ export function TerminalSession({ tabId, isActive }: TerminalSessionProps) {
       announcedRef.current = true;
       setLiveMessage('');
       requestAnimationFrame(() => {
-        setLiveMessage(`Terminal ${tabId} focused. Press F6 to exit the terminal.`);
+        setLiveMessage(`Terminal ${tabId} focused. Press F6 or Control+Backslash to exit the terminal.`);
       });
     };
     const helperTextarea = terminalRef.current.querySelector<HTMLTextAreaElement>('.xterm-helper-textarea');
